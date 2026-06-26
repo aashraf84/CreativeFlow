@@ -648,14 +648,14 @@ export function ContentDetailModal() {
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                 <Send className="h-3.5 w-3.5" />
                 Connected Posts
-                {content.posts.length > 0 && (
-                  <Badge variant="secondary" className="ml-1">{content.posts.length}</Badge>
+                {(content.posts?.length ?? 0) > 0 && (
+                  <Badge variant="secondary" className="ml-1">{content.posts?.length ?? 0}</Badge>
                 )}
               </Label>
 
-              {content.posts.length > 0 ? (
+              {(content.posts?.length ?? 0) > 0 ? (
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {content.posts.map((post) => {
+                  {content.posts?.map((post) => {
                     const PlatformIcon = PLATFORM_ICONS[post.platform] || FileText;
                     return (
                       <div
@@ -692,8 +692,8 @@ export function ContentDetailModal() {
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                 <MessageSquare className="h-3.5 w-3.5" />
                 Comments
-                {content.comments.length > 0 && (
-                  <Badge variant="secondary" className="ml-1">{content.comments.length}</Badge>
+                {(content.comments?.length ?? 0) > 0 && (
+                  <Badge variant="secondary" className="ml-1">{content.comments?.length ?? 0}</Badge>
                 )}
               </Label>
 
@@ -732,9 +732,9 @@ export function ContentDetailModal() {
               </div>
 
               {/* Comment List */}
-              {content.comments.length > 0 ? (
+              {(content.comments?.length ?? 0) > 0 ? (
                 <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {content.comments.map((comment) => (
+                  {content.comments?.map((comment) => (
                     <div key={comment.id} className="flex gap-2.5">
                       <Avatar className="h-7 w-7 shrink-0">
                         <AvatarImage src={comment.user.avatar || undefined} />
