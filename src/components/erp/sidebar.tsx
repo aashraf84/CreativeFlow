@@ -18,6 +18,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  Inbox,
+  ShieldCheck,
+  Star,
+  FolderOpen,
+  Palette,
+  Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -35,17 +41,23 @@ const mainNav: NavItem[] = [
   { id: "pipeline", label: "Content Pipeline", icon: Workflow },
   { id: "dissemination", label: "Dissemination", icon: Send, badge: "Live" },
   { id: "calendar", label: "Calendar", icon: CalendarDays },
+  { id: "inbox", label: "Inbox", icon: Inbox, badge: "New" },
+  { id: "approvals", label: "Approvals", icon: ShieldCheck },
 ];
 
 const manageNav: NavItem[] = [
   { id: "teams", label: "Teams", icon: Users },
   { id: "accounts", label: "Social Accounts", icon: Share2 },
   { id: "clients", label: "Clients & Campaigns", icon: Briefcase },
+  { id: "influencers", label: "Influencers", icon: Star },
+  { id: "assets", label: "Assets", icon: FolderOpen },
+  { id: "brandKit", label: "Brand Kit", icon: Palette },
 ];
 
 const insightNav: NavItem[] = [
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "automation", label: "Automation", icon: Zap, badge: "Pro" },
+  { id: "invoicing", label: "Invoicing", icon: Receipt },
   { id: "archive", label: "Archive", icon: Archive },
 ];
 
@@ -54,7 +66,18 @@ const bottomNav: NavItem[] = [
 ];
 
 export function Sidebar() {
-  const { activeView, setActiveView, sidebarOpen, setSidebarOpen } = useERPStore();
+  const { activeView, setActiveView, sidebarOpen, setSidebarOpen, notifications, inboxMessages, approvals } = useERPStore();
+
+  const unreadNotifications = notifications.filter(n => !n.isRead).length;
+  const unreadInbox = inboxMessages.filter(m => m.status === 'unread').length;
+  const pendingApprovals = approvals.filter(a => a.status === 'pending').length;
+
+  const getBadge = (id: ActiveView): string | undefined => {
+    if (id === 'inbox' && unreadInbox > 0) return String(unreadInbox);
+    if (id === 'approvals' && pendingApprovals > 0) return String(pendingApprovals);
+    const item = [...mainNav, ...manageNav, ...insightNav, ...bottomNav].find(n => n.id === id);
+    return item?.badge;
+  };
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -98,7 +121,7 @@ export function Sidebar() {
             {mainNav.map((item) => (
               <NavButton
                 key={item.id}
-                item={item}
+                item={{ ...item, badge: getBadge(item.id) }}
                 isActive={activeView === item.id}
                 onClick={() => setActiveView(item.id)}
                 collapsed={!sidebarOpen}
@@ -118,7 +141,7 @@ export function Sidebar() {
             {manageNav.map((item) => (
               <NavButton
                 key={item.id}
-                item={item}
+                item={{ ...item, badge: getBadge(item.id) }}
                 isActive={activeView === item.id}
                 onClick={() => setActiveView(item.id)}
                 collapsed={!sidebarOpen}
@@ -138,7 +161,7 @@ export function Sidebar() {
             {insightNav.map((item) => (
               <NavButton
                 key={item.id}
-                item={item}
+                item={{ ...item, badge: getBadge(item.id) }}
                 isActive={activeView === item.id}
                 onClick={() => setActiveView(item.id)}
                 collapsed={!sidebarOpen}
@@ -191,6 +214,16 @@ function NavButton({
 }) {
   const Icon = item.icon;
 
+  const badgeColor = (badge: string) => {
+    if (badge === "Live") return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
+    if (badge === "Pro") return "bg-amber-500/15 text-amber-600 dark:text-amber-400";
+    if (badge === "New") return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
+    // Numeric badges (unread counts)
+    const num = parseInt(badge);
+    if (!isNaN(num) && num > 0) return "bg-red-500/15 text-red-600 dark:text-red-400";
+    return "bg-muted text-muted-foreground";
+  };
+
   const button = (
     <button
       onClick={onClick}
@@ -209,9 +242,7 @@ function NavButton({
           {item.badge && (
             <span className={cn(
               "px-1.5 py-0.5 text-[10px] font-bold rounded-md leading-none",
-              item.badge === "Live"
-                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+              badgeColor(item.badge)
             )}>
               {item.badge}
             </span>

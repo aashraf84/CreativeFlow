@@ -26,6 +26,14 @@ model Organization {
   socialAccounts SocialAccount[]
   automations AutomationRule[]
   activities ActivityLog[]
+  approvals  Approval[]
+  invoices   Invoice[]
+  timeEntries TimeEntry[]
+  assets     Asset[]
+  notifications Notification[]
+  inboxMessages InboxMessage[]
+  influencers Influencer[]
+  brandKits  BrandKit[]
 }
 
 model User {
@@ -46,6 +54,11 @@ model User {
   posts           Post[]
   comments        Comment[]
   activities      ActivityLog[] @relation("ActivityActor")
+  approvalsRequested Approval[] @relation("ApprovalRequester")
+  approvalsReviewed  Approval[] @relation("ApprovalReviewer")
+  timeEntries     TimeEntry[]  @relation("TimeEntryUser")
+  assetsUploaded  Asset[]      @relation("AssetUploader")
+  notifications   Notification[] @relation("NotificationUser")
 
   @@index([organizationId])
 }
@@ -96,6 +109,11 @@ model Client {
 
   organization Organization @relation(fields: [organizationId], references: [id])
   campaigns    Campaign[]
+  invoices     Invoice[]
+  timeEntries  TimeEntry[]
+  assets       Asset[]
+  influencers  Influencer[]
+  brandKits    BrandKit[]
 
   @@index([organizationId])
 }
@@ -116,6 +134,9 @@ model Campaign {
   organization Organization @relation(fields: [organizationId], references: [id])
   client       Client?      @relation(fields: [clientId], references: [id])
   contents     Content[]
+  invoices     Invoice[]
+  timeEntries  TimeEntry[]
+  influencers  Influencer[]
 
   @@index([organizationId])
   @@index([clientId])
@@ -148,6 +169,8 @@ model Content {
   team         Team?        @relation(fields: [teamId], references: [id])
   posts        Post[]
   comments     Comment[]
+  approvals    Approval[]
+  timeEntries  TimeEntry[]
 
   @@index([organizationId])
   @@index([stage])
@@ -175,6 +198,7 @@ model SocialAccount {
   user           User          @relation(fields: [userId], references: [id])
   organization   Organization  @relation(fields: [organizationId], references: [id])
   posts          Post[]
+  inboxMessages  InboxMessage[]
 
   @@unique([platform, accountId])
   @@index([organizationId])
@@ -201,6 +225,7 @@ model Post {
   socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id])
   contentItem     Content?      @relation(fields: [contentId], references: [id])
   user            User          @relation(fields: [userId], references: [id])
+  approvals       Approval[]
 
   @@index([organizationId])
   @@index([socialAccountId])
@@ -253,4 +278,196 @@ model ActivityLog {
 
   @@index([organizationId])
   @@index([createdAt])
+}
+
+// ─── New Models for Enhanced ERP ──────────────────────────────────────────────
+
+model Approval {
+  id             String   @id @default(cuid())
+  type           String   // content_review, post_publish, campaign_launch, budget_approval
+  status         String   @default("pending") // pending, approved, rejected, changes_requested
+  comment        String?
+  organizationId String
+  contentId      String?
+  postId         String?
+  requestedById  String
+  reviewedById   String?
+  reviewedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  content      Content?     @relation(fields: [contentId], references: [id])
+  post         Post?        @relation(fields: [postId], references: [id])
+  requestedBy  User         @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  reviewedBy   User?        @relation("ApprovalReviewer", fields: [reviewedById], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model Invoice {
+  id             String   @id @default(cuid())
+  number         String   @unique
+  clientId       String
+  campaignId     String?
+  status         String   @default("draft") // draft, sent, paid, overdue, cancelled
+  items          String   // JSON array: [{description, quantity, rate, amount}]
+  subtotal       Float    @default(0)
+  tax            Float    @default(0)
+  total          Float    @default(0)
+  dueDate        DateTime?
+  paidAt         DateTime?
+  notes          String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  client       Client       @relation(fields: [clientId], references: [id])
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([status])
+}
+
+model TimeEntry {
+  id             String   @id @default(cuid())
+  description    String
+  hours          Float
+  billable       Boolean  @default(true)
+  date           DateTime
+  userId         String
+  clientId       String?
+  campaignId     String?
+  contentId      String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation("TimeEntryUser", fields: [userId], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+  content      Content?     @relation(fields: [contentId], references: [id])
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([clientId])
+}
+
+model Asset {
+  id             String   @id @default(cuid())
+  name           String
+  type           String   // image, video, document, template, font, brand-guide
+  url            String
+  thumbnailUrl   String?
+  size           Int      @default(0) // in bytes
+  mimeType       String?
+  tags           String?  // comma-separated
+  folder         String?  // folder path
+  metadata       String?  // JSON for width, height, duration, etc.
+  organizationId String
+  uploadedById   String
+  clientId       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  uploadedBy   User         @relation("AssetUploader", fields: [uploadedById], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([folder])
+}
+
+model Notification {
+  id             String   @id @default(cuid())
+  title          String
+  message        String
+  type           String   // info, warning, success, error, approval, mention
+  category       String   // content, approval, post, invoice, system
+  isRead         Boolean  @default(false)
+  actionUrl      String?
+  organizationId String
+  userId         String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation("NotificationUser", fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([isRead])
+}
+
+model InboxMessage {
+  id             String   @id @default(cuid())
+  platform       String
+  senderName     String
+  senderAvatar   String?
+  content        String
+  type           String   // comment, mention, dm, reply, review
+  status         String   @default("unread") // unread, read, replied, ignored
+  postUrl        String?
+  socialAccountId String
+  organizationId String
+  repliedAt      DateTime?
+  createdAt      DateTime @default(now())
+
+  socialAccount  SocialAccount @relation(fields: [socialAccountId], references: [id])
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([platform])
+}
+
+model Influencer {
+  id               String   @id @default(cuid())
+  name             String
+  username         String
+  platform         String
+  followers        Int      @default(0)
+  engagementRate   Float    @default(0)
+  niche            String?  // comma-separated niches
+  email            String?
+  phone            String?
+  notes            String?
+  status           String   @default("prospect") // prospect, contacted, negotiating, active, completed, declined
+  rate             Float?   // per-post rate
+  contractStart    DateTime?
+  contractEnd      DateTime?
+  organizationId   String
+  clientId         String?
+  campaignId       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([platform])
+}
+
+model BrandKit {
+  id             String   @id @default(cuid())
+  name           String
+  type           String   // color, font, logo, voice, guideline
+  value          String   // JSON: color hex, font family, logo url, etc.
+  clientId       String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+
+  @@index([organizationId])
+  @@index([clientId])
 }

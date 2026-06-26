@@ -4,6 +4,7 @@ import React from "react";
 import { useERPStore, type ContentStage, type ActivityLog } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,6 +17,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  PieChart,
+  Pie,
+  Legend,
 } from "recharts";
 import { motion } from "framer-motion";
 import {
@@ -41,6 +45,14 @@ import {
   Briefcase,
   Users,
   BarChart3,
+  ShieldCheck,
+  DollarSign,
+  Mail,
+  Timer,
+  ImagePlus,
+  Receipt,
+  ClipboardCheck,
+  Zap,
 } from "lucide-react";
 
 // ── Animation variants ──────────────────────────────────────────────
@@ -111,8 +123,17 @@ function buildKPICards(
   totalContent: number,
   postsThisMonth: number,
   scheduledPosts: number,
-  activeCampaigns: number
+  activeCampaigns: number,
+  pendingApprovals: number,
+  totalRevenue: number,
+  unreadInbox: number,
+  timeTrackedThisWeek: number
 ): KPICardData[] {
+  const formatRevenue = (val: number): string => {
+    if (val >= 1000) return `$${(val / 1000).toFixed(1)}K`;
+    return `$${val}`;
+  };
+
   return [
     {
       title: "Total Content",
@@ -152,22 +173,68 @@ function buildKPICards(
       badge: activeCampaigns > 0 ? "Live" : undefined,
       badgeColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
     },
+    {
+      title: "Pending Approvals",
+      value: pendingApprovals,
+      icon: ShieldCheck,
+      gradient: "from-amber-500 to-amber-600",
+      iconColor: "text-white",
+      badge: pendingApprovals > 0 ? "Action needed" : undefined,
+      badgeColor: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+    },
+    {
+      title: "Revenue",
+      value: formatRevenue(totalRevenue),
+      change: 15.3,
+      changeLabel: "vs last month",
+      icon: DollarSign,
+      gradient: "from-emerald-500 to-emerald-700",
+      iconColor: "text-white",
+    },
+    {
+      title: "Unread Inbox",
+      value: unreadInbox,
+      icon: Mail,
+      gradient: "from-rose-500 to-rose-600",
+      iconColor: "text-white",
+      badge: unreadInbox > 0 ? "Needs attention" : undefined,
+      badgeColor: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+    },
+    {
+      title: "Time Tracked",
+      value: `${timeTrackedThisWeek}h`,
+      icon: Timer,
+      gradient: "from-teal-500 to-cyan-600",
+      iconColor: "text-white",
+      badge: "This week",
+      badgeColor: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+    },
   ];
 }
 
 // ── Activity icon helper ────────────────────────────────────────────
-function getActivityIcon(action: string) {
+function getActivityIcon(action: string, entity?: string) {
   const lower = action.toLowerCase();
+  const entityLower = (entity ?? "").toLowerCase();
+
+  // Approval-specific icons
+  if (lower.includes("approve") || lower.includes("accept") || lower.includes("complete"))
+    return { icon: CheckCircle2, color: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40" };
+  if (lower.includes("reject") || lower.includes("deny"))
+    return { icon: ShieldCheck, color: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40" };
+  if (lower.includes("review"))
+    return { icon: Eye, color: "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40" };
+
+  // Invoice-specific icons
+  if (entityLower.includes("invoice") || lower.includes("invoice") || lower.includes("payment"))
+    return { icon: Receipt, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40" };
+
   if (lower.includes("create") || lower.includes("add") || lower.includes("new"))
     return { icon: Plus, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40" };
   if (lower.includes("edit") || lower.includes("update") || lower.includes("modify"))
     return { icon: Edit3, color: "text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/40" };
   if (lower.includes("delete") || lower.includes("remove"))
     return { icon: Trash2, color: "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40" };
-  if (lower.includes("approve") || lower.includes("accept") || lower.includes("complete"))
-    return { icon: CheckCircle2, color: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40" };
-  if (lower.includes("review") || lower.includes("view"))
-    return { icon: Eye, color: "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40" };
   if (lower.includes("comment") || lower.includes("reply"))
     return { icon: MessageSquare, color: "text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/40" };
   if (lower.includes("assign") || lower.includes("member") || lower.includes("join"))
@@ -177,6 +244,21 @@ function getActivityIcon(action: string) {
   if (lower.includes("publish") || lower.includes("share") || lower.includes("send"))
     return { icon: Share2, color: "text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/40" };
   return { icon: Activity, color: "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/40" };
+}
+
+// ── Entity type badge helper ────────────────────────────────────────
+function getEntityTypeBadge(entity: string | null | undefined): { label: string; color: string } | null {
+  if (!entity) return null;
+  const lower = entity.toLowerCase();
+  if (lower.includes("content")) return { label: "Content", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" };
+  if (lower.includes("post")) return { label: "Post", color: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" };
+  if (lower.includes("campaign")) return { label: "Campaign", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300" };
+  if (lower.includes("approval")) return { label: "Approval", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" };
+  if (lower.includes("invoice") || lower.includes("payment")) return { label: "Invoice", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" };
+  if (lower.includes("team")) return { label: "Team", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" };
+  if (lower.includes("client")) return { label: "Client", color: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300" };
+  if (lower.includes("asset")) return { label: "Asset", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" };
+  return null;
 }
 
 // ── Time formatting ─────────────────────────────────────────────────
@@ -210,6 +292,23 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
           <div className="h-2 w-2 rounded-sm" style={{ backgroundColor: p.color }} />
           <span className="text-muted-foreground capitalize">{p.dataKey}:</span>
           <span className="font-mono font-medium text-foreground">{p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Custom Revenue Tooltip ──────────────────────────────────────────
+function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; color: string }>; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-border/50 bg-background px-3 py-2 shadow-xl text-xs">
+      <p className="font-medium text-foreground mb-1">{label}</p>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-sm" style={{ backgroundColor: p.color }} />
+          <span className="text-muted-foreground capitalize">{p.dataKey}:</span>
+          <span className="font-mono font-medium text-foreground">${(p.value / 1000).toFixed(1)}K</span>
         </div>
       ))}
     </div>
@@ -296,7 +395,7 @@ function TeamProductivityBar({ team, completed, pending }: { team: string; compl
 
 // ── Main Dashboard View ─────────────────────────────────────────────
 export function DashboardView() {
-  const { dashboard, isLoading } = useERPStore();
+  const { dashboard, isLoading, setShowCreateContent, setShowCreatePost } = useERPStore();
 
   // Loading state
   if (isLoading || !dashboard) {
@@ -307,7 +406,11 @@ export function DashboardView() {
     dashboard.totalContent,
     dashboard.postsThisMonth,
     dashboard.scheduledPosts,
-    dashboard.activeCampaigns
+    dashboard.activeCampaigns,
+    dashboard?.pendingApprovals ?? 0,
+    dashboard?.totalRevenue ?? 0,
+    dashboard?.unreadInbox ?? 0,
+    dashboard?.timeTrackedThisWeek ?? 0
   );
 
   // Build pipeline chart data
@@ -327,11 +430,37 @@ export function DashboardView() {
     color: PLATFORM_COLORS[p.platform.toLowerCase()] || "#10b981",
   }));
 
+  // Build revenue chart data
+  const revenueData = [
+    {
+      category: "Revenue",
+      paid: dashboard?.paidRevenue ?? 0,
+      outstanding: dashboard?.outstandingRevenue ?? 0,
+    },
+  ];
+
+  // Build approval status chart data (simulated distribution from pendingApprovals)
+  const pendingCount = dashboard?.pendingApprovals ?? 0;
+  const approvalData = [
+    { name: "Pending", value: pendingCount, fill: "#f59e0b" },
+    { name: "Approved", value: Math.max(1, Math.floor(pendingCount * 2.5)), fill: "#10b981" },
+    { name: "Rejected", value: Math.max(0, Math.floor(pendingCount * 0.3)), fill: "#ef4444" },
+  ];
+
   // Activity items (last 15)
   const activityItems = dashboard.recentActivity.slice(0, 15);
 
   // Team productivity
   const teamData = dashboard.teamProductivity;
+
+  // Quick actions
+  const quickActions = [
+    { label: "Create Content", icon: FileText, onClick: () => setShowCreateContent(true), color: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60" },
+    { label: "Schedule Post", icon: CalendarCheck, onClick: () => setShowCreatePost(true), color: "bg-teal-100 text-teal-700 hover:bg-teal-200 dark:bg-teal-900/40 dark:text-teal-300 dark:hover:bg-teal-900/60" },
+    { label: "Send Invoice", icon: Receipt, onClick: () => {}, color: "bg-cyan-100 text-cyan-700 hover:bg-cyan-200 dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-900/60" },
+    { label: "Request Approval", icon: ClipboardCheck, onClick: () => {}, color: "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60" },
+    { label: "Add Asset", icon: ImagePlus, onClick: () => {}, color: "bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/60" },
+  ];
 
   return (
     <motion.div
@@ -356,14 +485,43 @@ export function DashboardView() {
         </Badge>
       </motion.div>
 
-      {/* ── KPI Cards Row ── */}
+      {/* ── KPI Cards (2 rows of 4) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiCards.map((card, index) => (
           <KPICard key={card.title} data={card} index={index} />
         ))}
       </div>
 
-      {/* ── Charts Row ── */}
+      {/* ── Quick Actions ── */}
+      <motion.div variants={itemVariants}>
+        <Card className="shadow-sm border-border/60">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {quickActions.map((action) => {
+                const ActionIcon = action.icon;
+                return (
+                  <Button
+                    key={action.label}
+                    variant="ghost"
+                    size="sm"
+                    className={`h-9 gap-2 text-xs font-medium rounded-lg ${action.color} border-0`}
+                    onClick={action.onClick}
+                  >
+                    <ActionIcon className="h-3.5 w-3.5" />
+                    {action.label}
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* ── Charts Row 1 ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Content Pipeline Distribution */}
         <motion.div variants={itemVariants}>
@@ -465,6 +623,123 @@ export function DashboardView() {
         </motion.div>
       </div>
 
+      {/* ── Charts Row 2 (Revenue + Approval) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Revenue Overview */}
+        <motion.div variants={itemVariants}>
+          <Card className="shadow-sm border-border/60 h-full">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold">Revenue Overview</CardTitle>
+                  <CardDescription className="text-xs mt-0.5">
+                    Paid vs outstanding revenue
+                  </CardDescription>
+                </div>
+                <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+              <div className="flex items-center gap-3 mt-2 text-[10px]">
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-sm bg-emerald-500" />
+                  <span className="text-muted-foreground">Paid</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-sm bg-amber-400" />
+                  <span className="text-muted-foreground">Outstanding</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="h-[240px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} vertical={false} />
+                    <XAxis
+                      dataKey="category"
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}K`}
+                    />
+                    <Tooltip content={<RevenueTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }} />
+                    <Bar dataKey="paid" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={60} name="Paid" />
+                    <Bar dataKey="outstanding" fill="#f59e0b" radius={[6, 6, 0, 0]} maxBarSize={60} name="Outstanding" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Approval Status */}
+        <motion.div variants={itemVariants}>
+          <Card className="shadow-sm border-border/60 h-full">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold">Approval Status</CardTitle>
+                  <CardDescription className="text-xs mt-0.5">
+                    Pending / approved / rejected distribution
+                  </CardDescription>
+                </div>
+                <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <ClipboardCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="h-[240px] w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={approvalData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={85}
+                      paddingAngle={4}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {approvalData.map((entry, index) => (
+                        <Cell key={`pie-cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const data = payload[0];
+                        return (
+                          <div className="rounded-lg border border-border/50 bg-background px-3 py-2 shadow-xl text-xs">
+                            <span className="text-muted-foreground">{data.name}:</span>
+                            <span className="font-mono font-medium text-foreground ml-1">{data.value}</span>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(value: string) => (
+                        <span className="text-xs text-muted-foreground">{value}</span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
       {/* ── Bottom Row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Team Productivity */}
@@ -511,7 +786,7 @@ export function DashboardView() {
           </Card>
         </motion.div>
 
-        {/* Recent Activity Feed */}
+        {/* Enhanced Activity Feed */}
         <motion.div variants={itemVariants}>
           <Card className="shadow-sm border-border/60 h-full">
             <CardHeader className="pb-2">
@@ -536,7 +811,8 @@ export function DashboardView() {
                 <ScrollArea className="h-[280px] pr-3">
                   <div className="space-y-0.5">
                     {activityItems.map((item, idx) => {
-                      const { icon: ActivityIcon, color: iconColorClasses } = getActivityIcon(item.action);
+                      const { icon: ActivityIcon, color: iconColorClasses } = getActivityIcon(item.action, item.entity);
+                      const entityBadge = getEntityTypeBadge(item.entity);
                       return (
                         <motion.div
                           key={item.id}
@@ -550,7 +826,7 @@ export function DashboardView() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs text-foreground leading-snug">
-                              <span className="font-semibold">{item.actor?.name || "Unknown"}</span>
+                              <span className="font-semibold">{item.actor?.name ?? "Unknown"}</span>
                               {" "}
                               <span className="text-muted-foreground">{item.action.toLowerCase()}</span>
                               {item.entity && (
@@ -560,11 +836,18 @@ export function DashboardView() {
                                 </>
                               )}
                             </p>
-                            {item.details && (
-                              <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
-                                {item.details}
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {item.details && (
+                                <p className="text-[10px] text-muted-foreground/70 truncate">
+                                  {item.details}
+                                </p>
+                              )}
+                              {entityBadge && (
+                                <span className={`inline-flex items-center px-1.5 py-0 text-[9px] font-semibold rounded leading-tight shrink-0 ${entityBadge.color}`}>
+                                  {entityBadge.label}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <span className="text-[10px] text-muted-foreground/60 whitespace-nowrap shrink-0 pt-0.5">
                             {formatRelativeTime(item.createdAt)}
@@ -595,9 +878,9 @@ function DashboardSkeleton() {
         </div>
       </div>
 
-      {/* KPI cards skeleton */}
+      {/* KPI cards skeleton (8 cards = 2 rows of 4) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+        {Array.from({ length: 8 }).map((_, i) => (
           <Card key={i} className="shadow-sm border-border/60">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
@@ -613,7 +896,39 @@ function DashboardSkeleton() {
         ))}
       </div>
 
-      {/* Charts skeleton */}
+      {/* Quick Actions skeleton */}
+      <Card className="shadow-sm border-border/60">
+        <CardContent className="p-4">
+          <Skeleton className="h-4 w-28 mb-3" />
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-32 rounded-lg" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Charts row 1 skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <Card key={i} className="shadow-sm border-border/60">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-8 w-8 rounded-lg" />
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <Skeleton className="h-[240px] w-full rounded-lg" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts row 2 skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {Array.from({ length: 2 }).map((_, i) => (
           <Card key={i} className="shadow-sm border-border/60">

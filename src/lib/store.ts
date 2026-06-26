@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 // Types for the ERP
-export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings'
+export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers'
 
 export type ContentStage = 'idea' | 'design' | 'edit' | 'review' | 'approve' | 'disseminate' | 'archived'
 export type ContentPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -157,6 +157,133 @@ export interface CalendarEvent {
   color: string
 }
 
+export interface Approval {
+  id: string
+  type: string
+  status: string
+  comment: string | null
+  contentId: string | null
+  postId: string | null
+  requestedById: string
+  reviewedById: string | null
+  reviewedAt: string | null
+  requestedBy: User
+  reviewedBy: User | null
+  content: Content | null
+  post: Post | null
+  createdAt: string
+}
+
+export interface Invoice {
+  id: string
+  number: string
+  clientId: string
+  campaignId: string | null
+  status: string
+  items: string
+  subtotal: number
+  tax: number
+  total: number
+  dueDate: string | null
+  paidAt: string | null
+  notes: string | null
+  client: Client
+  campaign: Campaign | null
+  createdAt: string
+}
+
+export interface TimeEntry {
+  id: string
+  description: string
+  hours: number
+  billable: boolean
+  date: string
+  userId: string
+  clientId: string | null
+  campaignId: string | null
+  contentId: string | null
+  user: User
+  client: Client | null
+  campaign: Campaign | null
+  createdAt: string
+}
+
+export interface Asset {
+  id: string
+  name: string
+  type: string
+  url: string
+  thumbnailUrl: string | null
+  size: number
+  mimeType: string | null
+  tags: string | null
+  folder: string | null
+  metadata: string | null
+  uploadedById: string
+  clientId: string | null
+  uploadedBy: User
+  client: Client | null
+  createdAt: string
+}
+
+export interface ERPNotification {
+  id: string
+  title: string
+  message: string
+  type: string
+  category: string
+  isRead: boolean
+  actionUrl: string | null
+  userId: string
+  createdAt: string
+}
+
+export interface InboxMessage {
+  id: string
+  platform: Platform
+  senderName: string
+  senderAvatar: string | null
+  content: string
+  type: string
+  status: string
+  postUrl: string | null
+  socialAccountId: string
+  repliedAt: string | null
+  createdAt: string
+}
+
+export interface Influencer {
+  id: string
+  name: string
+  username: string
+  platform: Platform
+  followers: number
+  engagementRate: number
+  niche: string | null
+  email: string | null
+  phone: string | null
+  notes: string | null
+  status: string
+  rate: number | null
+  contractStart: string | null
+  contractEnd: string | null
+  clientId: string | null
+  campaignId: string | null
+  client: Client | null
+  campaign: Campaign | null
+  createdAt: string
+}
+
+export interface BrandKit {
+  id: string
+  name: string
+  type: string
+  value: string
+  clientId: string | null
+  client: Client | null
+  createdAt: string
+}
+
 export interface DashboardData {
   totalContent: number
   contentByStage: Record<ContentStage, number>
@@ -170,6 +297,13 @@ export interface DashboardData {
   platformBreakdown: { platform: string; posts: number; engagement: number }[]
   recentActivity: ActivityLog[]
   contentTrend: { date: string; created: number; published: number }[]
+  pendingApprovals: number
+  totalRevenue: number
+  paidRevenue: number
+  outstandingRevenue: number
+  timeTrackedThisWeek: number
+  unreadInbox: number
+  assetCount: number
 }
 
 interface ERPStore {
@@ -191,6 +325,14 @@ interface ERPStore {
   calendarEvents: CalendarEvent[]
   activities: ActivityLog[]
   currentUser: User | null
+  approvals: Approval[]
+  invoices: Invoice[]
+  timeEntries: TimeEntry[]
+  assets: Asset[]
+  notifications: ERPNotification[]
+  inboxMessages: InboxMessage[]
+  influencers: Influencer[]
+  brandKits: BrandKit[]
 
   // Loading states
   isLoading: boolean
@@ -208,6 +350,14 @@ interface ERPStore {
   setCalendarEvents: (data: CalendarEvent[]) => void
   setActivities: (data: ActivityLog[]) => void
   setCurrentUser: (user: User) => void
+  setApprovals: (data: Approval[]) => void
+  setInvoices: (data: Invoice[]) => void
+  setTimeEntries: (data: TimeEntry[]) => void
+  setAssets: (data: Asset[]) => void
+  setNotifications: (data: ERPNotification[]) => void
+  setInboxMessages: (data: InboxMessage[]) => void
+  setInfluencers: (data: Influencer[]) => void
+  setBrandKits: (data: BrandKit[]) => void
 
   // Modals
   showCreateContent: boolean
@@ -243,6 +393,14 @@ export const useERPStore = create<ERPStore>((set) => ({
   calendarEvents: [],
   activities: [],
   currentUser: null,
+  approvals: [],
+  invoices: [],
+  timeEntries: [],
+  assets: [],
+  notifications: [],
+  inboxMessages: [],
+  influencers: [],
+  brandKits: [],
 
   // Loading
   isLoading: false,
@@ -260,6 +418,14 @@ export const useERPStore = create<ERPStore>((set) => ({
   setCalendarEvents: (data) => set({ calendarEvents: data }),
   setActivities: (data) => set({ activities: data }),
   setCurrentUser: (user) => set({ currentUser: user }),
+  setApprovals: (data) => set({ approvals: data }),
+  setInvoices: (data) => set({ invoices: data }),
+  setTimeEntries: (data) => set({ timeEntries: data }),
+  setAssets: (data) => set({ assets: data }),
+  setNotifications: (data) => set({ notifications: data }),
+  setInboxMessages: (data) => set({ inboxMessages: data }),
+  setInfluencers: (data) => set({ influencers: data }),
+  setBrandKits: (data) => set({ brandKits: data }),
 
   // Modals
   showCreateContent: false,

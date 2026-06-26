@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent } from "@/lib/store";
+import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit } from "@/lib/store";
 import { Sidebar } from "@/components/erp/sidebar";
 import { Header } from "@/components/erp/header";
 import { DashboardView } from "@/components/erp/dashboard-view";
@@ -15,6 +15,12 @@ import { AnalyticsView } from "@/components/erp/analytics-view";
 import { AutomationView } from "@/components/erp/automation-view";
 import { ArchiveView } from "@/components/erp/archive-view";
 import { SettingsView } from "@/components/erp/settings-view";
+import { InboxView } from "@/components/erp/inbox-view";
+import { ApprovalsView } from "@/components/erp/approvals-view";
+import { InvoicingView } from "@/components/erp/invoicing-view";
+import { AssetsView } from "@/components/erp/assets-view";
+import { BrandKitView } from "@/components/erp/brand-kit-view";
+import { InfluencersView } from "@/components/erp/influencers-view";
 import { CreateContentModal } from "@/components/erp/create-content-modal";
 import { CreatePostModal } from "@/components/erp/create-post-modal";
 import { ContentDetailModal } from "@/components/erp/content-detail-modal";
@@ -32,6 +38,12 @@ const viewComponents: Record<ActiveView, React.ComponentType> = {
   automation: AutomationView,
   archive: ArchiveView,
   settings: SettingsView,
+  inbox: InboxView,
+  approvals: ApprovalsView,
+  invoicing: InvoicingView,
+  assets: AssetsView,
+  brandKit: BrandKitView,
+  influencers: InfluencersView,
 };
 
 // Helper to safely extract data from various API response formats
@@ -46,7 +58,9 @@ export default function ERPPage() {
   const {
     setIsLoading, setContents, setPosts, setTeams, setSocialAccounts,
     setCampaigns, setClients, setAutomations, setCalendarEvents, setDashboard,
-    setCurrentUser, isLoading, activeView
+    setCurrentUser, isLoading, activeView,
+    setApprovals, setInvoices, setTimeEntries, setAssets, setNotifications,
+    setInboxMessages, setInfluencers, setBrandKits,
   } = useERPStore();
   const [seeded, setSeeded] = useState(false);
 
@@ -62,7 +76,9 @@ export default function ERPPage() {
       // Load all data in parallel
       const [
         dashboardRes, contentsRes, postsRes, teamsRes,
-        accountsRes, campaignsRes, clientsRes, automationsRes, calendarRes
+        accountsRes, campaignsRes, clientsRes, automationsRes, calendarRes,
+        approvalsRes, invoicesRes, timeEntriesRes, assetsRes,
+        notificationsRes, inboxRes, influencersRes, brandKitRes
       ] = await Promise.all([
         fetch("/api/dashboard"),
         fetch("/api/contents"),
@@ -73,16 +89,29 @@ export default function ERPPage() {
         fetch("/api/clients"),
         fetch("/api/automation"),
         fetch("/api/calendar"),
+        fetch("/api/approvals"),
+        fetch("/api/invoices"),
+        fetch("/api/time-entries"),
+        fetch("/api/assets"),
+        fetch("/api/notifications"),
+        fetch("/api/inbox"),
+        fetch("/api/influencers"),
+        fetch("/api/brand-kit"),
       ]);
 
       const [
         dashboardJson, contentsJson, postsJson, teamsJson,
-        accountsJson, campaignsJson, clientsJson, automationsJson, calendarJson
+        accountsJson, campaignsJson, clientsJson, automationsJson, calendarJson,
+        approvalsJson, invoicesJson, timeEntriesJson, assetsJson,
+        notificationsJson, inboxJson, influencersJson, brandKitJson
       ] = await Promise.all([
         dashboardRes.json(), contentsRes.json(), postsRes.json(),
         teamsRes.json(), accountsRes.json(), campaignsRes.json(),
         clientsRes.json(), automationsRes.json(),
         calendarRes.json(),
+        approvalsRes.json(), invoicesRes.json(), timeEntriesRes.json(),
+        assetsRes.json(), notificationsRes.json(), inboxRes.json(),
+        influencersRes.json(), brandKitRes.json(),
       ]);
 
       // Dashboard - map API response to store format
@@ -112,6 +141,13 @@ export default function ERPPage() {
             createdAt: a.createdAt as string,
           })),
           contentTrend: [],
+          pendingApprovals: dashboardJson.pendingApprovals || 0,
+          totalRevenue: dashboardJson.totalRevenue || 0,
+          paidRevenue: dashboardJson.paidRevenue || 0,
+          outstandingRevenue: dashboardJson.outstandingRevenue || 0,
+          timeTrackedThisWeek: dashboardJson.timeTrackedThisWeek || 0,
+          unreadInbox: dashboardJson.unreadInbox || 0,
+          assetCount: dashboardJson.assetCount || 0,
         };
         setDashboard(dash);
       }
@@ -147,6 +183,38 @@ export default function ERPPage() {
       // Calendar
       const calData = calendarJson?.data || calendarJson?.events || (Array.isArray(calendarJson) ? calendarJson : []);
       if (Array.isArray(calData)) setCalendarEvents(calData as CalendarEvent[]);
+
+      // Approvals
+      const approvalsData = approvalsJson?.approvals || (Array.isArray(approvalsJson) ? approvalsJson : []);
+      if (Array.isArray(approvalsData)) setApprovals(approvalsData as Approval[]);
+
+      // Invoices
+      const invoicesData = invoicesJson?.invoices || (Array.isArray(invoicesJson) ? invoicesJson : []);
+      if (Array.isArray(invoicesData)) setInvoices(invoicesData as Invoice[]);
+
+      // Time Entries
+      const timeEntriesData = timeEntriesJson?.timeEntries || (Array.isArray(timeEntriesJson) ? timeEntriesJson : []);
+      if (Array.isArray(timeEntriesData)) setTimeEntries(timeEntriesData as TimeEntry[]);
+
+      // Assets
+      const assetsData = assetsJson?.assets || (Array.isArray(assetsJson) ? assetsJson : []);
+      if (Array.isArray(assetsData)) setAssets(assetsData as Asset[]);
+
+      // Notifications
+      const notifData = notificationsJson?.notifications || (Array.isArray(notificationsJson) ? notificationsJson : []);
+      if (Array.isArray(notifData)) setNotifications(notifData as ERPNotification[]);
+
+      // Inbox Messages
+      const inboxData = inboxJson?.messages || (Array.isArray(inboxJson) ? inboxJson : []);
+      if (Array.isArray(inboxData)) setInboxMessages(inboxData as InboxMessage[]);
+
+      // Influencers
+      const influencersData = influencersJson?.influencers || (Array.isArray(influencersJson) ? influencersJson : []);
+      if (Array.isArray(influencersData)) setInfluencers(influencersData as Influencer[]);
+
+      // Brand Kits
+      const brandKitData = brandKitJson?.brandKits || (Array.isArray(brandKitJson) ? brandKitJson : []);
+      if (Array.isArray(brandKitData)) setBrandKits(brandKitData as BrandKit[]);
 
       // Set current user
       setCurrentUser({

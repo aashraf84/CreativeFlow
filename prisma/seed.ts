@@ -6,6 +6,14 @@ async function main() {
   console.log('🌱 Seeding database...')
 
   // Clear existing data in correct order (respecting foreign keys)
+  await prisma.brandKit.deleteMany()
+  await prisma.influencer.deleteMany()
+  await prisma.inboxMessage.deleteMany()
+  await prisma.notification.deleteMany()
+  await prisma.asset.deleteMany()
+  await prisma.timeEntry.deleteMany()
+  await prisma.invoice.deleteMany()
+  await prisma.approval.deleteMany()
   await prisma.activityLog.deleteMany()
   await prisma.comment.deleteMany()
   await prisma.post.deleteMany()
@@ -1648,6 +1656,886 @@ async function main() {
 
   console.log(`✅ Created ${activities.length} activity log entries`)
 
+  // ============================================
+  // 12. Approvals (5)
+  // ============================================
+  const approvals = await Promise.all([
+    prisma.approval.create({
+      data: {
+        type: 'content_review',
+        status: 'pending',
+        organizationId: org.id,
+        contentId: contentItems[10].id,
+        requestedById: priya.id,
+        createdAt: new Date(now.getTime() - 2 * dayMs),
+      },
+    }),
+    prisma.approval.create({
+      data: {
+        type: 'content_review',
+        status: 'approved',
+        comment: 'Great work! The copy is on-brand and compelling.',
+        organizationId: org.id,
+        contentId: contentItems[11].id,
+        requestedById: emma.id,
+        reviewedById: sarah.id,
+        reviewedAt: new Date(now.getTime() - 1 * dayMs),
+        createdAt: new Date(now.getTime() - 3 * dayMs),
+      },
+    }),
+    prisma.approval.create({
+      data: {
+        type: 'post_publish',
+        status: 'pending',
+        organizationId: org.id,
+        postId: posts[6].id,
+        requestedById: alex.id,
+        createdAt: new Date(now.getTime() - 0.5 * dayMs),
+      },
+    }),
+    prisma.approval.create({
+      data: {
+        type: 'post_publish',
+        status: 'rejected',
+        comment: 'Needs more urgency in the CTA. Please revise before scheduling.',
+        organizationId: org.id,
+        postId: posts[7].id,
+        requestedById: luna.id,
+        reviewedById: sarah.id,
+        reviewedAt: new Date(now.getTime() - 0.5 * dayMs),
+        createdAt: new Date(now.getTime() - 1.5 * dayMs),
+      },
+    }),
+    prisma.approval.create({
+      data: {
+        type: 'content_review',
+        status: 'approved',
+        comment: 'Approved with minor edits to slide 3.',
+        organizationId: org.id,
+        contentId: contentItems[13].id,
+        requestedById: priya.id,
+        reviewedById: sarah.id,
+        reviewedAt: new Date(now.getTime() - 0.8 * dayMs),
+        createdAt: new Date(now.getTime() - 2.5 * dayMs),
+      },
+    }),
+  ])
+  console.log(`✅ Created ${approvals.length} approvals`)
+
+  // ============================================
+  // 13. Invoices (4)
+  // ============================================
+  const invoices = await Promise.all([
+    prisma.invoice.create({
+      data: {
+        number: 'INV-2025-001',
+        clientId: techcorp.id,
+        campaignId: techcorpCampaign.id,
+        status: 'paid',
+        items: JSON.stringify([
+          { description: 'Social Media Management - March 2025', quantity: 1, rate: 5000, amount: 5000 },
+          { description: 'Content Creation (8 posts)', quantity: 8, rate: 500, amount: 4000 },
+          { description: 'Video Production (2 reels)', quantity: 2, rate: 1500, amount: 3000 },
+        ]),
+        subtotal: 12000,
+        tax: 960,
+        total: 12960,
+        dueDate: new Date(now.getTime() - 10 * dayMs),
+        paidAt: new Date(now.getTime() - 5 * dayMs),
+        notes: 'Net 30 payment terms. Thank you for your business!',
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 30 * dayMs),
+      },
+    }),
+    prisma.invoice.create({
+      data: {
+        number: 'INV-2025-002',
+        clientId: fashionhub.id,
+        campaignId: fashionCampaign.id,
+        status: 'sent',
+        items: JSON.stringify([
+          { description: 'Social Media Strategy & Management - March 2025', quantity: 1, rate: 4500, amount: 4500 },
+          { description: 'Instagram Content (12 posts + 6 stories)', quantity: 1, rate: 3600, amount: 3600 },
+          { description: 'TikTok Content (4 videos)', quantity: 4, rate: 800, amount: 3200 },
+        ]),
+        subtotal: 11300,
+        tax: 904,
+        total: 12204,
+        dueDate: new Date(now.getTime() + 20 * dayMs),
+        notes: 'Payment due within 30 days of invoice date.',
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 10 * dayMs),
+      },
+    }),
+    prisma.invoice.create({
+      data: {
+        number: 'INV-2025-003',
+        clientId: autodrive.id,
+        campaignId: autodriveCampaign.id,
+        status: 'overdue',
+        items: JSON.stringify([
+          { description: 'Multi-platform Campaign Management', quantity: 1, rate: 8000, amount: 8000 },
+          { description: 'Video Production (6 videos)', quantity: 6, rate: 2000, amount: 12000 },
+          { description: 'Analytics & Reporting', quantity: 1, rate: 2500, amount: 2500 },
+        ]),
+        subtotal: 22500,
+        tax: 1800,
+        total: 24300,
+        dueDate: new Date(now.getTime() - 15 * dayMs),
+        notes: 'OVERDUE - Please remit payment immediately.',
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 45 * dayMs),
+      },
+    }),
+    prisma.invoice.create({
+      data: {
+        number: 'INV-2025-004',
+        clientId: foodvibe.id,
+        status: 'draft',
+        items: JSON.stringify([
+          { description: 'Campaign Strategy Development', quantity: 1, rate: 3000, amount: 3000 },
+          { description: 'Content Creation (6 posts)', quantity: 6, rate: 400, amount: 2400 },
+        ]),
+        subtotal: 5400,
+        tax: 432,
+        total: 5832,
+        dueDate: null,
+        notes: 'Draft - pending client approval before sending.',
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 2 * dayMs),
+      },
+    }),
+  ])
+  console.log(`✅ Created ${invoices.length} invoices`)
+
+  // ============================================
+  // 14. Time Entries (12)
+  // ============================================
+  const timeEntries = await Promise.all([
+    prisma.timeEntry.create({
+      data: {
+        description: 'Drafted TechCorp case study carousel copy',
+        hours: 3.5,
+        billable: true,
+        date: new Date(now.getTime() - 1 * dayMs),
+        userId: priya.id,
+        clientId: techcorp.id,
+        campaignId: techcorpCampaign.id,
+        contentId: contentItems[10].id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Designed FashionHub brand story carousel slides',
+        hours: 5,
+        billable: true,
+        date: new Date(now.getTime() - 1 * dayMs),
+        userId: alex.id,
+        clientId: fashionhub.id,
+        campaignId: fashionCampaign.id,
+        contentId: contentItems[5].id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Edited TechCorp platform demo video',
+        hours: 6,
+        billable: true,
+        date: new Date(now.getTime() - 2 * dayMs),
+        userId: david.id,
+        clientId: techcorp.id,
+        campaignId: techcorpCampaign.id,
+        contentId: contentItems[8].id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Internal team standup and planning meeting',
+        hours: 1,
+        billable: false,
+        date: new Date(now.getTime() - 2 * dayMs),
+        userId: sarah.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Created FashionHub summer sale graphics',
+        hours: 4,
+        billable: true,
+        date: new Date(now.getTime() - 3 * dayMs),
+        userId: luna.id,
+        clientId: fashionhub.id,
+        campaignId: fashionCampaign.id,
+        contentId: contentItems[15].id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Reviewed and approved pending content items',
+        hours: 2,
+        billable: false,
+        date: new Date(now.getTime() - 3 * dayMs),
+        userId: sarah.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Scheduled and published Instagram posts for TechCorp',
+        hours: 2.5,
+        billable: true,
+        date: new Date(now.getTime() - 4 * dayMs),
+        userId: alex.id,
+        clientId: techcorp.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Wrote FoodVibe recipe card captions',
+        hours: 3,
+        billable: true,
+        date: new Date(now.getTime() - 4 * dayMs),
+        userId: priya.id,
+        clientId: foodvibe.id,
+        campaignId: foodvibeCampaign.id,
+        contentId: contentItems[2].id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Designed AutoDrive EV comparison chart',
+        hours: 4.5,
+        billable: true,
+        date: new Date(now.getTime() - 5 * dayMs),
+        userId: luna.id,
+        clientId: autodrive.id,
+        campaignId: autodriveCampaign.id,
+        contentId: contentItems[7].id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Client call with TechCorp marketing team',
+        hours: 1.5,
+        billable: true,
+        date: new Date(now.getTime() - 5 * dayMs),
+        userId: marcus.id,
+        clientId: techcorp.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'WellnessCo brand guideline review',
+        hours: 2,
+        billable: false,
+        date: new Date(now.getTime() - 6 * dayMs),
+        userId: jake.id,
+        clientId: wellnessco.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.timeEntry.create({
+      data: {
+        description: 'Edited FoodVibe Kitchen Stories episode 3',
+        hours: 5.5,
+        billable: true,
+        date: new Date(now.getTime() - 6 * dayMs),
+        userId: david.id,
+        clientId: foodvibe.id,
+        campaignId: foodvibeCampaign.id,
+        contentId: contentItems[9].id,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${timeEntries.length} time entries`)
+
+  // ============================================
+  // 15. Assets (10)
+  // ============================================
+  const assets = await Promise.all([
+    prisma.asset.create({
+      data: {
+        name: 'TechCorp-Brand-Guide-2025.pdf',
+        type: 'brand-guide',
+        url: '/assets/techcorp-brand-guide-2025.pdf',
+        thumbnailUrl: null,
+        size: 4500000,
+        mimeType: 'application/pdf',
+        tags: 'brand,guidelines,techcorp',
+        folder: '/TechCorp/Brand',
+        metadata: JSON.stringify({ pages: 24 }),
+        uploadedById: jake.id,
+        clientId: techcorp.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.asset.create({
+      data: {
+        name: 'FashionHub-Summer-Campaign-Template.psd',
+        type: 'template',
+        url: '/assets/fashionhub-summer-template.psd',
+        thumbnailUrl: '/assets/thumbs/fashionhub-summer-template.png',
+        size: 12800000,
+        mimeType: 'image/vnd.adobe.photoshop',
+        tags: 'template,summer,fashionhub',
+        folder: '/FashionHub/Templates',
+        metadata: JSON.stringify({ width: 1080, height: 1080, layers: 12 }),
+        uploadedById: jake.id,
+        clientId: fashionhub.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.asset.create({
+      data: {
+        name: 'Product-Demo-Raw-Footage.mp4',
+        type: 'video',
+        url: '/assets/techcorp-demo-raw.mp4',
+        thumbnailUrl: '/assets/thumbs/techcorp-demo-raw.png',
+        size: 256000000,
+        mimeType: 'video/mp4',
+        tags: 'video,raw-footage,techcorp',
+        folder: '/TechCorp/Video',
+        metadata: JSON.stringify({ duration: 180, resolution: '4K', fps: 30 }),
+        uploadedById: marcus.id,
+        clientId: techcorp.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.asset.create({
+      data: {
+        name: 'FashionHub-Photoshoot-BTS.jpg',
+        type: 'image',
+        url: '/assets/fashionhub-bts.jpg',
+        thumbnailUrl: '/assets/thumbs/fashionhub-bts.jpg',
+        size: 3200000,
+        mimeType: 'image/jpeg',
+        tags: 'behind-the-scenes,photoshoot,fashionhub',
+        folder: '/FashionHub/Photos',
+        metadata: JSON.stringify({ width: 4032, height: 3024 }),
+        uploadedById: luna.id,
+        clientId: fashionhub.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.asset.create({
+      data: {
+        name: 'AutoDrive-EV-Range-Infographic.png',
+        type: 'image',
+        url: '/assets/autodrive-ev-range.png',
+        thumbnailUrl: '/assets/thumbs/autodrive-ev-range.png',
+        size: 1800000,
+        mimeType: 'image/png',
+        tags: 'infographic,ev,autodrive',
+        folder: '/AutoDrive/Graphics',
+        metadata: JSON.stringify({ width: 1920, height: 1080 }),
+        uploadedById: luna.id,
+        clientId: autodrive.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.asset.create({
+      data: {
+        name: 'FoodVibe-Recipe-Card-Template.ai',
+        type: 'template',
+        url: '/assets/foodvibe-recipe-template.ai',
+        thumbnailUrl: '/assets/thumbs/foodvibe-recipe-template.png',
+        size: 8500000,
+        mimeType: 'application/illustrator',
+        tags: 'template,recipe,foodvibe',
+        folder: '/FoodVibe/Templates',
+        metadata: JSON.stringify({ width: 1080, height: 1080 }),
+        uploadedById: jake.id,
+        clientId: foodvibe.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.asset.create({
+      data: {
+        name: 'WellnessCo-Mindfulness-Graphics.zip',
+        type: 'image',
+        url: '/assets/wellnessco-mindfulness-set.zip',
+        thumbnailUrl: '/assets/thumbs/wellnessco-mindfulness.png',
+        size: 15000000,
+        mimeType: 'application/zip',
+        tags: 'wellness,graphics,pack',
+        folder: '/WellnessCo/Graphics',
+        metadata: JSON.stringify({ fileCount: 5, format: 'PNG' }),
+        uploadedById: luna.id,
+        clientId: wellnessco.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.asset.create({
+      data: {
+        name: 'TechCorp-CEO-Interview-B-Roll.mp4',
+        type: 'video',
+        url: '/assets/techcorp-ceo-broll.mp4',
+        thumbnailUrl: '/assets/thumbs/techcorp-ceo-broll.png',
+        size: 512000000,
+        mimeType: 'video/mp4',
+        tags: 'video,interview,b-roll,techcorp',
+        folder: '/TechCorp/Video',
+        metadata: JSON.stringify({ duration: 300, resolution: '4K', fps: 24 }),
+        uploadedById: marcus.id,
+        clientId: techcorp.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.asset.create({
+      data: {
+        name: 'Social-Media-Icons-Set.svg',
+        type: 'image',
+        url: '/assets/social-icons-set.svg',
+        thumbnailUrl: '/assets/thumbs/social-icons-set.png',
+        size: 45000,
+        mimeType: 'image/svg+xml',
+        tags: 'icons,social-media,general',
+        folder: '/Shared/Icons',
+        metadata: JSON.stringify({ iconCount: 8 }),
+        uploadedById: alex.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.asset.create({
+      data: {
+        name: 'FashionHub-Sale-Announcement-Template.psd',
+        type: 'template',
+        url: '/assets/fashionhub-sale-template.psd',
+        thumbnailUrl: '/assets/thumbs/fashionhub-sale-template.png',
+        size: 9500000,
+        mimeType: 'image/vnd.adobe.photoshop',
+        tags: 'template,sale,announcement,fashionhub',
+        folder: '/FashionHub/Templates',
+        metadata: JSON.stringify({ width: 1080, height: 1080, layers: 8 }),
+        uploadedById: jake.id,
+        clientId: fashionhub.id,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${assets.length} assets`)
+
+  // ============================================
+  // 16. Notifications (8)
+  // ============================================
+  const notifications = await Promise.all([
+    prisma.notification.create({
+      data: {
+        title: 'Approval Required',
+        message: 'Priya Sharma requested approval for "TechCorp Case Study Carousel"',
+        type: 'approval',
+        category: 'approval',
+        isRead: false,
+        actionUrl: '/approvals',
+        userId: sarah.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 2 * dayMs),
+      },
+    }),
+    prisma.notification.create({
+      data: {
+        title: 'Post Approval Needed',
+        message: 'Alex Nakamura wants to publish a scheduled Twitter post for TechCorp',
+        type: 'approval',
+        category: 'approval',
+        isRead: false,
+        actionUrl: '/approvals',
+        userId: sarah.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 0.5 * dayMs),
+      },
+    }),
+    prisma.notification.create({
+      data: {
+        title: 'You were mentioned',
+        message: 'Sarah Chen mentioned you in a comment on "TechCorp CEO Spotlight Interview"',
+        type: 'mention',
+        category: 'content',
+        isRead: false,
+        userId: marcus.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 1.5 * dayMs),
+      },
+    }),
+    prisma.notification.create({
+      data: {
+        title: 'Content Overdue',
+        message: '"FashionHub Summer Sale Announcement" is past its due date',
+        type: 'warning',
+        category: 'content',
+        isRead: false,
+        userId: sarah.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 1 * dayMs),
+      },
+    }),
+    prisma.notification.create({
+      data: {
+        title: 'Invoice Overdue',
+        message: 'Invoice INV-2025-003 for AutoDrive is overdue by 15 days',
+        type: 'warning',
+        category: 'invoice',
+        isRead: false,
+        userId: sarah.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 1 * dayMs),
+      },
+    }),
+    prisma.notification.create({
+      data: {
+        title: 'New Comment',
+        message: 'Marcus Williams commented on "TechCorp Platform Demo Video"',
+        type: 'info',
+        category: 'content',
+        isRead: true,
+        userId: david.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 1.4 * dayMs),
+      },
+    }),
+    prisma.notification.create({
+      data: {
+        title: 'Post Published Successfully',
+        message: 'Your Instagram post for @fashionhub was published successfully',
+        type: 'success',
+        category: 'post',
+        isRead: true,
+        userId: luna.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 5 * dayMs),
+      },
+    }),
+    prisma.notification.create({
+      data: {
+        title: 'System Update',
+        message: 'VortexERP has been updated to v2.5 with new invoicing and approval features',
+        type: 'info',
+        category: 'system',
+        isRead: false,
+        userId: sarah.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 0.1 * dayMs),
+      },
+    }),
+  ])
+  console.log(`✅ Created ${notifications.length} notifications`)
+
+  // ============================================
+  // 17. Inbox Messages (10)
+  // ============================================
+  const inboxMessages = await Promise.all([
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'instagram',
+        senderName: 'jessica.style',
+        senderAvatar: null,
+        content: 'Love this summer collection! Where can I find the floral dress from slide 3? 🌸',
+        type: 'comment',
+        status: 'unread',
+        postUrl: 'https://instagram.com/p/abc123',
+        socialAccountId: igFashionhub.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 0.5 * dayMs),
+      },
+    }),
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'twitter',
+        senderName: 'TechEnthusiast42',
+        senderAvatar: null,
+        content: '@techcorp_io Just saw your new feature announcement. When will the API be available for beta testing?',
+        type: 'mention',
+        status: 'unread',
+        postUrl: 'https://twitter.com/techcorp_io/status/123456',
+        socialAccountId: twTechcorp.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 1 * dayMs),
+      },
+    }),
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'linkedin',
+        senderName: 'Michael Chang',
+        senderAvatar: null,
+        content: 'Hi, I\'m the Marketing Director at InnovateTech. We\'re interested in discussing a potential partnership. Could we schedule a call?',
+        type: 'dm',
+        status: 'unread',
+        socialAccountId: liTechcorp.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 2 * dayMs),
+      },
+    }),
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'instagram',
+        senderName: 'foodie_maria',
+        senderAvatar: null,
+        content: 'That salmon recipe looks incredible! Can you share the full ingredient list?',
+        type: 'comment',
+        status: 'unread',
+        postUrl: 'https://instagram.com/p/def456',
+        socialAccountId: igFashionhub.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 3 * dayMs),
+      },
+    }),
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'tiktok',
+        senderName: 'dancedreams22',
+        senderAvatar: null,
+        content: 'OMG I need that outfit! Link please?? 🔥🔥',
+        type: 'comment',
+        status: 'read',
+        postUrl: 'https://tiktok.com/@fashionhub/video/789',
+        socialAccountId: ttFashionhub.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 4 * dayMs),
+      },
+    }),
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'instagram',
+        senderName: 'fitness_pro_alex',
+        senderAvatar: null,
+        content: 'Your EV range explainer was super helpful! We shared it in our sustainability group.',
+        type: 'reply',
+        status: 'replied',
+        postUrl: 'https://instagram.com/p/ghi789',
+        socialAccountId: igTechcorp.id,
+        organizationId: org.id,
+        repliedAt: new Date(now.getTime() - 5 * dayMs),
+        createdAt: new Date(now.getTime() - 6 * dayMs),
+      },
+    }),
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'facebook',
+        senderName: 'Sarah M.',
+        senderAvatar: null,
+        content: 'Do you offer catering services for corporate events? Looking for options for our company retreat.',
+        type: 'dm',
+        status: 'unread',
+        socialAccountId: fbFoodvibe.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 1.5 * dayMs),
+      },
+    }),
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'youtube',
+        senderName: 'CarReviewKing',
+        senderAvatar: null,
+        content: 'Great video! Would love to see a comparison with the new Tesla Model 3. Keep up the great content!',
+        type: 'comment',
+        status: 'read',
+        postUrl: 'https://youtube.com/watch?v=xyz123',
+        socialAccountId: ytAutodrive.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 7 * dayMs),
+      },
+    }),
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'linkedin',
+        senderName: 'Jennifer Adams',
+        senderAvatar: null,
+        content: 'Impressive case study! We\'re facing similar challenges at our company. Would love to connect.',
+        type: 'comment',
+        status: 'unread',
+        socialAccountId: liTechcorp.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 0.2 * dayMs),
+      },
+    }),
+    prisma.inboxMessage.create({
+      data: {
+        platform: 'instagram',
+        senderName: 'sustainable_living_co',
+        senderAvatar: null,
+        content: 'Would you be interested in a collaboration? We love your brand\'s commitment to sustainability 🌿',
+        type: 'dm',
+        status: 'ignored',
+        socialAccountId: igFashionhub.id,
+        organizationId: org.id,
+        createdAt: new Date(now.getTime() - 8 * dayMs),
+      },
+    }),
+  ])
+  console.log(`✅ Created ${inboxMessages.length} inbox messages`)
+
+  // ============================================
+  // 18. Influencers (5)
+  // ============================================
+  const influencers = await Promise.all([
+    prisma.influencer.create({
+      data: {
+        name: 'Alexa Rivera',
+        username: '@alexarivera',
+        platform: 'instagram',
+        followers: 245000,
+        engagementRate: 4.2,
+        niche: 'fitness,wellness,lifestyle',
+        email: 'alexa@riveramgmt.com',
+        phone: '+1-555-1001',
+        notes: 'Great engagement on fitness and wellness content. Previously worked with Nike and Lululemon.',
+        status: 'active',
+        rate: 2500,
+        contractStart: new Date('2025-01-01'),
+        contractEnd: new Date('2025-06-30'),
+        clientId: wellnessco.id,
+        campaignId: null,
+        organizationId: org.id,
+      },
+    }),
+    prisma.influencer.create({
+      data: {
+        name: 'Marcus Tech',
+        username: '@marcustech',
+        platform: 'youtube',
+        followers: 485000,
+        engagementRate: 3.8,
+        niche: 'tech,reviews,startups',
+        email: 'marcus@techreviews.io',
+        phone: null,
+        notes: 'Top tech reviewer with strong enterprise audience. Ideal for B2B campaigns.',
+        status: 'negotiating',
+        rate: 5000,
+        clientId: techcorp.id,
+        campaignId: techcorpCampaign.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.influencer.create({
+      data: {
+        name: 'Sophia Chen',
+        username: '@sophiachenstyle',
+        platform: 'instagram',
+        followers: 380000,
+        engagementRate: 5.1,
+        niche: 'fashion,beauty,ootd',
+        email: 'sophia@stylemaven.co',
+        phone: '+1-555-2002',
+        notes: 'High engagement rate on fashion and style content. Previously collaborated with major fashion brands.',
+        status: 'active',
+        rate: 3000,
+        contractStart: new Date('2025-02-01'),
+        contractEnd: new Date('2025-08-31'),
+        clientId: fashionhub.id,
+        campaignId: fashionCampaign.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.influencer.create({
+      data: {
+        name: 'Jake Outdoor',
+        username: '@jakeoutdoor',
+        platform: 'tiktok',
+        followers: 125000,
+        engagementRate: 6.3,
+        niche: 'fitness,outdoor,adventure',
+        email: 'jake@outdooradventures.com',
+        phone: null,
+        notes: 'Growing TikTok presence with authentic outdoor and fitness content.',
+        status: 'prospect',
+        rate: null,
+        clientId: null,
+        campaignId: null,
+        organizationId: org.id,
+      },
+    }),
+    prisma.influencer.create({
+      data: {
+        name: 'Priya Foodie',
+        username: '@priyafoodie',
+        platform: 'instagram',
+        followers: 92000,
+        engagementRate: 7.1,
+        niche: 'food,cooking,recipes',
+        email: 'priya@foodiecreations.com',
+        phone: '+1-555-3003',
+        notes: 'Highest engagement rate in our network. Authentic home-cooking content with a warm, relatable style.',
+        status: 'contacted',
+        rate: 1500,
+        clientId: foodvibe.id,
+        campaignId: foodvibeCampaign.id,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${influencers.length} influencers`)
+
+  // ============================================
+  // 19. Brand Kit Items (6)
+  // ============================================
+  const brandKits = await Promise.all([
+    prisma.brandKit.create({
+      data: {
+        name: 'TechCorp Primary Blue',
+        type: 'color',
+        value: JSON.stringify({ hex: '#1E40AF', rgb: '30, 64, 175', cmyk: '100, 65, 0, 0' }),
+        clientId: techcorp.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.brandKit.create({
+      data: {
+        name: 'TechCorp Secondary Teal',
+        type: 'color',
+        value: JSON.stringify({ hex: '#0D9488', rgb: '13, 148, 136', cmyk: '85, 0, 15, 0' }),
+        clientId: techcorp.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.brandKit.create({
+      data: {
+        name: 'TechCorp Sans',
+        type: 'font',
+        value: JSON.stringify({ family: 'Inter', weights: ['400', '500', '600', '700'], fallback: 'system-ui, sans-serif' }),
+        clientId: techcorp.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.brandKit.create({
+      data: {
+        name: 'FashionHub Logo',
+        type: 'logo',
+        value: JSON.stringify({ url: '/assets/fashionhub-logo.svg', format: 'SVG', variants: ['full', 'icon', 'mono'] }),
+        clientId: fashionhub.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.brandKit.create({
+      data: {
+        name: 'FashionHub Coral',
+        type: 'color',
+        value: JSON.stringify({ hex: '#F97316', rgb: '249, 115, 22', cmyk: '0, 60, 90, 0' }),
+        clientId: fashionhub.id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.brandKit.create({
+      data: {
+        name: 'FashionHub Display',
+        type: 'font',
+        value: JSON.stringify({ family: 'Playfair Display', weights: ['400', '700'], fallback: 'Georgia, serif', usage: 'Headlines only' }),
+        clientId: fashionhub.id,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${brandKits.length} brand kit items`)
+
   console.log('🎉 Seeding complete!')
   console.log({
     organization: 1,
@@ -1661,6 +2549,14 @@ async function main() {
     automations: automations.length,
     comments: comments.length,
     activities: activities.length,
+    approvals: approvals.length,
+    invoices: invoices.length,
+    timeEntries: timeEntries.length,
+    assets: assets.length,
+    notifications: notifications.length,
+    inboxMessages: inboxMessages.length,
+    influencers: influencers.length,
+    brandKits: brandKits.length,
   })
 }
 

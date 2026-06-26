@@ -3,7 +3,22 @@ import { db } from '@/lib/db'
 
 export async function GET() {
   try {
+    // Check if data already exists - skip seeding if so
+    const existingOrg = await db.organization.findFirst()
+    const existingApprovals = existingOrg ? await db.approval.count({ where: { organizationId: existingOrg.id } }) : 0
+    if (existingOrg && existingApprovals > 0) {
+      return NextResponse.json({ success: true, message: 'Database already seeded', skipped: true })
+    }
+
     // Clear existing data in correct order (respecting foreign keys)
+    await db.brandKit.deleteMany()
+    await db.influencer.deleteMany()
+    await db.inboxMessage.deleteMany()
+    await db.notification.deleteMany()
+    await db.asset.deleteMany()
+    await db.timeEntry.deleteMany()
+    await db.invoice.deleteMany()
+    await db.approval.deleteMany()
     await db.activityLog.deleteMany()
     await db.comment.deleteMany()
     await db.post.deleteMany()
@@ -318,6 +333,14 @@ export async function GET() {
         automations: automations.length,
         comments: 15,
         activities: 34,
+        approvals: 5,
+        invoices: 4,
+        timeEntries: 12,
+        assets: 10,
+        notifications: 8,
+        inboxMessages: 10,
+        influencers: 5,
+        brandKits: 6,
       },
     })
   } catch (error) {

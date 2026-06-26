@@ -136,6 +136,45 @@ export async function GET() {
       },
     })
 
+    // ── New dashboard stats ──────────────────────────────────────────
+
+    // Pending approvals count
+    const pendingApprovals = await db.approval.count({
+      where: { organizationId: org.id, status: 'pending' },
+    })
+
+    // Revenue stats from invoices
+    const invoices = await db.invoice.findMany({
+      where: { organizationId: org.id },
+      select: { total: true, status: true },
+    })
+    const totalRevenue = invoices.reduce((sum, inv) => sum + inv.total, 0)
+    const paidRevenue = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.total, 0)
+    const outstandingRevenue = invoices.filter(inv => inv.status !== 'paid' && inv.status !== 'cancelled' && inv.status !== 'draft').reduce((sum, inv) => sum + inv.total, 0)
+
+    // Time tracked this week
+    const weekStart = new Date()
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+    weekStart.setHours(0, 0, 0, 0)
+    const timeEntriesThisWeek = await db.timeEntry.findMany({
+      where: {
+        organizationId: org.id,
+        date: { gte: weekStart },
+      },
+      select: { hours: true },
+    })
+    const timeTrackedThisWeek = timeEntriesThisWeek.reduce((sum, entry) => sum + entry.hours, 0)
+
+    // Unread inbox count
+    const unreadInbox = await db.inboxMessage.count({
+      where: { organizationId: org.id, status: 'unread' },
+    })
+
+    // Asset count
+    const assetCount = await db.asset.count({
+      where: { organizationId: org.id },
+    })
+
     return NextResponse.json({
       contentByStage,
       contentByType,
@@ -159,6 +198,13 @@ export async function GET() {
         actor: a.actor,
         createdAt: a.createdAt,
       })),
+      pendingApprovals,
+      totalRevenue,
+      paidRevenue,
+      outstandingRevenue,
+      timeTrackedThisWeek,
+      unreadInbox,
+      assetCount,
     })
   } catch (error) {
     console.error('Dashboard error:', error)
