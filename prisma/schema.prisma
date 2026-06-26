@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  plan        String   @default("starter")
+  maxUsers    Int      @default(10)
+  maxAccounts Int      @default(25)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users      User[]
+  teams      Team[]
+  clients    Client[]
+  campaigns  Campaign[]
+  contents   Content[]
+  socialAccounts SocialAccount[]
+  automations AutomationRule[]
+  activities ActivityLog[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  avatar         String?
+  role           String   @default("member")
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  teamMemberships TeamMember[]
+  contents       Content[]     @relation("ContentCreator")
+  assignedContents Content[]   @relation("ContentAssignee")
+  socialAccounts  SocialAccount[]
+  posts           Post[]
+  comments        Comment[]
+  activities      ActivityLog[] @relation("ActivityActor")
+
+  @@index([organizationId])
+}
+
+model Team {
+  id             String   @id @default(cuid())
+  name           String
+  type           String   // creatives, content, design, edit, archive, dissemination
+  color          String   @default("#6366f1")
+  icon           String?
+  description    String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  members      TeamMember[]
+  contents     Content[]
+
+  @@index([organizationId])
+}
+
+model TeamMember {
+  id       String @id @default(cuid())
+  userId   String
+  teamId   String
+  role     String @default("member") // lead, member
+  joinedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, teamId])
+}
+
+model Client {
+  id             String   @id @default(cuid())
+  name           String
+  logo           String?
+  industry       String?
+  website        String?
+  email          String?
+  phone          String?
+  status         String   @default("active") // active, inactive, prospect
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  campaigns    Campaign[]
+
+  @@index([organizationId])
+}
+
+model Campaign {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  status         String   @default("draft") // draft, active, paused, completed
+  startDate      DateTime?
+  endDate        DateTime?
+  budget         Float?
+  clientId       String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+  contents     Content[]
+
+  @@index([organizationId])
+  @@index([clientId])
+}
+
+model Content {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  type           String   @default("post") // post, story, reel, carousel, video, graphic, article
+  stage          String   @default("idea") // idea, design, edit, review, approve, disseminate, archived
+  priority       String   @default("medium") // low, medium, high, urgent
+  format         String?  // square, portrait, landscape, vertical
+  tags           String?  // comma-separated tags
+  metadata       String?  // JSON string for extra data
+  dueDate        DateTime?
+  publishedAt    DateTime?
+  organizationId String
+  campaignId     String?
+  creatorId      String?
+  assigneeId     String?
+  teamId         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+  creator      User?        @relation("ContentCreator", fields: [creatorId], references: [id])
+  assignee     User?        @relation("ContentAssignee", fields: [assigneeId], references: [id])
+  team         Team?        @relation(fields: [teamId], references: [id])
+  posts        Post[]
+  comments     Comment[]
+
+  @@index([organizationId])
+  @@index([stage])
+  @@index([campaignId])
+}
+
+model SocialAccount {
+  id             String   @id @default(cuid())
+  platform       String   // instagram, facebook, twitter, linkedin, tiktok, youtube, pinterest, snapchat
+  accountId      String
+  username       String
+  displayName    String?
+  avatar         String?
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiry    DateTime?
+  followers      Int      @default(0)
+  isVerified     Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  userId         String
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User          @relation(fields: [userId], references: [id])
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  posts          Post[]
+
+  @@unique([platform, accountId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Post {
+  id              String    @id @default(cuid())
+  content         String
+  mediaUrls       String?   // comma-separated URLs
+  platform        String    // instagram, facebook, twitter, etc.
+  status          String    @default("draft") // draft, scheduled, publishing, published, failed
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  engagement      String?   // JSON string with likes, comments, shares, etc.
+  failureReason   String?
+  socialAccountId String
+  contentId       String?
+  userId          String
+  organizationId  String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id])
+  contentItem     Content?      @relation(fields: [contentId], references: [id])
+  user            User          @relation(fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([socialAccountId])
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model AutomationRule {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  trigger        String   // stage_change, content_created, scheduled_time, engagement_threshold
+  conditions     String   // JSON string
+  actions        String   // JSON string
+  isActive       Boolean  @default(true)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  contentId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  contentItem Content @relation(fields: [contentId], references: [id])
+  user        User    @relation(fields: [userId], references: [id])
+
+  @@index([contentId])
+}
+
+model ActivityLog {
+  id             String   @id @default(cuid())
+  action         String   // created, updated, moved, commented, published, assigned
+  entity         String   // content, campaign, post, team, account
+  entityId       String?
+  details        String?  // JSON string
+  organizationId String
+  actorId        String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  actor        User         @relation("ActivityActor", fields: [actorId], references: [id])
+
+  @@index([organizationId])
+  @@index([createdAt])
+}

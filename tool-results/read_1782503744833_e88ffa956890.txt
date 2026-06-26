@@ -1,0 +1,668 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import React from "react";
+     4→     4→import { useERPStore, type ContentStage, type ActivityLog } from "@/lib/store";
+     5→     5→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+     6→     6→import { Badge } from "@/components/ui/badge";
+     7→     7→import { ScrollArea } from "@/components/ui/scroll-area";
+     8→     8→import { Separator } from "@/components/ui/separator";
+     9→     9→import { Skeleton } from "@/components/ui/skeleton";
+    10→    10→import {
+    11→    11→  BarChart,
+    12→    12→  Bar,
+    13→    13→  XAxis,
+    14→    14→  YAxis,
+    15→    15→  CartesianGrid,
+    16→    16→  Tooltip,
+    17→    17→  ResponsiveContainer,
+    18→    18→  Cell,
+    19→    19→} from "recharts";
+    20→    20→import { motion } from "framer-motion";
+    21→    21→import {
+    22→    22→  FileText,
+    23→    23→  Send,
+    24→    24→  Clock,
+    25→    25→  Rocket,
+    26→    26→  TrendingUp,
+    27→    27→  TrendingDown,
+    28→    28→  ArrowUpRight,
+    29→    29→  ArrowDownRight,
+    30→    30→  Activity,
+    31→    31→  Plus,
+    32→    32→  Edit3,
+    33→    33→  Trash2,
+    34→    34→  CheckCircle2,
+    35→    35→  Eye,
+    36→    36→  MessageSquare,
+    37→    37→  UserPlus,
+    38→    38→  CalendarCheck,
+    39→    39→  Share2,
+    40→    40→  Workflow,
+    41→    41→  Briefcase,
+    42→    42→  Users,
+    43→    43→  BarChart3,
+    44→    44→} from "lucide-react";
+    45→    45→
+    46→    46→// ── Animation variants ──────────────────────────────────────────────
+    47→    47→const containerVariants = {
+    48→    48→  hidden: { opacity: 0 },
+    49→    49→  visible: {
+    50→    50→    opacity: 1,
+    51→    51→    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+    52→    52→  },
+    53→    53→};
+    54→    54→
+    55→    55→const itemVariants = {
+    56→    56→  hidden: { opacity: 0, y: 16, scale: 0.97 },
+    57→    57→  visible: {
+    58→    58→    opacity: 1,
+    59→    59→    y: 0,
+    60→    60→    scale: 1,
+    61→    61→    transition: { type: "spring", stiffness: 300, damping: 24 },
+    62→    62→  },
+    63→    63→};
+    64→    64→
+    65→    65→// ── Color palette (emerald/teal) ────────────────────────────────────
+    66→    66→const STAGE_COLORS: Record<string, string> = {
+    67→    67→  idea: "#10b981",
+    68→    68→  design: "#14b8a6",
+    69→    69→  edit: "#06b6d4",
+    70→    70→  review: "#f59e0b",
+    71→    71→  approve: "#22c55e",
+    72→    72→  disseminate: "#0d9488",
+    73→    73→  archived: "#94a3b8",
+    74→    74→};
+    75→    75→
+    76→    76→const STAGE_LABELS: Record<string, string> = {
+    77→    77→  idea: "Idea",
+    78→    78→  design: "Design",
+    79→    79→  edit: "Edit",
+    80→    80→  review: "Review",
+    81→    81→  approve: "Approve",
+    82→    82→  disseminate: "Disseminate",
+    83→    83→  archived: "Archived",
+    84→    84→};
+    85→    85→
+    86→    86→const PLATFORM_COLORS: Record<string, string> = {
+    87→    87→  instagram: "#E4405F",
+    88→    88→  facebook: "#1877F2",
+    89→    89→  twitter: "#1DA1F2",
+    90→    90→  linkedin: "#0A66C2",
+    91→    91→  tiktok: "#000000",
+    92→    92→  youtube: "#FF0000",
+    93→    93→  pinterest: "#E60023",
+    94→    94→  snapchat: "#FFFC00",
+    95→    95→};
+    96→    96→
+    97→    97→// ── KPI card data builder ───────────────────────────────────────────
+    98→    98→interface KPICardData {
+    99→    99→  title: string;
+   100→   100→  value: number | string;
+   101→   101→  change?: number;
+   102→   102→  changeLabel?: string;
+   103→   103→  icon: React.ComponentType<{ className?: string }>;
+   104→   104→  gradient: string;
+   105→   105→  iconColor: string;
+   106→   106→  badge?: string;
+   107→   107→  badgeColor?: string;
+   108→   108→}
+   109→   109→
+   110→   110→function buildKPICards(
+   111→   111→  totalContent: number,
+   112→   112→  postsThisMonth: number,
+   113→   113→  scheduledPosts: number,
+   114→   114→  activeCampaigns: number
+   115→   115→): KPICardData[] {
+   116→   116→  return [
+   117→   117→    {
+   118→   118→      title: "Total Content",
+   119→   119→      value: totalContent,
+   120→   120→      change: 12.5,
+   121→   121→      changeLabel: "vs last month",
+   122→   122→      icon: FileText,
+   123→   123→      gradient: "from-emerald-500 to-emerald-600",
+   124→   124→      iconColor: "text-white",
+   125→   125→    },
+   126→   126→    {
+   127→   127→      title: "Posts This Month",
+   128→   128→      value: postsThisMonth,
+   129→   129→      change: 8.2,
+   130→   130→      changeLabel: "vs last month",
+   131→   131→      icon: Send,
+   132→   132→      gradient: "from-teal-500 to-teal-600",
+   133→   133→      iconColor: "text-white",
+   134→   134→    },
+   135→   135→    {
+   136→   136→      title: "Scheduled Posts",
+   137→   137→      value: scheduledPosts,
+   138→   138→      icon: Clock,
+   139→   139→      gradient: "from-cyan-500 to-cyan-600",
+   140→   140→      iconColor: "text-white",
+   141→   141→      badge: "Upcoming",
+   142→   142→      badgeColor: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
+   143→   143→    },
+   144→   144→    {
+   145→   145→      title: "Active Campaigns",
+   146→   146→      value: activeCampaigns,
+   147→   147→      change: -2.1,
+   148→   148→      changeLabel: "vs last month",
+   149→   149→      icon: Rocket,
+   150→   150→      gradient: "from-emerald-600 to-teal-600",
+   151→   151→      iconColor: "text-white",
+   152→   152→      badge: activeCampaigns > 0 ? "Live" : undefined,
+   153→   153→      badgeColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+   154→   154→    },
+   155→   155→  ];
+   156→   156→}
+   157→   157→
+   158→   158→// ── Activity icon helper ────────────────────────────────────────────
+   159→   159→function getActivityIcon(action: string) {
+   160→   160→  const lower = action.toLowerCase();
+   161→   161→  if (lower.includes("create") || lower.includes("add") || lower.includes("new"))
+   162→   162→    return { icon: Plus, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40" };
+   163→   163→  if (lower.includes("edit") || lower.includes("update") || lower.includes("modify"))
+   164→   164→    return { icon: Edit3, color: "text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/40" };
+   165→   165→  if (lower.includes("delete") || lower.includes("remove"))
+   166→   166→    return { icon: Trash2, color: "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40" };
+   167→   167→  if (lower.includes("approve") || lower.includes("accept") || lower.includes("complete"))
+   168→   168→    return { icon: CheckCircle2, color: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40" };
+   169→   169→  if (lower.includes("review") || lower.includes("view"))
+   170→   170→    return { icon: Eye, color: "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40" };
+   171→   171→  if (lower.includes("comment") || lower.includes("reply"))
+   172→   172→    return { icon: MessageSquare, color: "text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/40" };
+   173→   173→  if (lower.includes("assign") || lower.includes("member") || lower.includes("join"))
+   174→   174→    return { icon: UserPlus, color: "text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/40" };
+   175→   175→  if (lower.includes("schedule") || lower.includes("calendar"))
+   176→   176→    return { icon: CalendarCheck, color: "text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40" };
+   177→   177→  if (lower.includes("publish") || lower.includes("share") || lower.includes("send"))
+   178→   178→    return { icon: Share2, color: "text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/40" };
+   179→   179→  return { icon: Activity, color: "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/40" };
+   180→   180→}
+   181→   181→
+   182→   182→// ── Time formatting ─────────────────────────────────────────────────
+   183→   183→function formatRelativeTime(dateStr: string): string {
+   184→   184→  try {
+   185→   185→    const date = new Date(dateStr);
+   186→   186→    const now = new Date();
+   187→   187→    const diffMs = now.getTime() - date.getTime();
+   188→   188→    const diffMins = Math.floor(diffMs / 60000);
+   189→   189→    const diffHours = Math.floor(diffMs / 3600000);
+   190→   190→    const diffDays = Math.floor(diffMs / 86400000);
+   191→   191→
+   192→   192→    if (diffMins < 1) return "Just now";
+   193→   193→    if (diffMins < 60) return `${diffMins}m ago`;
+   194→   194→    if (diffHours < 24) return `${diffHours}h ago`;
+   195→   195→    if (diffDays < 7) return `${diffDays}d ago`;
+   196→   196→    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+   197→   197→  } catch {
+   198→   198→    return "";
+   199→   199→  }
+   200→   200→}
+   201→   201→
+   202→   202→// ── Custom Tooltip ──────────────────────────────────────────────────
+   203→   203→function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; color: string }>; label?: string }) {
+   204→   204→  if (!active || !payload?.length) return null;
+   205→   205→  return (
+   206→   206→    <div className="rounded-lg border border-border/50 bg-background px-3 py-2 shadow-xl text-xs">
+   207→   207→      <p className="font-medium text-foreground mb-1">{label}</p>
+   208→   208→      {payload.map((p, i) => (
+   209→   209→        <div key={i} className="flex items-center gap-2">
+   210→   210→          <div className="h-2 w-2 rounded-sm" style={{ backgroundColor: p.color }} />
+   211→   211→          <span className="text-muted-foreground capitalize">{p.dataKey}:</span>
+   212→   212→          <span className="font-mono font-medium text-foreground">{p.value}</span>
+   213→   213→        </div>
+   214→   214→      ))}
+   215→   215→    </div>
+   216→   216→  );
+   217→   217→}
+   218→   218→
+   219→   219→// ── KPI Card Component ──────────────────────────────────────────────
+   220→   220→function KPICard({ data, index }: { data: KPICardData; index: number }) {
+   221→   221→  const Icon = data.icon;
+   222→   222→  return (
+   223→   223→    <motion.div variants={itemVariants}>
+   224→   224→      <Card className="relative overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 border-border/60">
+   225→   225→        <CardContent className="p-5">
+   226→   226→          <div className="flex items-start justify-between">
+   227→   227→            <div className="flex-1 min-w-0">
+   228→   228→              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+   229→   229→                {data.title}
+   230→   230→              </p>
+   231→   231→              <div className="mt-2 flex items-baseline gap-2">
+   232→   232→                <h3 className="text-2xl font-bold tracking-tight text-foreground">
+   233→   233→                  {typeof data.value === "number" ? data.value.toLocaleString() : data.value}
+   234→   234→                </h3>
+   235→   235→                {data.badge && (
+   236→   236→                  <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-md leading-none ${data.badgeColor}`}>
+   237→   237→                    {data.badge}
+   238→   238→                  </span>
+   239→   239→                )}
+   240→   240→              </div>
+   241→   241→              {data.change !== undefined && (
+   242→   242→                <div className="mt-1.5 flex items-center gap-1">
+   243→   243→                  {data.change >= 0 ? (
+   244→   244→                    <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+   245→   245→                  ) : (
+   246→   246→                    <ArrowDownRight className="h-3 w-3 text-rose-600 dark:text-rose-400" />
+   247→   247→                  )}
+   248→   248→                  <span className={`text-xs font-medium ${data.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+   249→   249→                    {Math.abs(data.change)}%
+   250→   250→                  </span>
+   251→   251→                  {data.changeLabel && (
+   252→   252→                    <span className="text-[10px] text-muted-foreground">{data.changeLabel}</span>
+   253→   253→                  )}
+   254→   254→                </div>
+   255→   255→              )}
+   256→   256→            </div>
+   257→   257→            <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${data.gradient} flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0`}>
+   258→   258→              <Icon className={`h-5 w-5 ${data.iconColor}`} />
+   259→   259→            </div>
+   260→   260→          </div>
+   261→   261→        </CardContent>
+   262→   262→        {/* Subtle decorative gradient overlay at bottom */}
+   263→   263→        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+   264→   264→      </Card>
+   265→   265→    </motion.div>
+   266→   266→  );
+   267→   267→}
+   268→   268→
+   269→   269→// ── Team Productivity Bar ───────────────────────────────────────────
+   270→   270→function TeamProductivityBar({ team, completed, pending }: { team: string; completed: number; pending: number }) {
+   271→   271→  const total = completed + pending;
+   272→   272→  const completedPct = total > 0 ? (completed / total) * 100 : 0;
+   273→   273→  const pendingPct = total > 0 ? (pending / total) * 100 : 0;
+   274→   274→
+   275→   275→  return (
+   276→   276→    <div className="space-y-1.5">
+   277→   277→      <div className="flex items-center justify-between text-xs">
+   278→   278→        <span className="font-medium text-foreground truncate">{team}</span>
+   279→   279→        <span className="text-muted-foreground tabular-nums">
+   280→   280→          {completed}<span className="text-muted-foreground/60">/{total}</span>
+   281→   281→        </span>
+   282→   282→      </div>
+   283→   283→      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+   284→   284→        <div
+   285→   285→          className="bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500 rounded-l-full"
+   286→   286→          style={{ width: `${completedPct}%` }}
+   287→   287→        />
+   288→   288→        <div
+   289→   289→          className="bg-gradient-to-r from-amber-400 to-amber-300 dark:from-amber-500 dark:to-amber-400 transition-all duration-500"
+   290→   290→          style={{ width: `${pendingPct}%` }}
+   291→   291→        />
+   292→   292→      </div>
+   293→   293→    </div>
+   294→   294→  );
+   295→   295→}
+   296→   296→
+   297→   297→// ── Main Dashboard View ─────────────────────────────────────────────
+   298→   298→export function DashboardView() {
+   299→   299→  const { dashboard, isLoading } = useERPStore();
+   300→   300→
+   301→   301→  // Loading state
+   302→   302→  if (isLoading || !dashboard) {
+   303→   303→    return <DashboardSkeleton />;
+   304→   304→  }
+   305→   305→
+   306→   306→  const kpiCards = buildKPICards(
+   307→   307→    dashboard.totalContent,
+   308→   308→    dashboard.postsThisMonth,
+   309→   309→    dashboard.scheduledPosts,
+   310→   310→    dashboard.activeCampaigns
+   311→   311→  );
+   312→   312→
+   313→   313→  // Build pipeline chart data
+   314→   314→  const pipelineData = (["idea", "design", "edit", "review", "approve", "disseminate"] as ContentStage[]).map(
+   315→   315→    (stage) => ({
+   316→   316→      stage: STAGE_LABELS[stage],
+   317→   317→      count: dashboard.contentByStage[stage] || 0,
+   318→   318→      color: STAGE_COLORS[stage],
+   319→   319→    })
+   320→   320→  );
+   321→   321→
+   322→   322→  // Build platform chart data
+   323→   323→  const platformData = dashboard.platformBreakdown.map((p) => ({
+   324→   324→    platform: p.platform.charAt(0).toUpperCase() + p.platform.slice(1),
+   325→   325→    posts: p.posts,
+   326→   326→    engagement: p.engagement,
+   327→   327→    color: PLATFORM_COLORS[p.platform.toLowerCase()] || "#10b981",
+   328→   328→  }));
+   329→   329→
+   330→   330→  // Activity items (last 15)
+   331→   331→  const activityItems = dashboard.recentActivity.slice(0, 15);
+   332→   332→
+   333→   333→  // Team productivity
+   334→   334→  const teamData = dashboard.teamProductivity;
+   335→   335→
+   336→   336→  return (
+   337→   337→    <motion.div
+   338→   338→      className="p-4 lg:p-6 space-y-6"
+   339→   339→      variants={containerVariants}
+   340→   340→      initial="hidden"
+   341→   341→      animate="visible"
+   342→   342→    >
+   343→   343→      {/* ── Section Header ── */}
+   344→   344→      <motion.div variants={itemVariants} className="flex items-center justify-between">
+   345→   345→        <div>
+   346→   346→          <h2 className="text-xl font-bold tracking-tight text-foreground">
+   347→   347→            Dashboard Overview
+   348→   348→          </h2>
+   349→   349→          <p className="text-sm text-muted-foreground mt-0.5">
+   350→   350→            Real-time performance metrics for your agency
+   351→   351→          </p>
+   352→   352→        </div>
+   353→   353→        <Badge variant="secondary" className="text-[10px] font-medium gap-1">
+   354→   354→          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+   355→   355→          Live
+   356→   356→        </Badge>
+   357→   357→      </motion.div>
+   358→   358→
+   359→   359→      {/* ── KPI Cards Row ── */}
+   360→   360→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   361→   361→        {kpiCards.map((card, index) => (
+   362→   362→          <KPICard key={card.title} data={card} index={index} />
+   363→   363→        ))}
+   364→   364→      </div>
+   365→   365→
+   366→   366→      {/* ── Charts Row ── */}
+   367→   367→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   368→   368→        {/* Content Pipeline Distribution */}
+   369→   369→        <motion.div variants={itemVariants}>
+   370→   370→          <Card className="shadow-sm border-border/60 h-full">
+   371→   371→            <CardHeader className="pb-2">
+   372→   372→              <div className="flex items-center justify-between">
+   373→   373→                <div>
+   374→   374→                  <CardTitle className="text-sm font-semibold">Content Pipeline</CardTitle>
+   375→   375→                  <CardDescription className="text-xs mt-0.5">
+   376→   376→                    Distribution by stage
+   377→   377→                  </CardDescription>
+   378→   378→                </div>
+   379→   379→                <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+   380→   380→                  <Workflow className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+   381→   381→                </div>
+   382→   382→              </div>
+   383→   383→            </CardHeader>
+   384→   384→            <CardContent className="pt-0">
+   385→   385→              <div className="h-[240px] w-full">
+   386→   386→                <ResponsiveContainer width="100%" height="100%">
+   387→   387→                  <BarChart data={pipelineData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+   388→   388→                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} vertical={false} />
+   389→   389→                    <XAxis
+   390→   390→                      dataKey="stage"
+   391→   391→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   392→   392→                      axisLine={false}
+   393→   393→                      tickLine={false}
+   394→   394→                    />
+   395→   395→                    <YAxis
+   396→   396→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   397→   397→                      axisLine={false}
+   398→   398→                      tickLine={false}
+   399→   399→                      allowDecimals={false}
+   400→   400→                    />
+   401→   401→                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }} />
+   402→   402→                    <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={40}>
+   403→   403→                      {pipelineData.map((entry, index) => (
+   404→   404→                        <Cell key={`cell-${index}`} fill={entry.color} />
+   405→   405→                      ))}
+   406→   406→                    </Bar>
+   407→   407→                  </BarChart>
+   408→   408→                </ResponsiveContainer>
+   409→   409→              </div>
+   410→   410→            </CardContent>
+   411→   411→          </Card>
+   412→   412→        </motion.div>
+   413→   413→
+   414→   414→        {/* Platform Performance */}
+   415→   415→        <motion.div variants={itemVariants}>
+   416→   416→          <Card className="shadow-sm border-border/60 h-full">
+   417→   417→            <CardHeader className="pb-2">
+   418→   418→              <div className="flex items-center justify-between">
+   419→   419→                <div>
+   420→   420→                  <CardTitle className="text-sm font-semibold">Platform Performance</CardTitle>
+   421→   421→                  <CardDescription className="text-xs mt-0.5">
+   422→   422→                    Posts by platform
+   423→   423→                  </CardDescription>
+   424→   424→                </div>
+   425→   425→                <div className="h-8 w-8 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+   426→   426→                  <BarChart3 className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+   427→   427→                </div>
+   428→   428→              </div>
+   429→   429→            </CardHeader>
+   430→   430→            <CardContent className="pt-0">
+   431→   431→              <div className="h-[240px] w-full">
+   432→   432→                <ResponsiveContainer width="100%" height="100%">
+   433→   433→                  <BarChart
+   434→   434→                    data={platformData}
+   435→   435→                    layout="vertical"
+   436→   436→                    margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
+   437→   437→                  >
+   438→   438→                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} horizontal={false} />
+   439→   439→                    <XAxis
+   440→   440→                      type="number"
+   441→   441→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   442→   442→                      axisLine={false}
+   443→   443→                      tickLine={false}
+   444→   444→                      allowDecimals={false}
+   445→   445→                    />
+   446→   446→                    <YAxis
+   447→   447→                      type="category"
+   448→   448→                      dataKey="platform"
+   449→   449→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   450→   450→                      axisLine={false}
+   451→   451→                      tickLine={false}
+   452→   452→                      width={72}
+   453→   453→                    />
+   454→   454→                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }} />
+   455→   455→                    <Bar dataKey="posts" radius={[0, 6, 6, 0]} maxBarSize={24}>
+   456→   456→                      {platformData.map((entry, index) => (
+   457→   457→                        <Cell key={`cell-${index}`} fill={entry.color} />
+   458→   458→                      ))}
+   459→   459→                    </Bar>
+   460→   460→                  </BarChart>
+   461→   461→                </ResponsiveContainer>
+   462→   462→              </div>
+   463→   463→            </CardContent>
+   464→   464→          </Card>
+   465→   465→        </motion.div>
+   466→   466→      </div>
+   467→   467→
+   468→   468→      {/* ── Bottom Row ── */}
+   469→   469→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   470→   470→        {/* Team Productivity */}
+   471→   471→        <motion.div variants={itemVariants}>
+   472→   472→          <Card className="shadow-sm border-border/60 h-full">
+   473→   473→            <CardHeader className="pb-2">
+   474→   474→              <div className="flex items-center justify-between">
+   475→   475→                <div>
+   476→   476→                  <CardTitle className="text-sm font-semibold">Team Productivity</CardTitle>
+   477→   477→                  <CardDescription className="text-xs mt-0.5">
+   478→   478→                    Completed vs pending tasks
+   479→   479→                  </CardDescription>
+   480→   480→                </div>
+   481→   481→                <div className="flex items-center gap-3 text-[10px]">
+   482→   482→                  <div className="flex items-center gap-1.5">
+   483→   483→                    <div className="h-2 w-2 rounded-sm bg-gradient-to-r from-emerald-500 to-emerald-400" />
+   484→   484→                    <span className="text-muted-foreground">Done</span>
+   485→   485→                  </div>
+   486→   486→                  <div className="flex items-center gap-1.5">
+   487→   487→                    <div className="h-2 w-2 rounded-sm bg-gradient-to-r from-amber-400 to-amber-300" />
+   488→   488→                    <span className="text-muted-foreground">Pending</span>
+   489→   489→                  </div>
+   490→   490→                </div>
+   491→   491→              </div>
+   492→   492→            </CardHeader>
+   493→   493→            <CardContent className="pt-2">
+   494→   494→              {teamData.length === 0 ? (
+   495→   495→                <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+   496→   496→                  No team data available
+   497→   497→                </div>
+   498→   498→              ) : (
+   499→   499→                <div className="space-y-4">
+   500→   500→                  {teamData.map((t) => (
+   501→   501→                    <TeamProductivityBar
+   502→   502→                      key={t.team}
+   503→   503→                      team={t.team}
+   504→   504→                      completed={t.completed}
+   505→   505→                      pending={t.pending}
+   506→   506→                    />
+   507→   507→                  ))}
+   508→   508→                </div>
+   509→   509→              )}
+   510→   510→            </CardContent>
+   511→   511→          </Card>
+   512→   512→        </motion.div>
+   513→   513→
+   514→   514→        {/* Recent Activity Feed */}
+   515→   515→        <motion.div variants={itemVariants}>
+   516→   516→          <Card className="shadow-sm border-border/60 h-full">
+   517→   517→            <CardHeader className="pb-2">
+   518→   518→              <div className="flex items-center justify-between">
+   519→   519→                <div>
+   520→   520→                  <CardTitle className="text-sm font-semibold">Recent Activity</CardTitle>
+   521→   521→                  <CardDescription className="text-xs mt-0.5">
+   522→   522→                    Latest actions across the platform
+   523→   523→                  </CardDescription>
+   524→   524→                </div>
+   525→   525→                <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+   526→   526→                  <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+   527→   527→                </div>
+   528→   528→              </div>
+   529→   529→            </CardHeader>
+   530→   530→            <CardContent className="pt-0">
+   531→   531→              {activityItems.length === 0 ? (
+   532→   532→                <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+   533→   533→                  No recent activity
+   534→   534→                </div>
+   535→   535→              ) : (
+   536→   536→                <ScrollArea className="h-[280px] pr-3">
+   537→   537→                  <div className="space-y-0.5">
+   538→   538→                    {activityItems.map((item, idx) => {
+   539→   539→                      const { icon: ActivityIcon, color: iconColorClasses } = getActivityIcon(item.action);
+   540→   540→                      return (
+   541→   541→                        <motion.div
+   542→   542→                          key={item.id}
+   543→   543→                          initial={{ opacity: 0, x: -8 }}
+   544→   544→                          animate={{ opacity: 1, x: 0 }}
+   545→   545→                          transition={{ delay: idx * 0.03, duration: 0.2 }}
+   546→   546→                          className="flex items-start gap-3 py-2.5 px-2 rounded-lg hover:bg-muted/50 transition-colors group"
+   547→   547→                        >
+   548→   548→                          <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${iconColorClasses}`}>
+   549→   549→                            <ActivityIcon className="h-3.5 w-3.5" />
+   550→   550→                          </div>
+   551→   551→                          <div className="flex-1 min-w-0">
+   552→   552→                            <p className="text-xs text-foreground leading-snug">
+   553→   553→                              <span className="font-semibold">{item.actor?.name || "Unknown"}</span>
+   554→   554→                              {" "}
+   555→   555→                              <span className="text-muted-foreground">{item.action.toLowerCase()}</span>
+   556→   556→                              {item.entity && (
+   557→   557→                                <>
+   558→   558→                                  {" "}
+   559→   559→                                  <span className="font-medium text-foreground">{item.entity}</span>
+   560→   560→                                </>
+   561→   561→                              )}
+   562→   562→                            </p>
+   563→   563→                            {item.details && (
+   564→   564→                              <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">
+   565→   565→                                {item.details}
+   566→   566→                              </p>
+   567→   567→                            )}
+   568→   568→                          </div>
+   569→   569→                          <span className="text-[10px] text-muted-foreground/60 whitespace-nowrap shrink-0 pt-0.5">
+   570→   570→                            {formatRelativeTime(item.createdAt)}
+   571→   571→                          </span>
+   572→   572→                        </motion.div>
+   573→   573→                      );
+   574→   574→                    })}
+   575→   575→                  </div>
+   576→   576→                </ScrollArea>
+   577→   577→              )}
+   578→   578→            </CardContent>
+   579→   579→          </Card>
+   580→   580→        </motion.div>
+   581→   581→      </div>
+   582→   582→    </motion.div>
+   583→   583→  );
+   584→   584→}
+   585→   585→
+   586→   586→// ── Loading Skeleton ────────────────────────────────────────────────
+   587→   587→function DashboardSkeleton() {
+   588→   588→  return (
+   589→   589→    <div className="p-4 lg:p-6 space-y-6 animate-in fade-in duration-300">
+   590→   590→      {/* Header skeleton */}
+   591→   591→      <div className="flex items-center justify-between">
+   592→   592→        <div className="space-y-2">
+   593→   593→          <Skeleton className="h-6 w-44" />
+   594→   594→          <Skeleton className="h-4 w-60" />
+   595→   595→        </div>
+   596→   596→      </div>
+   597→   597→
+   598→   598→      {/* KPI cards skeleton */}
+   599→   599→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   600→   600→        {Array.from({ length: 4 }).map((_, i) => (
+   601→   601→          <Card key={i} className="shadow-sm border-border/60">
+   602→   602→            <CardContent className="p-5">
+   603→   603→              <div className="flex items-start justify-between">
+   604→   604→                <div className="space-y-2 flex-1">
+   605→   605→                  <Skeleton className="h-3 w-20" />
+   606→   606→                  <Skeleton className="h-7 w-16" />
+   607→   607→                  <Skeleton className="h-3 w-24" />
+   608→   608→                </div>
+   609→   609→                <Skeleton className="h-10 w-10 rounded-xl" />
+   610→   610→              </div>
+   611→   611→            </CardContent>
+   612→   612→          </Card>
+   613→   613→        ))}
+   614→   614→      </div>
+   615→   615→
+   616→   616→      {/* Charts skeleton */}
+   617→   617→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   618→   618→        {Array.from({ length: 2 }).map((_, i) => (
+   619→   619→          <Card key={i} className="shadow-sm border-border/60">
+   620→   620→            <CardHeader className="pb-2">
+   621→   621→              <div className="flex items-center justify-between">
+   622→   622→                <div className="space-y-1.5">
+   623→   623→                  <Skeleton className="h-4 w-32" />
+   624→   624→                  <Skeleton className="h-3 w-24" />
+   625→   625→                </div>
+   626→   626→                <Skeleton className="h-8 w-8 rounded-lg" />
+   627→   627→              </div>
+   628→   628→            </CardHeader>
+   629→   629→            <CardContent className="pt-0">
+   630→   630→              <Skeleton className="h-[240px] w-full rounded-lg" />
+   631→   631→            </CardContent>
+   632→   632→          </Card>
+   633→   633→        ))}
+   634→   634→      </div>
+   635→   635→
+   636→   636→      {/* Bottom row skeleton */}
+   637→   637→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   638→   638→        {Array.from({ length: 2 }).map((_, i) => (
+   639→   639→          <Card key={i} className="shadow-sm border-border/60">
+   640→   640→            <CardHeader className="pb-2">
+   641→   641→              <div className="flex items-center justify-between">
+   642→   642→                <div className="space-y-1.5">
+   643→   643→                  <Skeleton className="h-4 w-32" />
+   644→   644→                  <Skeleton className="h-3 w-24" />
+   645→   645→                </div>
+   646→   646→                <Skeleton className="h-8 w-8 rounded-lg" />
+   647→   647→              </div>
+   648→   648→            </CardHeader>
+   649→   649→            <CardContent className="pt-0">
+   650→   650→              <div className="space-y-4">
+   651→   651→                {Array.from({ length: 5 }).map((_, j) => (
+   652→   652→                  <div key={j} className="space-y-2">
+   653→   653→                    <div className="flex justify-between">
+   654→   654→                      <Skeleton className="h-3 w-24" />
+   655→   655→                      <Skeleton className="h-3 w-10" />
+   656→   656→                    </div>
+   657→   657→                    <Skeleton className="h-2.5 w-full rounded-full" />
+   658→   658→                  </div>
+   659→   659→                ))}
+   660→   660→              </div>
+   661→   661→            </CardContent>
+   662→   662→          </Card>
+   663→   663→        ))}
+   664→   664→      </div>
+   665→   665→    </div>
+   666→   666→  );
+   667→   667→}
+   668→   668→
