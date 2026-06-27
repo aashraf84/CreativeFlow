@@ -447,3 +447,145 @@ Stage Summary:
 - Analytics dashboard with KPIs, channel breakdown, daily volume chart, top contacts, template usage
 - Emerald/teal primary color scheme with WhatsApp green (#25D366) for WA elements
 - All data loaded from API and gracefully handles missing endpoints (empty state fallbacks)
+
+---
+
+# Work Log - Task 4: Enhanced Communication Center (InboxView)
+
+## Date: 2026-06-27
+
+## Summary
+Completely rewrote `/home/z/my-project/src/components/erp/inbox-view.tsx` with a polished, production-ready Mail + WhatsApp communication experience. The component integrates with all 14 API endpoints and provides 5 comprehensive tabs.
+
+## Files Modified
+
+### `src/components/erp/inbox-view.tsx` - Communication Center (COMPLETE REWRITE)
+
+#### Tab 1: Inbox (Split Panel)
+- **Left panel**: Conversation list with search bar, channel filter tabs (All | Email | WhatsApp | Mixed), status filter (Active | Archived | Closed)
+- **Conversation cards**: Channel icon (Mail/MessageCircle/both), subject, last message preview (truncated), sender name, relative timestamp, unread count badge (red), priority indicator (colored dots), client name, star indicator
+- **Active conversation**: Highlighted with emerald left border
+- **Right panel**: Conversation detail with header (subject, channel badge, status badge, priority dropdown, status dropdown, tags, linked client/influencer)
+- **Message thread**: 
+  - Email outbound: emerald-tinted bubbles; inbound: white bubbles; email icon
+  - WhatsApp outbound: green-tinted (#DCF8C6) bubbles; inbound: white; WA icon
+  - Internal notes: amber-tinted bubbles with note icon
+  - Each message: sender name, timestamp, body, status indicators (✓ delivered, ✓✓ read, ⚠ failed)
+  - Star toggle per message
+- **Compose area**: Channel toggle (Email/WhatsApp/Note), subject field for email, text area with WA char count (4096 max), send button with loading state
+- **API integration**: GET conversation detail for messages, POST reply, PUT conversation metadata
+
+#### Tab 2: Compose
+- Channel selector: Email or WhatsApp with styled buttons
+- From field: Auto-filled with current user
+- To field: Search contacts with dropdown autocomplete (contacts from store)
+- Subject field (email only)
+- Body textarea with rich formatting
+- Template selector dropdown: Filters by channel type, auto-fills subject/body when selected
+- Template variable detection: Finds {{variable}} patterns, shows input fields for each
+- Real-time variable substitution in subject/body
+- WhatsApp character counter (max 4096)
+- WhatsApp preview: Shows message as it would appear in WhatsApp chat bubble
+- Send button calls POST /api/communications/email/send or /api/communications/whatsapp/send
+- Success feedback with animated message
+
+#### Tab 3: Templates
+- Filter by type: All | Email | WhatsApp (button group)
+- Filter by category: All + dynamic categories from data (Select dropdown)
+- Grid of template cards showing:
+  - Template name, type badge, category badge
+  - Subject (email only), body preview (first 150 chars)
+  - Detected {{variables}} highlighted with emerald badges
+  - Usage count from _count.messages
+  - Active/inactive indicator (green/gray dot)
+  - Default badge (star icon)
+- Create template dialog: Name, type, subject, body, category, active toggle
+- Template preview dialog: Full template with variable highlighting
+- Click-to-create template with auto-detected variables
+
+#### Tab 4: Contacts
+- Search bar with real-time filtering
+- Filter by role: All | Client | Influencer | Partner | Vendor
+- Filter by channel: All | Email | WhatsApp
+- Favorites toggle button (rose/heart themed)
+- Grid of contact cards showing:
+  - Avatar (initials with role-based gradient: emerald=client, pink=influencer, amber=partner, violet=vendor)
+  - Name, company, role badge
+  - Email with mailto: link (emerald colored)
+  - Phone with tel: link
+  - WhatsApp number with WA icon (#25D366)
+  - Last contacted relative time
+  - Tags
+  - Quick actions: Email, WhatsApp, View, Favorite toggle
+- Add contact dialog: Name, email, phone, WA number, company, role, preferred channel
+- Contact detail dialog: Full info with all contact methods, notes, tags, linked client/influencer
+- Favorite toggle calls PUT /api/communications/contacts/[id]
+
+#### Tab 5: Analytics
+- 4 KPI cards with gradient icons:
+  - Total Messages Sent (count outbound)
+  - Email Open Rate (%)
+  - Reply Rate (%)
+  - Avg Response Time
+- Channel breakdown: Email vs WhatsApp vs Notes with animated progress bars
+- 7-day message volume chart: CSS-based stacked bars (emerald for email, #25D366 for WA)
+- Top contacts by message count (with avatar initials)
+- Template usage stats (with type icons and usage counts)
+
+## Technical Implementation
+- **Data flow**: Zustand store (useERPStore) for reads, direct fetch() for mutations
+- **Refresh pattern**: After mutations, re-fetches from API and updates store via global helpers
+- **JSON parsing**: Safe try/catch for tags, variables, mediaUrls fields
+- **Variable detection**: Regex `\{\{(\w+)\}\}` with deduplication
+- **Variable substitution**: Template engine for compose tab
+- **Date formatting**: date-fns formatDistanceToNow and format
+- **Animations**: framer-motion for card layouts, message bubbles, KPI cards, progress bars
+- **Responsive**: Mobile-first with flex-wrap, grid breakpoints (1→2→3→4 cols)
+- **Color scheme**: Emerald/teal primary, WhatsApp green (#25D366), amber for notes, NO blue/indigo
+- **Components**: All shadcn/ui (Card, Badge, Button, Input, Textarea, Select, Dialog, ScrollArea, Avatar, Tabs, Switch, Label, Separator)
+- **Icons**: All lucide-react (30+ icons used)
+- **Lint**: Passes cleanly with no errors
+- **Self-contained**: Single file with all sub-components inline, named export `InboxView`
+---
+Task ID: 1-5
+Agent: Main Orchestrator
+Task: Build Mail and WhatsApp integration modules for VortexERP
+
+Work Log:
+- Regenerated Prisma client to recognize communication models (CommunicationTemplate, Conversation, CommunicationMessage, CommunicationContact)
+- Pushed schema to database (already in sync)
+- Cleared Next.js cache (.next directory) to pick up new Prisma client
+- Added seed data for communications:
+  - 8 communication templates (5 email, 3 WhatsApp) with variable detection
+  - 10 communication contacts (6 direct + 4 influencer-linked) with roles, channels, favorites
+  - 8 conversations (3 email, 3 WhatsApp, 1 mixed, 1 archived, 1 closed)
+  - 20+ messages across all conversations with realistic email/WhatsApp content
+- Updated seed check to include communication contacts count
+- Added communication table cleanup in seed route (deleteMany for messages, conversations, templates, contacts)
+- Disabled Prisma query logging to reduce memory overhead
+- Verified all 3 communication API endpoints return data correctly (templates: 8, contacts: 10, conversations: 8)
+- Enhanced inbox-view.tsx (Communication Center) with 5 tabs:
+  - Tab 1 (Inbox): Split-panel with searchable/filterable conversation list and detail view
+  - Tab 2 (Compose): Full compose with channel selector, template integration, variable substitution
+  - Tab 3 (Templates): Grid with type/category filters, create/edit dialogs, variable highlighting
+  - Tab 4 (Contacts): Search, role/channel filters, favorites, quick actions
+  - Tab 5 (Analytics): KPI cards, channel breakdown, 7-day volume chart, top contacts, template usage
+- Verified with Agent Browser:
+  - Dashboard loads correctly
+  - Communication Center renders with all 5 tabs
+  - Inbox shows 6 active conversations with proper data (WhatsApp, Email, Mixed)
+  - Conversation cards display: subject, preview, sender, client, timestamp, unread count, tags
+  - Templates tab shows template cards with type/category badges
+  - Contacts tab shows contact cards with role badges and quick actions
+  - Analytics tab renders KPI cards and channel breakdown
+  - Sidebar shows "Inbox 6" with unread count badge
+- All lint checks pass cleanly
+
+Stage Summary:
+- Complete Mail + WhatsApp integration module with 5-tab Communication Center
+- Backend: 9 API endpoints for conversations, messages, templates, contacts, email/WhatsApp sending
+- Database: 4 new models with proper relations and indexes
+- Seed data: 8 templates, 10 contacts, 8 conversations, 20+ messages
+- Frontend: Professional split-panel inbox with email/WhatsApp message bubbles, compose with template support, template management, contact directory, analytics dashboard
+- Emerald/teal primary colors with WhatsApp green (#25D366) for WA elements
+- No blue/indigo colors used

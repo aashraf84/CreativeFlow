@@ -7,18 +7,28 @@ export async function GET() {
     const existingOrg = await db.organization.findFirst()
     const existingApprovals = existingOrg ? await db.approval.count({ where: { organizationId: existingOrg.id } }) : 0
     const existingDisseminators = existingOrg ? await db.disseminator.count({ where: { organizationId: existingOrg.id } }) : 0
+    const existingCommContacts = existingOrg ? await db.communicationContact.count({ where: { organizationId: existingOrg.id } }) : 0
     
-    if (existingOrg && existingApprovals > 0 && existingDisseminators > 0) {
+    if (existingOrg && existingApprovals > 0 && existingDisseminators > 0 && existingCommContacts > 0) {
       return NextResponse.json({ success: true, message: 'Database already seeded', skipped: true })
     }
     
     // If org exists and has approvals but no disseminators, create them
     if (existingOrg && existingApprovals > 0 && existingDisseminators === 0) {
       await seedDisseminators(existingOrg.id)
-      return NextResponse.json({ success: true, message: 'Disseminators seeded', skipped: false })
+    }
+    
+    // If org exists but no communication data, seed communications
+    if (existingOrg && existingCommContacts === 0) {
+      await seedCommunications(existingOrg.id)
+      return NextResponse.json({ success: true, message: 'Communications seeded', skipped: false })
     }
 
     // Clear existing data in correct order (respecting foreign keys)
+    await db.communicationMessage.deleteMany()
+    await db.conversation.deleteMany()
+    await db.communicationTemplate.deleteMany()
+    await db.communicationContact.deleteMany()
     await db.brandKit.deleteMany()
     await db.influencer.deleteMany()
     await db.inboxMessage.deleteMany()
@@ -1289,4 +1299,783 @@ async function seedDisseminators(orgId: string) {
       },
     }),
   ])
+}
+
+async function seedCommunications(orgId: string) {
+  const now = Date.now()
+  const dayMs = 86400000
+  const hourMs = 3600000
+
+  // Find existing users
+  const sarah = await db.user.findUnique({ where: { email: 'sarah@vortexdigital.com' } })
+  const marcus = await db.user.findUnique({ where: { email: 'marcus.johnson@vortexdigital.com' } })
+  const priya = await db.user.findUnique({ where: { email: 'priya.sharma@vortexdigital.com' } })
+
+  // Find existing clients and influencers
+  const techcorp = await db.client.findFirst({ where: { name: 'TechCorp', organizationId: orgId } })
+  const fashionhub = await db.client.findFirst({ where: { name: 'FashionHub', organizationId: orgId } })
+  const autodrive = await db.client.findFirst({ where: { name: 'AutoDrive', organizationId: orgId } })
+  const foodvibe = await db.client.findFirst({ where: { name: 'FoodVibe', organizationId: orgId } })
+  const techcorpCampaign = await db.campaign.findFirst({ where: { name: 'TechCorp Product Launch', organizationId: orgId } })
+  const fashionCampaign = await db.campaign.findFirst({ where: { name: 'FashionHub Summer Collection', organizationId: orgId } })
+
+  const influencers = await db.influencer.findMany({ where: { organizationId: orgId }, take: 6 })
+
+  // ============================================
+  // 1. Communication Templates
+  // ============================================
+  const templates = await Promise.all([
+    db.communicationTemplate.create({
+      data: {
+        name: 'Welcome Email',
+        subject: 'Welcome to {{company}}!',
+        body: 'Hi {{name}},\n\nWelcome to {{company}}! We\'re excited to have you on board.\n\nOur team is ready to help you achieve your goals. If you have any questions, don\'t hesitate to reach out.\n\nBest regards,\nThe {{company}} Team',
+        type: 'email',
+        category: 'welcome',
+        variables: JSON.stringify(['name', 'company']),
+        isDefault: true,
+        isActive: true,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationTemplate.create({
+      data: {
+        name: 'Follow-Up Email',
+        subject: 'Following up on our conversation',
+        body: 'Hi {{name}},\n\nI wanted to follow up on our recent conversation about {{topic}}. I\'ve attached the relevant documents for your review.\n\nPlease let me know if you have any questions or if there\'s anything else I can help with.\n\nBest,\n{{senderName}}',
+        type: 'email',
+        category: 'follow_up',
+        variables: JSON.stringify(['name', 'topic', 'senderName']),
+        isDefault: false,
+        isActive: true,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationTemplate.create({
+      data: {
+        name: 'Proposal Email',
+        subject: 'Proposal for {{projectName}}',
+        body: 'Dear {{name}},\n\nThank you for your interest in working with us. Please find our proposal for {{projectName}} attached.\n\nThe proposal outlines our approach, timeline, and investment details. We believe this will be a great partnership.\n\nLooking forward to your feedback.\n\nRegards,\n{{senderName}}',
+        type: 'email',
+        category: 'proposal',
+        variables: JSON.stringify(['name', 'projectName', 'senderName']),
+        isDefault: false,
+        isActive: true,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationTemplate.create({
+      data: {
+        name: 'Invoice Reminder',
+        subject: 'Invoice #{{invoiceNumber}} Reminder',
+        body: 'Hi {{name}},\n\nThis is a friendly reminder that invoice #{{invoiceNumber}} for {{amount}} is due on {{dueDate}}.\n\nIf you\'ve already processed this payment, please disregard this message.\n\nThank you for your prompt attention.\n\nBest,\nAccounts Team',
+        type: 'email',
+        category: 'invoice',
+        variables: JSON.stringify(['name', 'invoiceNumber', 'amount', 'dueDate']),
+        isDefault: false,
+        isActive: true,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationTemplate.create({
+      data: {
+        name: 'Campaign Update',
+        subject: 'Campaign Update: {{campaignName}}',
+        body: 'Hi {{name}},\n\nHere\'s your weekly update on the {{campaignName}} campaign:\n\n📊 Impressions: {{impressions}}\n📈 Engagement Rate: {{engagementRate}}%\n👥 Reach: {{reach}}\n\nThe campaign is performing well and we\'re on track to meet our targets.\n\nBest,\n{{senderName}}',
+        type: 'email',
+        category: 'campaign',
+        variables: JSON.stringify(['name', 'campaignName', 'impressions', 'engagementRate', 'reach', 'senderName']),
+        isDefault: false,
+        isActive: true,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationTemplate.create({
+      data: {
+        name: 'WhatsApp Quick Update',
+        subject: null,
+        body: 'Hi {{name}}! 👋 Quick update on {{topic}}: {{update}}. Let me know if you need anything else!',
+        type: 'whatsapp',
+        category: 'notification',
+        variables: JSON.stringify(['name', 'topic', 'update']),
+        isDefault: true,
+        isActive: true,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationTemplate.create({
+      data: {
+        name: 'WhatsApp Meeting Reminder',
+        subject: null,
+        body: '📋 Reminder: You have a meeting tomorrow at {{time}} about {{topic}}. Location: {{location}}. See you there!',
+        type: 'whatsapp',
+        category: 'reminder',
+        variables: JSON.stringify(['time', 'topic', 'location']),
+        isDefault: false,
+        isActive: true,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationTemplate.create({
+      data: {
+        name: 'WhatsApp Content Approval',
+        subject: null,
+        body: '🎨 Hi {{name}}! New content ready for review: "{{contentTitle}}". Please check and approve at your earliest convenience. Link: {{reviewLink}}',
+        type: 'whatsapp',
+        category: 'notification',
+        variables: JSON.stringify(['name', 'contentTitle', 'reviewLink']),
+        isDefault: false,
+        isActive: true,
+        organizationId: orgId,
+      },
+    }),
+  ])
+
+  // ============================================
+  // 2. Communication Contacts
+  // ============================================
+  const contacts = await Promise.all([
+    db.communicationContact.create({
+      data: {
+        name: 'Alex Thompson',
+        email: 'alex.thompson@techcorp.io',
+        phone: '+1-555-0101',
+        whatsappNumber: '+1-555-0101',
+        company: 'TechCorp',
+        role: 'client',
+        notes: 'Primary contact for TechCorp. Prefers email for formal communication, WhatsApp for quick updates.',
+        preferredChannel: 'email',
+        lastContactedAt: new Date(now - 2 * hourMs),
+        isFavorite: true,
+        tags: 'VIP,Enterprise',
+        clientId: techcorp?.id || null,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationContact.create({
+      data: {
+        name: 'Sophia Martinez',
+        email: 'sophia@fashionhub.com',
+        phone: '+1-555-0202',
+        whatsappNumber: '+1-555-0202',
+        company: 'FashionHub',
+        role: 'client',
+        notes: 'Creative director at FashionHub. Loves WhatsApp for quick back-and-forth on visual content.',
+        preferredChannel: 'whatsapp',
+        lastContactedAt: new Date(now - 5 * hourMs),
+        isFavorite: true,
+        tags: 'Creative,VIP',
+        clientId: fashionhub?.id || null,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationContact.create({
+      data: {
+        name: 'David Park',
+        email: 'david.park@autodrive.co',
+        phone: '+1-555-0303',
+        whatsappNumber: '+1-555-0303',
+        company: 'AutoDrive',
+        role: 'client',
+        notes: 'Marketing VP at AutoDrive. Very responsive on WhatsApp.',
+        preferredChannel: 'whatsapp',
+        lastContactedAt: new Date(now - 1 * dayMs),
+        isFavorite: false,
+        tags: 'Automotive,Decision Maker',
+        clientId: autodrive?.id || null,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationContact.create({
+      data: {
+        name: 'Emma Wilson',
+        email: 'emma@foodvibe.com',
+        phone: '+1-555-0404',
+        whatsappNumber: null,
+        company: 'FoodVibe',
+        role: 'client',
+        notes: 'Brand manager at FoodVibe. Email only - no WhatsApp.',
+        preferredChannel: 'email',
+        lastContactedAt: new Date(now - 3 * dayMs),
+        isFavorite: false,
+        tags: 'Food & Beverage',
+        clientId: foodvibe?.id || null,
+        organizationId: orgId,
+      },
+    }),
+    db.communicationContact.create({
+      data: {
+        name: 'Raj Patel',
+        email: 'raj@innovateai.com',
+        phone: '+1-555-0505',
+        whatsappNumber: '+1-555-0505',
+        company: 'InnovateAI',
+        role: 'partner',
+        notes: 'Technology partner. Quick responses on WhatsApp, detailed discussions via email.',
+        preferredChannel: 'email',
+        lastContactedAt: new Date(now - 12 * hourMs),
+        isFavorite: true,
+        tags: 'Tech,Partner',
+        organizationId: orgId,
+      },
+    }),
+    db.communicationContact.create({
+      data: {
+        name: 'Lisa Chen',
+        email: 'lisa.chen@brightmedia.co',
+        phone: '+1-555-0606',
+        whatsappNumber: '+1-555-0606',
+        company: 'BrightMedia',
+        role: 'vendor',
+        notes: 'Media buying vendor. Handles our paid social placements.',
+        preferredChannel: 'email',
+        lastContactedAt: new Date(now - 2 * dayMs),
+        isFavorite: false,
+        tags: 'Media,Vendor',
+        organizationId: orgId,
+      },
+    }),
+    // Influencer contacts
+    ...(influencers.slice(0, 4).map((inf, i) =>
+      db.communicationContact.create({
+        data: {
+          name: inf.name,
+          email: inf.email || `${inf.username}@example.com`,
+          phone: inf.phone || `+1-555-07${i + 1}`,
+          whatsappNumber: inf.phone || `+1-555-07${i + 1}`,
+          company: null,
+          role: 'influencer',
+          notes: `Contact for influencer ${inf.name} (${inf.platform})`,
+          preferredChannel: 'whatsapp' as const,
+          lastContactedAt: new Date(now - (i + 1) * dayMs),
+          isFavorite: i === 0,
+          tags: 'Influencer',
+          influencerId: inf.id,
+          organizationId: orgId,
+        },
+      })
+    )),
+  ])
+
+  // ============================================
+  // 3. Conversations with Messages
+  // ============================================
+  // Email conversation: TechCorp product launch discussion
+  const emailConv1 = await db.conversation.create({
+    data: {
+      subject: 'TechCorp Product Launch - Content Calendar',
+      type: 'email',
+      status: 'active',
+      priority: 'high',
+      channel: 'email',
+      clientId: techcorp?.id || null,
+      campaignId: techcorpCampaign?.id || null,
+      assignedToId: sarah?.id || null,
+      lastMessageAt: new Date(now - 2 * hourMs),
+      lastMessagePreview: 'Thanks for the updated timeline. We\'ll review and get back to you by EOD.',
+      unreadCount: 2,
+      tags: 'Product Launch,Urgent',
+      organizationId: orgId,
+      messages: {
+        create: [
+          {
+            senderId: null,
+            senderName: 'Alex Thompson',
+            senderEmail: 'alex.thompson@techcorp.io',
+            recipientName: 'Sarah Chen',
+            recipientEmail: 'sarah@vortexdigital.com',
+            subject: 'TechCorp Product Launch - Content Calendar',
+            body: 'Hi Sarah,\n\nWe\'re finalizing the product launch timeline and wanted to align on the content calendar. Can we schedule a call this week to go over the key dates and deliverables?\n\nWe have some new feature announcements that we\'d like to stagger across platforms.\n\nBest regards,\nAlex Thompson\nTechCorp',
+            type: 'email',
+            direction: 'inbound',
+            status: 'read',
+            isStarred: true,
+            isRead: true,
+            readAt: new Date(now - 47 * hourMs),
+            deliveredAt: new Date(now - 48 * hourMs),
+            openedAt: new Date(now - 47.5 * hourMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: sarah?.id || null,
+            senderName: 'Sarah Chen',
+            senderEmail: 'sarah@vortexdigital.com',
+            recipientName: 'Alex Thompson',
+            recipientEmail: 'alex.thompson@techcorp.io',
+            subject: 'Re: TechCorp Product Launch - Content Calendar',
+            body: 'Hi Alex,\n\nAbsolutely! I\'ve reviewed the feature list and drafted a preliminary content calendar. How does Thursday at 2 PM work for a call?\n\nI\'m thinking we can break the launch into 3 phases:\n1. Teaser content (Week 1-2)\n2. Feature deep-dives (Week 3-4)\n3. Customer testimonials (Week 5-6)\n\nLet me know your thoughts.\n\nBest,\nSarah',
+            type: 'email',
+            direction: 'outbound',
+            status: 'read',
+            isStarred: false,
+            isRead: true,
+            readAt: null,
+            deliveredAt: new Date(now - 24 * hourMs),
+            openedAt: new Date(now - 23 * hourMs),
+            repliedAt: new Date(now - 2 * hourMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: null,
+            senderName: 'Alex Thompson',
+            senderEmail: 'alex.thompson@techcorp.io',
+            recipientName: 'Sarah Chen',
+            recipientEmail: 'sarah@vortexdigital.com',
+            subject: 'Re: TechCorp Product Launch - Content Calendar',
+            body: 'Hi Sarah,\n\nThanks for the updated timeline. We\'ll review and get back to you by EOD.\n\nThe 3-phase approach looks solid. One addition — we\'d like to add a live Q&A session in Week 3 for the developer community.\n\nTalk soon,\nAlex',
+            type: 'email',
+            direction: 'inbound',
+            status: 'read',
+            isStarred: false,
+            isRead: false,
+            readAt: null,
+            deliveredAt: new Date(now - 2 * hourMs),
+            organizationId: orgId,
+          },
+        ],
+      },
+    },
+  })
+
+  // WhatsApp conversation: FashionHub creative review
+  const waConv1 = await db.conversation.create({
+    data: {
+      subject: null,
+      type: 'whatsapp',
+      status: 'active',
+      priority: 'normal',
+      channel: 'whatsapp',
+      clientId: fashionhub?.id || null,
+      campaignId: fashionCampaign?.id || null,
+      assignedToId: priya?.id || null,
+      lastMessageAt: new Date(now - 30 * 60000),
+      lastMessagePreview: 'Love the new carousel designs! 💕 Can we add more pastel tones?',
+      unreadCount: 1,
+      tags: 'Creative Review',
+      organizationId: orgId,
+      messages: {
+        create: [
+          {
+            senderId: priya?.id || null,
+            senderName: 'Priya Sharma',
+            senderPhone: '+1-555-1001',
+            recipientName: 'Sophia Martinez',
+            recipientPhone: '+1-555-0202',
+            body: 'Hi Sophia! 👋 The new summer collection content is ready for review. I\'ll send over the carousel designs in a sec.',
+            type: 'whatsapp',
+            direction: 'outbound',
+            status: 'delivered',
+            isStarred: false,
+            isRead: true,
+            deliveredAt: new Date(now - 2 * hourMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: null,
+            senderName: 'Sophia Martinez',
+            senderPhone: '+1-555-0202',
+            recipientName: 'Priya Sharma',
+            recipientPhone: '+1-555-1001',
+            body: 'Omg yes please! 🎨 I\'ve been waiting for these. Quick question — did you go with the neon or pastel theme for the hero shots?',
+            type: 'whatsapp',
+            direction: 'inbound',
+            status: 'read',
+            isStarred: false,
+            isRead: true,
+            readAt: new Date(now - 1.5 * hourMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: priya?.id || null,
+            senderName: 'Priya Sharma',
+            senderPhone: '+1-555-1001',
+            recipientName: 'Sophia Martinez',
+            recipientPhone: '+1-555-0202',
+            body: 'We went with pastel for the hero shots and neon for the BTS content. Best of both worlds! ✨ Sending now...',
+            type: 'whatsapp',
+            direction: 'outbound',
+            status: 'delivered',
+            isStarred: false,
+            isRead: true,
+            deliveredAt: new Date(now - 1 * hourMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: null,
+            senderName: 'Sophia Martinez',
+            senderPhone: '+1-555-0202',
+            recipientName: 'Priya Sharma',
+            recipientPhone: '+1-555-1001',
+            body: 'Love the new carousel designs! 💕 Can we add more pastel tones?',
+            type: 'whatsapp',
+            direction: 'inbound',
+            status: 'delivered',
+            isStarred: false,
+            isRead: false,
+            organizationId: orgId,
+          },
+        ],
+      },
+    },
+  })
+
+  // WhatsApp conversation: AutoDrive campaign quick chat
+  const waConv2 = await db.conversation.create({
+    data: {
+      subject: null,
+      type: 'whatsapp',
+      status: 'active',
+      priority: 'urgent',
+      channel: 'whatsapp',
+      clientId: autodrive?.id || null,
+      assignedToId: marcus?.id || null,
+      lastMessageAt: new Date(now - 15 * 60000),
+      lastMessagePreview: 'We need the EV comparison infographic ASAP 🚗⚡',
+      unreadCount: 3,
+      tags: 'Urgent,Campaign',
+      organizationId: orgId,
+      messages: {
+        create: [
+          {
+            senderId: null,
+            senderName: 'David Park',
+            senderPhone: '+1-555-0303',
+            recipientName: 'Marcus Johnson',
+            recipientPhone: '+1-555-1002',
+            body: 'Hey Marcus! Quick question about the EV campaign timeline. Are we still on track for the launch next week?',
+            type: 'whatsapp',
+            direction: 'inbound',
+            status: 'read',
+            isStarred: false,
+            isRead: true,
+            readAt: new Date(now - 4 * hourMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: marcus?.id || null,
+            senderName: 'Marcus Johnson',
+            senderPhone: '+1-555-1002',
+            recipientName: 'David Park',
+            recipientPhone: '+1-555-0303',
+            body: 'Hi David! Yes, we\'re on track. The video content is in final review and the social posts are scheduled. 📅',
+            type: 'whatsapp',
+            direction: 'outbound',
+            status: 'delivered',
+            isStarred: false,
+            isRead: true,
+            deliveredAt: new Date(now - 3.5 * hourMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: null,
+            senderName: 'David Park',
+            senderPhone: '+1-555-0303',
+            recipientName: 'Marcus Johnson',
+            recipientPhone: '+1-555-1002',
+            body: 'Perfect! One thing — our CEO wants to add a comparison chart. Can we get that designed by Thursday?',
+            type: 'whatsapp',
+            direction: 'inbound',
+            status: 'delivered',
+            isStarred: false,
+            isRead: false,
+            organizationId: orgId,
+          },
+          {
+            senderId: null,
+            senderName: 'David Park',
+            senderPhone: '+1-555-0303',
+            recipientName: 'Marcus Johnson',
+            recipientPhone: '+1-555-1002',
+            body: 'We need the EV comparison infographic ASAP 🚗⚡',
+            type: 'whatsapp',
+            direction: 'inbound',
+            status: 'delivered',
+            isStarred: true,
+            isRead: false,
+            organizationId: orgId,
+          },
+        ],
+      },
+    },
+  })
+
+  // Email conversation: Proposal follow-up
+  const emailConv2 = await db.conversation.create({
+    data: {
+      subject: 'Q3 Marketing Partnership Proposal',
+      type: 'email',
+      status: 'active',
+      priority: 'normal',
+      channel: 'email',
+      assignedToId: sarah?.id || null,
+      lastMessageAt: new Date(now - 1 * dayMs),
+      lastMessagePreview: 'We\'d like to proceed with the partnership. Can we schedule a kickoff meeting?',
+      unreadCount: 1,
+      tags: 'Proposal,Partnership',
+      organizationId: orgId,
+      messages: {
+        create: [
+          {
+            senderId: sarah?.id || null,
+            senderName: 'Sarah Chen',
+            senderEmail: 'sarah@vortexdigital.com',
+            recipientName: 'Raj Patel',
+            recipientEmail: 'raj@innovateai.com',
+            subject: 'Q3 Marketing Partnership Proposal',
+            body: 'Dear Raj,\n\nFollowing our discussion at the Tech Summit last week, I\'m pleased to share our Q3 partnership proposal.\n\nThe proposal outlines a comprehensive marketing collaboration that leverages both our strengths in AI-driven content and your platform\'s reach.\n\nKey highlights:\n- Joint webinar series\n- Co-branded content creation\n- Cross-platform promotion\n- Shared analytics dashboard\n\nI\'d love to discuss this further at your convenience.\n\nBest regards,\nSarah Chen\nCEO, Vortex Digital',
+            type: 'email',
+            direction: 'outbound',
+            status: 'read',
+            isStarred: true,
+            isRead: true,
+            deliveredAt: new Date(now - 5 * dayMs),
+            openedAt: new Date(now - 4.8 * dayMs),
+            clickedAt: new Date(now - 4.5 * dayMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: null,
+            senderName: 'Raj Patel',
+            senderEmail: 'raj@innovateai.com',
+            recipientName: 'Sarah Chen',
+            recipientEmail: 'sarah@vortexdigital.com',
+            subject: 'Re: Q3 Marketing Partnership Proposal',
+            body: 'Hi Sarah,\n\nThank you for the detailed proposal. We\'ve reviewed it with our team and are very interested in the joint webinar series and co-branded content.\n\nWe\'d like to proceed with the partnership. Can we schedule a kickoff meeting next week?\n\nBest,\nRaj Patel\nInnovateAI',
+            type: 'email',
+            direction: 'inbound',
+            status: 'read',
+            isStarred: false,
+            isRead: false,
+            readAt: null,
+            deliveredAt: new Date(now - 1 * dayMs),
+            organizationId: orgId,
+          },
+        ],
+      },
+    },
+  })
+
+  // Email conversation: Invoice reminder
+  const emailConv3 = await db.conversation.create({
+    data: {
+      subject: 'Invoice #INV-2024-089 - Payment Reminder',
+      type: 'email',
+      status: 'active',
+      priority: 'high',
+      channel: 'email',
+      clientId: foodvibe?.id || null,
+      assignedToId: marcus?.id || null,
+      lastMessageAt: new Date(now - 3 * dayMs),
+      lastMessagePreview: 'Payment has been processed. Should reflect in your account within 2-3 business days.',
+      unreadCount: 0,
+      tags: 'Invoice,Payment',
+      organizationId: orgId,
+      messages: {
+        create: [
+          {
+            senderId: marcus?.id || null,
+            senderName: 'Marcus Johnson',
+            senderEmail: 'marcus.johnson@vortexdigital.com',
+            recipientName: 'Emma Wilson',
+            recipientEmail: 'emma@foodvibe.com',
+            subject: 'Invoice #INV-2024-089 - Payment Reminder',
+            body: 'Hi Emma,\n\nThis is a friendly reminder that invoice #INV-2024-089 for $4,500.00 was due on March 1st.\n\nIf you\'ve already processed the payment, please disregard this message. Otherwise, please let us know if you need any clarification on the invoice.\n\nThank you for your prompt attention.\n\nBest regards,\nMarcus Johnson\nVortex Digital',
+            type: 'email',
+            direction: 'outbound',
+            status: 'read',
+            isStarred: false,
+            isRead: true,
+            deliveredAt: new Date(now - 7 * dayMs),
+            openedAt: new Date(now - 6.5 * dayMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: null,
+            senderName: 'Emma Wilson',
+            senderEmail: 'emma@foodvibe.com',
+            recipientName: 'Marcus Johnson',
+            recipientEmail: 'marcus.johnson@vortexdigital.com',
+            subject: 'Re: Invoice #INV-2024-089 - Payment Reminder',
+            body: 'Hi Marcus,\n\nApologies for the delay. Payment has been processed. Should reflect in your account within 2-3 business days.\n\nThanks for your patience.\n\nEmma',
+            type: 'email',
+            direction: 'inbound',
+            status: 'read',
+            isStarred: false,
+            isRead: true,
+            readAt: new Date(now - 2.5 * dayMs),
+            deliveredAt: new Date(now - 3 * dayMs),
+            organizationId: orgId,
+          },
+        ],
+      },
+    },
+  })
+
+  // Archived email conversation
+  const emailConv4 = await db.conversation.create({
+    data: {
+      subject: 'Brand Guidelines Update - Q1',
+      type: 'email',
+      status: 'archived',
+      priority: 'low',
+      channel: 'email',
+      clientId: fashionhub?.id || null,
+      assignedToId: priya?.id || null,
+      lastMessageAt: new Date(now - 14 * dayMs),
+      lastMessagePreview: 'Updated guidelines look great. We\'ll implement them across all new content.',
+      unreadCount: 0,
+      tags: 'Brand,Guidelines',
+      organizationId: orgId,
+      messages: {
+        create: [
+          {
+            senderId: null,
+            senderName: 'Sophia Martinez',
+            senderEmail: 'sophia@fashionhub.com',
+            recipientName: 'Priya Sharma',
+            recipientEmail: 'priya.sharma@vortexdigital.com',
+            subject: 'Brand Guidelines Update - Q1',
+            body: 'Hi Priya,\n\nWe\'ve updated our brand guidelines for Q1. Key changes include:\n- New primary color palette\n- Updated logo usage rules\n- Fresh typography guidelines\n\nPlease ensure all future content follows the new guidelines.\n\nThanks,\nSophia',
+            type: 'email',
+            direction: 'inbound',
+            status: 'read',
+            isStarred: false,
+            isRead: true,
+            readAt: new Date(now - 20 * dayMs),
+            deliveredAt: new Date(now - 21 * dayMs),
+            openedAt: new Date(now - 20.5 * dayMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: priya?.id || null,
+            senderName: 'Priya Sharma',
+            senderEmail: 'priya.sharma@vortexdigital.com',
+            recipientName: 'Sophia Martinez',
+            recipientEmail: 'sophia@fashionhub.com',
+            subject: 'Re: Brand Guidelines Update - Q1',
+            body: 'Hi Sophia,\n\nUpdated guidelines look great. We\'ll implement them across all new content.\n\nBest,\nPriya',
+            type: 'email',
+            direction: 'outbound',
+            status: 'read',
+            isStarred: false,
+            isRead: true,
+            deliveredAt: new Date(now - 14 * dayMs),
+            openedAt: new Date(now - 13.5 * dayMs),
+            organizationId: orgId,
+          },
+        ],
+      },
+    },
+  })
+
+  // Closed WhatsApp conversation
+  const waConv3 = await db.conversation.create({
+    data: {
+      subject: null,
+      type: 'whatsapp',
+      status: 'closed',
+      priority: 'low',
+      channel: 'whatsapp',
+      clientId: techcorp?.id || null,
+      lastMessageAt: new Date(now - 10 * dayMs),
+      lastMessagePreview: '👍 All confirmed! See you at the event.',
+      unreadCount: 0,
+      tags: 'Event',
+      organizationId: orgId,
+      messages: {
+        create: [
+          {
+            senderId: null,
+            senderName: 'Alex Thompson',
+            senderPhone: '+1-555-0101',
+            recipientName: 'Sarah Chen',
+            recipientPhone: '+1-555-1003',
+            body: 'Hi Sarah! Are we still good for the product demo event on the 15th? 🎯',
+            type: 'whatsapp',
+            direction: 'inbound',
+            status: 'read',
+            isStarred: false,
+            isRead: true,
+            readAt: new Date(now - 11 * dayMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: sarah?.id || null,
+            senderName: 'Sarah Chen',
+            senderPhone: '+1-555-1003',
+            recipientName: 'Alex Thompson',
+            recipientPhone: '+1-555-0101',
+            body: '👍 All confirmed! See you at the event.',
+            type: 'whatsapp',
+            direction: 'outbound',
+            status: 'delivered',
+            isStarred: false,
+            isRead: true,
+            deliveredAt: new Date(now - 10 * dayMs),
+            organizationId: orgId,
+          },
+        ],
+      },
+    },
+  })
+
+  // Mixed conversation (email started, then WhatsApp follow-up)
+  const mixedConv = await db.conversation.create({
+    data: {
+      subject: 'FoodVibe Recipe Series - Content Review',
+      type: 'mixed',
+      status: 'active',
+      priority: 'normal',
+      channel: 'email',
+      clientId: foodvibe?.id || null,
+      assignedToId: priya?.id || null,
+      lastMessageAt: new Date(now - 45 * 60000),
+      lastMessagePreview: 'Just checked the recipe photos — they look amazing! 📸',
+      unreadCount: 1,
+      tags: 'Content,Review',
+      organizationId: orgId,
+      messages: {
+        create: [
+          {
+            senderId: priya?.id || null,
+            senderName: 'Priya Sharma',
+            senderEmail: 'priya.sharma@vortexdigital.com',
+            recipientName: 'Emma Wilson',
+            recipientEmail: 'emma@foodvibe.com',
+            subject: 'FoodVibe Recipe Series - Content Review',
+            body: 'Hi Emma,\n\nWe\'ve completed the first batch of recipe content for the series. There are 6 recipes ready for review:\n\n1. Lemon Herb Grilled Salmon\n2. Mediterranean Quinoa Bowl\n3. Avocado Toast with Poached Eggs\n4. Thai Green Curry\n5. Berry Smoothie Bowl\n6. Mushroom Risotto\n\nEach recipe includes step-by-step photos and a short video for social media.\n\nPlease review and share your feedback.\n\nBest,\nPriya',
+            type: 'email',
+            direction: 'outbound',
+            status: 'read',
+            isStarred: false,
+            isRead: true,
+            deliveredAt: new Date(now - 2 * dayMs),
+            openedAt: new Date(now - 1.8 * dayMs),
+            organizationId: orgId,
+          },
+          {
+            senderId: null,
+            senderName: 'Emma Wilson',
+            senderPhone: '+1-555-0404',
+            recipientName: 'Priya Sharma',
+            recipientPhone: '+1-555-1004',
+            body: 'Just checked the recipe photos — they look amazing! 📸 Quick note: can we adjust the lighting on the salmon photos? They look a bit dark.',
+            type: 'whatsapp',
+            direction: 'inbound',
+            status: 'delivered',
+            isStarred: false,
+            isRead: false,
+            deliveredAt: new Date(now - 45 * 60000),
+            organizationId: orgId,
+          },
+        ],
+      },
+    },
+  })
+
+  return {
+    templates: templates.length,
+    contacts: contacts.length,
+    conversations: 7,
+  }
 }

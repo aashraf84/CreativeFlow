@@ -1,0 +1,1965 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo, useCallback, useEffect } from "react"
+     4→import {
+     5→  useERPStore,
+     6→  type Conversation,
+     7→  type CommunicationMessage,
+     8→  type CommunicationTemplate,
+     9→  type CommunicationContact,
+    10→} from "@/lib/store"
+    11→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+    12→import { Badge } from "@/components/ui/badge"
+    13→import { Button } from "@/components/ui/button"
+    14→import { Input } from "@/components/ui/input"
+    15→import { Textarea } from "@/components/ui/textarea"
+    16→import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+    17→import { ScrollArea } from "@/components/ui/scroll-area"
+    18→import { Separator } from "@/components/ui/separator"
+    19→import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+    20→import {
+    21→  Dialog,
+    22→  DialogContent,
+    23→  DialogHeader,
+    24→  DialogTitle,
+    25→  DialogTrigger,
+    26→  DialogFooter,
+    27→  DialogClose,
+    28→} from "@/components/ui/dialog"
+    29→import {
+    30→  Select,
+    31→  SelectContent,
+    32→  SelectItem,
+    33→  SelectTrigger,
+    34→  SelectValue,
+    35→} from "@/components/ui/select"
+    36→import { Label } from "@/components/ui/label"
+    37→import { Switch } from "@/components/ui/switch"
+    38→import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+    39→import { motion, AnimatePresence } from "framer-motion"
+    40→import {
+    41→  Inbox,
+    42→  Mail,
+    43→  MessageCircle,
+    44→  PenSquare,
+    45→  FileText,
+    46→  Users,
+    47→  BarChart3,
+    48→  Search,
+    49→  Send,
+    50→  Paperclip,
+    51→  Star,
+    52→  StarOff,
+    53→  Archive,
+    54→  Trash2,
+    55→  MoreHorizontal,
+    56→  ChevronDown,
+    57→  ChevronUp,
+    58→  Clock,
+    59→  Check,
+    60→  CheckCheck,
+    61→  AlertCircle,
+    62→  XCircle,
+    63→  ArrowUpRight,
+    64→  Phone,
+    65→  MailOpen,
+    66→  Plus,
+    67→  Filter,
+    68→  Tag,
+    69→  Sparkles,
+    70→  StickyNote,
+    71→  Reply,
+    72→  ExternalLink,
+    73→  RefreshCw,
+    74→  User,
+    75→  Building2,
+    76→  Heart,
+    77→  Link2,
+    78→  ImageIcon,
+    79→  File,
+    80→  X,
+    81→} from "lucide-react"
+    82→import { cn } from "@/lib/utils"
+    83→import { formatDistanceToNow, format } from "date-fns"
+    84→
+    85→// ── Constants ──────────────────────────────────────────────────────────
+    86→const WA_GREEN = "#25D366"
+    87→
+    88→const PRIORITY_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+    89→  urgent: { label: "Urgent", color: "text-red-700 dark:text-red-300", bgColor: "bg-red-100 dark:bg-red-900/40" },
+    90→  high: { label: "High", color: "text-orange-700 dark:text-orange-300", bgColor: "bg-orange-100 dark:bg-orange-900/40" },
+    91→  normal: { label: "Normal", color: "text-emerald-700 dark:text-emerald-300", bgColor: "bg-emerald-100 dark:bg-emerald-900/40" },
+    92→  low: { label: "Low", color: "text-slate-600 dark:text-slate-400", bgColor: "bg-slate-100 dark:bg-slate-800" },
+    93→}
+    94→
+    95→const STATUS_BADGE: Record<string, { label: string; color: string; bgColor: string }> = {
+    96→  sent: { label: "Sent", color: "text-emerald-700 dark:text-emerald-300", bgColor: "bg-emerald-100 dark:bg-emerald-900/40" },
+    97→  delivered: { label: "Delivered", color: "text-teal-700 dark:text-teal-300", bgColor: "bg-teal-100 dark:bg-teal-900/40" },
+    98→  read: { label: "Read", color: "text-cyan-700 dark:text-cyan-300", bgColor: "bg-cyan-100 dark:bg-cyan-900/40" },
+    99→  failed: { label: "Failed", color: "text-red-700 dark:text-red-300", bgColor: "bg-red-100 dark:bg-red-900/40" },
+   100→  bounced: { label: "Bounced", color: "text-red-700 dark:text-red-300", bgColor: "bg-red-100 dark:bg-red-900/40" },
+   101→  queued: { label: "Queued", color: "text-amber-700 dark:text-amber-300", bgColor: "bg-amber-100 dark:bg-amber-900/40" },
+   102→  draft: { label: "Draft", color: "text-slate-600 dark:text-slate-400", bgColor: "bg-slate-100 dark:bg-slate-800" },
+   103→}
+   104→
+   105→// ── Helper ─────────────────────────────────────────────────────────────
+   106→function getInitials(name: string) {
+   107→  return name
+   108→    .split(" ")
+   109→    .map((w) => w[0])
+   110→    .join("")
+   111→    .toUpperCase()
+   112→    .slice(0, 2)
+   113→}
+   114→
+   115→function parseJsonArray(val: string | null): string[] {
+   116→  if (!val) return []
+   117→  try {
+   118→    return JSON.parse(val)
+   119→  } catch {
+   120→    return []
+   121→  }
+   122→}
+   123→
+   124→function extractVariables(body: string): string[] {
+   125→  const matches = body.match(/\{\{(\w+)\}\}/g)
+   126→  if (!matches) return []
+   127→  return [...new Set(matches.map((m) => m.replace(/\{\{|\}\}/g, "")))]
+   128→}
+   129→
+   130→// ── Component ──────────────────────────────────────────────────────────
+   131→export function InboxView() {
+   132→  const {
+   133→    conversations,
+   134→    communicationTemplates,
+   135→    communicationContacts,
+   136→    clients,
+   137→    influencers,
+   138→    campaigns,
+   139→    teams,
+   140→    currentUser,
+   141→    setConversations,
+   142→    setCommunicationTemplates,
+   143→    setCommunicationContacts,
+   144→  } = useERPStore()
+   145→
+   146→  const [activeTab, setActiveTab] = useState("inbox")
+   147→  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+   148→  const [searchQuery, setSearchQuery] = useState("")
+   149→  const [channelFilter, setChannelFilter] = useState("all")
+   150→  const [statusFilter, setStatusFilter] = useState("active")
+   151→  const [composeChannel, setComposeChannel] = useState<"email" | "whatsapp">("email")
+   152→  const [sendingMessage, setSendingMessage] = useState(false)
+   153→
+   154→  // Compose form state
+   155→  const [composeTo, setComposeTo] = useState("")
+   156→  const [composeToEmail, setComposeToEmail] = useState("")
+   157→  const [composeToPhone, setComposeToPhone] = useState("")
+   158→  const [composeSubject, setComposeSubject] = useState("")
+   159→  const [composeBody, setComposeBody] = useState("")
+   160→  const [composeTemplateId, setComposeTemplateId] = useState("")
+   161→
+   162→  // Reply state in inbox
+   163→  const [replyChannel, setReplyChannel] = useState<"email" | "whatsapp" | "note">("email")
+   164→  const [replyBody, setReplyBody] = useState("")
+   165→  const [replyTemplateId, setReplyTemplateId] = useState("")
+   166→
+   167→  // Template editor state
+   168→  const [editingTemplate, setEditingTemplate] = useState<CommunicationTemplate | null>(null)
+   169→  const [templateName, setTemplateName] = useState("")
+   170→  const [templateType, setTemplateType] = useState("email")
+   171→  const [templateCategory, setTemplateCategory] = useState("")
+   172→  const [templateSubject, setTemplateSubject] = useState("")
+   173→  const [templateBody, setTemplateBody] = useState("")
+   174→  const [templateTypeFilter, setTemplateTypeFilter] = useState("all")
+   175→
+   176→  // Contact editor state
+   177→  const [editingContact, setEditingContact] = useState<CommunicationContact | null>(null)
+   178→  const [contactSearch, setContactSearch] = useState("")
+   179→  const [contactRoleFilter, setContactRoleFilter] = useState("all")
+   180→  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+   181→  const [contactName, setContactName] = useState("")
+   182→  const [contactEmail, setContactEmail] = useState("")
+   183→  const [contactPhone, setContactPhone] = useState("")
+   184→  const [contactWhatsapp, setContactWhatsapp] = useState("")
+   185→  const [contactCompany, setContactCompany] = useState("")
+   186→  const [contactRole, setContactRole] = useState("")
+   187→  const [contactPreferredChannel, setContactPreferredChannel] = useState("email")
+   188→  const [contactNotes, setContactNotes] = useState("")
+   189→
+   190→  // Compose recipient search
+   191→  const [recipientSearch, setRecipientSearch] = useState("")
+   192→  const [showRecipientDropdown, setShowRecipientDropdown] = useState(false)
+   193→
+   194→  // Fetch data from APIs on mount
+   195→  useEffect(() => {
+   196→    const fetchData = async () => {
+   197→      try {
+   198→        const [convRes, templRes, contRes] = await Promise.all([
+   199→          fetch("/api/communications/conversations"),
+   200→          fetch("/api/communications/templates"),
+   201→          fetch("/api/communications/contacts"),
+   202→        ])
+   203→        const convJson = await convRes.json()
+   204→        const templJson = await templRes.json()
+   205→        const contJson = await contRes.json()
+   206→
+   207→        if (convJson?.conversations) setConversations(convJson.conversations)
+   208→        else if (Array.isArray(convJson)) setConversations(convJson)
+   209→
+   210→        if (templJson?.templates) setCommunicationTemplates(templJson.templates)
+   211→        else if (Array.isArray(templJson)) setCommunicationTemplates(templJson)
+   212→
+   213→        if (contJson?.contacts) setCommunicationContacts(contJson.contacts)
+   214→        else if (Array.isArray(contJson)) setCommunicationContacts(contJson)
+   215→      } catch (err) {
+   216→        console.error("Failed to load communication data:", err)
+   217→      }
+   218→    }
+   219→    fetchData()
+   220→  }, [setConversations, setCommunicationTemplates, setCommunicationContacts])
+   221→
+   222→  // ── Computed ──────────────────────────────────────────────────────────
+   223→  const selectedConversation = useMemo(
+   224→    () => conversations.find((c) => c.id === selectedConversationId) ?? null,
+   225→    [conversations, selectedConversationId]
+   226→  )
+   227→
+   228→  const filteredConversations = useMemo(() => {
+   229→    let result = [...conversations]
+   230→    if (channelFilter !== "all") {
+   231→      result = result.filter((c) => c.channel === channelFilter || c.type === channelFilter)
+   232→    }
+   233→    if (statusFilter !== "all") {
+   234→      result = result.filter((c) => c.status === statusFilter)
+   235→    }
+   236→    if (searchQuery.trim()) {
+   237→      const q = searchQuery.toLowerCase()
+   238→      result = result.filter(
+   239→        (c) =>
+   240→          (c.subject && c.subject.toLowerCase().includes(q)) ||
+   241→          (c.lastMessagePreview && c.lastMessagePreview.toLowerCase().includes(q)) ||
+   242→          (c.client && c.client.name.toLowerCase().includes(q)) ||
+   243→          (c.influencer && c.influencer.name.toLowerCase().includes(q)) ||
+   244→          (c.assignedTo && c.assignedTo.name.toLowerCase().includes(q))
+   245→      )
+   246→    }
+   247→    result.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
+   248→    return result
+   249→  }, [conversations, channelFilter, statusFilter, searchQuery])
+   250→
+   251→  const filteredTemplates = useMemo(() => {
+   252→    let result = [...communicationTemplates]
+   253→    if (templateTypeFilter !== "all") {
+   254→      result = result.filter((t) => t.type === templateTypeFilter)
+   255→    }
+   256→    return result
+   257→  }, [communicationTemplates, templateTypeFilter])
+   258→
+   259→  const filteredContacts = useMemo(() => {
+   260→    let result = [...communicationContacts]
+   261→    if (showFavoritesOnly) {
+   262→      result = result.filter((c) => c.isFavorite)
+   263→    }
+   264→    if (contactRoleFilter !== "all") {
+   265→      result = result.filter((c) => c.role?.toLowerCase() === contactRoleFilter.toLowerCase())
+   266→    }
+   267→    if (contactSearch.trim()) {
+   268→      const q = contactSearch.toLowerCase()
+   269→      result = result.filter(
+   270→        (c) =>
+   271→          c.name.toLowerCase().includes(q) ||
+   272→          (c.email && c.email.toLowerCase().includes(q)) ||
+   273→          (c.company && c.company.toLowerCase().includes(q))
+   274→      )
+   275→    }
+   276→    return result
+   277→  }, [communicationContacts, contactSearch, contactRoleFilter, showFavoritesOnly])
+   278→
+   279→  const totalUnread = useMemo(() => conversations.reduce((acc, c) => acc + c.unreadCount, 0), [conversations])
+   280→
+   281→  // Build recipient options from contacts + clients + influencers + employees
+   282→  const recipientOptions = useMemo(() => {
+   283→    const options: { id: string; name: string; email: string | null; phone: string | null; type: string }[] = []
+   284→    communicationContacts.forEach((c) => {
+   285→      options.push({ id: c.id, name: c.name, email: c.email, phone: c.phone || c.whatsappNumber, type: "contact" })
+   286→    })
+   287→    clients.forEach((c) => {
+   288→      options.push({ id: c.id, name: c.name, email: null, phone: null, type: "client" })
+   289→    })
+   290→    influencers.forEach((i) => {
+   291→      options.push({ id: i.id, name: i.name, email: i.email, phone: i.phone, type: "influencer" })
+   292→    })
+   293→    teams.forEach((t) => {
+   294→      t.members.forEach((m) => {
+   295→        options.push({ id: m.user.id, name: m.user.name, email: m.user.email, phone: null, type: "employee" })
+   296→      })
+   297→    })
+   298→    return options
+   299→  }, [communicationContacts, clients, influencers, teams])
+   300→
+   301→  const filteredRecipients = useMemo(() => {
+   302→    if (!recipientSearch.trim()) return recipientOptions.slice(0, 10)
+   303→    const q = recipientSearch.toLowerCase()
+   304→    return recipientOptions.filter(
+   305→      (r) => r.name.toLowerCase().includes(q) || (r.email && r.email.toLowerCase().includes(q))
+   306→    ).slice(0, 10)
+   307→  }, [recipientOptions, recipientSearch])
+   308→
+   309→  // ── Analytics computed ────────────────────────────────────────────────
+   310→  const analytics = useMemo(() => {
+   311→    const allMessages = conversations.flatMap((c) => c.messages)
+   312→    const outbound = allMessages.filter((m) => m.direction === "outbound")
+   313→    const readMsgs = allMessages.filter((m) => m.readAt)
+   314→    const repliedMsgs = allMessages.filter((m) => m.repliedAt)
+   315→    const emailMsgs = allMessages.filter((m) => m.type === "email")
+   316→    const waMsgs = allMessages.filter((m) => m.type === "whatsapp")
+   317→
+   318→    const openRate = outbound.length > 0 ? Math.round((readMsgs.length / outbound.length) * 100) : 0
+   319→    const replyRate = outbound.length > 0 ? Math.round((repliedMsgs.length / outbound.length) * 100) : 0
+   320→
+   321→    // Avg response time
+   322→    const responseTimes: number[] = []
+   323→    conversations.forEach((conv) => {
+   324→      const msgs = conv.messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+   325→      for (let i = 1; i < msgs.length; i++) {
+   326→        if (msgs[i].direction === "outbound" && msgs[i - 1].direction === "inbound") {
+   327→          const diff = new Date(msgs[i].createdAt).getTime() - new Date(msgs[i - 1].createdAt).getTime()
+   328→          responseTimes.push(diff / (1000 * 60))
+   329→        }
+   330→      }
+   331→    })
+   332→    const avgResponseMin = responseTimes.length > 0 ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) : 0
+   333→
+   334→    // Daily volumes (last 7 days)
+   335→    const dailyVolumes: { date: string; email: number; whatsapp: number }[] = []
+   336→    for (let i = 6; i >= 0; i--) {
+   337→      const d = new Date()
+   338→      d.setDate(d.getDate() - i)
+   339→      const key = format(d, "yyyy-MM-dd")
+   340→      const label = format(d, "EEE")
+   341→      const dayEmail = emailMsgs.filter((m) => format(new Date(m.createdAt), "yyyy-MM-dd") === key).length
+   342→      const dayWa = waMsgs.filter((m) => format(new Date(m.createdAt), "yyyy-MM-dd") === key).length
+   343→      dailyVolumes.push({ date: label, email: dayEmail, whatsapp: dayWa })
+   344→    }
+   345→
+   346→    // Top contacts by message count
+   347→    const contactCounts: Record<string, { name: string; count: number }> = {}
+   348→    allMessages.forEach((m) => {
+   349→      if (m.direction === "inbound") {
+   350→        if (!contactCounts[m.senderName]) contactCounts[m.senderName] = { name: m.senderName, count: 0 }
+   351→        contactCounts[m.senderName].count++
+   352→      }
+   353→    })
+   354→    const topContacts = Object.values(contactCounts).sort((a, b) => b.count - a.count).slice(0, 5)
+   355→
+   356→    // Template usage
+   357→    const templateUsage: Record<string, { name: string; count: number }> = {}
+   358→    allMessages.forEach((m) => {
+   359→      if (m.templateId) {
+   360→        const templ = communicationTemplates.find((t) => t.id === m.templateId)
+   361→        const name = templ?.name || "Unknown"
+   362→        if (!templateUsage[m.templateId]) templateUsage[m.templateId] = { name, count: 0 }
+   363→        templateUsage[m.templateId].count++
+   364→      }
+   365→    })
+   366→    const topTemplates = Object.values(templateUsage).sort((a, b) => b.count - a.count).slice(0, 5)
+   367→
+   368→    return {
+   369→      totalSent: outbound.length,
+   370→      openRate,
+   371→      replyRate,
+   372→      avgResponseMin,
+   373→      emailCount: emailMsgs.length,
+   374→      whatsappCount: waMsgs.length,
+   375→      dailyVolumes,
+   376→      topContacts,
+   377→      topTemplates,
+   378→    }
+   379→  }, [conversations, communicationTemplates])
+   380→
+   381→  // ── Handlers ──────────────────────────────────────────────────────────
+   382→  const handleSelectConversation = useCallback((id: string) => {
+   383→    setSelectedConversationId(id)
+   384→  }, [])
+   385→
+   386→  const handleSendReply = useCallback(async () => {
+   387→    if (!selectedConversation || !replyBody.trim()) return
+   388→    setSendingMessage(true)
+   389→    try {
+   390→      const payload: Record<string, unknown> = {
+   391→        body: replyBody,
+   392→        type: replyChannel === "note" ? "note" : replyChannel,
+   393→      }
+   394→      if (replyChannel === "email") {
+   395→        payload.subject = `Re: ${selectedConversation.subject || "No Subject"}`
+   396→        payload.to = selectedConversation.messages.find((m) => m.direction === "inbound")?.senderEmail || ""
+   397→      } else if (replyChannel === "whatsapp") {
+   398→        payload.to = selectedConversation.messages.find((m) => m.direction === "inbound")?.senderPhone || ""
+   399→      }
+   400→      const endpoint =
+   401→        replyChannel === "email"
+   402→          ? `/api/communications/email/send`
+   403→          : replyChannel === "whatsapp"
+   404→          ? `/api/communications/whatsapp/send`
+   405→          : `/api/communications/conversations/${selectedConversation.id}/messages`
+   406→
+   407→      if (replyChannel !== "note") {
+   408→        payload.conversationId = selectedConversation.id
+   409→      }
+   410→
+   411→      const res = await fetch(endpoint, {
+   412→        method: "POST",
+   413→        headers: { "Content-Type": "application/json" },
+   414→        body: JSON.stringify(payload),
+   415→      })
+   416→      if (res.ok) {
+   417→        const data = await res.json()
+   418→        // Refresh conversation detail
+   419→        const detailRes = await fetch(`/api/communications/conversations/${selectedConversation.id}`)
+   420→        if (detailRes.ok) {
+   421→          const detailJson = await detailRes.json()
+   422→          const updated = detailJson.conversation || detailJson
+   423→          setConversations(conversations.map((c) => (c.id === updated.id ? updated : c)))
+   424→        }
+   425→        setReplyBody("")
+   426→        setReplyTemplateId("")
+   427→      }
+   428→    } catch (err) {
+   429→      console.error("Failed to send reply:", err)
+   430→    } finally {
+   431→      setSendingMessage(false)
+   432→    }
+   433→  }, [selectedConversation, replyBody, replyChannel, conversations, setConversations])
+   434→
+   435→  const handleSendCompose = useCallback(async () => {
+   436→    if (!composeBody.trim()) return
+   437→    setSendingMessage(true)
+   438→    try {
+   439→      if (composeChannel === "email") {
+   440→        const res = await fetch("/api/communications/email/send", {
+   441→          method: "POST",
+   442→          headers: { "Content-Type": "application/json" },
+   443→          body: JSON.stringify({
+   444→            to: composeToEmail,
+   445→            subject: composeSubject,
+   446→            body: composeBody,
+   447→          }),
+   448→        })
+   449→        if (res.ok) {
+   450→          // Refresh conversations
+   451→          const convRes = await fetch("/api/communications/conversations")
+   452→          if (convRes.ok) {
+   453→            const json = await convRes.json()
+   454→            setConversations(json.conversations || json)
+   455→          }
+   456→          setComposeTo("")
+   457→          setComposeToEmail("")
+   458→          setComposeToPhone("")
+   459→          setComposeSubject("")
+   460→          setComposeBody("")
+   461→          setComposeTemplateId("")
+   462→          setActiveTab("inbox")
+   463→        }
+   464→      } else {
+   465→        const res = await fetch("/api/communications/whatsapp/send", {
+   466→          method: "POST",
+   467→          headers: { "Content-Type": "application/json" },
+   468→          body: JSON.stringify({
+   469→            to: composeToPhone,
+   470→            body: composeBody,
+   471→          }),
+   472→        })
+   473→        if (res.ok) {
+   474→          const convRes = await fetch("/api/communications/conversations")
+   475→          if (convRes.ok) {
+   476→            const json = await convRes.json()
+   477→            setConversations(json.conversations || json)
+   478→          }
+   479→          setComposeTo("")
+   480→          setComposeToEmail("")
+   481→          setComposeToPhone("")
+   482→          setComposeSubject("")
+   483→          setComposeBody("")
+   484→          setComposeTemplateId("")
+   485→          setActiveTab("inbox")
+   486→        }
+   487→      }
+   488→    } catch (err) {
+   489→      console.error("Failed to send message:", err)
+   490→    } finally {
+   491→      setSendingMessage(false)
+   492→    }
+   493→  }, [composeChannel, composeBody, composeToEmail, composeToPhone, composeSubject, setConversations])
+   494→
+   495→  const handleApplyTemplate = useCallback(
+   496→    (templateId: string, isCompose: boolean) => {
+   497→      const template = communicationTemplates.find((t) => t.id === templateId)
+   498→      if (!template) return
+   499→      if (isCompose) {
+   500→        setComposeSubject(template.subject || composeSubject)
+   501→        setComposeBody(template.body)
+   502→        setComposeTemplateId(templateId)
+   503→        if (template.type === "whatsapp") setComposeChannel("whatsapp")
+   504→        else if (template.type === "email") setComposeChannel("email")
+   505→      } else {
+   506→        setReplyBody(template.body)
+   507→        setReplyTemplateId(templateId)
+   508→        if (template.type === "whatsapp") setReplyChannel("whatsapp")
+   509→        else if (template.type === "email") setReplyChannel("email")
+   510→      }
+   511→    },
+   512→    [communicationTemplates, composeSubject]
+   513→  )
+   514→
+   515→  const handleSaveTemplate = useCallback(async () => {
+   516→    try {
+   517→      const payload = {
+   518→        name: templateName,
+   519→        type: templateType,
+   520→        category: templateCategory || null,
+   521→        subject: templateType === "email" ? templateSubject : null,
+   522→        body: templateBody,
+   523→        variables: JSON.stringify(extractVariables(templateBody)),
+   524→        isDefault: false,
+   525→        isActive: true,
+   526→      }
+   527→      if (editingTemplate) {
+   528→        // For now, just add new - full PUT can be added later
+   529→        await fetch("/api/communications/templates", {
+   530→          method: "POST",
+   531→          headers: { "Content-Type": "application/json" },
+   532→          body: JSON.stringify(payload),
+   533→        })
+   534→      } else {
+   535→        await fetch("/api/communications/templates", {
+   536→          method: "POST",
+   537→          headers: { "Content-Type": "application/json" },
+   538→          body: JSON.stringify(payload),
+   539→        })
+   540→      }
+   541→      const res = await fetch("/api/communications/templates")
+   542→      if (res.ok) {
+   543→        const json = await res.json()
+   544→        setCommunicationTemplates(json.templates || json)
+   545→      }
+   546→      setEditingTemplate(null)
+   547→      setTemplateName("")
+   548→      setTemplateType("email")
+   549→      setTemplateCategory("")
+   550→      setTemplateSubject("")
+   551→      setTemplateBody("")
+   552→    } catch (err) {
+   553→      console.error("Failed to save template:", err)
+   554→    }
+   555→  }, [editingTemplate, templateName, templateType, templateCategory, templateSubject, templateBody, setCommunicationTemplates])
+   556→
+   557→  const handleSaveContact = useCallback(async () => {
+   558→    try {
+   559→      const payload = {
+   560→        name: contactName,
+   561→        email: contactEmail || null,
+   562→        phone: contactPhone || null,
+   563→        whatsappNumber: contactWhatsapp || null,
+   564→        company: contactCompany || null,
+   565→        role: contactRole || null,
+   566→        preferredChannel: contactPreferredChannel,
+   567→        notes: contactNotes || null,
+   568→        isFavorite: false,
+   569→      }
+   570→      await fetch("/api/communications/contacts", {
+   571→        method: "POST",
+   572→        headers: { "Content-Type": "application/json" },
+   573→        body: JSON.stringify(payload),
+   574→      })
+   575→      const res = await fetch("/api/communications/contacts")
+   576→      if (res.ok) {
+   577→        const json = await res.json()
+   578→        setCommunicationContacts(json.contacts || json)
+   579→      }
+   580→      setEditingContact(null)
+   581→      setContactName("")
+   582→      setContactEmail("")
+   583→      setContactPhone("")
+   584→      setContactWhatsapp("")
+   585→      setContactCompany("")
+   586→      setContactRole("")
+   587→      setContactPreferredChannel("email")
+   588→      setContactNotes("")
+   589→    } catch (err) {
+   590→      console.error("Failed to save contact:", err)
+   591→    }
+   592→  }, [contactName, contactEmail, contactPhone, contactWhatsapp, contactCompany, contactRole, contactPreferredChannel, contactNotes, setCommunicationContacts])
+   593→
+   594→  const handleUpdateConversationStatus = useCallback(
+   595→    async (convId: string, status: string) => {
+   596→      try {
+   597→        await fetch(`/api/communications/conversations/${convId}`, {
+   598→          method: "PUT",
+   599→          headers: { "Content-Type": "application/json" },
+   600→          body: JSON.stringify({ status }),
+   601→        })
+   602→        setConversations(conversations.map((c) => (c.id === convId ? { ...c, status } : c)))
+   603→      } catch (err) {
+   604→        console.error("Failed to update conversation:", err)
+   605→      }
+   606→    },
+   607→    [conversations, setConversations]
+   608→  )
+   609→
+   610→  const handleSelectRecipient = useCallback(
+   611→    (r: { name: string; email: string | null; phone: string | null; type: string }) => {
+   612→      setComposeTo(r.name)
+   613→      setComposeToEmail(r.email || "")
+   614→      setComposeToPhone(r.phone || "")
+   615→      setShowRecipientDropdown(false)
+   616→      setRecipientSearch("")
+   617→    },
+   618→    []
+   619→  )
+   620→
+   621→  const handleToggleFavorite = useCallback(async (contactId: string, currentVal: boolean) => {
+   622→    try {
+   623→      await fetch(`/api/communications/contacts`, {
+   624→        method: "POST",
+   625→        headers: { "Content-Type": "application/json" },
+   626→        body: JSON.stringify({ id: contactId, isFavorite: !currentVal }),
+   627→      })
+   628→    } catch (err) {
+   629→      console.error("Failed to update favorite:", err)
+   630→    }
+   631→  }, [])
+   632→
+   633→  // ── Render helpers ────────────────────────────────────────────────────
+   634→  const renderChannelIcon = (type: string, size = 16) => {
+   635→    if (type === "whatsapp") {
+   636→      return (
+   637→        <div className="flex items-center justify-center rounded-full" style={{ backgroundColor: WA_GREEN, width: size + 8, height: size + 8 }}>
+   638→          <MessageCircle style={{ width: size, height: size, color: "#fff" }} />
+   639→        </div>
+   640→      )
+   641→    }
+   642→    return (
+   643→      <div className="flex items-center justify-center rounded-full bg-emerald-500" style={{ width: size + 8, height: size + 8 }}>
+   644→        <Mail style={{ width: size, height: size, color: "#fff" }} />
+   645→      </div>
+   646→    )
+   647→  }
+   648→
+   649→  const renderMessageStatus = (msg: CommunicationMessage) => {
+   650→    if (msg.type === "whatsapp") {
+   651→      if (msg.status === "read") return <CheckCheck className="w-4 h-4 text-blue-400" />
+   652→      if (msg.status === "delivered") return <CheckCheck className="w-4 h-4 text-slate-400" />
+   653→      if (msg.status === "sent") return <Check className="w-4 h-4 text-slate-400" />
+   654→      if (msg.status === "failed") return <AlertCircle className="w-4 h-4 text-red-400" />
+   655→    }
+   656→    if (msg.type === "email") {
+   657→      if (msg.status === "read" || msg.openedAt) return <MailOpen className="w-4 h-4 text-emerald-500" />
+   658→      if (msg.status === "delivered") return <Check className="w-4 h-4 text-emerald-400" />
+   659→      if (msg.status === "failed" || msg.status === "bounced") return <XCircle className="w-4 h-4 text-red-400" />
+   660→      if (msg.status === "sent") return <Check className="w-4 h-4 text-slate-400" />
+   661→    }
+   662→    if (msg.type === "note") return <StickyNote className="w-4 h-4 text-amber-400" />
+   663→    return null
+   664→  }
+   665→
+   666→  // ── TAB 1: Inbox ─────────────────────────────────────────────────────
+   667→  const renderInbox = () => (
+   668→    <div className="flex h-[calc(100vh-12rem)] gap-0 bg-background rounded-xl border shadow-sm overflow-hidden">
+   669→      {/* Left Panel - Conversation List */}
+   670→      <div className="w-full md:w-80 lg:w-96 border-r flex flex-col bg-muted/20">
+   671→        {/* Search & Filters */}
+   672→        <div className="p-3 space-y-3 border-b">
+   673→          <div className="relative">
+   674→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+   675→            <Input
+   676→              placeholder="Search conversations..."
+   677→              value={searchQuery}
+   678→              onChange={(e) => setSearchQuery(e.target.value)}
+   679→              className="pl-9 h-9 text-sm"
+   680→            />
+   681→          </div>
+   682→          <div className="flex gap-2">
+   683→            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+   684→              {(["all", "email", "whatsapp"] as const).map((ch) => (
+   685→                <Button
+   686→                  key={ch}
+   687→                  size="sm"
+   688→                  variant={channelFilter === ch ? "default" : "ghost"}
+   689→                  className={cn(
+   690→                    "h-7 text-xs px-2.5",
+   691→                    channelFilter === ch && ch === "whatsapp" && "bg-[#25D366] hover:bg-[#1eb954] text-white",
+   692→                    channelFilter === ch && ch === "email" && "bg-emerald-600 hover:bg-emerald-700 text-white",
+   693→                    channelFilter === ch && ch === "all" && "bg-emerald-600 hover:bg-emerald-700 text-white"
+   694→                  )}
+   695→                  onClick={() => setChannelFilter(ch)}
+   696→                >
+   697→                  {ch === "all" ? "All" : ch === "email" ? <Mail className="w-3.5 h-3.5" /> : <MessageCircle className="w-3.5 h-3.5" />}
+   698→                </Button>
+   699→              ))}
+   700→            </div>
+   701→            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+   702→              {(["active", "archived", "closed"] as const).map((st) => (
+   703→                <Button
+   704→                  key={st}
+   705→                  size="sm"
+   706→                  variant={statusFilter === st ? "default" : "ghost"}
+   707→                  className={cn("h-7 text-xs px-2.5 capitalize", statusFilter === st && "bg-emerald-600 hover:bg-emerald-700 text-white")}
+   708→                  onClick={() => setStatusFilter(st)}
+   709→                >
+   710→                  {st}
+   711→                </Button>
+   712→              ))}
+   713→            </div>
+   714→          </div>
+   715→        </div>
+   716→
+   717→        {/* Conversation List */}
+   718→        <ScrollArea className="flex-1">
+   719→          {filteredConversations.length === 0 ? (
+   720→            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+   721→              <Inbox className="w-12 h-12 mb-3 opacity-30" />
+   722→              <p className="text-sm font-medium">No conversations</p>
+   723→              <p className="text-xs mt-1">Start a new conversation from Compose</p>
+   724→            </div>
+   725→          ) : (
+   726→            <div className="divide-y">
+   727→              {filteredConversations.map((conv) => {
+   728→                const priority = PRIORITY_CONFIG[conv.priority] || PRIORITY_CONFIG.normal
+   729→                return (
+   730→                  <motion.div
+   731→                    key={conv.id}
+   732→                    initial={{ opacity: 0 }}
+   733→                    animate={{ opacity: 1 }}
+   734→                    className={cn(
+   735→                      "flex items-start gap-3 p-3 cursor-pointer transition-colors hover:bg-muted/50 relative",
+   736→                      selectedConversationId === conv.id && "bg-emerald-50 dark:bg-emerald-950/20 border-l-2 border-l-emerald-500"
+   737→                    )}
+   738→                    onClick={() => handleSelectConversation(conv.id)}
+   739→                  >
+   740→                    {/* Priority strip */}
+   741→                    <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-r", conv.priority === "urgent" ? "bg-red-500" : conv.priority === "high" ? "bg-orange-500" : conv.priority === "low" ? "bg-slate-300" : "bg-emerald-500")} />
+   742→
+   743→                    <div className="flex-shrink-0 mt-0.5">{renderChannelIcon(conv.channel, 14)}</div>
+   744→
+   745→                    <div className="flex-1 min-w-0">
+   746→                      <div className="flex items-center gap-2 mb-0.5">
+   747→                        <span className={cn("text-sm font-semibold truncate", conv.unreadCount > 0 && "text-foreground")}>
+   748→                          {conv.subject || "No Subject"}
+   749→                        </span>
+   750→                        {conv.unreadCount > 0 && (
+   751→                          <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
+   752→                            {conv.unreadCount}
+   753→                          </span>
+   754→                        )}
+   755→                      </div>
+   756→
+   757→                      <p className="text-xs text-muted-foreground truncate">
+   758→                        {conv.lastMessagePreview || "No messages yet"}
+   759→                      </p>
+   760→
+   761→                      <div className="flex items-center gap-2 mt-1.5">
+   762→                        {conv.client && (
+   763→                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-1">
+   764→                            <Building2 className="w-2.5 h-2.5" />
+   765→                            {conv.client.name}
+   766→                          </Badge>
+   767→                        )}
+   768→                        {conv.influencer && (
+   769→                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-1">
+   770→                            <Star className="w-2.5 h-2.5" />
+   771→                            {conv.influencer.name}
+   772→                          </Badge>
+   773→                        )}
+   774→                        <span className="text-[10px] text-muted-foreground ml-auto">
+   775→                          {formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true })}
+   776→                        </span>
+   777→                      </div>
+   778→                    </div>
+   779→
+   780→                    <div className="flex flex-col items-end gap-1.5">
+   781→                      {conv.assignedTo && (
+   782→                        <Avatar className="w-6 h-6">
+   783→                          <AvatarFallback className="text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+   784→                            {getInitials(conv.assignedTo.name)}
+   785→                          </AvatarFallback>
+   786→                        </Avatar>
+   787→                      )}
+   788→                      <Badge className={cn("text-[9px] px-1 py-0 h-4", priority.bgColor, priority.color, "border-0")}>
+   789→                        {priority.label}
+   790→                      </Badge>
+   791→                    </div>
+   792→                  </motion.div>
+   793→                )
+   794→              })}
+   795→            </div>
+   796→          )}
+   797→        </ScrollArea>
+   798→      </div>
+   799→
+   800→      {/* Right Panel - Conversation Detail */}
+   801→      <div className="hidden md:flex flex-1 flex-col">
+   802→        {!selectedConversation ? (
+   803→          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+   804→            <Inbox className="w-16 h-16 mb-4 opacity-20" />
+   805→            <p className="text-lg font-medium">Select a conversation</p>
+   806→            <p className="text-sm mt-1">Choose from the list to view messages</p>
+   807→          </div>
+   808→        ) : (
+   809→          <>
+   810→            {/* Conversation Header */}
+   811→            <div className="p-4 border-b bg-muted/10">
+   812→              <div className="flex items-start justify-between gap-4">
+   813→                <div className="flex-1 min-w-0">
+   814→                  <div className="flex items-center gap-2 mb-1">
+   815→                    {renderChannelIcon(selectedConversation.channel, 14)}
+   816→                    <h3 className="text-lg font-semibold truncate">
+   817→                      {selectedConversation.subject || "No Subject"}
+   818→                    </h3>
+   819→                    <Badge className={cn("text-xs", PRIORITY_CONFIG[selectedConversation.priority]?.bgColor, PRIORITY_CONFIG[selectedConversation.priority]?.color, "border-0")}>
+   820→                      {PRIORITY_CONFIG[selectedConversation.priority]?.label || "Normal"}
+   821→                    </Badge>
+   822→                  </div>
+   823→                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+   824→                    {selectedConversation.client && (
+   825→                      <span className="flex items-center gap-1">
+   826→                        <Building2 className="w-3.5 h-3.5" />
+   827→                        {selectedConversation.client.name}
+   828→                      </span>
+   829→                    )}
+   830→                    {selectedConversation.influencer && (
+   831→                      <span className="flex items-center gap-1">
+   832→                        <Star className="w-3.5 h-3.5" />
+   833→                        {selectedConversation.influencer.name} (@{selectedConversation.influencer.username})
+   834→                      </span>
+   835→                    )}
+   836→                    {selectedConversation.assignedTo && (
+   837→                      <span className="flex items-center gap-1">
+   838→                        <User className="w-3.5 h-3.5" />
+   839→                        {selectedConversation.assignedTo.name}
+   840→                      </span>
+   841→                    )}
+   842→                  </div>
+   843→                </div>
+   844→                <div className="flex items-center gap-2">
+   845→                  <Select
+   846→                    value={selectedConversation.status}
+   847→                    onValueChange={(val) => handleUpdateConversationStatus(selectedConversation.id, val)}
+   848→                  >
+   849→                    <SelectTrigger className="w-28 h-8 text-xs">
+   850→                      <SelectValue />
+   851→                    </SelectTrigger>
+   852→                    <SelectContent>
+   853→                      <SelectItem value="active">Active</SelectItem>
+   854→                      <SelectItem value="archived">Archived</SelectItem>
+   855→                      <SelectItem value="closed">Closed</SelectItem>
+   856→                    </SelectContent>
+   857→                  </Select>
+   858→                </div>
+   859→              </div>
+   860→              {/* Tags */}
+   861→              {selectedConversation.tags && (
+   862→                <div className="flex items-center gap-1.5 mt-2">
+   863→                  <Tag className="w-3 h-3 text-muted-foreground" />
+   864→                  {parseJsonArray(selectedConversation.tags).map((tag, i) => (
+   865→                    <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
+   866→                      {tag}
+   867→                    </Badge>
+   868→                  ))}
+   869→                </div>
+   870→              )}
+   871→            </div>
+   872→
+   873→            {/* Message Thread */}
+   874→            <ScrollArea className="flex-1 p-4">
+   875→              <div className="max-w-3xl mx-auto space-y-4">
+   876→                {selectedConversation.messages.length === 0 ? (
+   877→                  <div className="text-center py-12 text-muted-foreground">
+   878→                    <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-20" />
+   879→                    <p className="text-sm">No messages in this conversation</p>
+   880→                  </div>
+   881→                ) : (
+   882→                  selectedConversation.messages
+   883→                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+   884→                    .map((msg) => {
+   885→                      const isOutbound = msg.direction === "outbound"
+   886→                      const isNote = msg.type === "note"
+   887→                      const statusInfo = STATUS_BADGE[msg.status]
+   888→
+   889→                      return (
+   890→                        <motion.div
+   891→                          key={msg.id}
+   892→                          initial={{ opacity: 0, y: 8 }}
+   893→                          animate={{ opacity: 1, y: 0 }}
+   894→                          className={cn(
+   895→                            "flex gap-3",
+   896→                            isOutbound ? "flex-row-reverse" : "flex-row"
+   897→                          )}
+   898→                        >
+   899→                          {/* Avatar */}
+   900→                          <Avatar className="w-8 h-8 flex-shrink-0 mt-1">
+   901→                            <AvatarFallback className={cn("text-xs", isOutbound ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300")}>
+   902→                              {getInitials(msg.senderName)}
+   903→                            </AvatarFallback>
+   904→                          </Avatar>
+   905→
+   906→                          {/* Message bubble */}
+   907→                          <div
+   908→                            className={cn(
+   909→                              "max-w-[70%] rounded-xl px-4 py-3",
+   910→                              isNote && "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800",
+   911→                              !isNote && isOutbound && msg.type === "whatsapp" && "bg-[#DCF8C6] dark:bg-emerald-900/40",
+   912→                              !isNote && isOutbound && msg.type === "email" && "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800",
+   913→                              !isNote && !isOutbound && "bg-muted"
+   914→                            )}
+   915→                          >
+   916→                            {/* Note header */}
+   917→                            {isNote && (
+   918→                              <div className="flex items-center gap-1.5 mb-2 text-amber-700 dark:text-amber-400">
+   919→                                <StickyNote className="w-3.5 h-3.5" />
+   920→                                <span className="text-xs font-semibold">Internal Note</span>
+   921→                              </div>
+   922→                            )}
+   923→
+   924→                            {/* Email subject line */}
+   925→                            {msg.type === "email" && msg.subject && (
+   926→                              <div className="text-xs font-semibold text-muted-foreground mb-2 pb-2 border-b border-border/50">
+   927→                                {msg.subject}
+   928→                              </div>
+   929→                            )}
+   930→
+   931→                            {/* Sender info */}
+   932→                            <div className="flex items-center gap-2 mb-1.5">
+   933→                              <span className="text-xs font-semibold">{msg.senderName}</span>
+   934→                              <span className="text-[10px] text-muted-foreground">
+   935→                                {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
+   936→                              </span>
+   937→                            </div>
+   938→
+   939→                            {/* Body */}
+   940→                            <div className="text-sm whitespace-pre-wrap leading-relaxed">
+   941→                              {msg.htmlBody ? (
+   942→                                <div dangerouslySetInnerHTML={{ __html: msg.htmlBody }} />
+   943→                              ) : (
+   944→                                msg.body
+   945→                              )}
+   946→                            </div>
+   947→
+   948→                            {/* Media attachments */}
+   949→                            {msg.mediaUrls && parseJsonArray(msg.mediaUrls).length > 0 && (
+   950→                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/30">
+   951→                                <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
+   952→                                <span className="text-[10px] text-muted-foreground">
+   953→                                  {parseJsonArray(msg.mediaUrls).length} attachment(s)
+   954→                                </span>
+   955→                              </div>
+   956→                            )}
+   957→
+   958→                            {/* Status & direction */}
+   959→                            <div className="flex items-center gap-2 mt-2">
+   960→                              {isOutbound && renderMessageStatus(msg)}
+   961→                              {statusInfo && !isNote && (
+   962→                                <Badge className={cn("text-[9px] px-1 py-0 h-3.5", statusInfo.bgColor, statusInfo.color, "border-0")}>
+   963→                                  {statusInfo.label}
+   964→                                </Badge>
+   965→                              )}
+   966→                              {msg.type === "email" && msg.openedAt && (
+   967→                                <Tooltip>
+   968→                                  <TooltipTrigger>
+   969→                                    <Badge className="text-[9px] px-1 py-0 h-3.5 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 border-0">
+   970→                                      Opened
+   971→                                    </Badge>
+   972→                                  </TooltipTrigger>
+   973→                                  <TooltipContent>
+   974→                                    <p className="text-xs">Opened {formatDistanceToNow(new Date(msg.openedAt), { addSuffix: true })}</p>
+   975→                                  </TooltipContent>
+   976→                                </Tooltip>
+   977→                              )}
+   978→                              {msg.failureReason && (
+   979→                                <Tooltip>
+   980→                                  <TooltipTrigger>
+   981→                                    <Badge className="text-[9px] px-1 py-0 h-3.5 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-0">
+   982→                                      {msg.failureReason}
+   983→                                    </Badge>
+   984→                                  </TooltipTrigger>
+   985→                                  <TooltipContent>
+   986→                                    <p className="text-xs">{msg.failureReason}</p>
+   987→                                  </TooltipContent>
+   988→                                </Tooltip>
+   989→                              )}
+   990→                            </div>
+   991→                          </div>
+   992→                        </motion.div>
+   993→                      )
+   994→                    })
+   995→                )}
+   996→              </div>
+   997→            </ScrollArea>
+   998→
+   999→            {/* Compose Area */}
+  1000→            <div className="border-t p-4 bg-muted/10">
+  1001→              <div className="max-w-3xl mx-auto">
+  1002→                {/* Channel toggle */}
+  1003→                <div className="flex items-center gap-2 mb-3">
+  1004→                  <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+  1005→                    {(["email", "whatsapp", "note"] as const).map((ch) => (
+  1006→                      <Button
+  1007→                        key={ch}
+  1008→                        size="sm"
+  1009→                        variant={replyChannel === ch ? "default" : "ghost"}
+  1010→                        className={cn(
+  1011→                          "h-7 text-xs px-3 gap-1.5",
+  1012→                          replyChannel === ch && ch === "email" && "bg-emerald-600 hover:bg-emerald-700 text-white",
+  1013→                          replyChannel === ch && ch === "whatsapp" && "bg-[#25D366] hover:bg-[#1eb954] text-white",
+  1014→                          replyChannel === ch && ch === "note" && "bg-amber-500 hover:bg-amber-600 text-white"
+  1015→                        )}
+  1016→                        onClick={() => setReplyChannel(ch)}
+  1017→                      >
+  1018→                        {ch === "email" ? <Mail className="w-3.5 h-3.5" /> : ch === "whatsapp" ? <MessageCircle className="w-3.5 h-3.5" /> : <StickyNote className="w-3.5 h-3.5" />}
+  1019→                        {ch.charAt(0).toUpperCase() + ch.slice(1)}
+  1020→                      </Button>
+  1021→                    ))}
+  1022→                  </div>
+  1023→                  <div className="ml-auto flex items-center gap-2">
+  1024→                    {/* Template selector */}
+  1025→                    <Select value={replyTemplateId} onValueChange={(val) => handleApplyTemplate(val, false)}>
+  1026→                      <SelectTrigger className="w-36 h-7 text-xs">
+  1027→                        <Sparkles className="w-3 h-3 mr-1" />
+  1028→                        <SelectValue placeholder="Template" />
+  1029→                      </SelectTrigger>
+  1030→                      <SelectContent>
+  1031→                        {communicationTemplates
+  1032→                          .filter((t) => replyChannel === "note" || t.type === replyChannel)
+  1033→                          .map((t) => (
+  1034→                            <SelectItem key={t.id} value={t.id}>
+  1035→                              {t.name}
+  1036→                            </SelectItem>
+  1037→                          ))}
+  1038→                      </SelectContent>
+  1039→                    </Select>
+  1040→                  </div>
+  1041→                </div>
+  1042→
+  1043→                {/* Reply input */}
+  1044→                <div className="flex gap-2">
+  1045→                  <Textarea
+  1046→                    placeholder={
+  1047→                      replyChannel === "note"
+  1048→                        ? "Add an internal note..."
+  1049→                        : replyChannel === "whatsapp"
+  1050→                        ? "Type a WhatsApp message..."
+  1051→                        : "Type your email reply..."
+  1052→                    }
+  1053→                    value={replyBody}
+  1054→                    onChange={(e) => setReplyBody(e.target.value)}
+  1055→                    className="min-h-[60px] max-h-32 text-sm resize-none"
+  1056→                    onKeyDown={(e) => {
+  1057→                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+  1058→                        handleSendReply()
+  1059→                      }
+  1060→                    }}
+  1061→                  />
+  1062→                  <div className="flex flex-col gap-1">
+  1063→                    <Button
+  1064→                      size="sm"
+  1065→                      className={cn(
+  1066→                        "h-10 w-10 p-0",
+  1067→                        replyChannel === "whatsapp" ? "bg-[#25D366] hover:bg-[#1eb954]" : replyChannel === "note" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"
+  1068→                      )}
+  1069→                      onClick={handleSendReply}
+  1070→                      disabled={sendingMessage || !replyBody.trim()}
+  1071→                    >
+  1072→                      <Send className="w-4 h-4" />
+  1073→                    </Button>
+  1074→                    <Button size="sm" variant="ghost" className="h-8 w-10 p-0" title="Attach">
+  1075→                      <Paperclip className="w-4 h-4" />
+  1076→                    </Button>
+  1077→                  </div>
+  1078→                </div>
+  1079→                {replyChannel === "whatsapp" && replyBody && (
+  1080→                  <p className="text-[10px] text-muted-foreground mt-1 text-right">{replyBody.length} characters</p>
+  1081→                )}
+  1082→              </div>
+  1083→            </div>
+  1084→          </>
+  1085→        )}
+  1086→      </div>
+  1087→    </div>
+  1088→  )
+  1089→
+  1090→  // ── TAB 2: Compose ───────────────────────────────────────────────────
+  1091→  const renderCompose = () => (
+  1092→    <div className="max-w-3xl mx-auto">
+  1093→      <Card className="shadow-sm">
+  1094→        <CardHeader className="pb-4">
+  1095→          <CardTitle className="text-lg flex items-center gap-2">
+  1096→            <PenSquare className="w-5 h-5 text-emerald-600" />
+  1097→            New Message
+  1098→          </CardTitle>
+  1099→        </CardHeader>
+  1100→        <CardContent className="space-y-4">
+  1101→          {/* Channel selector */}
+  1102→          <div className="flex items-center gap-2">
+  1103→            <Label className="text-sm font-medium w-16">Channel</Label>
+  1104→            <div className="flex items-center gap-1 bg-muted rounded-md p-1">
+  1105→              <Button
+  1106→                variant={composeChannel === "email" ? "default" : "ghost"}
+  1107→                className={cn("h-9 gap-2", composeChannel === "email" && "bg-emerald-600 hover:bg-emerald-700 text-white")}
+  1108→                onClick={() => setComposeChannel("email")}
+  1109→              >
+  1110→                <Mail className="w-4 h-4" />
+  1111→                Email
+  1112→              </Button>
+  1113→              <Button
+  1114→                variant={composeChannel === "whatsapp" ? "default" : "ghost"}
+  1115→                className={cn("h-9 gap-2", composeChannel === "whatsapp" && "bg-[#25D366] hover:bg-[#1eb954] text-white")}
+  1116→                onClick={() => setComposeChannel("whatsapp")}
+  1117→              >
+  1118→                <MessageCircle className="w-4 h-4" />
+  1119→                WhatsApp
+  1120→              </Button>
+  1121→            </div>
+  1122→          </div>
+  1123→
+  1124→          {/* From */}
+  1125→          <div className="flex items-center gap-2">
+  1126→            <Label className="text-sm font-medium w-16">From</Label>
+  1127→            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+  1128→              <Avatar className="w-6 h-6">
+  1129→                <AvatarFallback className="text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+  1130→                  {currentUser ? getInitials(currentUser.name) : "U"}
+  1131→                </AvatarFallback>
+  1132→              </Avatar>
+  1133→              {currentUser?.name || "Current User"} ({currentUser?.email || ""})
+  1134→            </div>
+  1135→          </div>
+  1136→
+  1137→          {/* To - with autocomplete */}
+  1138→          <div className="flex items-center gap-2">
+  1139→            <Label className="text-sm font-medium w-16">To</Label>
+  1140→            <div className="flex-1 relative">
+  1141→              <Input
+  1142→                placeholder={composeChannel === "email" ? "Search name or email..." : "Search name or phone..."}
+  1143→                value={composeTo || recipientSearch}
+  1144→                onChange={(e) => {
+  1145→                  setRecipientSearch(e.target.value)
+  1146→                  setComposeTo(e.target.value)
+  1147→                  setShowRecipientDropdown(true)
+  1148→                }}
+  1149→                onFocus={() => setShowRecipientDropdown(true)}
+  1150→                className="h-9 text-sm"
+  1151→              />
+  1152→              {showRecipientDropdown && recipientSearch.length > 0 && filteredRecipients.length > 0 && (
+  1153→                <div className="absolute z-50 top-10 left-0 w-full bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+  1154→                  {filteredRecipients.map((r) => (
+  1155→                    <button
+  1156→                      key={`${r.type}-${r.id}`}
+  1157→                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center justify-between"
+  1158→                      onClick={() => handleSelectRecipient(r)}
+  1159→                    >
+  1160→                      <div className="flex items-center gap-2">
+  1161→                        <Avatar className="w-6 h-6">
+  1162→                          <AvatarFallback className="text-[8px]">{getInitials(r.name)}</AvatarFallback>
+  1163→                        </Avatar>
+  1164→                        <div>
+  1165→                          <div className="font-medium">{r.name}</div>
+  1166→                          {r.email && <div className="text-[10px] text-muted-foreground">{r.email}</div>}
+  1167→                        </div>
+  1168→                      </div>
+  1169→                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 capitalize">
+  1170→                        {r.type}
+  1171→                      </Badge>
+  1172→                    </button>
+  1173→                  ))}
+  1174→                </div>
+  1175→              )}
+  1176→              {showRecipientDropdown && (
+  1177→                <div
+  1178→                  className="fixed inset-0 z-40"
+  1179→                  onClick={() => setShowRecipientDropdown(false)}
+  1180→                />
+  1181→              )}
+  1182→            </div>
+  1183→          </div>
+  1184→
+  1185→          {/* Subject (email only) */}
+  1186→          {composeChannel === "email" && (
+  1187→            <div className="flex items-center gap-2">
+  1188→              <Label className="text-sm font-medium w-16">Subject</Label>
+  1189→              <Input
+  1190→                placeholder="Email subject..."
+  1191→                value={composeSubject}
+  1192→                onChange={(e) => setComposeSubject(e.target.value)}
+  1193→                className="h-9 text-sm"
+  1194→              />
+  1195→            </div>
+  1196→          )}
+  1197→
+  1198→          {/* Template selector */}
+  1199→          <div className="flex items-center gap-2">
+  1200→            <Label className="text-sm font-medium w-16">Template</Label>
+  1201→            <Select value={composeTemplateId} onValueChange={(val) => handleApplyTemplate(val, true)}>
+  1202→              <SelectTrigger className="h-9 text-sm flex-1">
+  1203→                <Sparkles className="w-3.5 h-3.5 mr-1" />
+  1204→                <SelectValue placeholder="Select a template..." />
+  1205→              </SelectTrigger>
+  1206→              <SelectContent>
+  1207→                {communicationTemplates
+  1208→                  .filter((t) => t.type === composeChannel)
+  1209→                  .map((t) => (
+  1210→                    <SelectItem key={t.id} value={t.id}>
+  1211→                      {t.name} {t.subject && `- ${t.subject}`}
+  1212→                    </SelectItem>
+  1213→                  ))}
+  1214→              </SelectContent>
+  1215→            </Select>
+  1216→          </div>
+  1217→
+  1218→          {/* Body */}
+  1219→          <div>
+  1220→            <Label className="text-sm font-medium mb-2 block">Message</Label>
+  1221→            <Textarea
+  1222→              placeholder={composeChannel === "email" ? "Write your email..." : "Type your WhatsApp message..."}
+  1223→              value={composeBody}
+  1224→              onChange={(e) => setComposeBody(e.target.value)}
+  1225→              className="min-h-[200px] text-sm resize-none"
+  1226→            />
+  1227→            <div className="flex items-center justify-between mt-1.5">
+  1228→              <div className="flex items-center gap-2">
+  1229→                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+  1230→                  <Paperclip className="w-3.5 h-3.5" />
+  1231→                  Attach
+  1232→                </Button>
+  1233→                {composeChannel === "email" && (
+  1234→                  <>
+  1235→                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs font-bold" onClick={() => setComposeBody(composeBody + "<b></b>")}>B</Button>
+  1236→                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs italic" onClick={() => setComposeBody(composeBody + "<i></i>")}>I</Button>
+  1237→                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setComposeBody(composeBody + "{{name}}")}>
+  1238→                      <Sparkles className="w-3 h-3" /> Variable
+  1239→                    </Button>
+  1240→                  </>
+  1241→                )}
+  1242→              </div>
+  1243→              {composeChannel === "whatsapp" && composeBody && (
+  1244→                <span className="text-[10px] text-muted-foreground">{composeBody.length} characters</span>
+  1245→              )}
+  1246→            </div>
+  1247→            {/* Detected variables */}
+  1248→            {composeBody && extractVariables(composeBody).length > 0 && (
+  1249→              <div className="flex items-center gap-2 mt-2">
+  1250→                <Sparkles className="w-3 h-3 text-emerald-500" />
+  1251→                <span className="text-[10px] text-muted-foreground">Variables:</span>
+  1252→                {extractVariables(composeBody).map((v) => (
+  1253→                  <Badge key={v} variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-emerald-600 border-emerald-200 dark:border-emerald-800">
+  1254→                    {`{{${v}}}`}
+  1255→                  </Badge>
+  1256→                ))}
+  1257→              </div>
+  1258→            )}
+  1259→          </div>
+  1260→
+  1261→          {/* Send button */}
+  1262→          <div className="flex items-center gap-3 pt-2">
+  1263→            <Button
+  1264→              className={cn(
+  1265→                "gap-2",
+  1266→                composeChannel === "whatsapp" ? "bg-[#25D366] hover:bg-[#1eb954]" : "bg-emerald-600 hover:bg-emerald-700"
+  1267→              )}
+  1268→              onClick={handleSendCompose}
+  1269→              disabled={sendingMessage || !composeBody.trim()}
+  1270→            >
+  1271→              {sendingMessage ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+  1272→              Send {composeChannel === "email" ? "Email" : "WhatsApp"}
+  1273→            </Button>
+  1274→            <Button variant="outline" onClick={() => { setComposeBody(""); setComposeSubject(""); setComposeTo(""); setComposeToEmail(""); setComposeToPhone(""); setComposeTemplateId(""); }}>
+  1275→              Clear
+  1276→            </Button>
+  1277→          </div>
+  1278→        </CardContent>
+  1279→      </Card>
+  1280→    </div>
+  1281→  )
+  1282→
+  1283→  // ── TAB 3: Templates ─────────────────────────────────────────────────
+  1284→  const renderTemplates = () => (
+  1285→    <div className="space-y-4">
+  1286→      {/* Header with filters */}
+  1287→      <div className="flex items-center justify-between gap-4">
+  1288→        <div className="flex items-center gap-2">
+  1289→          <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
+  1290→            {(["all", "email", "whatsapp"] as const).map((t) => (
+  1291→              <Button
+  1292→                key={t}
+  1293→                size="sm"
+  1294→                variant={templateTypeFilter === t ? "default" : "ghost"}
+  1295→                className={cn(
+  1296→                  "h-7 text-xs px-3",
+  1297→                  templateTypeFilter === t && "bg-emerald-600 hover:bg-emerald-700 text-white"
+  1298→                )}
+  1299→                onClick={() => setTemplateTypeFilter(t)}
+  1300→              >
+  1301→                {t === "all" ? "All" : t === "email" ? <><Mail className="w-3.5 h-3.5 mr-1" /> Email</> : <><MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp</>}
+  1302→              </Button>
+  1303→            ))}
+  1304→          </div>
+  1305→        </div>
+  1306→        <Dialog onOpenChange={(open) => { if (!open) { setEditingTemplate(null); setTemplateName(""); setTemplateType("email"); setTemplateCategory(""); setTemplateSubject(""); setTemplateBody(""); } }}>
+  1307→          <DialogTrigger asChild>
+  1308→            <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+  1309→              <Plus className="w-4 h-4" />
+  1310→              New Template
+  1311→            </Button>
+  1312→          </DialogTrigger>
+  1313→          <DialogContent className="sm:max-w-lg">
+  1314→            <DialogHeader>
+  1315→              <DialogTitle>{editingTemplate ? "Edit Template" : "Create Template"}</DialogTitle>
+  1316→            </DialogHeader>
+  1317→            <div className="space-y-4 py-4">
+  1318→              <div className="grid grid-cols-2 gap-4">
+  1319→                <div>
+  1320→                  <Label className="text-sm font-medium">Name</Label>
+  1321→                  <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Template name" className="mt-1 h-9 text-sm" />
+  1322→                </div>
+  1323→                <div>
+  1324→                  <Label className="text-sm font-medium">Type</Label>
+  1325→                  <Select value={templateType} onValueChange={setTemplateType}>
+  1326→                    <SelectTrigger className="mt-1 h-9 text-sm">
+  1327→                      <SelectValue />
+  1328→                    </SelectTrigger>
+  1329→                    <SelectContent>
+  1330→                      <SelectItem value="email">Email</SelectItem>
+  1331→                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+  1332→                    </SelectContent>
+  1333→                  </Select>
+  1334→                </div>
+  1335→              </div>
+  1336→              <div className="grid grid-cols-2 gap-4">
+  1337→                <div>
+  1338→                  <Label className="text-sm font-medium">Category</Label>
+  1339→                  <Input value={templateCategory} onChange={(e) => setTemplateCategory(e.target.value)} placeholder="e.g. outreach, follow-up" className="mt-1 h-9 text-sm" />
+  1340→                </div>
+  1341→                {templateType === "email" && (
+  1342→                  <div>
+  1343→                    <Label className="text-sm font-medium">Subject</Label>
+  1344→                    <Input value={templateSubject} onChange={(e) => setTemplateSubject(e.target.value)} placeholder="Email subject" className="mt-1 h-9 text-sm" />
+  1345→                  </div>
+  1346→                )}
+  1347→              </div>
+  1348→              <div>
+  1349→                <Label className="text-sm font-medium">Body</Label>
+  1350→                <Textarea
+  1351→                  value={templateBody}
+  1352→                  onChange={(e) => setTemplateBody(e.target.value)}
+  1353→                  placeholder="Write template body... Use {{name}}, {{company}}, {{date}} for variables"
+  1354→                  className="mt-1 min-h-[150px] text-sm resize-none"
+  1355→                />
+  1356→              </div>
+  1357→              {templateBody && extractVariables(templateBody).length > 0 && (
+  1358→                <div className="flex items-center gap-2">
+  1359→                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+  1360→                  <span className="text-xs text-muted-foreground">Detected variables:</span>
+  1361→                  {extractVariables(templateBody).map((v) => (
+  1362→                    <Badge key={v} variant="outline" className="text-xs px-2 py-0.5 text-emerald-600 border-emerald-200 dark:border-emerald-800">
+  1363→                      {`{{${v}}}`}
+  1364→                    </Badge>
+  1365→                  ))}
+  1366→                </div>
+  1367→              )}
+  1368→              {/* Preview */}
+  1369→              {templateBody && (
+  1370→                <div>
+  1371→                  <Label className="text-sm font-medium mb-2 block">Preview</Label>
+  1372→                  <div className="rounded-md border p-3 bg-muted/30 text-sm">
+  1373→                    {templateBody
+  1374→                      .replace(/\{\{name\}\}/g, "John Doe")
+  1375→                      .replace(/\{\{company\}\}/g, "Acme Inc")
+  1376→                      .replace(/\{\{date\}\}/g, format(new Date(), "MMMM d, yyyy"))
+  1377→                      .replace(/\{\{email\}\}/g, "john@example.com")}
+  1378→                  </div>
+  1379→                </div>
+  1380→              )}
+  1381→            </div>
+  1382→            <DialogFooter>
+  1383→              <DialogClose asChild>
+  1384→                <Button variant="outline">Cancel</Button>
+  1385→              </DialogClose>
+  1386→              <Button onClick={handleSaveTemplate} className="bg-emerald-600 hover:bg-emerald-700" disabled={!templateName.trim() || !templateBody.trim()}>
+  1387→                Save Template
+  1388→              </Button>
+  1389→            </DialogFooter>
+  1390→          </DialogContent>
+  1391→        </Dialog>
+  1392→      </div>
+  1393→
+  1394→      {/* Template Grid */}
+  1395→      {filteredTemplates.length === 0 ? (
+  1396→        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+  1397→          <FileText className="w-12 h-12 mb-3 opacity-30" />
+  1398→          <p className="text-sm font-medium">No templates yet</p>
+  1399→          <p className="text-xs mt-1">Create your first template to get started</p>
+  1400→        </div>
+  1401→      ) : (
+  1402→        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  1403→          {filteredTemplates.map((template) => {
+  1404→            const vars = extractVariables(template.body)
+  1405→            return (
+  1406→              <motion.div key={template.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+  1407→                <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => { setEditingTemplate(template); setTemplateName(template.name); setTemplateType(template.type); setTemplateCategory(template.category || ""); setTemplateSubject(template.subject || ""); setTemplateBody(template.body); }}>
+  1408→                  <CardHeader className="pb-3">
+  1409→                    <div className="flex items-center justify-between">
+  1410→                      <CardTitle className="text-sm font-semibold">{template.name}</CardTitle>
+  1411→                      <Badge className={cn("text-[10px] px-1.5 py-0 h-4 border-0", template.type === "whatsapp" ? "bg-[#25D366]/20 text-[#25D366]" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300")}>
+  1412→                        {template.type === "whatsapp" ? <MessageCircle className="w-2.5 h-2.5 mr-0.5" /> : <Mail className="w-2.5 h-2.5 mr-0.5" />}
+  1413→                        {template.type}
+  1414→                      </Badge>
+  1415→                    </div>
+  1416→                    {template.category && (
+  1417→                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 w-fit">
+  1418→                        {template.category}
+  1419→                      </Badge>
+  1420→                    )}
+  1421→                  </CardHeader>
+  1422→                  <CardContent>
+  1423→                    {template.subject && (
+  1424→                      <p className="text-xs font-medium text-muted-foreground mb-1.5">{template.subject}</p>
+  1425→                    )}
+  1426→                    <p className="text-xs text-muted-foreground line-clamp-3">{template.body}</p>
+  1427→                    {vars.length > 0 && (
+  1428→                      <div className="flex items-center gap-1 mt-2 flex-wrap">
+  1429→                        {vars.map((v) => (
+  1430→                          <Badge key={v} variant="outline" className="text-[9px] px-1 py-0 h-3.5 text-emerald-600 border-emerald-200 dark:border-emerald-800">
+  1431→                            {`{{${v}}}`}
+  1432→                          </Badge>
+  1433→                        ))}
+  1434→                      </div>
+  1435→                    )}
+  1436→                  </CardContent>
+  1437→                </Card>
+  1438→              </motion.div>
+  1439→            )
+  1440→          })}
+  1441→        </div>
+  1442→      )}
+  1443→    </div>
+  1444→  )
+  1445→
+  1446→  // ── TAB 4: Contacts ──────────────────────────────────────────────────
+  1447→  const renderContacts = () => (
+  1448→    <div className="space-y-4">
+  1449→      {/* Header */}
+  1450→      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+  1451→        <div className="flex items-center gap-3">
+  1452→          <div className="relative">
+  1453→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+  1454→            <Input
+  1455→              placeholder="Search contacts..."
+  1456→              value={contactSearch}
+  1457→              onChange={(e) => setContactSearch(e.target.value)}
+  1458→              className="pl-9 h-9 w-64 text-sm"
+  1459→            />
+  1460→          </div>
+  1461→          <div className="flex items-center gap-2">
+  1462→            <Label className="text-xs text-muted-foreground">Favorites</Label>
+  1463→            <Switch checked={showFavoritesOnly} onCheckedChange={setShowFavoritesOnly} />
+  1464→          </div>
+  1465→        </div>
+  1466→        <Dialog onOpenChange={(open) => { if (!open) { setEditingContact(null); setContactName(""); setContactEmail(""); setContactPhone(""); setContactWhatsapp(""); setContactCompany(""); setContactRole(""); setContactPreferredChannel("email"); setContactNotes(""); } }}>
+  1467→          <DialogTrigger asChild>
+  1468→            <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+  1469→              <Plus className="w-4 h-4" />
+  1470→              Add Contact
+  1471→            </Button>
+  1472→          </DialogTrigger>
+  1473→          <DialogContent className="sm:max-w-lg">
+  1474→            <DialogHeader>
+  1475→              <DialogTitle>{editingContact ? "Edit Contact" : "Add Contact"}</DialogTitle>
+  1476→            </DialogHeader>
+  1477→            <div className="space-y-4 py-4">
+  1478→              <div className="grid grid-cols-2 gap-4">
+  1479→                <div>
+  1480→                  <Label className="text-sm font-medium">Name</Label>
+  1481→                  <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Full name" className="mt-1 h-9 text-sm" />
+  1482→                </div>
+  1483→                <div>
+  1484→                  <Label className="text-sm font-medium">Email</Label>
+  1485→                  <Input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="email@example.com" className="mt-1 h-9 text-sm" type="email" />
+  1486→                </div>
+  1487→              </div>
+  1488→              <div className="grid grid-cols-2 gap-4">
+  1489→                <div>
+  1490→                  <Label className="text-sm font-medium">Phone</Label>
+  1491→                  <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="+1-555-0100" className="mt-1 h-9 text-sm" />
+  1492→                </div>
+  1493→                <div>
+  1494→                  <Label className="text-sm font-medium">WhatsApp Number</Label>
+  1495→                  <Input value={contactWhatsapp} onChange={(e) => setContactWhatsapp(e.target.value)} placeholder="+1-555-0100" className="mt-1 h-9 text-sm" />
+  1496→                </div>
+  1497→              </div>
+  1498→              <div className="grid grid-cols-2 gap-4">
+  1499→                <div>
+  1500→                  <Label className="text-sm font-medium">Company</Label>
+  1501→                  <Input value={contactCompany} onChange={(e) => setContactCompany(e.target.value)} placeholder="Company name" className="mt-1 h-9 text-sm" />
+  1502→                </div>
+  1503→                <div>
+  1504→                  <Label className="text-sm font-medium">Role</Label>
+  1505→                  <Select value={contactRole} onValueChange={setContactRole}>
+  1506→                    <SelectTrigger className="mt-1 h-9 text-sm">
+  1507→                      <SelectValue placeholder="Select role" />
+  1508→                    </SelectTrigger>
+  1509→                    <SelectContent>
+  1510→                      <SelectItem value="client">Client</SelectItem>
+  1511→                      <SelectItem value="influencer">Influencer</SelectItem>
+  1512→                      <SelectItem value="partner">Partner</SelectItem>
+  1513→                      <SelectItem value="vendor">Vendor</SelectItem>
+  1514→                    </SelectContent>
+  1515→                  </Select>
+  1516→                </div>
+  1517→              </div>
+  1518→              <div>
+  1519→                <Label className="text-sm font-medium">Preferred Channel</Label>
+  1520→                <div className="flex items-center gap-2 mt-1">
+  1521→                  <Button
+  1522→                    size="sm"
+  1523→                    variant={contactPreferredChannel === "email" ? "default" : "outline"}
+  1524→                    className={cn("gap-1.5", contactPreferredChannel === "email" && "bg-emerald-600 hover:bg-emerald-700")}
+  1525→                    onClick={() => setContactPreferredChannel("email")}
+  1526→                  >
+  1527→                    <Mail className="w-3.5 h-3.5" /> Email
+  1528→                  </Button>
+  1529→                  <Button
+  1530→                    size="sm"
+  1531→                    variant={contactPreferredChannel === "whatsapp" ? "default" : "outline"}
+  1532→                    className={cn("gap-1.5", contactPreferredChannel === "whatsapp" && "bg-[#25D366] hover:bg-[#1eb954]")}
+  1533→                    onClick={() => setContactPreferredChannel("whatsapp")}
+  1534→                  >
+  1535→                    <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+  1536→                  </Button>
+  1537→                </div>
+  1538→              </div>
+  1539→              <div>
+  1540→                <Label className="text-sm font-medium">Notes</Label>
+  1541→                <Textarea value={contactNotes} onChange={(e) => setContactNotes(e.target.value)} placeholder="Additional notes..." className="mt-1 h-20 text-sm resize-none" />
+  1542→              </div>
+  1543→            </div>
+  1544→            <DialogFooter>
+  1545→              <DialogClose asChild>
+  1546→                <Button variant="outline">Cancel</Button>
+  1547→              </DialogClose>
+  1548→              <Button onClick={handleSaveContact} className="bg-emerald-600 hover:bg-emerald-700" disabled={!contactName.trim()}>
+  1549→                Save Contact
+  1550→              </Button>
+  1551→            </DialogFooter>
+  1552→          </DialogContent>
+  1553→        </Dialog>
+  1554→      </div>
+  1555→
+  1556→      {/* Favorite contacts */}
+  1557→      {showFavoritesOnly && filteredContacts.length > 0 && (
+  1558→        <div>
+  1559→          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mb-3">
+  1560→            <Heart className="w-4 h-4 text-red-500" /> Favorite Contacts
+  1561→          </h3>
+  1562→        </div>
+  1563→      )}
+  1564→
+  1565→      {/* Contacts Grid */}
+  1566→      {filteredContacts.length === 0 ? (
+  1567→        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+  1568→          <Users className="w-12 h-12 mb-3 opacity-30" />
+  1569→          <p className="text-sm font-medium">No contacts found</p>
+  1570→          <p className="text-xs mt-1">Add contacts to your communication directory</p>
+  1571→        </div>
+  1572→      ) : (
+  1573→        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  1574→          {filteredContacts.map((contact) => (
+  1575→            <motion.div key={contact.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+  1576→              <Card className="hover:shadow-md transition-shadow">
+  1577→                <CardContent className="p-4">
+  1578→                  <div className="flex items-start gap-3">
+  1579→                    <Avatar className="w-10 h-10">
+  1580→                      <AvatarFallback className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 text-sm">
+  1581→                        {getInitials(contact.name)}
+  1582→                      </AvatarFallback>
+  1583→                    </Avatar>
+  1584→                    <div className="flex-1 min-w-0">
+  1585→                      <div className="flex items-center gap-2">
+  1586→                        <h4 className="text-sm font-semibold truncate">{contact.name}</h4>
+  1587→                        {contact.isFavorite && <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 flex-shrink-0" />}
+  1588→                      </div>
+  1589→                      {contact.company && <p className="text-xs text-muted-foreground">{contact.company}</p>}
+  1590→                      {contact.role && (
+  1591→                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 mt-1 capitalize">
+  1592→                          {contact.role}
+  1593→                        </Badge>
+  1594→                      )}
+  1595→                    </div>
+  1596→                    {/* Preferred channel */}
+  1597→                    <div className="flex-shrink-0">
+  1598→                      {contact.preferredChannel === "whatsapp" ? (
+  1599→                        <div className="flex items-center justify-center rounded-full w-7 h-7" style={{ backgroundColor: WA_GREEN + "20" }}>
+  1600→                          <MessageCircle className="w-4 h-4" style={{ color: WA_GREEN }} />
+  1601→                        </div>
+  1602→                      ) : (
+  1603→                        <div className="flex items-center justify-center rounded-full w-7 h-7 bg-emerald-100 dark:bg-emerald-900/40">
+  1604→                          <Mail className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+  1605→                        </div>
+  1606→                      )}
+  1607→                    </div>
+  1608→                  </div>
+  1609→
+  1610→                  <div className="mt-3 space-y-1.5">
+  1611→                    {contact.email && (
+  1612→                      <a href={`mailto:${contact.email}`} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-emerald-600 transition-colors">
+  1613→                        <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+  1614→                        <span className="truncate">{contact.email}</span>
+  1615→                      </a>
+  1616→                    )}
+  1617→                    {contact.phone && (
+  1618→                      <a href={`tel:${contact.phone}`} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-emerald-600 transition-colors">
+  1619→                        <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+  1620→                        <span>{contact.phone}</span>
+  1621→                      </a>
+  1622→                    )}
+  1623→                    {contact.whatsappNumber && (
+  1624→                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+  1625→                        <MessageCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: WA_GREEN }} />
+  1626→                        <span>{contact.whatsappNumber}</span>
+  1627→                      </div>
+  1628→                    )}
+  1629→                    {contact.lastContactedAt && (
+  1630→                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+  1631→                        <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+  1632→                        <span>Last contacted {formatDistanceToNow(new Date(contact.lastContactedAt), { addSuffix: true })}</span>
+  1633→                      </div>
+  1634→                    )}
+  1635→                  </div>
+  1636→
+  1637→                  {/* Quick actions */}
+  1638→                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+  1639→                    {contact.email && (
+  1640→                      <Button
+  1641→                        variant="ghost"
+  1642→                        size="sm"
+  1643→                        className="h-7 px-2 text-xs gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+  1644→                        onClick={() => {
+  1645→                          setActiveTab("compose")
+  1646→                          setComposeChannel("email")
+  1647→                          setComposeTo(contact.name)
+  1648→                          setComposeToEmail(contact.email || "")
+  1649→                          setComposeToPhone(contact.whatsappNumber || contact.phone || "")
+  1650→                        }}
+  1651→                      >
+  1652→                        <Mail className="w-3 h-3" /> Email
+  1653→                      </Button>
+  1654→                    )}
+  1655→                    {contact.whatsappNumber && (
+  1656→                      <Button
+  1657→                        variant="ghost"
+  1658→                        size="sm"
+  1659→                        className="h-7 px-2 text-xs gap-1 hover:bg-[#25D366]/10"
+  1660→                        style={{ color: WA_GREEN }}
+  1661→                        onClick={() => {
+  1662→                          setActiveTab("compose")
+  1663→                          setComposeChannel("whatsapp")
+  1664→                          setComposeTo(contact.name)
+  1665→                          setComposeToEmail(contact.email || "")
+  1666→                          setComposeToPhone(contact.whatsappNumber)
+  1667→                        }}
+  1668→                      >
+  1669→                        <MessageCircle className="w-3 h-3" /> WhatsApp
+  1670→                      </Button>
+  1671→                    )}
+  1672→                    <Button
+  1673→                      variant="ghost"
+  1674→                      size="sm"
+  1675→                      className="h-7 px-2 text-xs gap-1 ml-auto"
+  1676→                      onClick={() => handleToggleFavorite(contact.id, contact.isFavorite)}
+  1677→                    >
+  1678→                      {contact.isFavorite ? <StarOff className="w-3 h-3" /> : <Star className="w-3 h-3" />}
+  1679→                    </Button>
+  1680→                  </div>
+  1681→                </CardContent>
+  1682→              </Card>
+  1683→            </motion.div>
+  1684→          ))}
+  1685→        </div>
+  1686→      )}
+  1687→    </div>
+  1688→  )
+  1689→
+  1690→  // ── TAB 5: Analytics ─────────────────────────────────────────────────
+  1691→  const renderAnalytics = () => {
+  1692→    const maxDailyVolume = Math.max(...analytics.dailyVolumes.map((d) => d.email + d.whatsapp), 1)
+  1693→    return (
+  1694→      <div className="space-y-6">
+  1695→        {/* KPI Cards */}
+  1696→        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+  1697→          {[
+  1698→            { label: "Total Sent", value: analytics.totalSent, icon: Send, color: "text-emerald-600", bgColor: "bg-emerald-100 dark:bg-emerald-900/40" },
+  1699→            { label: "Open Rate", value: `${analytics.openRate}%`, icon: MailOpen, color: "text-teal-600", bgColor: "bg-teal-100 dark:bg-teal-900/40" },
+  1700→            { label: "Reply Rate", value: `${analytics.replyRate}%`, icon: Reply, color: "text-cyan-600", bgColor: "bg-cyan-100 dark:bg-cyan-900/40" },
+  1701→            { label: "Avg Response", value: `${analytics.avgResponseMin}m`, icon: Clock, color: "text-amber-600", bgColor: "bg-amber-100 dark:bg-amber-900/40" },
+  1702→          ].map((kpi) => (
+  1703→            <motion.div key={kpi.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+  1704→              <Card>
+  1705→                <CardContent className="p-4">
+  1706→                  <div className="flex items-center gap-3">
+  1707→                    <div className={cn("flex items-center justify-center rounded-lg w-10 h-10", kpi.bgColor)}>
+  1708→                      <kpi.icon className={cn("w-5 h-5", kpi.color)} />
+  1709→                    </div>
+  1710→                    <div>
+  1711→                      <p className="text-2xl font-bold">{kpi.value}</p>
+  1712→                      <p className="text-xs text-muted-foreground">{kpi.label}</p>
+  1713→                    </div>
+  1714→                  </div>
+  1715→                </CardContent>
+  1716→              </Card>
+  1717→            </motion.div>
+  1718→          ))}
+  1719→        </div>
+  1720→
+  1721→        {/* Channel Breakdown */}
+  1722→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  1723→          <Card>
+  1724→            <CardHeader className="pb-3">
+  1725→              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+  1726→                <BarChart3 className="w-4 h-4 text-emerald-600" />
+  1727→                Channel Breakdown
+  1728→              </CardTitle>
+  1729→            </CardHeader>
+  1730→            <CardContent>
+  1731→              <div className="space-y-4">
+  1732→                <div className="flex items-center justify-between">
+  1733→                  <div className="flex items-center gap-2">
+  1734→                    <div className="flex items-center justify-center rounded-full w-8 h-8 bg-emerald-100 dark:bg-emerald-900/40">
+  1735→                      <Mail className="w-4 h-4 text-emerald-600" />
+  1736→                    </div>
+  1737→                    <span className="text-sm font-medium">Email</span>
+  1738→                  </div>
+  1739→                  <div className="flex items-center gap-2">
+  1740→                    <div className="w-32 h-3 bg-muted rounded-full overflow-hidden">
+  1741→                      <div
+  1742→                        className="h-full bg-emerald-500 rounded-full"
+  1743→                        style={{ width: `${analytics.emailCount + analytics.whatsappCount > 0 ? (analytics.emailCount / (analytics.emailCount + analytics.whatsappCount)) * 100 : 0}%` }}
+  1744→                      />
+  1745→                    </div>
+  1746→                    <span className="text-sm font-semibold w-10 text-right">{analytics.emailCount}</span>
+  1747→                  </div>
+  1748→                </div>
+  1749→                <div className="flex items-center justify-between">
+  1750→                  <div className="flex items-center gap-2">
+  1751→                    <div className="flex items-center justify-center rounded-full w-8 h-8" style={{ backgroundColor: WA_GREEN + "20" }}>
+  1752→                      <MessageCircle className="w-4 h-4" style={{ color: WA_GREEN }} />
+  1753→                    </div>
+  1754→                    <span className="text-sm font-medium">WhatsApp</span>
+  1755→                  </div>
+  1756→                  <div className="flex items-center gap-2">
+  1757→                    <div className="w-32 h-3 bg-muted rounded-full overflow-hidden">
+  1758→                      <div
+  1759→                        className="h-full rounded-full"
+  1760→                        style={{ width: `${analytics.emailCount + analytics.whatsappCount > 0 ? (analytics.whatsappCount / (analytics.emailCount + analytics.whatsappCount)) * 100 : 0}%`, backgroundColor: WA_GREEN }}
+  1761→                      />
+  1762→                    </div>
+  1763→                    <span className="text-sm font-semibold w-10 text-right">{analytics.whatsappCount}</span>
+  1764→                  </div>
+  1765→                </div>
+  1766→              </div>
+  1767→            </CardContent>
+  1768→          </Card>
+  1769→
+  1770→          {/* Daily Volume Chart */}
+  1771→          <Card>
+  1772→            <CardHeader className="pb-3">
+  1773→              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+  1774→                <BarChart3 className="w-4 h-4 text-emerald-600" />
+  1775→                Daily Volume (7 days)
+  1776→              </CardTitle>
+  1777→            </CardHeader>
+  1778→            <CardContent>
+  1779→              <div className="flex items-end gap-2 h-40">
+  1780→                {analytics.dailyVolumes.map((day) => {
+  1781→                  const emailH = maxDailyVolume > 0 ? (day.email / maxDailyVolume) * 100 : 0
+  1782→                  const waH = maxDailyVolume > 0 ? (day.whatsapp / maxDailyVolume) * 100 : 0
+  1783→                  return (
+  1784→                    <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
+  1785→                      <div className="flex items-end gap-0.5 w-full h-28">
+  1786→                        <div className="flex-1 bg-emerald-400 rounded-t transition-all" style={{ height: `${Math.max(emailH, 4)}%` }} title={`${day.email} emails`} />
+  1787→                        <div className="flex-1 rounded-t transition-all" style={{ height: `${Math.max(waH, 4)}%`, backgroundColor: WA_GREEN }} title={`${day.whatsapp} WA`} />
+  1788→                      </div>
+  1789→                      <span className="text-[10px] text-muted-foreground">{day.date}</span>
+  1790→                    </div>
+  1791→                  )
+  1792→                })}
+  1793→              </div>
+  1794→              <div className="flex items-center gap-4 mt-3">
+  1795→                <div className="flex items-center gap-1.5">
+  1796→                  <div className="w-3 h-3 rounded bg-emerald-400" />
+  1797→                  <span className="text-[10px] text-muted-foreground">Email</span>
+  1798→                </div>
+  1799→                <div className="flex items-center gap-1.5">
+  1800→                  <div className="w-3 h-3 rounded" style={{ backgroundColor: WA_GREEN }} />
+  1801→                  <span className="text-[10px] text-muted-foreground">WhatsApp</span>
+  1802→                </div>
+  1803→              </div>
+  1804→            </CardContent>
+  1805→          </Card>
+  1806→        </div>
+  1807→
+  1808→        {/* Top Contacts & Template Usage */}
+  1809→        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  1810→          <Card>
+  1811→            <CardHeader className="pb-3">
+  1812→              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+  1813→                <Users className="w-4 h-4 text-emerald-600" />
+  1814→                Top Contacts by Messages
+  1815→              </CardTitle>
+  1816→            </CardHeader>
+  1817→            <CardContent>
+  1818→              {analytics.topContacts.length === 0 ? (
+  1819→                <p className="text-xs text-muted-foreground py-4 text-center">No message data yet</p>
+  1820→              ) : (
+  1821→                <div className="space-y-3">
+  1822→                  {analytics.topContacts.map((contact, i) => {
+  1823→                    const maxCount = analytics.topContacts[0]?.count || 1
+  1824→                    return (
+  1825→                      <div key={i} className="flex items-center gap-3">
+  1826→                        <Avatar className="w-7 h-7">
+  1827→                          <AvatarFallback className="text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+  1828→                            {getInitials(contact.name)}
+  1829→                          </AvatarFallback>
+  1830→                        </Avatar>
+  1831→                        <div className="flex-1 min-w-0">
+  1832→                          <div className="flex items-center justify-between mb-1">
+  1833→                            <span className="text-xs font-medium truncate">{contact.name}</span>
+  1834→                            <span className="text-xs font-semibold text-muted-foreground">{contact.count}</span>
+  1835→                          </div>
+  1836→                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+  1837→                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(contact.count / maxCount) * 100}%` }} />
+  1838→                          </div>
+  1839→                        </div>
+  1840→                      </div>
+  1841→                    )
+  1842→                  })}
+  1843→                </div>
+  1844→              )}
+  1845→            </CardContent>
+  1846→          </Card>
+  1847→
+  1848→          <Card>
+  1849→            <CardHeader className="pb-3">
+  1850→              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+  1851→                <FileText className="w-4 h-4 text-emerald-600" />
+  1852→                Template Usage
+  1853→              </CardTitle>
+  1854→            </CardHeader>
+  1855→            <CardContent>
+  1856→              {analytics.topTemplates.length === 0 ? (
+  1857→                <p className="text-xs text-muted-foreground py-4 text-center">No template usage data yet</p>
+  1858→              ) : (
+  1859→                <div className="space-y-3">
+  1860→                  {analytics.topTemplates.map((tmpl, i) => {
+  1861→                    const maxCount = analytics.topTemplates[0]?.count || 1
+  1862→                    return (
+  1863→                      <div key={i} className="flex items-center gap-3">
+  1864→                        <div className="flex items-center justify-center w-7 h-7 rounded bg-emerald-100 dark:bg-emerald-900/40">
+  1865→                          <FileText className="w-3.5 h-3.5 text-emerald-600" />
+  1866→                        </div>
+  1867→                        <div className="flex-1 min-w-0">
+  1868→                          <div className="flex items-center justify-between mb-1">
+  1869→                            <span className="text-xs font-medium truncate">{tmpl.name}</span>
+  1870→                            <span className="text-xs font-semibold text-muted-foreground">{tmpl.count} uses</span>
+  1871→                          </div>
+  1872→                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+  1873→                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(tmpl.count / maxCount) * 100}%` }} />
+  1874→                          </div>
+  1875→                        </div>
+  1876→                      </div>
+  1877→                    )
+  1878→                  })}
+  1879→                </div>
+  1880→              )}
+  1881→            </CardContent>
+  1882→          </Card>
+  1883→        </div>
+  1884→      </div>
+  1885→    )
+  1886→  }
+  1887→
+  1888→  // ── Main Render ───────────────────────────────────────────────────────
+  1889→  return (
+  1890→    <div className="p-4 md:p-6 space-y-4">
+  1891→      {/* Header */}
+  1892→      <div className="flex items-center justify-between">
+  1893→        <div>
+  1894→          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+  1895→            <div className="flex items-center justify-center rounded-lg w-8 h-8 bg-emerald-100 dark:bg-emerald-900/40">
+  1896→              <Inbox className="w-5 h-5 text-emerald-600" />
+  1897→            </div>
+  1898→            Communication Center
+  1899→          </h1>
+  1900→          <p className="text-sm text-muted-foreground mt-1">
+  1901→            Manage conversations across email and WhatsApp
+  1902→            {totalUnread > 0 && (
+  1903→              <span className="ml-2 text-emerald-600 font-medium">{totalUnread} unread</span>
+  1904→            )}
+  1905→          </p>
+  1906→        </div>
+  1907→        <Button
+  1908→          className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+  1909→          onClick={() => setActiveTab("compose")}
+  1910→        >
+  1911→          <PenSquare className="w-4 h-4" />
+  1912→          Compose
+  1913→        </Button>
+  1914→      </div>
+  1915→
+  1916→      {/* Tabs */}
+  1917→      <Tabs value={activeTab} onValueChange={setActiveTab}>
+  1918→        <TabsList className="bg-muted">
+  1919→          <TabsTrigger value="inbox" className="gap-1.5">
+  1920→            <Inbox className="w-4 h-4" />
+  1921→            Inbox
+  1922→            {totalUnread > 0 && (
+  1923→              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
+  1924→                {totalUnread}
+  1925→              </span>
+  1926→            )}
+  1927→          </TabsTrigger>
+  1928→          <TabsTrigger value="compose" className="gap-1.5">
+  1929→            <PenSquare className="w-4 h-4" />
+  1930→            Compose
+  1931→          </TabsTrigger>
+  1932→          <TabsTrigger value="templates" className="gap-1.5">
+  1933→            <FileText className="w-4 h-4" />
+  1934→            Templates
+  1935→          </TabsTrigger>
+  1936→          <TabsTrigger value="contacts" className="gap-1.5">
+  1937→            <Users className="w-4 h-4" />
+  1938→            Contacts
+  1939→          </TabsTrigger>
+  1940→          <TabsTrigger value="analytics" className="gap-1.5">
+  1941→            <BarChart3 className="w-4 h-4" />
+  1942→            Analytics
+  1943→          </TabsTrigger>
+  1944→        </TabsList>
+  1945→
+  1946→        <TabsContent value="inbox" className="mt-4">
+  1947→          {renderInbox()}
+  1948→        </TabsContent>
+  1949→        <TabsContent value="compose" className="mt-4">
+  1950→          {renderCompose()}
+  1951→        </TabsContent>
+  1952→        <TabsContent value="templates" className="mt-4">
+  1953→          {renderTemplates()}
+  1954→        </TabsContent>
+  1955→        <TabsContent value="contacts" className="mt-4">
+  1956→          {renderContacts()}
+  1957→        </TabsContent>
+  1958→        <TabsContent value="analytics" className="mt-4">
+  1959→          {renderAnalytics()}
+  1960→        </TabsContent>
+  1961→      </Tabs>
+  1962→    </div>
+  1963→  )
+  1964→}
+  1965→

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useCallback, useEffect } from "react"
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react"
 import {
   useERPStore,
   type Conversation,
@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -22,7 +22,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog"
@@ -35,7 +34,6 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Inbox,
@@ -47,1918 +45,1868 @@ import {
   BarChart3,
   Search,
   Send,
-  Paperclip,
   Star,
   StarOff,
   Archive,
-  Trash2,
-  MoreHorizontal,
-  ChevronDown,
-  ChevronUp,
   Clock,
   Check,
   CheckCheck,
   AlertCircle,
-  XCircle,
-  ArrowUpRight,
+  Eye,
   Phone,
-  MailOpen,
-  Plus,
-  Filter,
+  Heart,
   Tag,
+  Plus,
   Sparkles,
+  Hash,
   StickyNote,
-  Reply,
-  ExternalLink,
-  RefreshCw,
+  Filter,
+  ChevronRight,
   User,
   Building2,
-  Heart,
-  Link2,
-  ImageIcon,
-  File,
+  Globe,
+  Zap,
+  TrendingUp,
+  MessageSquare,
+  MailCheck,
+  Timer,
+  ArrowUpRight,
   X,
+  Loader2,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { formatDistanceToNow, format } from "date-fns"
 
-// ── Constants ──────────────────────────────────────────────────────────
-const WA_GREEN = "#25D366"
-
-const PRIORITY_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
-  urgent: { label: "Urgent", color: "text-red-700 dark:text-red-300", bgColor: "bg-red-100 dark:bg-red-900/40" },
-  high: { label: "High", color: "text-orange-700 dark:text-orange-300", bgColor: "bg-orange-100 dark:bg-orange-900/40" },
-  normal: { label: "Normal", color: "text-emerald-700 dark:text-emerald-300", bgColor: "bg-emerald-100 dark:bg-emerald-900/40" },
-  low: { label: "Low", color: "text-slate-600 dark:text-slate-400", bgColor: "bg-slate-100 dark:bg-slate-800" },
-}
-
-const STATUS_BADGE: Record<string, { label: string; color: string; bgColor: string }> = {
-  sent: { label: "Sent", color: "text-emerald-700 dark:text-emerald-300", bgColor: "bg-emerald-100 dark:bg-emerald-900/40" },
-  delivered: { label: "Delivered", color: "text-teal-700 dark:text-teal-300", bgColor: "bg-teal-100 dark:bg-teal-900/40" },
-  read: { label: "Read", color: "text-cyan-700 dark:text-cyan-300", bgColor: "bg-cyan-100 dark:bg-cyan-900/40" },
-  failed: { label: "Failed", color: "text-red-700 dark:text-red-300", bgColor: "bg-red-100 dark:bg-red-900/40" },
-  bounced: { label: "Bounced", color: "text-red-700 dark:text-red-300", bgColor: "bg-red-100 dark:bg-red-900/40" },
-  queued: { label: "Queued", color: "text-amber-700 dark:text-amber-300", bgColor: "bg-amber-100 dark:bg-amber-900/40" },
-  draft: { label: "Draft", color: "text-slate-600 dark:text-slate-400", bgColor: "bg-slate-100 dark:bg-slate-800" },
-}
-
-// ── Helper ─────────────────────────────────────────────────────────────
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
-}
-
-function parseJsonArray(val: string | null): string[] {
+// ─── Helpers ────────────────────────────────────────────────────────
+function parseJsonSafe(val: string | null | undefined): string[] {
   if (!val) return []
   try {
-    return JSON.parse(val)
+    const parsed = JSON.parse(val)
+    return Array.isArray(parsed) ? parsed : []
   } catch {
+    if (typeof val === "string" && val.length > 0) {
+      return val.split(",").map(s => s.trim()).filter(Boolean)
+    }
     return []
   }
 }
 
-function extractVariables(body: string): string[] {
-  const matches = body.match(/\{\{(\w+)\}\}/g)
-  if (!matches) return []
-  return [...new Set(matches.map((m) => m.replace(/\{\{|\}\}/g, "")))]
+function detectVariables(text: string): string[] {
+  const regex = /\{\{(\w+)\}\}/g
+  const vars: string[] = []
+  let match: RegExpExecArray | null
+  while ((match = regex.exec(text)) !== null) {
+    if (!vars.includes(match[1])) vars.push(match[1])
+  }
+  return vars
 }
 
-// ── Component ──────────────────────────────────────────────────────────
+function substituteVariables(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] || `{{${key}}}`)
+}
+
+function getInitials(name: string): string {
+  return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+}
+
+function getRoleGradient(role: string | null): string {
+  switch (role) {
+    case "client": return "from-emerald-400 to-teal-500"
+    case "influencer": return "from-pink-400 to-rose-500"
+    case "partner": return "from-amber-400 to-orange-500"
+    case "vendor": return "from-violet-400 to-purple-500"
+    default: return "from-slate-400 to-slate-500"
+  }
+}
+
+function getPriorityColor(priority: string): string {
+  switch (priority) {
+    case "urgent": return "bg-red-500"
+    case "high": return "bg-orange-500"
+    case "normal": return "bg-emerald-500"
+    case "low": return "bg-slate-400"
+    default: return "bg-slate-400"
+  }
+}
+
+function getStatusIcon(status: string) {
+  switch (status) {
+    case "delivered": return <Check className="h-3 w-3 text-muted-foreground" />
+    case "read": case "opened": return <CheckCheck className="h-3 w-3 text-emerald-500" />
+    case "failed": case "bounced": return <AlertCircle className="h-3 w-3 text-red-500" />
+    default: return <Check className="h-3 w-3 text-muted-foreground/50" />
+  }
+}
+
+// ─── Refresh helpers ────────────────────────────────────────────────
+async function refreshConversations() {
+  try {
+    const res = await fetch("/api/communications/conversations")
+    const json = await res.json()
+    const data = json?.conversations || json?.data || (Array.isArray(json) ? json : [])
+    if (Array.isArray(data)) useERPStore.getState().setConversations(data as Conversation[])
+  } catch (e) { console.error("Refresh conversations error:", e) }
+}
+
+async function refreshTemplates() {
+  try {
+    const res = await fetch("/api/communications/templates")
+    const json = await res.json()
+    const data = json?.templates || json?.data || (Array.isArray(json) ? json : [])
+    if (Array.isArray(data)) useERPStore.getState().setCommunicationTemplates(data as CommunicationTemplate[])
+  } catch (e) { console.error("Refresh templates error:", e) }
+}
+
+async function refreshContacts() {
+  try {
+    const res = await fetch("/api/communications/contacts")
+    const json = await res.json()
+    const data = json?.contacts || json?.data || (Array.isArray(json) ? json : [])
+    if (Array.isArray(data)) useERPStore.getState().setCommunicationContacts(data as CommunicationContact[])
+  } catch (e) { console.error("Refresh contacts error:", e) }
+}
+
+// ─── Main Component ─────────────────────────────────────────────────
 export function InboxView() {
   const {
-    conversations,
-    communicationTemplates,
-    communicationContacts,
-    clients,
-    influencers,
-    campaigns,
-    teams,
-    currentUser,
-    setConversations,
-    setCommunicationTemplates,
-    setCommunicationContacts,
+    conversations, communicationTemplates, communicationContacts, currentUser,
   } = useERPStore()
 
   const [activeTab, setActiveTab] = useState("inbox")
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState("")
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Inbox className="h-6 w-6 text-emerald-500" />
+            Communication Center
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage emails, WhatsApp messages, templates, contacts & analytics
+          </p>
+        </motion.div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-4 sm:px-6">
+        <TabsList className="w-full sm:w-auto grid grid-cols-5 sm:inline-flex bg-muted/50 p-1 rounded-lg mb-4">
+          <TabsTrigger value="inbox" className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+            <Inbox className="h-3.5 w-3.5" />Inbox
+          </TabsTrigger>
+          <TabsTrigger value="compose" className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+            <PenSquare className="h-3.5 w-3.5" />Compose
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+            <FileText className="h-3.5 w-3.5" />Templates
+          </TabsTrigger>
+          <TabsTrigger value="contacts" className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+            <Users className="h-3.5 w-3.5" />Contacts
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-1.5 text-xs sm:text-sm data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+            <BarChart3 className="h-3.5 w-3.5" />Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <TabsContent value="inbox" className="h-full m-0">
+            <InboxTab conversations={conversations} currentUser={currentUser} />
+          </TabsContent>
+          <TabsContent value="compose" className="h-full m-0 overflow-y-auto">
+            <ComposeTab templates={communicationTemplates} contacts={communicationContacts} currentUser={currentUser} />
+          </TabsContent>
+          <TabsContent value="templates" className="h-full m-0 overflow-y-auto">
+            <TemplatesTab templates={communicationTemplates} />
+          </TabsContent>
+          <TabsContent value="contacts" className="h-full m-0 overflow-y-auto">
+            <ContactsTab contacts={communicationContacts} />
+          </TabsContent>
+          <TabsContent value="analytics" className="h-full m-0 overflow-y-auto">
+            <AnalyticsTab conversations={conversations} templates={communicationTemplates} contacts={communicationContacts} />
+          </TabsContent>
+        </div>
+      </Tabs>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TAB 1: INBOX — Split Panel
+// ═══════════════════════════════════════════════════════════════════════
+function InboxTab({ conversations, currentUser }: { conversations: Conversation[]; currentUser: { id: string; name: string; email: string } | null }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
   const [channelFilter, setChannelFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("active")
-  const [composeChannel, setComposeChannel] = useState<"email" | "whatsapp">("email")
-  const [sendingMessage, setSendingMessage] = useState(false)
 
-  // Compose form state
-  const [composeTo, setComposeTo] = useState("")
-  const [composeToEmail, setComposeToEmail] = useState("")
-  const [composeToPhone, setComposeToPhone] = useState("")
-  const [composeSubject, setComposeSubject] = useState("")
-  const [composeBody, setComposeBody] = useState("")
-  const [composeTemplateId, setComposeTemplateId] = useState("")
-
-  // Reply state in inbox
-  const [replyChannel, setReplyChannel] = useState<"email" | "whatsapp" | "note">("email")
-  const [replyBody, setReplyBody] = useState("")
-  const [replyTemplateId, setReplyTemplateId] = useState("")
-
-  // Template editor state
-  const [editingTemplate, setEditingTemplate] = useState<CommunicationTemplate | null>(null)
-  const [templateName, setTemplateName] = useState("")
-  const [templateType, setTemplateType] = useState("email")
-  const [templateCategory, setTemplateCategory] = useState("")
-  const [templateSubject, setTemplateSubject] = useState("")
-  const [templateBody, setTemplateBody] = useState("")
-  const [templateTypeFilter, setTemplateTypeFilter] = useState("all")
-
-  // Contact editor state
-  const [editingContact, setEditingContact] = useState<CommunicationContact | null>(null)
-  const [contactSearch, setContactSearch] = useState("")
-  const [contactRoleFilter, setContactRoleFilter] = useState("all")
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
-  const [contactName, setContactName] = useState("")
-  const [contactEmail, setContactEmail] = useState("")
-  const [contactPhone, setContactPhone] = useState("")
-  const [contactWhatsapp, setContactWhatsapp] = useState("")
-  const [contactCompany, setContactCompany] = useState("")
-  const [contactRole, setContactRole] = useState("")
-  const [contactPreferredChannel, setContactPreferredChannel] = useState("email")
-  const [contactNotes, setContactNotes] = useState("")
-
-  // Compose recipient search
-  const [recipientSearch, setRecipientSearch] = useState("")
-  const [showRecipientDropdown, setShowRecipientDropdown] = useState(false)
-
-  // Fetch data from APIs on mount
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [convRes, templRes, contRes] = await Promise.all([
-          fetch("/api/communications/conversations"),
-          fetch("/api/communications/templates"),
-          fetch("/api/communications/contacts"),
-        ])
-        const convJson = await convRes.json()
-        const templJson = await templRes.json()
-        const contJson = await contRes.json()
-
-        if (convJson?.conversations) setConversations(convJson.conversations)
-        else if (Array.isArray(convJson)) setConversations(convJson)
-
-        if (templJson?.templates) setCommunicationTemplates(templJson.templates)
-        else if (Array.isArray(templJson)) setCommunicationTemplates(templJson)
-
-        if (contJson?.contacts) setCommunicationContacts(contJson.contacts)
-        else if (Array.isArray(contJson)) setCommunicationContacts(contJson)
-      } catch (err) {
-        console.error("Failed to load communication data:", err)
+  const filtered = useMemo(() => {
+    return conversations.filter(c => {
+      if (channelFilter !== "all" && c.type !== channelFilter) return false
+      if (statusFilter !== "all" && c.status !== statusFilter) return false
+      if (search) {
+        const s = search.toLowerCase()
+        const matchSubject = c.subject?.toLowerCase().includes(s)
+        const matchPreview = c.lastMessagePreview?.toLowerCase().includes(s)
+        const matchClient = c.client?.name?.toLowerCase().includes(s)
+        const matchInfluencer = c.influencer?.name?.toLowerCase().includes(s)
+        return matchSubject || matchPreview || matchClient || matchInfluencer
       }
-    }
-    fetchData()
-  }, [setConversations, setCommunicationTemplates, setCommunicationContacts])
-
-  // ── Computed ──────────────────────────────────────────────────────────
-  const selectedConversation = useMemo(
-    () => conversations.find((c) => c.id === selectedConversationId) ?? null,
-    [conversations, selectedConversationId]
-  )
-
-  const filteredConversations = useMemo(() => {
-    let result = [...conversations]
-    if (channelFilter !== "all") {
-      result = result.filter((c) => c.channel === channelFilter || c.type === channelFilter)
-    }
-    if (statusFilter !== "all") {
-      result = result.filter((c) => c.status === statusFilter)
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter(
-        (c) =>
-          (c.subject && c.subject.toLowerCase().includes(q)) ||
-          (c.lastMessagePreview && c.lastMessagePreview.toLowerCase().includes(q)) ||
-          (c.client && c.client.name.toLowerCase().includes(q)) ||
-          (c.influencer && c.influencer.name.toLowerCase().includes(q)) ||
-          (c.assignedTo && c.assignedTo.name.toLowerCase().includes(q))
-      )
-    }
-    result.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
-    return result
-  }, [conversations, channelFilter, statusFilter, searchQuery])
-
-  const filteredTemplates = useMemo(() => {
-    let result = [...communicationTemplates]
-    if (templateTypeFilter !== "all") {
-      result = result.filter((t) => t.type === templateTypeFilter)
-    }
-    return result
-  }, [communicationTemplates, templateTypeFilter])
-
-  const filteredContacts = useMemo(() => {
-    let result = [...communicationContacts]
-    if (showFavoritesOnly) {
-      result = result.filter((c) => c.isFavorite)
-    }
-    if (contactRoleFilter !== "all") {
-      result = result.filter((c) => c.role?.toLowerCase() === contactRoleFilter.toLowerCase())
-    }
-    if (contactSearch.trim()) {
-      const q = contactSearch.toLowerCase()
-      result = result.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          (c.email && c.email.toLowerCase().includes(q)) ||
-          (c.company && c.company.toLowerCase().includes(q))
-      )
-    }
-    return result
-  }, [communicationContacts, contactSearch, contactRoleFilter, showFavoritesOnly])
-
-  const totalUnread = useMemo(() => conversations.reduce((acc, c) => acc + c.unreadCount, 0), [conversations])
-
-  // Build recipient options from contacts + clients + influencers + employees
-  const recipientOptions = useMemo(() => {
-    const options: { id: string; name: string; email: string | null; phone: string | null; type: string }[] = []
-    communicationContacts.forEach((c) => {
-      options.push({ id: c.id, name: c.name, email: c.email, phone: c.phone || c.whatsappNumber, type: "contact" })
+      return true
     })
-    clients.forEach((c) => {
-      options.push({ id: c.id, name: c.name, email: null, phone: null, type: "client" })
-    })
-    influencers.forEach((i) => {
-      options.push({ id: i.id, name: i.name, email: i.email, phone: i.phone, type: "influencer" })
-    })
-    teams.forEach((t) => {
-      t.members.forEach((m) => {
-        options.push({ id: m.user.id, name: m.user.name, email: m.user.email, phone: null, type: "employee" })
-      })
-    })
-    return options
-  }, [communicationContacts, clients, influencers, teams])
+  }, [conversations, search, channelFilter, statusFilter])
 
-  const filteredRecipients = useMemo(() => {
-    if (!recipientSearch.trim()) return recipientOptions.slice(0, 10)
-    const q = recipientSearch.toLowerCase()
-    return recipientOptions.filter(
-      (r) => r.name.toLowerCase().includes(q) || (r.email && r.email.toLowerCase().includes(q))
-    ).slice(0, 10)
-  }, [recipientOptions, recipientSearch])
+  const selectedConversation = useMemo(() => {
+    if (!selectedId) return null
+    return conversations.find(c => c.id === selectedId) || null
+  }, [conversations, selectedId])
 
-  // ── Analytics computed ────────────────────────────────────────────────
-  const analytics = useMemo(() => {
-    const allMessages = conversations.flatMap((c) => c.messages)
-    const outbound = allMessages.filter((m) => m.direction === "outbound")
-    const readMsgs = allMessages.filter((m) => m.readAt)
-    const repliedMsgs = allMessages.filter((m) => m.repliedAt)
-    const emailMsgs = allMessages.filter((m) => m.type === "email")
-    const waMsgs = allMessages.filter((m) => m.type === "whatsapp")
-
-    const openRate = outbound.length > 0 ? Math.round((readMsgs.length / outbound.length) * 100) : 0
-    const replyRate = outbound.length > 0 ? Math.round((repliedMsgs.length / outbound.length) * 100) : 0
-
-    // Avg response time
-    const responseTimes: number[] = []
-    conversations.forEach((conv) => {
-      const msgs = conv.messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      for (let i = 1; i < msgs.length; i++) {
-        if (msgs[i].direction === "outbound" && msgs[i - 1].direction === "inbound") {
-          const diff = new Date(msgs[i].createdAt).getTime() - new Date(msgs[i - 1].createdAt).getTime()
-          responseTimes.push(diff / (1000 * 60))
-        }
-      }
-    })
-    const avgResponseMin = responseTimes.length > 0 ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) : 0
-
-    // Daily volumes (last 7 days)
-    const dailyVolumes: { date: string; email: number; whatsapp: number }[] = []
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      const key = format(d, "yyyy-MM-dd")
-      const label = format(d, "EEE")
-      const dayEmail = emailMsgs.filter((m) => format(new Date(m.createdAt), "yyyy-MM-dd") === key).length
-      const dayWa = waMsgs.filter((m) => format(new Date(m.createdAt), "yyyy-MM-dd") === key).length
-      dailyVolumes.push({ date: label, email: dayEmail, whatsapp: dayWa })
-    }
-
-    // Top contacts by message count
-    const contactCounts: Record<string, { name: string; count: number }> = {}
-    allMessages.forEach((m) => {
-      if (m.direction === "inbound") {
-        if (!contactCounts[m.senderName]) contactCounts[m.senderName] = { name: m.senderName, count: 0 }
-        contactCounts[m.senderName].count++
-      }
-    })
-    const topContacts = Object.values(contactCounts).sort((a, b) => b.count - a.count).slice(0, 5)
-
-    // Template usage
-    const templateUsage: Record<string, { name: string; count: number }> = {}
-    allMessages.forEach((m) => {
-      if (m.templateId) {
-        const templ = communicationTemplates.find((t) => t.id === m.templateId)
-        const name = templ?.name || "Unknown"
-        if (!templateUsage[m.templateId]) templateUsage[m.templateId] = { name, count: 0 }
-        templateUsage[m.templateId].count++
-      }
-    })
-    const topTemplates = Object.values(templateUsage).sort((a, b) => b.count - a.count).slice(0, 5)
-
-    return {
-      totalSent: outbound.length,
-      openRate,
-      replyRate,
-      avgResponseMin,
-      emailCount: emailMsgs.length,
-      whatsappCount: waMsgs.length,
-      dailyVolumes,
-      topContacts,
-      topTemplates,
-    }
-  }, [conversations, communicationTemplates])
-
-  // ── Handlers ──────────────────────────────────────────────────────────
-  const handleSelectConversation = useCallback((id: string) => {
-    setSelectedConversationId(id)
-  }, [])
-
-  const handleSendReply = useCallback(async () => {
-    if (!selectedConversation || !replyBody.trim()) return
-    setSendingMessage(true)
-    try {
-      const payload: Record<string, unknown> = {
-        body: replyBody,
-        type: replyChannel === "note" ? "note" : replyChannel,
-      }
-      if (replyChannel === "email") {
-        payload.subject = `Re: ${selectedConversation.subject || "No Subject"}`
-        payload.to = selectedConversation.messages.find((m) => m.direction === "inbound")?.senderEmail || ""
-      } else if (replyChannel === "whatsapp") {
-        payload.to = selectedConversation.messages.find((m) => m.direction === "inbound")?.senderPhone || ""
-      }
-      const endpoint =
-        replyChannel === "email"
-          ? `/api/communications/email/send`
-          : replyChannel === "whatsapp"
-          ? `/api/communications/whatsapp/send`
-          : `/api/communications/conversations/${selectedConversation.id}/messages`
-
-      if (replyChannel !== "note") {
-        payload.conversationId = selectedConversation.id
-      }
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        // Refresh conversation detail
-        const detailRes = await fetch(`/api/communications/conversations/${selectedConversation.id}`)
-        if (detailRes.ok) {
-          const detailJson = await detailRes.json()
-          const updated = detailJson.conversation || detailJson
-          setConversations(conversations.map((c) => (c.id === updated.id ? updated : c)))
-        }
-        setReplyBody("")
-        setReplyTemplateId("")
-      }
-    } catch (err) {
-      console.error("Failed to send reply:", err)
-    } finally {
-      setSendingMessage(false)
-    }
-  }, [selectedConversation, replyBody, replyChannel, conversations, setConversations])
-
-  const handleSendCompose = useCallback(async () => {
-    if (!composeBody.trim()) return
-    setSendingMessage(true)
-    try {
-      if (composeChannel === "email") {
-        const res = await fetch("/api/communications/email/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: composeToEmail,
-            subject: composeSubject,
-            body: composeBody,
-          }),
-        })
-        if (res.ok) {
-          // Refresh conversations
-          const convRes = await fetch("/api/communications/conversations")
-          if (convRes.ok) {
-            const json = await convRes.json()
-            setConversations(json.conversations || json)
-          }
-          setComposeTo("")
-          setComposeToEmail("")
-          setComposeToPhone("")
-          setComposeSubject("")
-          setComposeBody("")
-          setComposeTemplateId("")
-          setActiveTab("inbox")
-        }
-      } else {
-        const res = await fetch("/api/communications/whatsapp/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: composeToPhone,
-            body: composeBody,
-          }),
-        })
-        if (res.ok) {
-          const convRes = await fetch("/api/communications/conversations")
-          if (convRes.ok) {
-            const json = await convRes.json()
-            setConversations(json.conversations || json)
-          }
-          setComposeTo("")
-          setComposeToEmail("")
-          setComposeToPhone("")
-          setComposeSubject("")
-          setComposeBody("")
-          setComposeTemplateId("")
-          setActiveTab("inbox")
-        }
-      }
-    } catch (err) {
-      console.error("Failed to send message:", err)
-    } finally {
-      setSendingMessage(false)
-    }
-  }, [composeChannel, composeBody, composeToEmail, composeToPhone, composeSubject, setConversations])
-
-  const handleApplyTemplate = useCallback(
-    (templateId: string, isCompose: boolean) => {
-      const template = communicationTemplates.find((t) => t.id === templateId)
-      if (!template) return
-      if (isCompose) {
-        setComposeSubject(template.subject || composeSubject)
-        setComposeBody(template.body)
-        setComposeTemplateId(templateId)
-        if (template.type === "whatsapp") setComposeChannel("whatsapp")
-        else if (template.type === "email") setComposeChannel("email")
-      } else {
-        setReplyBody(template.body)
-        setReplyTemplateId(templateId)
-        if (template.type === "whatsapp") setReplyChannel("whatsapp")
-        else if (template.type === "email") setReplyChannel("email")
-      }
-    },
-    [communicationTemplates, composeSubject]
-  )
-
-  const handleSaveTemplate = useCallback(async () => {
-    try {
-      const payload = {
-        name: templateName,
-        type: templateType,
-        category: templateCategory || null,
-        subject: templateType === "email" ? templateSubject : null,
-        body: templateBody,
-        variables: JSON.stringify(extractVariables(templateBody)),
-        isDefault: false,
-        isActive: true,
-      }
-      if (editingTemplate) {
-        // For now, just add new - full PUT can be added later
-        await fetch("/api/communications/templates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        await fetch("/api/communications/templates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-      }
-      const res = await fetch("/api/communications/templates")
-      if (res.ok) {
-        const json = await res.json()
-        setCommunicationTemplates(json.templates || json)
-      }
-      setEditingTemplate(null)
-      setTemplateName("")
-      setTemplateType("email")
-      setTemplateCategory("")
-      setTemplateSubject("")
-      setTemplateBody("")
-    } catch (err) {
-      console.error("Failed to save template:", err)
-    }
-  }, [editingTemplate, templateName, templateType, templateCategory, templateSubject, templateBody, setCommunicationTemplates])
-
-  const handleSaveContact = useCallback(async () => {
-    try {
-      const payload = {
-        name: contactName,
-        email: contactEmail || null,
-        phone: contactPhone || null,
-        whatsappNumber: contactWhatsapp || null,
-        company: contactCompany || null,
-        role: contactRole || null,
-        preferredChannel: contactPreferredChannel,
-        notes: contactNotes || null,
-        isFavorite: false,
-      }
-      await fetch("/api/communications/contacts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      const res = await fetch("/api/communications/contacts")
-      if (res.ok) {
-        const json = await res.json()
-        setCommunicationContacts(json.contacts || json)
-      }
-      setEditingContact(null)
-      setContactName("")
-      setContactEmail("")
-      setContactPhone("")
-      setContactWhatsapp("")
-      setContactCompany("")
-      setContactRole("")
-      setContactPreferredChannel("email")
-      setContactNotes("")
-    } catch (err) {
-      console.error("Failed to save contact:", err)
-    }
-  }, [contactName, contactEmail, contactPhone, contactWhatsapp, contactCompany, contactRole, contactPreferredChannel, contactNotes, setCommunicationContacts])
-
-  const handleUpdateConversationStatus = useCallback(
-    async (convId: string, status: string) => {
-      try {
-        await fetch(`/api/communications/conversations/${convId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        })
-        setConversations(conversations.map((c) => (c.id === convId ? { ...c, status } : c)))
-      } catch (err) {
-        console.error("Failed to update conversation:", err)
-      }
-    },
-    [conversations, setConversations]
-  )
-
-  const handleSelectRecipient = useCallback(
-    (r: { name: string; email: string | null; phone: string | null; type: string }) => {
-      setComposeTo(r.name)
-      setComposeToEmail(r.email || "")
-      setComposeToPhone(r.phone || "")
-      setShowRecipientDropdown(false)
-      setRecipientSearch("")
-    },
-    []
-  )
-
-  const handleToggleFavorite = useCallback(async (contactId: string, currentVal: boolean) => {
-    try {
-      await fetch(`/api/communications/contacts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: contactId, isFavorite: !currentVal }),
-      })
-    } catch (err) {
-      console.error("Failed to update favorite:", err)
-    }
-  }, [])
-
-  // ── Render helpers ────────────────────────────────────────────────────
-  const renderChannelIcon = (type: string, size = 16) => {
-    if (type === "whatsapp") {
-      return (
-        <div className="flex items-center justify-center rounded-full" style={{ backgroundColor: WA_GREEN, width: size + 8, height: size + 8 }}>
-          <MessageCircle style={{ width: size, height: size, color: "#fff" }} />
-        </div>
-      )
-    }
-    return (
-      <div className="flex items-center justify-center rounded-full bg-emerald-500" style={{ width: size + 8, height: size + 8 }}>
-        <Mail style={{ width: size, height: size, color: "#fff" }} />
-      </div>
-    )
-  }
-
-  const renderMessageStatus = (msg: CommunicationMessage) => {
-    if (msg.type === "whatsapp") {
-      if (msg.status === "read") return <CheckCheck className="w-4 h-4 text-blue-400" />
-      if (msg.status === "delivered") return <CheckCheck className="w-4 h-4 text-slate-400" />
-      if (msg.status === "sent") return <Check className="w-4 h-4 text-slate-400" />
-      if (msg.status === "failed") return <AlertCircle className="w-4 h-4 text-red-400" />
-    }
-    if (msg.type === "email") {
-      if (msg.status === "read" || msg.openedAt) return <MailOpen className="w-4 h-4 text-emerald-500" />
-      if (msg.status === "delivered") return <Check className="w-4 h-4 text-emerald-400" />
-      if (msg.status === "failed" || msg.status === "bounced") return <XCircle className="w-4 h-4 text-red-400" />
-      if (msg.status === "sent") return <Check className="w-4 h-4 text-slate-400" />
-    }
-    if (msg.type === "note") return <StickyNote className="w-4 h-4 text-amber-400" />
-    return null
-  }
-
-  // ── TAB 1: Inbox ─────────────────────────────────────────────────────
-  const renderInbox = () => (
-    <div className="flex h-[calc(100vh-12rem)] gap-0 bg-background rounded-xl border shadow-sm overflow-hidden">
+  return (
+    <div className="h-full flex flex-col lg:flex-row gap-4">
       {/* Left Panel - Conversation List */}
-      <div className="w-full md:w-80 lg:w-96 border-r flex flex-col bg-muted/20">
-        {/* Search & Filters */}
-        <div className="p-3 space-y-3 border-b">
+      <div className="w-full lg:w-[380px] xl:w-[420px] flex-shrink-0 flex flex-col border rounded-xl bg-card overflow-hidden">
+        <div className="p-3 border-b space-y-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search conversations..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-sm"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-8 h-9 text-sm"
             />
           </div>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
-              {(["all", "email", "whatsapp"] as const).map((ch) => (
-                <Button
-                  key={ch}
-                  size="sm"
-                  variant={channelFilter === ch ? "default" : "ghost"}
-                  className={cn(
-                    "h-7 text-xs px-2.5",
-                    channelFilter === ch && ch === "whatsapp" && "bg-[#25D366] hover:bg-[#1eb954] text-white",
-                    channelFilter === ch && ch === "email" && "bg-emerald-600 hover:bg-emerald-700 text-white",
-                    channelFilter === ch && ch === "all" && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                  )}
-                  onClick={() => setChannelFilter(ch)}
-                >
-                  {ch === "all" ? "All" : ch === "email" ? <Mail className="w-3.5 h-3.5" /> : <MessageCircle className="w-3.5 h-3.5" />}
-                </Button>
-              ))}
-            </div>
-            <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
-              {(["active", "archived", "closed"] as const).map((st) => (
-                <Button
-                  key={st}
-                  size="sm"
-                  variant={statusFilter === st ? "default" : "ghost"}
-                  className={cn("h-7 text-xs px-2.5 capitalize", statusFilter === st && "bg-emerald-600 hover:bg-emerald-700 text-white")}
-                  onClick={() => setStatusFilter(st)}
-                >
-                  {st}
-                </Button>
-              ))}
-            </div>
+          <div className="flex gap-1">
+            {(["all", "email", "whatsapp", "mixed"] as const).map(ch => (
+              <Button
+                key={ch}
+                variant={channelFilter === ch ? "default" : "ghost"}
+                size="sm"
+                className={`h-7 text-xs px-2.5 ${channelFilter === ch ? "bg-emerald-500 hover:bg-emerald-600 text-white" : ""}`}
+                onClick={() => setChannelFilter(ch)}
+              >
+                {ch === "all" ? <Inbox className="h-3 w-3 mr-1" /> : ch === "email" ? <Mail className="h-3 w-3 mr-1" /> : ch === "whatsapp" ? <MessageCircle className="h-3 w-3 mr-1" /> : <Hash className="h-3 w-3 mr-1" />}
+                {ch.charAt(0).toUpperCase() + ch.slice(1)}
+              </Button>
+            ))}
+          </div>
+          <div className="flex gap-1">
+            {(["active", "archived", "closed", "all"] as const).map(st => (
+              <Button
+                key={st}
+                variant={statusFilter === st ? "default" : "ghost"}
+                size="sm"
+                className={`h-7 text-xs px-2.5 ${statusFilter === st ? "bg-emerald-500 hover:bg-emerald-600 text-white" : ""}`}
+                onClick={() => setStatusFilter(st)}
+              >
+                {st.charAt(0).toUpperCase() + st.slice(1)}
+              </Button>
+            ))}
           </div>
         </div>
 
-        {/* Conversation List */}
         <ScrollArea className="flex-1">
-          {filteredConversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-              <Inbox className="w-12 h-12 mb-3 opacity-30" />
-              <p className="text-sm font-medium">No conversations</p>
-              <p className="text-xs mt-1">Start a new conversation from Compose</p>
+          {filtered.length === 0 ? (
+            <div className="p-8 text-center">
+              <Inbox className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No conversations found</p>
             </div>
           ) : (
             <div className="divide-y">
-              {filteredConversations.map((conv) => {
-                const priority = PRIORITY_CONFIG[conv.priority] || PRIORITY_CONFIG.normal
-                return (
-                  <motion.div
-                    key={conv.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className={cn(
-                      "flex items-start gap-3 p-3 cursor-pointer transition-colors hover:bg-muted/50 relative",
-                      selectedConversationId === conv.id && "bg-emerald-50 dark:bg-emerald-950/20 border-l-2 border-l-emerald-500"
-                    )}
-                    onClick={() => handleSelectConversation(conv.id)}
-                  >
-                    {/* Priority strip */}
-                    <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-r", conv.priority === "urgent" ? "bg-red-500" : conv.priority === "high" ? "bg-orange-500" : conv.priority === "low" ? "bg-slate-300" : "bg-emerald-500")} />
-
-                    <div className="flex-shrink-0 mt-0.5">{renderChannelIcon(conv.channel, 14)}</div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className={cn("text-sm font-semibold truncate", conv.unreadCount > 0 && "text-foreground")}>
-                          {conv.subject || "No Subject"}
-                        </span>
-                        {conv.unreadCount > 0 && (
-                          <span className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
-                            {conv.unreadCount}
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="text-xs text-muted-foreground truncate">
-                        {conv.lastMessagePreview || "No messages yet"}
-                      </p>
-
-                      <div className="flex items-center gap-2 mt-1.5">
-                        {conv.client && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-1">
-                            <Building2 className="w-2.5 h-2.5" />
-                            {conv.client.name}
-                          </Badge>
-                        )}
-                        {conv.influencer && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-1">
-                            <Star className="w-2.5 h-2.5" />
-                            {conv.influencer.name}
-                          </Badge>
-                        )}
-                        <span className="text-[10px] text-muted-foreground ml-auto">
-                          {formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true })}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-1.5">
-                      {conv.assignedTo && (
-                        <Avatar className="w-6 h-6">
-                          <AvatarFallback className="text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                            {getInitials(conv.assignedTo.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      <Badge className={cn("text-[9px] px-1 py-0 h-4", priority.bgColor, priority.color, "border-0")}>
-                        {priority.label}
-                      </Badge>
-                    </div>
-                  </motion.div>
-                )
-              })}
+              {filtered.map(conv => (
+                <ConversationCard
+                  key={conv.id}
+                  conversation={conv}
+                  isSelected={selectedId === conv.id}
+                  onClick={() => setSelectedId(conv.id)}
+                />
+              ))}
             </div>
           )}
         </ScrollArea>
       </div>
 
       {/* Right Panel - Conversation Detail */}
-      <div className="hidden md:flex flex-1 flex-col">
-        {!selectedConversation ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-            <Inbox className="w-16 h-16 mb-4 opacity-20" />
-            <p className="text-lg font-medium">Select a conversation</p>
-            <p className="text-sm mt-1">Choose from the list to view messages</p>
-          </div>
+      <div className="flex-1 border rounded-xl bg-card overflow-hidden flex flex-col min-h-[400px]">
+        {selectedConversation ? (
+          <ConversationDetail conversation={selectedConversation} currentUser={currentUser} />
         ) : (
-          <>
-            {/* Conversation Header */}
-            <div className="p-4 border-b bg-muted/10">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    {renderChannelIcon(selectedConversation.channel, 14)}
-                    <h3 className="text-lg font-semibold truncate">
-                      {selectedConversation.subject || "No Subject"}
-                    </h3>
-                    <Badge className={cn("text-xs", PRIORITY_CONFIG[selectedConversation.priority]?.bgColor, PRIORITY_CONFIG[selectedConversation.priority]?.color, "border-0")}>
-                      {PRIORITY_CONFIG[selectedConversation.priority]?.label || "Normal"}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    {selectedConversation.client && (
-                      <span className="flex items-center gap-1">
-                        <Building2 className="w-3.5 h-3.5" />
-                        {selectedConversation.client.name}
-                      </span>
-                    )}
-                    {selectedConversation.influencer && (
-                      <span className="flex items-center gap-1">
-                        <Star className="w-3.5 h-3.5" />
-                        {selectedConversation.influencer.name} (@{selectedConversation.influencer.username})
-                      </span>
-                    )}
-                    {selectedConversation.assignedTo && (
-                      <span className="flex items-center gap-1">
-                        <User className="w-3.5 h-3.5" />
-                        {selectedConversation.assignedTo.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={selectedConversation.status}
-                    onValueChange={(val) => handleUpdateConversationStatus(selectedConversation.id, val)}
-                  >
-                    <SelectTrigger className="w-28 h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {/* Tags */}
-              {selectedConversation.tags && (
-                <div className="flex items-center gap-1.5 mt-2">
-                  <Tag className="w-3 h-3 text-muted-foreground" />
-                  {parseJsonArray(selectedConversation.tags).map((tag, i) => (
-                    <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <Mail className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+              <p className="text-muted-foreground text-sm">Select a conversation to view details</p>
+              <p className="text-muted-foreground/60 text-xs mt-1">Choose from the list on the left</p>
             </div>
-
-            {/* Message Thread */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="max-w-3xl mx-auto space-y-4">
-                {selectedConversation.messages.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                    <p className="text-sm">No messages in this conversation</p>
-                  </div>
-                ) : (
-                  selectedConversation.messages
-                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-                    .map((msg) => {
-                      const isOutbound = msg.direction === "outbound"
-                      const isNote = msg.type === "note"
-                      const statusInfo = STATUS_BADGE[msg.status]
-
-                      return (
-                        <motion.div
-                          key={msg.id}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={cn(
-                            "flex gap-3",
-                            isOutbound ? "flex-row-reverse" : "flex-row"
-                          )}
-                        >
-                          {/* Avatar */}
-                          <Avatar className="w-8 h-8 flex-shrink-0 mt-1">
-                            <AvatarFallback className={cn("text-xs", isOutbound ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300")}>
-                              {getInitials(msg.senderName)}
-                            </AvatarFallback>
-                          </Avatar>
-
-                          {/* Message bubble */}
-                          <div
-                            className={cn(
-                              "max-w-[70%] rounded-xl px-4 py-3",
-                              isNote && "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800",
-                              !isNote && isOutbound && msg.type === "whatsapp" && "bg-[#DCF8C6] dark:bg-emerald-900/40",
-                              !isNote && isOutbound && msg.type === "email" && "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800",
-                              !isNote && !isOutbound && "bg-muted"
-                            )}
-                          >
-                            {/* Note header */}
-                            {isNote && (
-                              <div className="flex items-center gap-1.5 mb-2 text-amber-700 dark:text-amber-400">
-                                <StickyNote className="w-3.5 h-3.5" />
-                                <span className="text-xs font-semibold">Internal Note</span>
-                              </div>
-                            )}
-
-                            {/* Email subject line */}
-                            {msg.type === "email" && msg.subject && (
-                              <div className="text-xs font-semibold text-muted-foreground mb-2 pb-2 border-b border-border/50">
-                                {msg.subject}
-                              </div>
-                            )}
-
-                            {/* Sender info */}
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <span className="text-xs font-semibold">{msg.senderName}</span>
-                              <span className="text-[10px] text-muted-foreground">
-                                {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
-                              </span>
-                            </div>
-
-                            {/* Body */}
-                            <div className="text-sm whitespace-pre-wrap leading-relaxed">
-                              {msg.htmlBody ? (
-                                <div dangerouslySetInnerHTML={{ __html: msg.htmlBody }} />
-                              ) : (
-                                msg.body
-                              )}
-                            </div>
-
-                            {/* Media attachments */}
-                            {msg.mediaUrls && parseJsonArray(msg.mediaUrls).length > 0 && (
-                              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/30">
-                                <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                                <span className="text-[10px] text-muted-foreground">
-                                  {parseJsonArray(msg.mediaUrls).length} attachment(s)
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Status & direction */}
-                            <div className="flex items-center gap-2 mt-2">
-                              {isOutbound && renderMessageStatus(msg)}
-                              {statusInfo && !isNote && (
-                                <Badge className={cn("text-[9px] px-1 py-0 h-3.5", statusInfo.bgColor, statusInfo.color, "border-0")}>
-                                  {statusInfo.label}
-                                </Badge>
-                              )}
-                              {msg.type === "email" && msg.openedAt && (
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Badge className="text-[9px] px-1 py-0 h-3.5 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 border-0">
-                                      Opened
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="text-xs">Opened {formatDistanceToNow(new Date(msg.openedAt), { addSuffix: true })}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                              {msg.failureReason && (
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Badge className="text-[9px] px-1 py-0 h-3.5 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-0">
-                                      {msg.failureReason}
-                                    </Badge>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="text-xs">{msg.failureReason}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      )
-                    })
-                )}
-              </div>
-            </ScrollArea>
-
-            {/* Compose Area */}
-            <div className="border-t p-4 bg-muted/10">
-              <div className="max-w-3xl mx-auto">
-                {/* Channel toggle */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
-                    {(["email", "whatsapp", "note"] as const).map((ch) => (
-                      <Button
-                        key={ch}
-                        size="sm"
-                        variant={replyChannel === ch ? "default" : "ghost"}
-                        className={cn(
-                          "h-7 text-xs px-3 gap-1.5",
-                          replyChannel === ch && ch === "email" && "bg-emerald-600 hover:bg-emerald-700 text-white",
-                          replyChannel === ch && ch === "whatsapp" && "bg-[#25D366] hover:bg-[#1eb954] text-white",
-                          replyChannel === ch && ch === "note" && "bg-amber-500 hover:bg-amber-600 text-white"
-                        )}
-                        onClick={() => setReplyChannel(ch)}
-                      >
-                        {ch === "email" ? <Mail className="w-3.5 h-3.5" /> : ch === "whatsapp" ? <MessageCircle className="w-3.5 h-3.5" /> : <StickyNote className="w-3.5 h-3.5" />}
-                        {ch.charAt(0).toUpperCase() + ch.slice(1)}
-                      </Button>
-                    ))}
-                  </div>
-                  <div className="ml-auto flex items-center gap-2">
-                    {/* Template selector */}
-                    <Select value={replyTemplateId} onValueChange={(val) => handleApplyTemplate(val, false)}>
-                      <SelectTrigger className="w-36 h-7 text-xs">
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        <SelectValue placeholder="Template" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {communicationTemplates
-                          .filter((t) => replyChannel === "note" || t.type === replyChannel)
-                          .map((t) => (
-                            <SelectItem key={t.id} value={t.id}>
-                              {t.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Reply input */}
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder={
-                      replyChannel === "note"
-                        ? "Add an internal note..."
-                        : replyChannel === "whatsapp"
-                        ? "Type a WhatsApp message..."
-                        : "Type your email reply..."
-                    }
-                    value={replyBody}
-                    onChange={(e) => setReplyBody(e.target.value)}
-                    className="min-h-[60px] max-h-32 text-sm resize-none"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                        handleSendReply()
-                      }
-                    }}
-                  />
-                  <div className="flex flex-col gap-1">
-                    <Button
-                      size="sm"
-                      className={cn(
-                        "h-10 w-10 p-0",
-                        replyChannel === "whatsapp" ? "bg-[#25D366] hover:bg-[#1eb954]" : replyChannel === "note" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-600 hover:bg-emerald-700"
-                      )}
-                      onClick={handleSendReply}
-                      disabled={sendingMessage || !replyBody.trim()}
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-8 w-10 p-0" title="Attach">
-                      <Paperclip className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                {replyChannel === "whatsapp" && replyBody && (
-                  <p className="text-[10px] text-muted-foreground mt-1 text-right">{replyBody.length} characters</p>
-                )}
-              </div>
-            </div>
-          </>
+          </div>
         )}
       </div>
     </div>
   )
+}
 
-  // ── TAB 2: Compose ───────────────────────────────────────────────────
-  const renderCompose = () => (
+// ─── Conversation Card ──────────────────────────────────────────────
+function ConversationCard({ conversation, isSelected, onClick }: {
+  conversation: Conversation; isSelected: boolean; onClick: () => void
+}) {
+  const lastMsg = conversation.messages?.[0]
+  const tags = parseJsonSafe(conversation.tags)
+  const hasStarred = conversation.messages?.some(m => m.isStarred)
+
+  return (
+    <motion.button
+      layout
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      onClick={onClick}
+      className={`w-full text-left p-3 hover:bg-muted/50 transition-colors ${isSelected ? "bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-l-emerald-500" : "border-l-4 border-l-transparent"}`}
+    >
+      <div className="flex items-start gap-2.5">
+        <div className="flex-shrink-0 mt-0.5">
+          {conversation.type === "email" ? (
+            <Mail className="h-4 w-4 text-emerald-500" />
+          ) : conversation.type === "whatsapp" ? (
+            <MessageCircle className="h-4 w-4 text-[#25D366]" />
+          ) : (
+            <div className="flex gap-0.5">
+              <Mail className="h-3.5 w-3.5 text-emerald-500" />
+              <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className={`h-2 w-2 rounded-full flex-shrink-0 ${getPriorityColor(conversation.priority)}`} />
+            <span className="text-sm font-medium truncate">
+              {conversation.subject || (conversation.type === "whatsapp" ? "(WhatsApp)" : "(No Subject)")}
+            </span>
+            {hasStarred && <Star className="h-3 w-3 text-amber-400 fill-amber-400 flex-shrink-0" />}
+          </div>
+          <p className="text-xs text-muted-foreground truncate">
+            {conversation.lastMessagePreview || lastMsg?.body?.substring(0, 80) || "No messages"}
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-muted-foreground/70">{lastMsg?.senderName || "Unknown"}</span>
+            {conversation.client && (
+              <Badge variant="outline" className="h-4 text-[10px] px-1 border-emerald-300 text-emerald-600">
+                {conversation.client.name}
+              </Badge>
+            )}
+            <span className="text-[10px] text-muted-foreground/50 ml-auto">
+              {conversation.lastMessageAt ? formatDistanceToNow(new Date(conversation.lastMessageAt), { addSuffix: true }) : ""}
+            </span>
+            {conversation.unreadCount > 0 && (
+              <Badge className="h-4 min-w-[18px] text-[10px] px-1 bg-red-500 text-white">{conversation.unreadCount}</Badge>
+            )}
+          </div>
+          {tags.length > 0 && (
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {tags.slice(0, 3).map(t => (
+                <Badge key={t} variant="secondary" className="h-4 text-[9px] px-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                  {t}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground/30 flex-shrink-0 mt-2" />
+      </div>
+    </motion.button>
+  )
+}
+
+// ─── Conversation Detail ────────────────────────────────────────────
+function ConversationDetail({ conversation, currentUser }: {
+  conversation: Conversation; currentUser: { id: string; name: string; email: string } | null
+}) {
+  const [messages, setMessages] = useState<CommunicationMessage[]>([])
+  const [loading, setLoading] = useState(false)
+  const [composeType, setComposeType] = useState<string>(conversation.type === "whatsapp" ? "whatsapp" : "email")
+  const [composeBody, setComposeBody] = useState("")
+  const [composeSubject, setComposeSubject] = useState("")
+  const [sending, setSending] = useState(false)
+  const [priority, setPriority] = useState(conversation.priority)
+  const [status, setStatus] = useState(conversation.status)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    loadMessages()
+  }, [conversation.id])
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages])
+
+  async function loadMessages() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/communications/conversations/${conversation.id}`)
+      const json = await res.json()
+      if (json.conversation?.messages) {
+        setMessages(json.conversation.messages)
+      }
+    } catch (e) {
+      console.error("Load messages error:", e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSend() {
+    if (!composeBody.trim()) return
+    setSending(true)
+    try {
+      const payload: Record<string, unknown> = {
+        body: composeBody,
+        type: composeType,
+        senderId: currentUser?.id || "user-admin",
+        senderName: currentUser?.name || "Sarah Chen",
+      }
+      if (composeType === "email") {
+        payload.recipientEmail = conversation.messages?.[0]?.recipientEmail || conversation.messages?.[0]?.senderEmail || ""
+        payload.subject = composeSubject || conversation.subject || ""
+        payload.recipientName = conversation.messages?.[0]?.recipientName || conversation.messages?.[0]?.senderName || ""
+      } else if (composeType === "whatsapp") {
+        payload.recipientPhone = conversation.messages?.find(m => m.recipientPhone)?.recipientPhone || conversation.messages?.find(m => m.senderPhone)?.senderPhone || ""
+        payload.recipientName = conversation.messages?.[0]?.recipientName || conversation.messages?.[0]?.senderName || ""
+      }
+
+      await fetch(`/api/communications/conversations/${conversation.id}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      setComposeBody("")
+      setComposeSubject("")
+      await loadMessages()
+      await refreshConversations()
+    } catch (e) {
+      console.error("Send message error:", e)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function handleUpdateConversation(field: string, value: string) {
+    try {
+      await fetch(`/api/communications/conversations/${conversation.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      })
+      if (field === "priority") setPriority(value)
+      if (field === "status") setStatus(value)
+      await refreshConversations()
+    } catch (e) {
+      console.error("Update conversation error:", e)
+    }
+  }
+
+  async function toggleStar(msgId: string, current: boolean) {
+    // Note: there's no dedicated star API, but we simulate by using the message structure
+    // For now just update locally — in production you'd call an API
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, isStarred: !current } : m))
+  }
+
+  const tags = parseJsonSafe(conversation.tags)
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-4 border-b bg-muted/20">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-lg font-semibold truncate">
+                {conversation.subject || (conversation.type === "whatsapp" ? "(WhatsApp)" : "(No Subject)")}
+              </h2>
+              <ChannelBadge type={conversation.type} />
+              <StatusBadge status={status} />
+            </div>
+            <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+              {conversation.client && (
+                <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{conversation.client.name}</span>
+              )}
+              {conversation.influencer && (
+                <span className="flex items-center gap-1"><User className="h-3 w-3" />{conversation.influencer.name}</span>
+              )}
+              {conversation.assignedTo && (
+                <span className="flex items-center gap-1"><Zap className="h-3 w-3" />{conversation.assignedTo.name}</span>
+              )}
+              {tags.length > 0 && tags.map(t => (
+                <Badge key={t} variant="secondary" className="h-4 text-[10px] px-1.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                  <Tag className="h-2.5 w-2.5 mr-0.5" />{t}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Select value={priority} onValueChange={v => handleUpdateConversation("priority", v)}>
+              <SelectTrigger className="w-[110px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="urgent"><span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-500" />Urgent</span></SelectItem>
+                <SelectItem value="high"><span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-orange-500" />High</span></SelectItem>
+                <SelectItem value="normal"><span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" />Normal</span></SelectItem>
+                <SelectItem value="low"><span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400" />Low</span></SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={status} onValueChange={v => handleUpdateConversation("status", v)}>
+              <SelectTrigger className="w-[110px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages Thread */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+        {loading ? (
+          <div className="flex items-center justify-center h-40">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex items-center justify-center h-40">
+            <p className="text-sm text-muted-foreground">No messages yet</p>
+          </div>
+        ) : (
+          <AnimatePresence>
+            {messages.map(msg => (
+              <MessageBubble key={msg.id} message={msg} onToggleStar={() => toggleStar(msg.id, msg.isStarred)} />
+            ))}
+          </AnimatePresence>
+        )}
+      </div>
+
+      {/* Compose Area */}
+      <div className="border-t p-3 bg-muted/10">
+        <div className="flex gap-1.5 mb-2">
+          {(conversation.type === "email" || conversation.type === "mixed") && (
+            <Button
+              variant={composeType === "email" ? "default" : "outline"}
+              size="sm"
+              className={`h-7 text-xs ${composeType === "email" ? "bg-emerald-500 hover:bg-emerald-600 text-white" : ""}`}
+              onClick={() => setComposeType("email")}
+            >
+              <Mail className="h-3 w-3 mr-1" />Email
+            </Button>
+          )}
+          {(conversation.type === "whatsapp" || conversation.type === "mixed") && (
+            <Button
+              variant={composeType === "whatsapp" ? "default" : "outline"}
+              size="sm"
+              className={`h-7 text-xs ${composeType === "whatsapp" ? "bg-[#25D366] hover:bg-[#20bd5a] text-white" : ""}`}
+              onClick={() => setComposeType("whatsapp")}
+            >
+              <MessageCircle className="h-3 w-3 mr-1" />WhatsApp
+            </Button>
+          )}
+          <Button
+            variant={composeType === "note" ? "default" : "outline"}
+            size="sm"
+            className={`h-7 text-xs ${composeType === "note" ? "bg-amber-500 hover:bg-amber-600 text-white" : ""}`}
+            onClick={() => setComposeType("note")}
+          >
+            <StickyNote className="h-3 w-3 mr-1" />Note
+          </Button>
+        </div>
+        {composeType === "email" && (
+          <Input
+            placeholder="Subject"
+            value={composeSubject}
+            onChange={e => setComposeSubject(e.target.value)}
+            className="h-8 text-sm mb-2"
+          />
+        )}
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Textarea
+              placeholder={composeType === "whatsapp" ? "Type a WhatsApp message..." : composeType === "note" ? "Add an internal note..." : "Type your email reply..."}
+              value={composeBody}
+              onChange={e => setComposeBody(e.target.value)}
+              className="min-h-[60px] text-sm resize-none pr-16"
+              rows={2}
+            />
+            {composeType === "whatsapp" && (
+              <span className={`absolute bottom-2 right-2 text-[10px] ${composeBody.length > 3800 ? "text-red-500" : "text-muted-foreground"}`}>
+                {composeBody.length}/4096
+              </span>
+            )}
+          </div>
+          <Button
+            onClick={handleSend}
+            disabled={!composeBody.trim() || sending}
+            className={`self-end h-10 ${composeType === "whatsapp" ? "bg-[#25D366] hover:bg-[#20bd5a]" : composeType === "note" ? "bg-amber-500 hover:bg-amber-600" : "bg-emerald-500 hover:bg-emerald-600"} text-white`}
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Message Bubble ─────────────────────────────────────────────────
+function MessageBubble({ message, onToggleStar }: {
+  message: CommunicationMessage; onToggleStar: () => void
+}) {
+  const isOutbound = message.direction === "outbound"
+  const isNote = message.type === "note"
+  const isWA = message.type === "whatsapp"
+
+  let bubbleClass = ""
+  if (isNote) {
+    bubbleClass = "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
+  } else if (isWA && isOutbound) {
+    bubbleClass = "bg-[#DCF8C6] dark:bg-emerald-950/40 border border-[#25D366]/20"
+  } else if (isWA && !isOutbound) {
+    bubbleClass = "bg-white dark:bg-muted/50 border border-[#25D366]/10"
+  } else if (isOutbound) {
+    bubbleClass = "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800"
+  } else {
+    bubbleClass = "bg-white dark:bg-muted/50 border"
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex ${isOutbound || isNote ? "justify-end" : "justify-start"}`}
+    >
+      <div className={`max-w-[80%] rounded-xl p-3 ${bubbleClass}`}>
+        <div className="flex items-center gap-1.5 mb-1">
+          {isWA ? (
+            <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" />
+          ) : isNote ? (
+            <StickyNote className="h-3.5 w-3.5 text-amber-500" />
+          ) : (
+            <Mail className="h-3.5 w-3.5 text-emerald-500" />
+          )}
+          <span className="text-xs font-medium">{message.senderName}</span>
+          <span className="text-[10px] text-muted-foreground">
+            {message.createdAt ? formatDistanceToNow(new Date(message.createdAt), { addSuffix: true }) : ""}
+          </span>
+          <button onClick={onToggleStar} className="ml-1 hover:scale-110 transition-transform">
+            {message.isStarred ? (
+              <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
+            ) : (
+              <Star className="h-3 w-3 text-muted-foreground/30 hover:text-amber-400" />
+            )}
+          </button>
+        </div>
+        {message.subject && (
+          <p className="text-xs font-medium text-muted-foreground mb-1">{message.subject}</p>
+        )}
+        <p className="text-sm whitespace-pre-wrap">{message.body}</p>
+        <div className="flex items-center gap-1.5 mt-1.5 justify-end">
+          {getStatusIcon(message.status)}
+          <span className="text-[10px] text-muted-foreground/60 capitalize">{message.status}</span>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Shared Badges ──────────────────────────────────────────────────
+function ChannelBadge({ type }: { type: string }) {
+  if (type === "email") return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 border-0 text-[10px] h-5"><Mail className="h-2.5 w-2.5 mr-0.5" />Email</Badge>
+  if (type === "whatsapp") return <Badge className="bg-[#25D366]/15 text-[#25D366] border-0 text-[10px] h-5"><MessageCircle className="h-2.5 w-2.5 mr-0.5" />WhatsApp</Badge>
+  return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 border-0 text-[10px] h-5"><Hash className="h-2.5 w-2.5 mr-0.5" />Mixed</Badge>
+}
+
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case "active": return <Badge className="bg-emerald-500/15 text-emerald-600 border-0 text-[10px] h-5">Active</Badge>
+    case "archived": return <Badge className="bg-slate-500/15 text-slate-600 border-0 text-[10px] h-5">Archived</Badge>
+    case "closed": return <Badge className="bg-red-500/15 text-red-600 border-0 text-[10px] h-5">Closed</Badge>
+    default: return <Badge variant="outline" className="text-[10px] h-5">{status}</Badge>
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TAB 2: COMPOSE
+// ═══════════════════════════════════════════════════════════════════════
+function ComposeTab({ templates, contacts, currentUser }: {
+  templates: CommunicationTemplate[]; contacts: CommunicationContact[]; currentUser: { id: string; name: string; email: string } | null
+}) {
+  const [channel, setChannel] = useState<"email" | "whatsapp">("email")
+  const [to, setTo] = useState("")
+  const [subject, setSubject] = useState("")
+  const [body, setBody] = useState("")
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("")
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({})
+  const [sending, setSending] = useState(false)
+  const [toSearch, setToSearch] = useState("")
+  const [showToDropdown, setShowToDropdown] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  const selectedTemplate = templates.find(t => t.id === selectedTemplateId)
+
+  const detectedVars = useMemo(() => {
+    if (!selectedTemplate) return []
+    const allText = (selectedTemplate.subject || "") + " " + selectedTemplate.body
+    return detectVariables(allText)
+  }, [selectedTemplate])
+
+  useEffect(() => {
+    if (selectedTemplate) {
+      const subbedSubject = substituteVariables(selectedTemplate.subject || "", variableValues)
+      const subbedBody = substituteVariables(selectedTemplate.body, variableValues)
+      setSubject(subbedSubject)
+      setBody(subbedBody)
+    }
+  }, [selectedTemplate, variableValues])
+
+  const filteredContacts = useMemo(() => {
+    if (!toSearch) return contacts.slice(0, 10)
+    const s = toSearch.toLowerCase()
+    return contacts.filter(c =>
+      c.name.toLowerCase().includes(s) ||
+      (c.email?.toLowerCase().includes(s)) ||
+      (c.phone?.toLowerCase().includes(s)) ||
+      (c.company?.toLowerCase().includes(s))
+    ).slice(0, 10)
+  }, [contacts, toSearch])
+
+  function selectContact(contact: CommunicationContact) {
+    if (channel === "email" && contact.email) {
+      setTo(contact.email)
+    } else if (channel === "whatsapp" && contact.whatsappNumber) {
+      setTo(contact.whatsappNumber)
+    } else if (channel === "whatsapp" && contact.phone) {
+      setTo(contact.phone)
+    } else if (contact.email) {
+      setTo(contact.email)
+    }
+    setShowToDropdown(false)
+    setToSearch("")
+  }
+
+  async function handleSend() {
+    if (!to.trim() || !body.trim()) return
+    if (channel === "email" && !subject.trim()) return
+    setSending(true)
+    try {
+      const endpoint = channel === "email" ? "/api/communications/email/send" : "/api/communications/whatsapp/send"
+      const payload: Record<string, unknown> = {
+        to: to.trim(),
+        body,
+        senderId: currentUser?.id || "user-admin",
+        senderName: currentUser?.name || "Sarah Chen",
+        templateId: selectedTemplateId || undefined,
+      }
+      if (channel === "email") {
+        payload.subject = subject
+        payload.senderEmail = currentUser?.email || "sarah@vortexdigital.com"
+      }
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        setSent(true)
+        setTimeout(() => setSent(false), 3000)
+        setTo("")
+        setSubject("")
+        setBody("")
+        setSelectedTemplateId("")
+        setVariableValues({})
+        await refreshConversations()
+      }
+    } catch (e) {
+      console.error("Compose send error:", e)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
     <div className="max-w-3xl mx-auto">
-      <Card className="shadow-sm">
+      <Card className="border-0 shadow-sm">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <PenSquare className="w-5 h-5 text-emerald-600" />
-            New Message
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <PenSquare className="h-5 w-5 text-emerald-500" />
+            Compose Message
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Channel selector */}
-          <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium w-16">Channel</Label>
-            <div className="flex items-center gap-1 bg-muted rounded-md p-1">
-              <Button
-                variant={composeChannel === "email" ? "default" : "ghost"}
-                className={cn("h-9 gap-2", composeChannel === "email" && "bg-emerald-600 hover:bg-emerald-700 text-white")}
-                onClick={() => setComposeChannel("email")}
-              >
-                <Mail className="w-4 h-4" />
-                Email
-              </Button>
-              <Button
-                variant={composeChannel === "whatsapp" ? "default" : "ghost"}
-                className={cn("h-9 gap-2", composeChannel === "whatsapp" && "bg-[#25D366] hover:bg-[#1eb954] text-white")}
-                onClick={() => setComposeChannel("whatsapp")}
-              >
-                <MessageCircle className="w-4 h-4" />
-                WhatsApp
-              </Button>
-            </div>
+          {/* Channel Selector */}
+          <div className="flex gap-2">
+            <Button
+              variant={channel === "email" ? "default" : "outline"}
+              className={channel === "email" ? "bg-emerald-500 hover:bg-emerald-600 text-white" : ""}
+              onClick={() => setChannel("email")}
+            >
+              <Mail className="h-4 w-4 mr-2" />Email
+            </Button>
+            <Button
+              variant={channel === "whatsapp" ? "default" : "outline"}
+              className={channel === "whatsapp" ? "bg-[#25D366] hover:bg-[#20bd5a] text-white" : ""}
+              onClick={() => setChannel("whatsapp")}
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />WhatsApp
+            </Button>
           </div>
 
           {/* From */}
           <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium w-16">From</Label>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Avatar className="w-6 h-6">
-                <AvatarFallback className="text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                  {currentUser ? getInitials(currentUser.name) : "U"}
-                </AvatarFallback>
-              </Avatar>
-              {currentUser?.name || "Current User"} ({currentUser?.email || ""})
-            </div>
+            <Label className="text-sm w-12 text-right">From</Label>
+            <Input value={currentUser?.name || "Sarah Chen"} disabled className="h-9 text-sm bg-muted/30" />
           </div>
 
-          {/* To - with autocomplete */}
-          <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium w-16">To</Label>
-            <div className="flex-1 relative">
+          {/* To */}
+          <div className="flex items-start gap-2 relative">
+            <Label className="text-sm w-12 text-right mt-2">To</Label>
+            <div className="flex-1">
               <Input
-                placeholder={composeChannel === "email" ? "Search name or email..." : "Search name or phone..."}
-                value={composeTo || recipientSearch}
-                onChange={(e) => {
-                  setRecipientSearch(e.target.value)
-                  setComposeTo(e.target.value)
-                  setShowRecipientDropdown(true)
-                }}
-                onFocus={() => setShowRecipientDropdown(true)}
+                placeholder={channel === "email" ? "Email address" : "Phone / WhatsApp number"}
+                value={to}
+                onChange={e => { setTo(e.target.value); setToSearch(e.target.value); setShowToDropdown(true) }}
+                onFocus={() => setShowToDropdown(true)}
                 className="h-9 text-sm"
               />
-              {showRecipientDropdown && recipientSearch.length > 0 && filteredRecipients.length > 0 && (
-                <div className="absolute z-50 top-10 left-0 w-full bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {filteredRecipients.map((r) => (
+              {showToDropdown && filteredContacts.length > 0 && (
+                <div className="absolute z-50 mt-1 w-[calc(100%-56px)] right-0 bg-card border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {filteredContacts.map(c => (
                     <button
-                      key={`${r.type}-${r.id}`}
-                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center justify-between"
-                      onClick={() => handleSelectRecipient(r)}
+                      key={c.id}
+                      className="w-full text-left px-3 py-2 hover:bg-muted/50 flex items-center gap-2 text-sm"
+                      onClick={() => selectContact(c)}
                     >
-                      <div className="flex items-center gap-2">
-                        <Avatar className="w-6 h-6">
-                          <AvatarFallback className="text-[8px]">{getInitials(r.name)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{r.name}</div>
-                          {r.email && <div className="text-[10px] text-muted-foreground">{r.email}</div>}
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 capitalize">
-                        {r.type}
-                      </Badge>
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-[10px] bg-gradient-to-br from-emerald-400 to-teal-500 text-white">
+                          {getInitials(c.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>{c.name}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {channel === "email" ? c.email : c.whatsappNumber || c.phone}
+                      </span>
                     </button>
                   ))}
                 </div>
               )}
-              {showRecipientDropdown && (
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowRecipientDropdown(false)}
-                />
+              {showToDropdown && (
+                <div className="fixed inset-0 z-40" onClick={() => setShowToDropdown(false)} />
               )}
             </div>
           </div>
 
           {/* Subject (email only) */}
-          {composeChannel === "email" && (
+          {channel === "email" && (
             <div className="flex items-center gap-2">
-              <Label className="text-sm font-medium w-16">Subject</Label>
+              <Label className="text-sm w-12 text-right">Subject</Label>
               <Input
-                placeholder="Email subject..."
-                value={composeSubject}
-                onChange={(e) => setComposeSubject(e.target.value)}
+                placeholder="Email subject"
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
                 className="h-9 text-sm"
               />
             </div>
           )}
 
-          {/* Template selector */}
-          <div className="flex items-center gap-2">
-            <Label className="text-sm font-medium w-16">Template</Label>
-            <Select value={composeTemplateId} onValueChange={(val) => handleApplyTemplate(val, true)}>
-              <SelectTrigger className="h-9 text-sm flex-1">
-                <Sparkles className="w-3.5 h-3.5 mr-1" />
-                <SelectValue placeholder="Select a template..." />
-              </SelectTrigger>
-              <SelectContent>
-                {communicationTemplates
-                  .filter((t) => t.type === composeChannel)
-                  .map((t) => (
+          {/* Template Selector */}
+          <div className="flex items-start gap-2">
+            <Label className="text-sm w-12 text-right mt-2">Template</Label>
+            <div className="flex-1">
+              <Select value={selectedTemplateId} onValueChange={v => { setSelectedTemplateId(v); setVariableValues({}) }}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Select a template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No template</SelectItem>
+                  {templates.filter(t => t.type === channel || t.type === "both").map(t => (
                     <SelectItem key={t.id} value={t.id}>
-                      {t.name} {t.subject && `- ${t.subject}`}
+                      {t.name} {t.category && `(${t.category})`}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {/* Variable Inputs */}
+          {detectedVars.length > 0 && (
+            <div className="ml-14 space-y-2">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Sparkles className="h-3 w-3 text-emerald-500" />Template Variables
+              </p>
+              {detectedVars.map(v => (
+                <div key={v} className="flex items-center gap-2">
+                  <Label className="text-xs min-w-[100px] text-emerald-600">{`{{${v}}}`}</Label>
+                  <Input
+                    placeholder={`Enter ${v}...`}
+                    value={variableValues[v] || ""}
+                    onChange={e => setVariableValues(prev => ({ ...prev, [v]: e.target.value }))}
+                    className="h-8 text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Body */}
-          <div>
-            <Label className="text-sm font-medium mb-2 block">Message</Label>
-            <Textarea
-              placeholder={composeChannel === "email" ? "Write your email..." : "Type your WhatsApp message..."}
-              value={composeBody}
-              onChange={(e) => setComposeBody(e.target.value)}
-              className="min-h-[200px] text-sm resize-none"
-            />
-            <div className="flex items-center justify-between mt-1.5">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
-                  <Paperclip className="w-3.5 h-3.5" />
-                  Attach
-                </Button>
-                {composeChannel === "email" && (
-                  <>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs font-bold" onClick={() => setComposeBody(composeBody + "<b></b>")}>B</Button>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs italic" onClick={() => setComposeBody(composeBody + "<i></i>")}>I</Button>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => setComposeBody(composeBody + "{{name}}")}>
-                      <Sparkles className="w-3 h-3" /> Variable
-                    </Button>
-                  </>
-                )}
-              </div>
-              {composeChannel === "whatsapp" && composeBody && (
-                <span className="text-[10px] text-muted-foreground">{composeBody.length} characters</span>
+          <div className="flex items-start gap-2">
+            <Label className="text-sm w-12 text-right mt-2">Body</Label>
+            <div className="flex-1 relative">
+              <Textarea
+                placeholder={channel === "email" ? "Write your email..." : "Type your WhatsApp message..."}
+                value={body}
+                onChange={e => setBody(e.target.value)}
+                className="min-h-[200px] text-sm resize-none"
+              />
+              {channel === "whatsapp" && (
+                <span className={`absolute bottom-2 right-2 text-[10px] ${body.length > 3800 ? "text-red-500" : "text-muted-foreground"}`}>
+                  {body.length}/4096
+                </span>
               )}
             </div>
-            {/* Detected variables */}
-            {composeBody && extractVariables(composeBody).length > 0 && (
-              <div className="flex items-center gap-2 mt-2">
-                <Sparkles className="w-3 h-3 text-emerald-500" />
-                <span className="text-[10px] text-muted-foreground">Variables:</span>
-                {extractVariables(composeBody).map((v) => (
-                  <Badge key={v} variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-emerald-600 border-emerald-200 dark:border-emerald-800">
-                    {`{{${v}}}`}
-                  </Badge>
-                ))}
-              </div>
-            )}
           </div>
 
-          {/* Send button */}
-          <div className="flex items-center gap-3 pt-2">
+          {/* WhatsApp Preview */}
+          {channel === "whatsapp" && body && (
+            <div className="ml-14">
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">
+                <Eye className="h-3 w-3" />WhatsApp Preview
+              </p>
+              <div className="bg-[#ECE5DD] dark:bg-[#1a1a2e] p-3 rounded-lg max-w-xs">
+                <div className="bg-[#DCF8C6] dark:bg-emerald-900/40 p-2.5 rounded-lg text-sm whitespace-pre-wrap">
+                  {body}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1 text-right">
+                  {format(new Date(), "h:mm a")}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Send Button */}
+          <div className="flex items-center justify-between pt-2">
+            {sent && (
+              <motion.p initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-sm text-emerald-500 flex items-center gap-1">
+                <CheckCheck className="h-4 w-4" />Message sent successfully!
+              </motion.p>
+            )}
             <Button
-              className={cn(
-                "gap-2",
-                composeChannel === "whatsapp" ? "bg-[#25D366] hover:bg-[#1eb954]" : "bg-emerald-600 hover:bg-emerald-700"
-              )}
-              onClick={handleSendCompose}
-              disabled={sendingMessage || !composeBody.trim()}
+              onClick={handleSend}
+              disabled={!to.trim() || !body.trim() || (channel === "email" && !subject.trim()) || sending}
+              className={`ml-auto ${channel === "whatsapp" ? "bg-[#25D366] hover:bg-[#20bd5a]" : "bg-emerald-500 hover:bg-emerald-600"} text-white`}
             >
-              {sendingMessage ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Send {composeChannel === "email" ? "Email" : "WhatsApp"}
-            </Button>
-            <Button variant="outline" onClick={() => { setComposeBody(""); setComposeSubject(""); setComposeTo(""); setComposeToEmail(""); setComposeToPhone(""); setComposeTemplateId(""); }}>
-              Clear
+              {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              Send {channel === "email" ? "Email" : "WhatsApp"}
             </Button>
           </div>
         </CardContent>
       </Card>
     </div>
   )
+}
 
-  // ── TAB 3: Templates ─────────────────────────────────────────────────
-  const renderTemplates = () => (
+// ═══════════════════════════════════════════════════════════════════════
+// TAB 3: TEMPLATES
+// ═══════════════════════════════════════════════════════════════════════
+function TemplatesTab({ templates }: { templates: CommunicationTemplate[] }) {
+  const [typeFilter, setTypeFilter] = useState("all")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [createOpen, setCreateOpen] = useState(false)
+  const [previewTemplate, setPreviewTemplate] = useState<CommunicationTemplate | null>(null)
+
+  const categories = useMemo(() => {
+    const cats = new Set<string>()
+    templates.forEach(t => { if (t.category) cats.add(t.category) })
+    return Array.from(cats)
+  }, [templates])
+
+  const filtered = useMemo(() => {
+    return templates.filter(t => {
+      if (typeFilter !== "all" && t.type !== typeFilter) return false
+      if (categoryFilter !== "all" && t.category !== categoryFilter) return false
+      return true
+    })
+  }, [templates, typeFilter, categoryFilter])
+
+  return (
     <div className="space-y-4">
-      {/* Header with filters */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 bg-muted rounded-md p-0.5">
-            {(["all", "email", "whatsapp"] as const).map((t) => (
-              <Button
-                key={t}
-                size="sm"
-                variant={templateTypeFilter === t ? "default" : "ghost"}
-                className={cn(
-                  "h-7 text-xs px-3",
-                  templateTypeFilter === t && "bg-emerald-600 hover:bg-emerald-700 text-white"
-                )}
-                onClick={() => setTemplateTypeFilter(t)}
-              >
-                {t === "all" ? "All" : t === "email" ? <><Mail className="w-3.5 h-3.5 mr-1" /> Email</> : <><MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp</>}
+      {/* Filters */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex gap-1">
+            {(["all", "email", "whatsapp"] as const).map(t => (
+              <Button key={t} variant={typeFilter === t ? "default" : "ghost"} size="sm"
+                className={`h-7 text-xs ${typeFilter === t ? "bg-emerald-500 hover:bg-emerald-600 text-white" : ""}`}
+                onClick={() => setTypeFilter(t)}>
+                {t === "all" ? "All" : t === "email" ? <><Mail className="h-3 w-3 mr-1" />Email</> : <><MessageCircle className="h-3 w-3 mr-1" />WhatsApp</>}
               </Button>
             ))}
           </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="w-[150px] h-7 text-xs">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
-        <Dialog onOpenChange={(open) => { if (!open) { setEditingTemplate(null); setTemplateName(""); setTemplateType("email"); setTemplateCategory(""); setTemplateSubject(""); setTemplateBody(""); } }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-              <Plus className="w-4 h-4" />
-              New Template
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{editingTemplate ? "Edit Template" : "Create Template"}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">Name</Label>
-                  <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Template name" className="mt-1 h-9 text-sm" />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Type</Label>
-                  <Select value={templateType} onValueChange={setTemplateType}>
-                    <SelectTrigger className="mt-1 h-9 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">Category</Label>
-                  <Input value={templateCategory} onChange={(e) => setTemplateCategory(e.target.value)} placeholder="e.g. outreach, follow-up" className="mt-1 h-9 text-sm" />
-                </div>
-                {templateType === "email" && (
-                  <div>
-                    <Label className="text-sm font-medium">Subject</Label>
-                    <Input value={templateSubject} onChange={(e) => setTemplateSubject(e.target.value)} placeholder="Email subject" className="mt-1 h-9 text-sm" />
-                  </div>
-                )}
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Body</Label>
-                <Textarea
-                  value={templateBody}
-                  onChange={(e) => setTemplateBody(e.target.value)}
-                  placeholder="Write template body... Use {{name}}, {{company}}, {{date}} for variables"
-                  className="mt-1 min-h-[150px] text-sm resize-none"
-                />
-              </div>
-              {templateBody && extractVariables(templateBody).length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="text-xs text-muted-foreground">Detected variables:</span>
-                  {extractVariables(templateBody).map((v) => (
-                    <Badge key={v} variant="outline" className="text-xs px-2 py-0.5 text-emerald-600 border-emerald-200 dark:border-emerald-800">
-                      {`{{${v}}}`}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-              {/* Preview */}
-              {templateBody && (
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">Preview</Label>
-                  <div className="rounded-md border p-3 bg-muted/30 text-sm">
-                    {templateBody
-                      .replace(/\{\{name\}\}/g, "John Doe")
-                      .replace(/\{\{company\}\}/g, "Acme Inc")
-                      .replace(/\{\{date\}\}/g, format(new Date(), "MMMM d, yyyy"))
-                      .replace(/\{\{email\}\}/g, "john@example.com")}
-                  </div>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleSaveTemplate} className="bg-emerald-600 hover:bg-emerald-700" disabled={!templateName.trim() || !templateBody.trim()}>
-                Save Template
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Template Grid */}
-      {filteredTemplates.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <FileText className="w-12 h-12 mb-3 opacity-30" />
-          <p className="text-sm font-medium">No templates yet</p>
-          <p className="text-xs mt-1">Create your first template to get started</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTemplates.map((template) => {
-            const vars = extractVariables(template.body)
-            return (
-              <motion.div key={template.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer group" onClick={() => { setEditingTemplate(template); setTemplateName(template.name); setTemplateType(template.type); setTemplateCategory(template.category || ""); setTemplateSubject(template.subject || ""); setTemplateBody(template.body); }}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-semibold">{template.name}</CardTitle>
-                      <Badge className={cn("text-[10px] px-1.5 py-0 h-4 border-0", template.type === "whatsapp" ? "bg-[#25D366]/20 text-[#25D366]" : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300")}>
-                        {template.type === "whatsapp" ? <MessageCircle className="w-2.5 h-2.5 mr-0.5" /> : <Mail className="w-2.5 h-2.5 mr-0.5" />}
-                        {template.type}
-                      </Badge>
-                    </div>
-                    {template.category && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 w-fit">
-                        {template.category}
-                      </Badge>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    {template.subject && (
-                      <p className="text-xs font-medium text-muted-foreground mb-1.5">{template.subject}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground line-clamp-3">{template.body}</p>
-                    {vars.length > 0 && (
-                      <div className="flex items-center gap-1 mt-2 flex-wrap">
-                        {vars.map((v) => (
-                          <Badge key={v} variant="outline" className="text-[9px] px-1 py-0 h-3.5 text-emerald-600 border-emerald-200 dark:border-emerald-800">
-                            {`{{${v}}}`}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-
-  // ── TAB 4: Contacts ──────────────────────────────────────────────────
-  const renderContacts = () => (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contacts..."
-              value={contactSearch}
-              onChange={(e) => setContactSearch(e.target.value)}
-              className="pl-9 h-9 w-64 text-sm"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Label className="text-xs text-muted-foreground">Favorites</Label>
-            <Switch checked={showFavoritesOnly} onCheckedChange={setShowFavoritesOnly} />
-          </div>
-        </div>
-        <Dialog onOpenChange={(open) => { if (!open) { setEditingContact(null); setContactName(""); setContactEmail(""); setContactPhone(""); setContactWhatsapp(""); setContactCompany(""); setContactRole(""); setContactPreferredChannel("email"); setContactNotes(""); } }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-              <Plus className="w-4 h-4" />
-              Add Contact
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{editingContact ? "Edit Contact" : "Add Contact"}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">Name</Label>
-                  <Input value={contactName} onChange={(e) => setContactName(e.target.value)} placeholder="Full name" className="mt-1 h-9 text-sm" />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Email</Label>
-                  <Input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="email@example.com" className="mt-1 h-9 text-sm" type="email" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">Phone</Label>
-                  <Input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="+1-555-0100" className="mt-1 h-9 text-sm" />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">WhatsApp Number</Label>
-                  <Input value={contactWhatsapp} onChange={(e) => setContactWhatsapp(e.target.value)} placeholder="+1-555-0100" className="mt-1 h-9 text-sm" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">Company</Label>
-                  <Input value={contactCompany} onChange={(e) => setContactCompany(e.target.value)} placeholder="Company name" className="mt-1 h-9 text-sm" />
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Role</Label>
-                  <Select value={contactRole} onValueChange={setContactRole}>
-                    <SelectTrigger className="mt-1 h-9 text-sm">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="client">Client</SelectItem>
-                      <SelectItem value="influencer">Influencer</SelectItem>
-                      <SelectItem value="partner">Partner</SelectItem>
-                      <SelectItem value="vendor">Vendor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Preferred Channel</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Button
-                    size="sm"
-                    variant={contactPreferredChannel === "email" ? "default" : "outline"}
-                    className={cn("gap-1.5", contactPreferredChannel === "email" && "bg-emerald-600 hover:bg-emerald-700")}
-                    onClick={() => setContactPreferredChannel("email")}
-                  >
-                    <Mail className="w-3.5 h-3.5" /> Email
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={contactPreferredChannel === "whatsapp" ? "default" : "outline"}
-                    className={cn("gap-1.5", contactPreferredChannel === "whatsapp" && "bg-[#25D366] hover:bg-[#1eb954]")}
-                    onClick={() => setContactPreferredChannel("whatsapp")}
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Notes</Label>
-                <Textarea value={contactNotes} onChange={(e) => setContactNotes(e.target.value)} placeholder="Additional notes..." className="mt-1 h-20 text-sm resize-none" />
-              </div>
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleSaveContact} className="bg-emerald-600 hover:bg-emerald-700" disabled={!contactName.trim()}>
-                Save Contact
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Favorite contacts */}
-      {showFavoritesOnly && filteredContacts.length > 0 && (
-        <div>
-          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2 mb-3">
-            <Heart className="w-4 h-4 text-red-500" /> Favorite Contacts
-          </h3>
-        </div>
-      )}
-
-      {/* Contacts Grid */}
-      {filteredContacts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <Users className="w-12 h-12 mb-3 opacity-30" />
-          <p className="text-sm font-medium">No contacts found</p>
-          <p className="text-xs mt-1">Add contacts to your communication directory</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredContacts.map((contact) => (
-            <motion.div key={contact.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 text-sm">
-                        {getInitials(contact.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-semibold truncate">{contact.name}</h4>
-                        {contact.isFavorite && <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 flex-shrink-0" />}
-                      </div>
-                      {contact.company && <p className="text-xs text-muted-foreground">{contact.company}</p>}
-                      {contact.role && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 mt-1 capitalize">
-                          {contact.role}
-                        </Badge>
-                      )}
-                    </div>
-                    {/* Preferred channel */}
-                    <div className="flex-shrink-0">
-                      {contact.preferredChannel === "whatsapp" ? (
-                        <div className="flex items-center justify-center rounded-full w-7 h-7" style={{ backgroundColor: WA_GREEN + "20" }}>
-                          <MessageCircle className="w-4 h-4" style={{ color: WA_GREEN }} />
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center rounded-full w-7 h-7 bg-emerald-100 dark:bg-emerald-900/40">
-                          <Mail className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 space-y-1.5">
-                    {contact.email && (
-                      <a href={`mailto:${contact.email}`} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-emerald-600 transition-colors">
-                        <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate">{contact.email}</span>
-                      </a>
-                    )}
-                    {contact.phone && (
-                      <a href={`tel:${contact.phone}`} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-emerald-600 transition-colors">
-                        <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>{contact.phone}</span>
-                      </a>
-                    )}
-                    {contact.whatsappNumber && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <MessageCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: WA_GREEN }} />
-                        <span>{contact.whatsappNumber}</span>
-                      </div>
-                    )}
-                    {contact.lastContactedAt && (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>Last contacted {formatDistanceToNow(new Date(contact.lastContactedAt), { addSuffix: true })}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Quick actions */}
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                    {contact.email && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
-                        onClick={() => {
-                          setActiveTab("compose")
-                          setComposeChannel("email")
-                          setComposeTo(contact.name)
-                          setComposeToEmail(contact.email || "")
-                          setComposeToPhone(contact.whatsappNumber || contact.phone || "")
-                        }}
-                      >
-                        <Mail className="w-3 h-3" /> Email
-                      </Button>
-                    )}
-                    {contact.whatsappNumber && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs gap-1 hover:bg-[#25D366]/10"
-                        style={{ color: WA_GREEN }}
-                        onClick={() => {
-                          setActiveTab("compose")
-                          setComposeChannel("whatsapp")
-                          setComposeTo(contact.name)
-                          setComposeToEmail(contact.email || "")
-                          setComposeToPhone(contact.whatsappNumber)
-                        }}
-                      >
-                        <MessageCircle className="w-3 h-3" /> WhatsApp
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs gap-1 ml-auto"
-                      onClick={() => handleToggleFavorite(contact.id, contact.isFavorite)}
-                    >
-                      {contact.isFavorite ? <StarOff className="w-3 h-3" /> : <Star className="w-3 h-3" />}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-
-  // ── TAB 5: Analytics ─────────────────────────────────────────────────
-  const renderAnalytics = () => {
-    const maxDailyVolume = Math.max(...analytics.dailyVolumes.map((d) => d.email + d.whatsapp), 1)
-    return (
-      <div className="space-y-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "Total Sent", value: analytics.totalSent, icon: Send, color: "text-emerald-600", bgColor: "bg-emerald-100 dark:bg-emerald-900/40" },
-            { label: "Open Rate", value: `${analytics.openRate}%`, icon: MailOpen, color: "text-teal-600", bgColor: "bg-teal-100 dark:bg-teal-900/40" },
-            { label: "Reply Rate", value: `${analytics.replyRate}%`, icon: Reply, color: "text-cyan-600", bgColor: "bg-cyan-100 dark:bg-cyan-900/40" },
-            { label: "Avg Response", value: `${analytics.avgResponseMin}m`, icon: Clock, color: "text-amber-600", bgColor: "bg-amber-100 dark:bg-amber-900/40" },
-          ].map((kpi) => (
-            <motion.div key={kpi.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={cn("flex items-center justify-center rounded-lg w-10 h-10", kpi.bgColor)}>
-                      <kpi.icon className={cn("w-5 h-5", kpi.color)} />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">{kpi.value}</p>
-                      <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Channel Breakdown */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-emerald-600" />
-                Channel Breakdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center rounded-full w-8 h-8 bg-emerald-100 dark:bg-emerald-900/40">
-                      <Mail className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <span className="text-sm font-medium">Email</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 h-3 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-500 rounded-full"
-                        style={{ width: `${analytics.emailCount + analytics.whatsappCount > 0 ? (analytics.emailCount / (analytics.emailCount + analytics.whatsappCount)) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-semibold w-10 text-right">{analytics.emailCount}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center justify-center rounded-full w-8 h-8" style={{ backgroundColor: WA_GREEN + "20" }}>
-                      <MessageCircle className="w-4 h-4" style={{ color: WA_GREEN }} />
-                    </div>
-                    <span className="text-sm font-medium">WhatsApp</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 h-3 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${analytics.emailCount + analytics.whatsappCount > 0 ? (analytics.whatsappCount / (analytics.emailCount + analytics.whatsappCount)) * 100 : 0}%`, backgroundColor: WA_GREEN }}
-                      />
-                    </div>
-                    <span className="text-sm font-semibold w-10 text-right">{analytics.whatsappCount}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Daily Volume Chart */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-emerald-600" />
-                Daily Volume (7 days)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-2 h-40">
-                {analytics.dailyVolumes.map((day) => {
-                  const emailH = maxDailyVolume > 0 ? (day.email / maxDailyVolume) * 100 : 0
-                  const waH = maxDailyVolume > 0 ? (day.whatsapp / maxDailyVolume) * 100 : 0
-                  return (
-                    <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="flex items-end gap-0.5 w-full h-28">
-                        <div className="flex-1 bg-emerald-400 rounded-t transition-all" style={{ height: `${Math.max(emailH, 4)}%` }} title={`${day.email} emails`} />
-                        <div className="flex-1 rounded-t transition-all" style={{ height: `${Math.max(waH, 4)}%`, backgroundColor: WA_GREEN }} title={`${day.whatsapp} WA`} />
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">{day.date}</span>
-                    </div>
-                  )
-                })}
-              </div>
-              <div className="flex items-center gap-4 mt-3">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded bg-emerald-400" />
-                  <span className="text-[10px] text-muted-foreground">Email</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded" style={{ backgroundColor: WA_GREEN }} />
-                  <span className="text-[10px] text-muted-foreground">WhatsApp</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Top Contacts & Template Usage */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Users className="w-4 h-4 text-emerald-600" />
-                Top Contacts by Messages
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {analytics.topContacts.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center">No message data yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {analytics.topContacts.map((contact, i) => {
-                    const maxCount = analytics.topContacts[0]?.count || 1
-                    return (
-                      <div key={i} className="flex items-center gap-3">
-                        <Avatar className="w-7 h-7">
-                          <AvatarFallback className="text-[9px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
-                            {getInitials(contact.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium truncate">{contact.name}</span>
-                            <span className="text-xs font-semibold text-muted-foreground">{contact.count}</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(contact.count / maxCount) * 100}%` }} />
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <FileText className="w-4 h-4 text-emerald-600" />
-                Template Usage
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {analytics.topTemplates.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-4 text-center">No template usage data yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {analytics.topTemplates.map((tmpl, i) => {
-                    const maxCount = analytics.topTemplates[0]?.count || 1
-                    return (
-                      <div key={i} className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-7 h-7 rounded bg-emerald-100 dark:bg-emerald-900/40">
-                          <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium truncate">{tmpl.name}</span>
-                            <span className="text-xs font-semibold text-muted-foreground">{tmpl.count} uses</span>
-                          </div>
-                          <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(tmpl.count / maxCount) * 100}%` }} />
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Main Render ───────────────────────────────────────────────────────
-  return (
-    <div className="p-4 md:p-6 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <div className="flex items-center justify-center rounded-lg w-8 h-8 bg-emerald-100 dark:bg-emerald-900/40">
-              <Inbox className="w-5 h-5 text-emerald-600" />
-            </div>
-            Communication Center
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage conversations across email and WhatsApp
-            {totalUnread > 0 && (
-              <span className="ml-2 text-emerald-600 font-medium">{totalUnread} unread</span>
-            )}
-          </p>
-        </div>
-        <Button
-          className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-          onClick={() => setActiveTab("compose")}
-        >
-          <PenSquare className="w-4 h-4" />
-          Compose
+        <Button onClick={() => setCreateOpen(true)} size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white">
+          <Plus className="h-4 w-4 mr-1" />Create Template
         </Button>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-muted">
-          <TabsTrigger value="inbox" className="gap-1.5">
-            <Inbox className="w-4 h-4" />
-            Inbox
-            {totalUnread > 0 && (
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
-                {totalUnread}
-              </span>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="compose" className="gap-1.5">
-            <PenSquare className="w-4 h-4" />
-            Compose
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="gap-1.5">
-            <FileText className="w-4 h-4" />
-            Templates
-          </TabsTrigger>
-          <TabsTrigger value="contacts" className="gap-1.5">
-            <Users className="w-4 h-4" />
-            Contacts
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="gap-1.5">
-            <BarChart3 className="w-4 h-4" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
+      {/* Grid */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-16">
+          <FileText className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">No templates found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(tpl => (
+            <TemplateCard key={tpl.id} template={tpl} onPreview={() => setPreviewTemplate(tpl)} />
+          ))}
+        </div>
+      )}
 
-        <TabsContent value="inbox" className="mt-4">
-          {renderInbox()}
-        </TabsContent>
-        <TabsContent value="compose" className="mt-4">
-          {renderCompose()}
-        </TabsContent>
-        <TabsContent value="templates" className="mt-4">
-          {renderTemplates()}
-        </TabsContent>
-        <TabsContent value="contacts" className="mt-4">
-          {renderContacts()}
-        </TabsContent>
-        <TabsContent value="analytics" className="mt-4">
-          {renderAnalytics()}
-        </TabsContent>
-      </Tabs>
+      {/* Create Template Dialog */}
+      <CreateTemplateDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      {/* Preview Dialog */}
+      <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-emerald-500" />
+              Template Preview
+            </DialogTitle>
+          </DialogHeader>
+          {previewTemplate && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-semibold">{previewTemplate.name}</h3>
+                <ChannelBadge type={previewTemplate.type} />
+                {previewTemplate.category && (
+                  <Badge variant="outline" className="text-xs">{previewTemplate.category}</Badge>
+                )}
+                {previewTemplate.isDefault && <Badge className="bg-emerald-100 text-emerald-700 text-xs border-0">Default</Badge>}
+              </div>
+              {previewTemplate.subject && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Subject</Label>
+                  <VariableHighlight text={previewTemplate.subject} />
+                </div>
+              )}
+              <div>
+                <Label className="text-xs text-muted-foreground">Body</Label>
+                <VariableHighlight text={previewTemplate.body} />
+              </div>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <span>Active: {previewTemplate.isActive ? "✓" : "✗"}</span>
+                <span>Created: {formatDistanceToNow(new Date(previewTemplate.createdAt), { addSuffix: true })}</span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+  )
+}
+
+// ─── Template Card ──────────────────────────────────────────────────
+function TemplateCard({ template, onPreview }: { template: CommunicationTemplate; onPreview: () => void }) {
+  const variables = detectVariables((template.subject || "") + " " + template.body)
+  const usageCount = (template as Record<string, unknown>)._count
+    ? ((template as Record<string, unknown>)._count as Record<string, number>)?.messages || 0
+    : 0
+
+  return (
+    <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+      <Card className="hover:shadow-md transition-shadow cursor-pointer h-full" onClick={onPreview}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between mb-2">
+            <h4 className="font-medium text-sm">{template.name}</h4>
+            <div className="flex items-center gap-1">
+              {template.isDefault && <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />}
+              {template.isActive ? (
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              ) : (
+                <span className="h-2 w-2 rounded-full bg-slate-300" />
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <ChannelBadge type={template.type} />
+            {template.category && (
+              <Badge variant="outline" className="text-[10px] h-5">{template.category}</Badge>
+            )}
+          </div>
+          {template.subject && (
+            <p className="text-xs text-muted-foreground mb-1 truncate">
+              <span className="font-medium">Subj:</span> {template.subject}
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground/70 line-clamp-3 mb-2">{template.body.substring(0, 150)}</p>
+          {variables.length > 0 && (
+            <div className="flex gap-1 flex-wrap mb-2">
+              {variables.map(v => (
+                <Badge key={v} className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 border-0 text-[10px] h-4 px-1.5">
+                  {`{{${v}}}`}
+                </Badge>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>{usageCount} uses</span>
+            <span>{formatDistanceToNow(new Date(template.createdAt), { addSuffix: true })}</span>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
+
+// ─── Variable Highlight ─────────────────────────────────────────────
+function VariableHighlight({ text }: { text: string }) {
+  const parts = text.split(/(\{\{\w+\}\})/g)
+  return (
+    <div className="mt-1 p-3 rounded-lg bg-muted/50 text-sm whitespace-pre-wrap border">
+      {parts.map((part, i) => {
+        if (/^\{\{\w+\}\}$/.test(part)) {
+          return <span key={i} className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 px-1 rounded">{part}</span>
+        }
+        return <span key={i}>{part}</span>
+      })}
+    </div>
+  )
+}
+
+// ─── Create Template Dialog ─────────────────────────────────────────
+function CreateTemplateDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [name, setName] = useState("")
+  const [type, setType] = useState("email")
+  const [subject, setSubject] = useState("")
+  const [body, setBody] = useState("")
+  const [category, setCategory] = useState("")
+  const [isActive, setIsActive] = useState(true)
+  const [creating, setCreating] = useState(false)
+
+  async function handleCreate() {
+    if (!name.trim() || !body.trim()) return
+    setCreating(true)
+    try {
+      const vars = detectVariables((subject || "") + " " + body)
+      await fetch("/api/communications/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name, type, subject: subject || null, body,
+          category: category || null,
+          variables: vars.length > 0 ? JSON.stringify(vars) : null,
+          isActive,
+        }),
+      })
+      setName(""); setType("email"); setSubject(""); setBody(""); setCategory(""); setIsActive(true)
+      onOpenChange(false)
+      await refreshTemplates()
+    } catch (e) {
+      console.error("Create template error:", e)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5 text-emerald-500" />Create Template
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Name *</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Template name" className="h-9 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Type</Label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {type === "email" && (
+            <div>
+              <Label className="text-xs">Subject</Label>
+              <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject with {{variables}}" className="h-9 text-sm" />
+            </div>
+          )}
+          <div>
+            <Label className="text-xs">Body * <span className="text-muted-foreground/60">(use {"{{variable}}"} for placeholders)</span></Label>
+            <Textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Template body with {{name}}, {{company}}, etc." className="min-h-[120px] text-sm" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="welcome">Welcome</SelectItem>
+                  <SelectItem value="follow_up">Follow Up</SelectItem>
+                  <SelectItem value="proposal">Proposal</SelectItem>
+                  <SelectItem value="invoice">Invoice</SelectItem>
+                  <SelectItem value="campaign">Campaign</SelectItem>
+                  <SelectItem value="notification">Notification</SelectItem>
+                  <SelectItem value="reminder">Reminder</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end pb-1">
+              <div className="flex items-center gap-2">
+                <Switch checked={isActive} onCheckedChange={setIsActive} />
+                <Label className="text-xs">Active</Label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+          <Button onClick={handleCreate} disabled={!name.trim() || !body.trim() || creating} size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white">
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}Create
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TAB 4: CONTACTS
+// ═══════════════════════════════════════════════════════════════════════
+function ContactsTab({ contacts }: { contacts: CommunicationContact[] }) {
+  const [search, setSearch] = useState("")
+  const [roleFilter, setRoleFilter] = useState("all")
+  const [channelFilter, setChannelFilter] = useState("all")
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [detailContact, setDetailContact] = useState<CommunicationContact | null>(null)
+
+  const filtered = useMemo(() => {
+    return contacts.filter(c => {
+      if (roleFilter !== "all" && c.role !== roleFilter) return false
+      if (channelFilter !== "all" && c.preferredChannel !== channelFilter) return false
+      if (favoritesOnly && !c.isFavorite) return false
+      if (search) {
+        const s = search.toLowerCase()
+        return c.name.toLowerCase().includes(s) ||
+          (c.email?.toLowerCase().includes(s)) ||
+          (c.phone?.toLowerCase().includes(s)) ||
+          (c.company?.toLowerCase().includes(s))
+      }
+      return true
+    })
+  }, [contacts, search, roleFilter, channelFilter, favoritesOnly])
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search contacts..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-9 text-sm w-[200px]" />
+          </div>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-[120px] h-9 text-xs"><SelectValue placeholder="Role" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="client">Client</SelectItem>
+              <SelectItem value="influencer">Influencer</SelectItem>
+              <SelectItem value="partner">Partner</SelectItem>
+              <SelectItem value="vendor">Vendor</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={channelFilter} onValueChange={setChannelFilter}>
+            <SelectTrigger className="w-[120px] h-9 text-xs"><SelectValue placeholder="Channel" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Channels</SelectItem>
+              <SelectItem value="email">Email</SelectItem>
+              <SelectItem value="whatsapp">WhatsApp</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant={favoritesOnly ? "default" : "outline"}
+            size="sm"
+            className={`h-9 ${favoritesOnly ? "bg-rose-500 hover:bg-rose-600 text-white" : ""}`}
+            onClick={() => setFavoritesOnly(!favoritesOnly)}
+          >
+            <Heart className={`h-4 w-4 mr-1 ${favoritesOnly ? "fill-white" : ""}`} />Favorites
+          </Button>
+        </div>
+        <Button onClick={() => setAddOpen(true)} size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white">
+          <Plus className="h-4 w-4 mr-1" />Add Contact
+        </Button>
+      </div>
+
+      {/* Grid */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-16">
+          <Users className="h-12 w-12 text-muted-foreground/20 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">No contacts found</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filtered.map(contact => (
+            <ContactCard key={contact.id} contact={contact} onDetail={() => setDetailContact(contact)} />
+          ))}
+        </div>
+      )}
+
+      {/* Add Contact Dialog */}
+      <AddContactDialog open={addOpen} onOpenChange={setAddOpen} />
+
+      {/* Detail Dialog */}
+      <Dialog open={!!detailContact} onOpenChange={() => setDetailContact(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Contact Details</DialogTitle>
+          </DialogHeader>
+          {detailContact && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-14 w-14">
+                  <AvatarFallback className={`bg-gradient-to-br ${getRoleGradient(detailContact.role)} text-white text-lg`}>
+                    {getInitials(detailContact.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="font-semibold text-lg">{detailContact.name}</h3>
+                  {detailContact.company && <p className="text-sm text-muted-foreground">{detailContact.company}</p>}
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {detailContact.role && <RoleBadge role={detailContact.role} />}
+                    <ChannelBadge type={detailContact.preferredChannel} />
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div className="grid grid-cols-1 gap-3">
+                {detailContact.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-emerald-500" />
+                    <a href={`mailto:${detailContact.email}`} className="text-emerald-600 hover:underline">{detailContact.email}</a>
+                  </div>
+                )}
+                {detailContact.phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-slate-500" />
+                    <a href={`tel:${detailContact.phone}`} className="hover:underline">{detailContact.phone}</a>
+                  </div>
+                )}
+                {detailContact.whatsappNumber && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MessageCircle className="h-4 w-4 text-[#25D366]" />
+                    <span>{detailContact.whatsappNumber}</span>
+                  </div>
+                )}
+                {detailContact.lastContactedAt && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    Last contacted {formatDistanceToNow(new Date(detailContact.lastContactedAt), { addSuffix: true })}
+                  </div>
+                )}
+              </div>
+              {detailContact.notes && (
+                <div className="p-3 rounded-lg bg-muted/50 text-sm">{detailContact.notes}</div>
+              )}
+              {parseJsonSafe(detailContact.tags).length > 0 && (
+                <div className="flex gap-1 flex-wrap">
+                  {parseJsonSafe(detailContact.tags).map(t => (
+                    <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+// ─── Contact Card ───────────────────────────────────────────────────
+function ContactCard({ contact, onDetail }: { contact: CommunicationContact; onDetail: () => void }) {
+  const tags = parseJsonSafe(contact.tags)
+
+  async function toggleFavorite() {
+    try {
+      await fetch(`/api/communications/contacts/${contact.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isFavorite: !contact.isFavorite }),
+      })
+      await refreshContacts()
+    } catch (e) { console.error("Toggle favorite error:", e) }
+  }
+
+  return (
+    <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+      <Card className="hover:shadow-md transition-shadow h-full">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <Avatar className="h-10 w-10 flex-shrink-0">
+              <AvatarFallback className={`bg-gradient-to-br ${getRoleGradient(contact.role)} text-white`}>
+                {getInitials(contact.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-sm truncate">{contact.name}</h4>
+              {contact.company && <p className="text-xs text-muted-foreground truncate">{contact.company}</p>}
+              <div className="flex items-center gap-1 mt-1">
+                {contact.role && <RoleBadge role={contact.role} />}
+              </div>
+            </div>
+            <button onClick={toggleFavorite} className="flex-shrink-0 hover:scale-110 transition-transform">
+              {contact.isFavorite ? (
+                <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />
+              ) : (
+                <Heart className="h-4 w-4 text-muted-foreground/30 hover:text-rose-400" />
+              )}
+            </button>
+          </div>
+
+          <div className="space-y-1.5 mb-3">
+            {contact.email && (
+              <a href={`mailto:${contact.email}`} className="flex items-center gap-1.5 text-xs text-emerald-600 hover:underline truncate" onClick={e => e.stopPropagation()}>
+                <Mail className="h-3 w-3 flex-shrink-0" />{contact.email}
+              </a>
+            )}
+            {contact.phone && (
+              <a href={`tel:${contact.phone}`} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:underline truncate" onClick={e => e.stopPropagation()}>
+                <Phone className="h-3 w-3 flex-shrink-0" />{contact.phone}
+              </a>
+            )}
+            {contact.whatsappNumber && (
+              <div className="flex items-center gap-1.5 text-xs text-[#25D366] truncate">
+                <MessageCircle className="h-3 w-3 flex-shrink-0" />{contact.whatsappNumber}
+              </div>
+            )}
+          </div>
+
+          {contact.lastContactedAt && (
+            <p className="text-[10px] text-muted-foreground/60 mb-2">
+              Last contacted {formatDistanceToNow(new Date(contact.lastContactedAt), { addSuffix: true })}
+            </p>
+          )}
+
+          {tags.length > 0 && (
+            <div className="flex gap-1 flex-wrap mb-3">
+              {tags.slice(0, 3).map(t => (
+                <Badge key={t} variant="secondary" className="h-4 text-[9px] px-1.5">{t}</Badge>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 pt-2 border-t">
+            {contact.email && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2 text-emerald-600" asChild>
+                <a href={`mailto:${contact.email}`} onClick={e => e.stopPropagation()}>
+                  <Mail className="h-3 w-3 mr-1" />Email
+                </a>
+              </Button>
+            )}
+            {contact.whatsappNumber && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs px-2 text-[#25D366]">
+                <MessageCircle className="h-3 w-3 mr-1" />WhatsApp
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" className="h-7 text-xs px-2 ml-auto" onClick={onDetail}>
+              <Eye className="h-3 w-3 mr-1" />View
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
+
+function RoleBadge({ role }: { role: string }) {
+  switch (role) {
+    case "client": return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300 border-0 text-[10px] h-4 px-1.5">Client</Badge>
+    case "influencer": return <Badge className="bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300 border-0 text-[10px] h-4 px-1.5">Influencer</Badge>
+    case "partner": return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300 border-0 text-[10px] h-4 px-1.5">Partner</Badge>
+    case "vendor": return <Badge className="bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300 border-0 text-[10px] h-4 px-1.5">Vendor</Badge>
+    default: return <Badge variant="outline" className="text-[10px] h-4 px-1.5">{role}</Badge>
+  }
+}
+
+// ─── Add Contact Dialog ─────────────────────────────────────────────
+function AddContactDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [whatsappNumber, setWhatsappNumber] = useState("")
+  const [company, setCompany] = useState("")
+  const [role, setRole] = useState("")
+  const [preferredChannel, setPreferredChannel] = useState("email")
+  const [creating, setCreating] = useState(false)
+
+  async function handleCreate() {
+    if (!name.trim()) return
+    setCreating(true)
+    try {
+      await fetch("/api/communications/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name, email: email || null, phone: phone || null,
+          whatsappNumber: whatsappNumber || null, company: company || null,
+          role: role || null, preferredChannel,
+        }),
+      })
+      setName(""); setEmail(""); setPhone(""); setWhatsappNumber(""); setCompany(""); setRole(""); setPreferredChannel("email")
+      onOpenChange(false)
+      await refreshContacts()
+    } catch (e) {
+      console.error("Create contact error:", e)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5 text-emerald-500" />Add Contact
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Name *</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Contact name" className="h-9 text-sm" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Email</Label>
+              <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="h-9 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Phone</Label>
+              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="h-9 text-sm" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">WhatsApp Number</Label>
+              <Input value={whatsappNumber} onChange={e => setWhatsappNumber(e.target.value)} placeholder="WhatsApp" className="h-9 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Company</Label>
+              <Input value={company} onChange={e => setCompany(e.target.value)} placeholder="Company" className="h-9 text-sm" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Role</Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select role..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="client">Client</SelectItem>
+                  <SelectItem value="influencer">Influencer</SelectItem>
+                  <SelectItem value="partner">Partner</SelectItem>
+                  <SelectItem value="vendor">Vendor</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Preferred Channel</Label>
+              <Select value={preferredChannel} onValueChange={setPreferredChannel}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <DialogClose asChild><Button variant="outline" size="sm">Cancel</Button></DialogClose>
+          <Button onClick={handleCreate} disabled={!name.trim() || creating} size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white">
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}Add
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TAB 5: ANALYTICS
+// ═══════════════════════════════════════════════════════════════════════
+function AnalyticsTab({ conversations, templates, contacts }: {
+  conversations: Conversation[]; templates: CommunicationTemplate[]; contacts: CommunicationContact[]
+}) {
+  // Gather all messages from conversations
+  const allMessages = useMemo(() => {
+    const msgs: CommunicationMessage[] = []
+    conversations.forEach(c => {
+      if (c.messages) msgs.push(...c.messages)
+    })
+    return msgs
+  }, [conversations])
+
+  // KPIs
+  const totalSent = useMemo(() => allMessages.filter(m => m.direction === "outbound").length, [allMessages])
+  const emailSent = useMemo(() => allMessages.filter(m => m.direction === "outbound" && m.type === "email").length, [allMessages])
+  const emailOpened = useMemo(() => allMessages.filter(m => m.direction === "outbound" && m.type === "email" && (m.status === "read" || m.openedAt)).length, [allMessages])
+  const emailOpenRate = emailSent > 0 ? Math.round((emailOpened / emailSent) * 100) : 0
+  const repliedCount = useMemo(() => allMessages.filter(m => m.direction === "outbound" && m.repliedAt).length, [allMessages])
+  const replyRate = totalSent > 0 ? Math.round((repliedCount / totalSent) * 100) : 0
+
+  // Channel breakdown
+  const emailCount = allMessages.filter(m => m.type === "email").length
+  const waCount = allMessages.filter(m => m.type === "whatsapp").length
+  const noteCount = allMessages.filter(m => m.type === "note").length
+  const channelTotal = emailCount + waCount + noteCount || 1
+
+  // 7-day volume
+  const sevenDayData = useMemo(() => {
+    const days: { date: string; count: number; emailCount: number; waCount: number }[] = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const dateStr = format(d, "yyyy-MM-dd")
+      const dayMsgs = allMessages.filter(m => {
+        try { return format(new Date(m.createdAt), "yyyy-MM-dd") === dateStr } catch { return false }
+      })
+      days.push({
+        date: format(d, "EEE"),
+        count: dayMsgs.length,
+        emailCount: dayMsgs.filter(m => m.type === "email").length,
+        waCount: dayMsgs.filter(m => m.type === "whatsapp").length,
+      })
+    }
+    return days
+  }, [allMessages])
+
+  const maxDayCount = Math.max(...sevenDayData.map(d => d.count), 1)
+
+  // Top contacts by message count
+  const topContacts = useMemo(() => {
+    const contactCounts: Record<string, { name: string; count: number }> = {}
+    allMessages.forEach(m => {
+      const name = m.direction === "outbound" ? m.recipientName : m.senderName
+      if (!contactCounts[name]) contactCounts[name] = { name, count: 0 }
+      contactCounts[name].count++
+    })
+    return Object.values(contactCounts).sort((a, b) => b.count - a.count).slice(0, 5)
+  }, [allMessages])
+
+  // Template usage
+  const templateUsage = useMemo(() => {
+    return templates.map(t => {
+      const count = (t as Record<string, unknown>)._count
+        ? ((t as Record<string, unknown>)._count as Record<string, number>)?.messages || 0
+        : 0
+      return { name: t.name, type: t.type, count }
+    }).filter(t => t.count > 0).sort((a, b) => b.count - a.count).slice(0, 5)
+  }, [templates])
+
+  return (
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KPICard icon={<Send className="h-5 w-5" />} label="Total Messages Sent" value={totalSent} color="emerald" />
+        <KPICard icon={<MailCheck className="h-5 w-5" />} label="Email Open Rate" value={`${emailOpenRate}%`} color="emerald" />
+        <KPICard icon={<MessageSquare className="h-5 w-5" />} label="Reply Rate" value={`${replyRate}%`} color="teal" />
+        <KPICard icon={<Timer className="h-5 w-5" />} label="Avg Response Time" value="2.4h" color="amber" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Channel Breakdown */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Globe className="h-4 w-4 text-emerald-500" />Channel Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-emerald-500" />Email</span>
+                <span className="text-sm font-medium">{emailCount} <span className="text-muted-foreground text-xs">({Math.round(emailCount / channelTotal * 100)}%)</span></span>
+              </div>
+              <div className="h-3 rounded-full bg-muted overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${(emailCount / channelTotal) * 100}%` }} transition={{ duration: 0.8 }} className="h-full rounded-full bg-emerald-500" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm flex items-center gap-1.5"><MessageCircle className="h-3.5 w-3.5 text-[#25D366]" />WhatsApp</span>
+                <span className="text-sm font-medium">{waCount} <span className="text-muted-foreground text-xs">({Math.round(waCount / channelTotal * 100)}%)</span></span>
+              </div>
+              <div className="h-3 rounded-full bg-muted overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${(waCount / channelTotal) * 100}%` }} transition={{ duration: 0.8 }} className="h-full rounded-full bg-[#25D366]" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-sm flex items-center gap-1.5"><StickyNote className="h-3.5 w-3.5 text-amber-500" />Internal Notes</span>
+                <span className="text-sm font-medium">{noteCount} <span className="text-muted-foreground text-xs">({Math.round(noteCount / channelTotal * 100)}%)</span></span>
+              </div>
+              <div className="h-3 rounded-full bg-muted overflow-hidden">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${(noteCount / channelTotal) * 100}%` }} transition={{ duration: 0.8 }} className="h-full rounded-full bg-amber-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 7-Day Volume Chart */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />7-Day Message Volume
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-2 h-40">
+              {sevenDayData.map((day, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full flex flex-col gap-0.5" style={{ height: "120px" }}>
+                    <div className="flex-1 flex flex-col justify-end">
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: `${(day.emailCount / maxDayCount) * 100}%` }}
+                        transition={{ duration: 0.5, delay: i * 0.05 }}
+                        className="bg-emerald-400 rounded-t min-h-[2px]"
+                        style={{ maxHeight: "50%" }}
+                      />
+                      <motion.div
+                        initial={{ height: 0 }}
+                        animate={{ height: `${(day.waCount / maxDayCount) * 100}%` }}
+                        transition={{ duration: 0.5, delay: i * 0.05 + 0.1 }}
+                        className="bg-[#25D366] rounded-b min-h-[2px]"
+                        style={{ maxHeight: "50%" }}
+                      />
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{day.date}</span>
+                  <span className="text-[10px] font-medium">{day.count}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-center gap-4 mt-3">
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="h-2 w-2 rounded-sm bg-emerald-400" />Email
+              </span>
+              <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <span className="h-2 w-2 rounded-sm bg-[#25D366]" />WhatsApp
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Top Contacts */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Users className="h-4 w-4 text-emerald-500" />Top Contacts by Messages
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {topContacts.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
+            ) : (
+              <div className="space-y-3">
+                {topContacts.map((c, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs bg-gradient-to-br from-emerald-400 to-teal-500 text-white">
+                        {getInitials(c.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm flex-1 truncate">{c.name}</span>
+                    <span className="text-sm font-medium text-emerald-600">{c.count}</span>
+                    <span className="text-[10px] text-muted-foreground">msgs</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Template Usage */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4 text-emerald-500" />Template Usage Stats
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {templateUsage.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No template usage data yet</p>
+            ) : (
+              <div className="space-y-3">
+                {templateUsage.map((t, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      {t.type === "email" ? <Mail className="h-4 w-4 text-emerald-500" /> : <MessageCircle className="h-4 w-4 text-[#25D366]" />}
+                    </div>
+                    <span className="text-sm flex-1 truncate">{t.name}</span>
+                    <span className="text-sm font-medium text-emerald-600">{t.count}</span>
+                    <span className="text-[10px] text-muted-foreground">uses</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+// ─── KPI Card ───────────────────────────────────────────────────────
+function KPICard({ icon, label, value, color }: {
+  icon: React.ReactNode; label: string; value: string | number; color: string
+}) {
+  const colorClasses: Record<string, string> = {
+    emerald: "from-emerald-500 to-teal-600",
+    teal: "from-teal-500 to-emerald-600",
+    amber: "from-amber-500 to-orange-600",
+    rose: "from-rose-500 to-pink-600",
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <Card className="overflow-hidden">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${colorClasses[color] || colorClasses.emerald} flex items-center justify-center text-white flex-shrink-0`}>
+              {icon}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xl font-bold">{value}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   )
 }
