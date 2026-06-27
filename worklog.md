@@ -147,3 +147,103 @@ Added IT Asset Management module to VortexERP with full CRUD API routes, seed da
 - Warranty indicators show days left with color-coded warnings
 - Overdue issuances highlighted with rose background in table
 - Asset tags auto-suggested based on category prefix (IT-LAP-XXX, IT-DST-XXX, etc.)
+---
+Task ID: 4+6
+Agent: full-stack-developer
+Task: Update store types and seed data for dissemination module
+
+Work Log:
+- Read existing store.ts to understand type patterns and store structure
+- Read existing seed/route.ts to understand user/team/content data and seeding patterns
+- Verified Prisma schema already has Disseminator and DisseminationTask models
+- Added Disseminator interface to store.ts with all required fields (id, userId, teamId, speciality, platforms, workloadCapacity, status, rating, totalTasksCompleted, totalPostsPublished, avgCompletionHours, onTimeRate, notes, organizationId, timestamps, user, team, _count)
+- Added DisseminationTask interface to store.ts with all required fields (id, title, description, contentId, assigneeId, disseminatorId, clientId, campaignId, targetPlatforms, postContent, mediaUrls, hashtags, scheduledAt, dueDate, priority, status, startedAt, completedAt, postId, failureReason, assignedById, assignedAt, completionNotes, engagement, organizationId, timestamps, assignee, disseminator, content, client, campaign)
+- Added disseminators and disseminationTasks fields to ERPStore interface
+- Added setDisseminators and setDisseminationTasks setters to ERPStore interface
+- Added default empty arrays and setter implementations to useERPStore
+- Added 4 new users (Maya Patel, Jordan Lee, Sam Rodriguez, Riley Kim) to seed data
+- Added team member entries for new users on the Dissemination team
+- Created 4 Disseminator profiles with realistic specialities, platforms, and stats
+- Created 12 DisseminationTasks with varied statuses: 3 pending, 3 in_progress, 3 completed, 2 overdue, 1 failed
+- Added disseminator and disseminationTask deletion to the cleanup section
+- Updated seed response data to include new entity counts
+- Ran lint - no errors
+- Checked dev log - no errors
+
+Stage Summary:
+- Store updated with 2 new types (Disseminator, DisseminationTask) and 2 new data fields with setters
+- Seed creates 4 new users, 4 disseminators, and 12 dissemination tasks with realistic data
+- All tasks have proper relationships to existing content, clients, campaigns, and disseminators
+
+---
+Task ID: 3
+Agent: full-stack-developer
+Task: Build dissemination API endpoints
+
+Work Log:
+- Created /api/disseminators route (GET with status/teamId filters, computed stats; POST with userId uniqueness check)
+- Created /api/disseminators/[id] route (GET with active tasks; PUT with all field updates; DELETE with active task guard)
+- Created /api/dissemination-tasks route (GET with multi-filter support, auto-overdue marking, pagination; POST with auto assignedAt)
+- Created /api/dissemination-tasks/[id] route (GET with all relations; PUT with status transition handling: in_progress→startedAt, completed→completedAt+disseminator stats, failed→failureReason, assignee change→assignedAt, overdue recalculation)
+- Created /api/dissemination-tasks/[id]/publish route (POST: finds social accounts per platform, creates Post records, updates task to completed, updates disseminator stats)
+- Created /api/dissemination/performance route (GET: overview stats, disseminator performance with completion/on-time rates, platform breakdown, weekly trend)
+
+Stage Summary:
+- 6 API endpoints created across 5 route files
+- All endpoints follow existing patterns (org lookup, JSON field parsing, error handling)
+- JSON fields (platforms, targetPlatforms, mediaUrls, engagement) parsed in all GET responses
+- Disseminator stats auto-updated on task completion and publish
+- Overdue tasks auto-marked on task list fetch
+- Lint passed with zero errors
+---
+Task ID: 5
+Agent: full-stack-developer
+Task: Rebuild dissemination view with full workflow
+
+Work Log:
+- Read existing dissemination-view.tsx (simple post composer/queue), store.ts types, and page.tsx integration
+- Completely rebuilt dissemination-view.tsx with 5 tabs: Overview, Task Board, Disseminators, Publishing Queue, Performance
+- Tab 1 (Overview): 6 KPI cards (Active Team, Pending, In Progress, Completed This Week, Overdue, Publish Rate), Disseminator Performance Grid with expandable details, Recent Activity feed
+- Tab 2 (Task Board): Kanban-style 4-column layout (Pending, In Progress, Completed, Failed/Overdue) with filter bar (priority, assignee, client), action buttons on each task card (Start, Complete, Publish, Retry)
+- Tab 3 (Disseminators): Full team management grid with detailed cards showing avatar, speciality, rating (star viz), stats, workload progress bar, platform badges, expandable current tasks and recent completions
+- Tab 4 (Publishing Queue): Quick compose with platform selection, hashtags, client/campaign linking, scheduling; post list with engagement metrics, status badges, dropdown actions; platform and status filters
+- Tab 5 (Performance): Overview stats from API, disseminator performance table, platform breakdown with completion bars, weekly trend chart (CSS-based, no recharts)
+- Added dialogs: Task View Dialog, Create Task Dialog, Completion Notes Dialog
+- Consistent emerald/teal color scheme throughout, no blue/indigo
+- Used framer-motion for smooth animations, lucide-react for icons
+- All JSON string fields parsed with try/catch, dates formatted with date-fns
+- Responsive design with proper breakpoints
+- Lint passes clean, no errors
+
+Stage Summary:
+- Complete dissemination workflow view with 5 tabs
+- Integrates with all dissemination API endpoints (GET/POST/PUT tasks, GET disseminators, GET performance)
+- Professional enterprise design with emerald color scheme
+- Self-contained single file with all sub-components inline
+
+---
+Task ID: 1-8
+Agent: Main Orchestrator
+Task: Enhance dissemination module with full workflow, disseminator integration, task management, and performance tracking
+
+Work Log:
+- Explored current dissemination module (simple post composer/queue)
+- Added Disseminator and DisseminationTask models to Prisma schema
+- Pushed schema changes to database
+- Built 6 API endpoints for dissemination (disseminators CRUD, tasks CRUD, publish, performance)
+- Updated Zustand store with Disseminator and DisseminationTask types and setters
+- Updated seed data with 4 disseminators and 12 dissemination tasks (varied statuses)
+- Updated page.tsx to load dissemination data from APIs
+- Rebuilt dissemination-view.tsx with 5 tabs (Overview, Task Board, Disseminators, Publishing Queue, Performance)
+- Fixed Performance tab crash by aligning API response with frontend expected types
+- Fixed ITAssetsView crash caused by missing `users` in store
+
+Stage Summary:
+- Complete dissemination workflow module with 5 tabs
+- 4 disseminator profiles with realistic data
+- 12 dissemination tasks across 6 statuses (pending, in_progress, completed, failed, overdue)
+- Full task lifecycle: Create → Assign → Start → Complete/Publish
+- Performance analytics with disseminator comparison, platform breakdown, weekly trends
+- Publishing queue with quick compose, platform selection, scheduling
+- All APIs verified working (200 OK for all endpoints)
+- Lint passes cleanly

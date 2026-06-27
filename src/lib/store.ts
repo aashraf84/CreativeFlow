@@ -536,6 +536,63 @@ export interface ITAsset {
   _count?: { issuances: number }
 }
 
+export interface Disseminator {
+  id: string
+  userId: string
+  teamId: string | null
+  speciality: string | null
+  platforms: string | null  // JSON array string
+  workloadCapacity: number
+  status: string
+  rating: number
+  totalTasksCompleted: number
+  totalPostsPublished: number
+  avgCompletionHours: number
+  onTimeRate: number
+  notes: string | null
+  organizationId: string
+  createdAt: string
+  updatedAt: string
+  user: { id: string; name: string; email: string; avatar: string | null; role: string }
+  team: { id: string; name: string; type: string; color: string } | null
+  _count?: { assignedTasks: number }
+}
+
+export interface DisseminationTask {
+  id: string
+  title: string
+  description: string | null
+  contentId: string | null
+  assigneeId: string | null
+  disseminatorId: string | null
+  clientId: string | null
+  campaignId: string | null
+  targetPlatforms: string | null  // JSON array string
+  postContent: string | null
+  mediaUrls: string | null  // JSON array string
+  hashtags: string | null
+  scheduledAt: string | null
+  dueDate: string | null
+  priority: string
+  status: string
+  startedAt: string | null
+  completedAt: string | null
+  postId: string | null
+  failureReason: string | null
+  assignedById: string | null
+  assignedAt: string | null
+  completionNotes: string | null
+  engagement: string | null
+  organizationId: string
+  createdAt: string
+  updatedAt: string
+  assignee: { id: string; name: string; email: string; avatar: string | null } | null
+  disseminator: { id: string; userId: string; speciality: string | null; rating: number } | null
+  content: { id: string; title: string; type: string; stage: string } | null
+  client: { id: string; name: string; logo: string | null } | null
+  campaign: { id: string; name: string; status: string } | null
+}
+
 export interface AssetIssuance {
   id: string
   assetId: string
@@ -621,6 +678,8 @@ interface ERPStore {
   purchaseOrders: PurchaseOrder[]
   itAssets: ITAsset[]
   assetIssuances: AssetIssuance[]
+  disseminators: Disseminator[]
+  disseminationTasks: DisseminationTask[]
 
   // Loading states
   isLoading: boolean
@@ -661,6 +720,8 @@ interface ERPStore {
   setPurchaseOrders: (data: PurchaseOrder[]) => void
   setItAssets: (data: ITAsset[]) => void
   setAssetIssuances: (data: AssetIssuance[]) => void
+  setDisseminators: (data: Disseminator[]) => void
+  setDisseminationTasks: (data: DisseminationTask[]) => void
 
   // Modals
   showCreateContent: boolean
@@ -719,6 +780,8 @@ export const useERPStore = create<ERPStore>((set) => ({
   purchaseOrders: [],
   itAssets: [],
   assetIssuances: [],
+  disseminators: [],
+  disseminationTasks: [],
 
   // Loading
   isLoading: false,
@@ -759,6 +822,8 @@ export const useERPStore = create<ERPStore>((set) => ({
   setPurchaseOrders: (data) => set({ purchaseOrders: data }),
   setItAssets: (data) => set({ itAssets: data }),
   setAssetIssuances: (data) => set({ assetIssuances: data }),
+  setDisseminators: (data) => set({ disseminators: data }),
+  setDisseminationTasks: (data) => set({ disseminationTasks: data }),
 
   // Modals
   showCreateContent: false,

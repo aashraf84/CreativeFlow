@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder, type ITAsset, type AssetIssuance } from "@/lib/store";
+import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder, type ITAsset, type AssetIssuance, type Disseminator, type DisseminationTask } from "@/lib/store";
 import { Sidebar } from "@/components/erp/sidebar";
 import { Header } from "@/components/erp/header";
 import { DashboardView } from "@/components/erp/dashboard-view";
@@ -82,6 +82,7 @@ export default function ERPPage() {
     setDepartments, setEmployees, setLeaveRequests, setPayrollRuns, setJobPostings,
     setExpenses, setFinanceAccounts, setTaxRates, setProducts, setWarehouses,
     setStockMovements, setVendors, setPurchaseOrders, setItAssets, setAssetIssuances,
+    setDisseminators, setDisseminationTasks,
   } = useERPStore();
   const [seeded, setSeeded] = useState(false);
 
@@ -104,6 +105,7 @@ export default function ERPPage() {
         jobPostingsRes, expensesRes, financeAccountsRes, taxRatesRes,
         productsRes, warehousesRes, stockMovementsRes, vendorsRes, purchaseOrdersRes,
         itAssetsRes, assetIssuancesRes,
+        disseminatorsRes, disseminationTasksRes,
       ] = await Promise.all([
         fetch("/api/dashboard"),
         fetch("/api/contents"),
@@ -137,6 +139,8 @@ export default function ERPPage() {
         fetch("/api/purchase-orders"),
         fetch("/api/it-assets"),
         fetch("/api/asset-issuances"),
+        fetch("/api/disseminators"),
+        fetch("/api/dissemination-tasks"),
       ]);
 
       const [
@@ -148,6 +152,7 @@ export default function ERPPage() {
         jobPostingsJson, expensesJson, financeAccountsJson, taxRatesJson,
         productsJson, warehousesJson, stockMovementsJson, vendorsJson, purchaseOrdersJson,
         itAssetsJson, assetIssuancesJson,
+        disseminatorsJson, disseminationTasksJson,
       ] = await Promise.all([
         dashboardRes.json(), contentsRes.json(), postsRes.json(),
         teamsRes.json(), accountsRes.json(), campaignsRes.json(),
@@ -162,6 +167,7 @@ export default function ERPPage() {
         productsRes.json(), warehousesRes.json(), stockMovementsRes.json(),
         vendorsRes.json(), purchaseOrdersRes.json(),
         itAssetsRes.json(), assetIssuancesRes.json(),
+        disseminatorsRes.json(), disseminationTasksRes.json(),
       ]);
 
       // Dashboard - map API response to store format
@@ -325,6 +331,14 @@ export default function ERPPage() {
       // Asset Issuances
       const assetIssuancesData = assetIssuancesJson?.data || (Array.isArray(assetIssuancesJson) ? assetIssuancesJson : []);
       if (Array.isArray(assetIssuancesData)) setAssetIssuances(assetIssuancesData as AssetIssuance[]);
+
+      // Disseminators
+      const disseminatorsData = disseminatorsJson?.disseminators || disseminatorsJson?.data || (Array.isArray(disseminatorsJson) ? disseminatorsJson : []);
+      if (Array.isArray(disseminatorsData)) setDisseminators(disseminatorsData as Disseminator[]);
+
+      // Dissemination Tasks
+      const disseminationTasksData = disseminationTasksJson?.tasks || disseminationTasksJson?.data || (Array.isArray(disseminationTasksJson) ? disseminationTasksJson : []);
+      if (Array.isArray(disseminationTasksData)) setDisseminationTasks(disseminationTasksData as DisseminationTask[]);
 
       // Set current user
       setCurrentUser({

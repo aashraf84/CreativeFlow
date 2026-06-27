@@ -6,8 +6,16 @@ export async function GET() {
     // Check if data already exists - skip seeding if so
     const existingOrg = await db.organization.findFirst()
     const existingApprovals = existingOrg ? await db.approval.count({ where: { organizationId: existingOrg.id } }) : 0
-    if (existingOrg && existingApprovals > 0) {
+    const existingDisseminators = existingOrg ? await db.disseminator.count({ where: { organizationId: existingOrg.id } }) : 0
+    
+    if (existingOrg && existingApprovals > 0 && existingDisseminators > 0) {
       return NextResponse.json({ success: true, message: 'Database already seeded', skipped: true })
+    }
+    
+    // If org exists and has approvals but no disseminators, create them
+    if (existingOrg && existingApprovals > 0 && existingDisseminators === 0) {
+      await seedDisseminators(existingOrg.id)
+      return NextResponse.json({ success: true, message: 'Disseminators seeded', skipped: false })
     }
 
     // Clear existing data in correct order (respecting foreign keys)
@@ -21,6 +29,8 @@ export async function GET() {
     await db.approval.deleteMany()
     await db.activityLog.deleteMany()
     await db.comment.deleteMany()
+    await db.disseminationTask.deleteMany()
+    await db.disseminator.deleteMany()
     await db.post.deleteMany()
     await db.automationRule.deleteMany()
     await db.socialAccount.deleteMany()
@@ -74,9 +84,21 @@ export async function GET() {
       db.user.create({
         data: { email: 'alex.nakamura@vortexdigital.com', name: 'Alex Nakamura', role: 'member', organizationId: org.id },
       }),
+      db.user.create({
+        data: { email: 'maya.patel@vortexdigital.com', name: 'Maya Patel', role: 'member', organizationId: org.id },
+      }),
+      db.user.create({
+        data: { email: 'jordan.lee@vortexdigital.com', name: 'Jordan Lee', role: 'member', organizationId: org.id },
+      }),
+      db.user.create({
+        data: { email: 'sam.rodriguez@vortexdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: org.id },
+      }),
+      db.user.create({
+        data: { email: 'riley.kim@vortexdigital.com', name: 'Riley Kim', role: 'member', organizationId: org.id },
+      }),
     ])
 
-    const [sarah, marcus, priya, jake, luna, david, emma, alex] = users
+    const [sarah, marcus, priya, jake, luna, david, emma, alex, maya, jordan, sam, riley] = users
 
     // ============================================
     // 3. Teams
@@ -119,6 +141,10 @@ export async function GET() {
       db.teamMember.create({ data: { userId: emma.id, teamId: archiveTeam.id, role: 'lead' } }),
       db.teamMember.create({ data: { userId: alex.id, teamId: disseminationTeam.id, role: 'lead' } }),
       db.teamMember.create({ data: { userId: luna.id, teamId: disseminationTeam.id, role: 'member' } }),
+      db.teamMember.create({ data: { userId: maya.id, teamId: disseminationTeam.id, role: 'member' } }),
+      db.teamMember.create({ data: { userId: jordan.id, teamId: disseminationTeam.id, role: 'member' } }),
+      db.teamMember.create({ data: { userId: sam.id, teamId: disseminationTeam.id, role: 'member' } }),
+      db.teamMember.create({ data: { userId: riley.id, teamId: disseminationTeam.id, role: 'member' } }),
     ])
 
     // ============================================
@@ -455,6 +481,367 @@ export async function GET() {
       db.jobPosting.create({ data: { title: 'Office Manager', departmentId: opsDept.id, type: 'full-time', location: 'San Francisco, CA', salary_min: 55000, salary_max: 75000, description: 'Manage daily office operations, coordinate facilities, and support the team with administrative tasks.', requirements: '2+ years of office management experience|Strong organizational skills|Proficiency in office software|Excellent interpersonal communication', status: 'closed', postedDate: new Date(now.getTime() - 60 * dayMs), closingDate: new Date(now.getTime() - 30 * dayMs), applicants: 34, organizationId: org.id } }),
     ])
 
+    // ============================================
+    // 20. Disseminators
+    // ============================================
+    const disseminators = await Promise.all([
+      db.disseminator.create({
+        data: {
+          userId: maya.id,
+          teamId: disseminationTeam.id,
+          speciality: 'Instagram & TikTok Specialist',
+          platforms: JSON.stringify(['instagram', 'tiktok']),
+          workloadCapacity: 8,
+          status: 'active',
+          rating: 4.7,
+          totalTasksCompleted: 47,
+          totalPostsPublished: 156,
+          avgCompletionHours: 2.5,
+          onTimeRate: 94.2,
+          notes: 'Expert at short-form video content and Instagram Reels. Great engagement rates on visual platforms.',
+          organizationId: org.id,
+        },
+      }),
+      db.disseminator.create({
+        data: {
+          userId: jordan.id,
+          teamId: disseminationTeam.id,
+          speciality: 'LinkedIn & Twitter Expert',
+          platforms: JSON.stringify(['linkedin', 'twitter']),
+          workloadCapacity: 10,
+          status: 'active',
+          rating: 4.5,
+          totalTasksCompleted: 38,
+          totalPostsPublished: 124,
+          avgCompletionHours: 3.1,
+          onTimeRate: 89.5,
+          notes: 'Specializes in B2B content distribution and thought leadership posts. Strong LinkedIn network.',
+          organizationId: org.id,
+        },
+      }),
+      db.disseminator.create({
+        data: {
+          userId: sam.id,
+          teamId: disseminationTeam.id,
+          speciality: 'Multi-Platform Publisher',
+          platforms: JSON.stringify(['instagram', 'facebook', 'youtube']),
+          workloadCapacity: 12,
+          status: 'active',
+          rating: 4.8,
+          totalTasksCompleted: 62,
+          totalPostsPublished: 201,
+          avgCompletionHours: 1.8,
+          onTimeRate: 96.8,
+          notes: 'Fastest disseminator on the team. Handles high-volume publishing across multiple platforms with excellent quality.',
+          organizationId: org.id,
+        },
+      }),
+      db.disseminator.create({
+        data: {
+          userId: riley.id,
+          teamId: disseminationTeam.id,
+          speciality: 'Pinterest & Visual Content',
+          platforms: JSON.stringify(['pinterest', 'instagram']),
+          workloadCapacity: 6,
+          status: 'active',
+          rating: 4.3,
+          totalTasksCompleted: 29,
+          totalPostsPublished: 87,
+          avgCompletionHours: 3.5,
+          onTimeRate: 86.2,
+          notes: 'Creative visual content specialist. Strong at Pinterest strategy and Instagram carousel design.',
+          organizationId: org.id,
+        },
+      }),
+    ])
+
+    const [mayaDisseminator, jordanDisseminator, samDisseminator, rileyDisseminator] = disseminators
+
+    // ============================================
+    // 21. Dissemination Tasks
+    // ============================================
+    const disseminationTasks = await Promise.all([
+      // PENDING tasks (3)
+      db.disseminationTask.create({
+        data: {
+          title: 'Publish TechCorp Feature Launch Thread on Twitter',
+          description: 'Post the approved Twitter thread announcing the top 5 new features of the TechCorp platform. Thread should go out during peak engagement hours (9-10 AM EST).',
+          contentId: contentItems[16].id,
+          assigneeId: jordan.id,
+          disseminatorId: jordanDisseminator.id,
+          clientId: techcorp.id,
+          campaignId: techcorpCampaign.id,
+          targetPlatforms: JSON.stringify(['twitter']),
+          postContent: '🚀 Big news! We just launched 5 game-changing features for our enterprise platform. Thread 🧵👇\n\n1/5 Real-time collaboration — now your whole team can work simultaneously with zero conflicts. #TechCorp #EnterpriseAI',
+          hashtags: '#TechCorp #EnterpriseAI #SaaS #ProductLaunch #Innovation',
+          scheduledAt: new Date(now.getTime() + 1 * dayMs),
+          dueDate: new Date(now.getTime() + 2 * dayMs),
+          priority: 'high',
+          status: 'pending',
+          assignedById: sarah.id,
+          assignedAt: new Date(now.getTime() - 0.5 * dayMs),
+          organizationId: org.id,
+        },
+      }),
+      db.disseminationTask.create({
+        data: {
+          title: 'Schedule FashionHub Summer Sale Instagram Posts',
+          description: 'Create and schedule Instagram posts for the FashionHub summer sale event. Include carousel and story formats.',
+          contentId: contentItems[15].id,
+          assigneeId: maya.id,
+          disseminatorId: mayaDisseminator.id,
+          clientId: fashionhub.id,
+          campaignId: fashionCampaign.id,
+          targetPlatforms: JSON.stringify(['instagram']),
+          postContent: '☀️ SUMMER SALE IS HERE! ☀️ Up to 50% off select items. Shop the collection now → link in bio. #FashionHub #SummerSale #OOTD',
+          hashtags: '#FashionHub #SummerSale #OOTD #Fashion #SummerStyle #Sale',
+          scheduledAt: new Date(now.getTime() + 2 * dayMs),
+          dueDate: new Date(now.getTime() + 3 * dayMs),
+          priority: 'urgent',
+          status: 'pending',
+          assignedById: sarah.id,
+          assignedAt: new Date(now.getTime() - 1 * dayMs),
+          organizationId: org.id,
+        },
+      }),
+      db.disseminationTask.create({
+        data: {
+          title: 'Post WellnessCo Mindfulness Tips to Pinterest',
+          description: 'Publish the 5 mindfulness tip graphics as Pinterest pins with optimized descriptions and boards.',
+          contentId: contentItems[6].id,
+          assigneeId: riley.id,
+          disseminatorId: rileyDisseminator.id,
+          clientId: null,
+          campaignId: null,
+          targetPlatforms: JSON.stringify(['pinterest', 'instagram']),
+          postContent: '🌿 Start your day with intention. 5 simple mindfulness techniques you can practice anywhere. Save this for later! #Mindfulness #WellnessCo #MentalHealth',
+          hashtags: '#Mindfulness #Wellness #MentalHealth #SelfCare #WellnessCo #DailyTips',
+          scheduledAt: new Date(now.getTime() + 4 * dayMs),
+          dueDate: new Date(now.getTime() + 5 * dayMs),
+          priority: 'medium',
+          status: 'pending',
+          assignedById: sarah.id,
+          assignedAt: new Date(now.getTime() - 0.5 * dayMs),
+          organizationId: org.id,
+        },
+      }),
+
+      // IN_PROGRESS tasks (3)
+      db.disseminationTask.create({
+        data: {
+          title: 'Distribute TechCorp Case Study on LinkedIn',
+          description: 'Publish the client success story carousel on LinkedIn with a thought-provoking hook. Tag the client page.',
+          contentId: contentItems[10].id,
+          assigneeId: jordan.id,
+          disseminatorId: jordanDisseminator.id,
+          clientId: techcorp.id,
+          campaignId: techcorpCampaign.id,
+          targetPlatforms: JSON.stringify(['linkedin']),
+          postContent: 'How did Acme Inc reduce infrastructure costs by 40%? 📊 Our latest case study reveals the strategy behind their cloud transformation with TechCorp. Swipe through the key results →',
+          hashtags: '#TechCorp #CaseStudy #CloudTransformation #Enterprise #B2B',
+          scheduledAt: new Date(now.getTime() - 1 * dayMs),
+          dueDate: new Date(now.getTime() + 1 * dayMs),
+          priority: 'high',
+          status: 'in_progress',
+          startedAt: new Date(now.getTime() - 4 * 3600000),
+          assignedById: sarah.id,
+          assignedAt: new Date(now.getTime() - 1 * dayMs),
+          organizationId: org.id,
+        },
+      }),
+      db.disseminationTask.create({
+        data: {
+          title: 'Publish FashionHub Style Guide Reel on TikTok',
+          description: 'Post the approved TikTok showing 3 ways to style a summer outfit. Use trending audio and relevant hashtags.',
+          contentId: contentItems[17].id,
+          assigneeId: maya.id,
+          disseminatorId: mayaDisseminator.id,
+          clientId: fashionhub.id,
+          campaignId: fashionCampaign.id,
+          targetPlatforms: JSON.stringify(['tiktok', 'instagram']),
+          postContent: '3 ways to style your summer outfit 🌴 Which one is your fave? #FashionHub #SummerStyle #OOTD #StyleGuide #FashionTok',
+          hashtags: '#FashionHub #SummerStyle #OOTD #FashionTok #StyleGuide #Trending',
+          scheduledAt: new Date(now.getTime() - 0.5 * dayMs),
+          dueDate: new Date(now.getTime() + 0.5 * dayMs),
+          priority: 'high',
+          status: 'in_progress',
+          startedAt: new Date(now.getTime() - 2 * 3600000),
+          assignedById: sarah.id,
+          assignedAt: new Date(now.getTime() - 0.5 * dayMs),
+          organizationId: org.id,
+        },
+      }),
+      db.disseminationTask.create({
+        data: {
+          title: 'Cross-Platform AutoDrive EV Range Video',
+          description: 'Publish the EV range explainer video on YouTube Shorts and Facebook. Write platform-specific captions.',
+          contentId: contentItems[18].id,
+          assigneeId: sam.id,
+          disseminatorId: samDisseminator.id,
+          clientId: autodrive.id,
+          campaignId: autodriveCampaign.id,
+          targetPlatforms: JSON.stringify(['youtube', 'facebook']),
+          postContent: 'How far can an EV really go? 🚗⚡ We put our models to the test — the results might surprise you. Watch the full breakdown now!',
+          hashtags: '#AutoDrive #EV #ElectricVehicle #Range #Sustainability #CleanEnergy',
+          scheduledAt: new Date(now.getTime() - 2 * dayMs),
+          dueDate: new Date(now.getTime() + 1 * dayMs),
+          priority: 'medium',
+          status: 'in_progress',
+          startedAt: new Date(now.getTime() - 6 * 3600000),
+          assignedById: marcus.id,
+          assignedAt: new Date(now.getTime() - 2 * dayMs),
+          organizationId: org.id,
+        },
+      }),
+
+      // COMPLETED tasks (3)
+      db.disseminationTask.create({
+        data: {
+          title: 'Publish TechCorp Product Features on Instagram',
+          description: 'Post the infographic highlighting 5 key features of the new SaaS platform on Instagram feed.',
+          contentId: contentItems[4].id,
+          assigneeId: maya.id,
+          disseminatorId: mayaDisseminator.id,
+          clientId: techcorp.id,
+          campaignId: techcorpCampaign.id,
+          targetPlatforms: JSON.stringify(['instagram']),
+          postContent: '🚀 Exciting news! Our new enterprise platform just got 5 game-changing features. See what\'s new →',
+          hashtags: '#TechCorp #Enterprise #SaaS #ProductUpdate #Innovation',
+          scheduledAt: new Date(now.getTime() - 8 * dayMs),
+          dueDate: new Date(now.getTime() - 7 * dayMs),
+          priority: 'high',
+          status: 'completed',
+          startedAt: new Date(now.getTime() - 7.5 * dayMs),
+          completedAt: new Date(now.getTime() - 7 * dayMs),
+          assignedById: sarah.id,
+          assignedAt: new Date(now.getTime() - 8 * dayMs),
+          completionNotes: 'Published successfully on Instagram during morning peak hours. Strong initial engagement.',
+          engagement: JSON.stringify({ likes: 1240, comments: 89, shares: 234, saves: 156, impressions: 45000 }),
+          organizationId: org.id,
+        },
+      }),
+      db.disseminationTask.create({
+        data: {
+          title: 'FashionHub Summer Collection Instagram Launch',
+          description: 'Launch the summer collection post on Instagram with carousel format showing top 10 looks.',
+          contentId: contentItems[1].id,
+          assigneeId: maya.id,
+          disseminatorId: mayaDisseminator.id,
+          clientId: fashionhub.id,
+          campaignId: fashionCampaign.id,
+          targetPlatforms: JSON.stringify(['instagram', 'tiktok']),
+          postContent: 'Summer vibes are here! ☀️ Swipe to see our top 10 looks from the new collection → #FashionHubSummer',
+          hashtags: '#FashionHub #SummerCollection #Fashion #OOTD #NewArrivals',
+          scheduledAt: new Date(now.getTime() - 6 * dayMs),
+          dueDate: new Date(now.getTime() - 5 * dayMs),
+          priority: 'urgent',
+          status: 'completed',
+          startedAt: new Date(now.getTime() - 5.5 * dayMs),
+          completedAt: new Date(now.getTime() - 5 * dayMs),
+          assignedById: sarah.id,
+          assignedAt: new Date(now.getTime() - 6 * dayMs),
+          completionNotes: 'Exceeded expectations - carousel format drove high swipe-through rate. TikTok version went viral.',
+          engagement: JSON.stringify({ likes: 8900, comments: 432, shares: 1200, saves: 2300, impressions: 350000 }),
+          organizationId: org.id,
+        },
+      }),
+      db.disseminationTask.create({
+        data: {
+          title: 'AutoDrive EV Range Explainer on Twitter',
+          description: 'Post the EV range explainer thread on Twitter with engaging stats and visuals.',
+          contentId: contentItems[18].id,
+          assigneeId: jordan.id,
+          disseminatorId: jordanDisseminator.id,
+          clientId: autodrive.id,
+          campaignId: autodriveCampaign.id,
+          targetPlatforms: JSON.stringify(['twitter', 'linkedin']),
+          postContent: 'How far can an EV really go? We put our models to the test. Watch the full video on YouTube →',
+          hashtags: '#AutoDrive #EV #ElectricVehicle #Range #CleanEnergy #Innovation',
+          scheduledAt: new Date(now.getTime() - 7 * dayMs),
+          dueDate: new Date(now.getTime() - 6 * dayMs),
+          priority: 'medium',
+          status: 'completed',
+          startedAt: new Date(now.getTime() - 6.5 * dayMs),
+          completedAt: new Date(now.getTime() - 6 * dayMs),
+          assignedById: marcus.id,
+          assignedAt: new Date(now.getTime() - 7 * dayMs),
+          completionNotes: 'Thread performed well on Twitter. LinkedIn post generated 3 qualified leads.',
+          engagement: JSON.stringify({ likes: 234, comments: 18, retweets: 67, impressions: 45000 }),
+          organizationId: org.id,
+        },
+      }),
+
+      // OVERDUE tasks (2)
+      db.disseminationTask.create({
+        data: {
+          title: 'Publish FoodVibe Recipe Cards on Instagram',
+          description: 'Post the weekly recipe card series as Instagram carousel posts. Seasonal ingredients theme.',
+          contentId: contentItems[2].id,
+          assigneeId: riley.id,
+          disseminatorId: rileyDisseminator.id,
+          clientId: foodvibe.id,
+          campaignId: foodvibeCampaign.id,
+          targetPlatforms: JSON.stringify(['instagram', 'pinterest']),
+          postContent: '🍳 This week\'s seasonal special: Lemon Herb Grilled Salmon! Save this recipe for your next dinner. #FoodVibe #Recipe #CookingAtHome',
+          hashtags: '#FoodVibe #Recipe #CookingAtHome #SeasonalEating #Foodie #HealthyEating',
+          scheduledAt: new Date(now.getTime() - 4 * dayMs),
+          dueDate: new Date(now.getTime() - 2 * dayMs),
+          priority: 'medium',
+          status: 'pending',
+          assignedById: priya.id,
+          assignedAt: new Date(now.getTime() - 5 * dayMs),
+          organizationId: org.id,
+        },
+      }),
+      db.disseminationTask.create({
+        data: {
+          title: 'Distribute AutoDrive Comparison Chart on Facebook',
+          description: 'Share the AutoDrive EV comparison chart on Facebook with a compelling caption targeting EV-curious buyers.',
+          contentId: contentItems[7].id,
+          assigneeId: sam.id,
+          disseminatorId: samDisseminator.id,
+          clientId: autodrive.id,
+          campaignId: autodriveCampaign.id,
+          targetPlatforms: JSON.stringify(['facebook', 'linkedin']),
+          postContent: 'See how AutoDrive EVs stack up against the competition 📊 The results speak for themselves. Explore our lineup →',
+          hashtags: '#AutoDrive #EV #Comparison #ElectricVehicle #CarShopping #GreenDriving',
+          scheduledAt: new Date(now.getTime() - 3 * dayMs),
+          dueDate: new Date(now.getTime() - 1 * dayMs),
+          priority: 'urgent',
+          status: 'in_progress',
+          startedAt: new Date(now.getTime() - 1.5 * dayMs),
+          assignedById: marcus.id,
+          assignedAt: new Date(now.getTime() - 3 * dayMs),
+          organizationId: org.id,
+        },
+      }),
+
+      // FAILED task (1)
+      db.disseminationTask.create({
+        data: {
+          title: 'Publish TechCorp Thought Leadership on LinkedIn',
+          description: 'Publish the long-form thought leadership article on LinkedIn about the future of cloud infrastructure.',
+          contentId: contentItems[13].id,
+          assigneeId: jordan.id,
+          disseminatorId: jordanDisseminator.id,
+          clientId: techcorp.id,
+          campaignId: techcorpCampaign.id,
+          targetPlatforms: JSON.stringify(['linkedin']),
+          postContent: 'The future of cloud computing is here. Our CEO shares insights on what enterprise AI means for your business. Read the full article on our blog.',
+          hashtags: '#TechCorp #CloudComputing #EnterpriseAI #ThoughtLeadership #FutureOfWork',
+          scheduledAt: new Date(now.getTime() - 4 * dayMs),
+          dueDate: new Date(now.getTime() - 3 * dayMs),
+          priority: 'high',
+          status: 'failed',
+          startedAt: new Date(now.getTime() - 4 * dayMs),
+          failureReason: 'LinkedIn API returned 403 error — article formatting exceeded character limit. Needs to be split into a post + article link format. Retrying after content adjustment.',
+          assignedById: sarah.id,
+          assignedAt: new Date(now.getTime() - 5 * dayMs),
+          organizationId: org.id,
+        },
+      }),
+    ])
+
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
@@ -482,6 +869,8 @@ export async function GET() {
         employees: employees.length,
         payrollRuns: 3,
         jobPostings: 8,
+        disseminators: disseminators.length,
+        disseminationTasks: disseminationTasks.length,
       },
     })
   } catch (error) {
@@ -491,4 +880,413 @@ export async function GET() {
       { status: 500 }
     )
   }
+}
+
+async function seedDisseminators(orgId: string) {
+  const now = Date.now()
+  const dayMs = 86400000
+
+  // Create disseminator users if they don't exist
+  const [maya, jordan, sam, riley] = await Promise.all([
+    db.user.upsert({
+      where: { email: 'maya.patel@vortexdigital.com' },
+      update: {},
+      create: { email: 'maya.patel@vortexdigital.com', name: 'Maya Patel', role: 'member', organizationId: orgId },
+    }),
+    db.user.upsert({
+      where: { email: 'jordan.lee@vortexdigital.com' },
+      update: {},
+      create: { email: 'jordan.lee@vortexdigital.com', name: 'Jordan Lee', role: 'member', organizationId: orgId },
+    }),
+    db.user.upsert({
+      where: { email: 'sam.rodriguez@vortexdigital.com' },
+      update: {},
+      create: { email: 'sam.rodriguez@vortexdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: orgId },
+    }),
+    db.user.upsert({
+      where: { email: 'riley.kim@vortexdigital.com' },
+      update: {},
+      create: { email: 'riley.kim@vortexdigital.com', name: 'Riley Kim', role: 'member', organizationId: orgId },
+    }),
+  ])
+
+  // Find the dissemination team
+  const disseminationTeam = await db.team.findFirst({ where: { type: 'dissemination', organizationId: orgId } })
+
+  // Add team members if team exists
+  if (disseminationTeam) {
+    await Promise.all([
+      db.teamMember.upsert({ where: { userId_teamId: { userId: maya.id, teamId: disseminationTeam.id } }, update: {}, create: { userId: maya.id, teamId: disseminationTeam.id, role: 'member' } }),
+      db.teamMember.upsert({ where: { userId_teamId: { userId: jordan.id, teamId: disseminationTeam.id } }, update: {}, create: { userId: jordan.id, teamId: disseminationTeam.id, role: 'member' } }),
+      db.teamMember.upsert({ where: { userId_teamId: { userId: sam.id, teamId: disseminationTeam.id } }, update: {}, create: { userId: sam.id, teamId: disseminationTeam.id, role: 'member' } }),
+      db.teamMember.upsert({ where: { userId_teamId: { userId: riley.id, teamId: disseminationTeam.id } }, update: {}, create: { userId: riley.id, teamId: disseminationTeam.id, role: 'member' } }),
+    ])
+  }
+
+  const disseminators = await Promise.all([
+    db.disseminator.create({
+      data: {
+        userId: maya.id,
+        teamId: disseminationTeam?.id,
+        speciality: 'Instagram & TikTok Specialist',
+        platforms: JSON.stringify(['instagram', 'tiktok']),
+        workloadCapacity: 8,
+        status: 'active',
+        rating: 4.7,
+        totalTasksCompleted: 47,
+        totalPostsPublished: 156,
+        avgCompletionHours: 2.5,
+        onTimeRate: 94.2,
+        notes: 'Expert at short-form video content and Instagram Reels. Great engagement rates on visual platforms.',
+        organizationId: orgId,
+      },
+    }),
+    db.disseminator.create({
+      data: {
+        userId: jordan.id,
+        teamId: disseminationTeam?.id,
+        speciality: 'LinkedIn & Twitter Expert',
+        platforms: JSON.stringify(['linkedin', 'twitter']),
+        workloadCapacity: 10,
+        status: 'active',
+        rating: 4.5,
+        totalTasksCompleted: 38,
+        totalPostsPublished: 124,
+        avgCompletionHours: 3.1,
+        onTimeRate: 89.5,
+        notes: 'Specializes in B2B content distribution and thought leadership posts. Strong LinkedIn network.',
+        organizationId: orgId,
+      },
+    }),
+    db.disseminator.create({
+      data: {
+        userId: sam.id,
+        teamId: disseminationTeam?.id,
+        speciality: 'Multi-Platform Publisher',
+        platforms: JSON.stringify(['instagram', 'facebook', 'youtube']),
+        workloadCapacity: 12,
+        status: 'active',
+        rating: 4.8,
+        totalTasksCompleted: 62,
+        totalPostsPublished: 201,
+        avgCompletionHours: 1.8,
+        onTimeRate: 96.8,
+        notes: 'Fastest disseminator on the team. Handles high-volume publishing across multiple platforms with excellent quality.',
+        organizationId: orgId,
+      },
+    }),
+    db.disseminator.create({
+      data: {
+        userId: riley.id,
+        teamId: disseminationTeam?.id,
+        speciality: 'Pinterest & Visual Content',
+        platforms: JSON.stringify(['pinterest', 'instagram']),
+        workloadCapacity: 6,
+        status: 'active',
+        rating: 4.3,
+        totalTasksCompleted: 29,
+        totalPostsPublished: 87,
+        avgCompletionHours: 3.5,
+        onTimeRate: 86.2,
+        notes: 'Creative visual content specialist. Strong at Pinterest strategy and Instagram carousel design.',
+        organizationId: orgId,
+      },
+    }),
+  ])
+
+  const [mayaDisseminator, jordanDisseminator, samDisseminator, rileyDisseminator] = disseminators
+
+  // Find existing clients and campaigns
+  const techcorp = await db.client.findFirst({ where: { name: 'TechCorp', organizationId: orgId } })
+  const fashionhub = await db.client.findFirst({ where: { name: 'FashionHub', organizationId: orgId } })
+  const autodrive = await db.client.findFirst({ where: { name: 'AutoDrive', organizationId: orgId } })
+  const foodvibe = await db.client.findFirst({ where: { name: 'FoodVibe', organizationId: orgId } })
+  const techcorpCampaign = await db.campaign.findFirst({ where: { name: 'TechCorp Product Launch', organizationId: orgId } })
+  const fashionCampaign = await db.campaign.findFirst({ where: { name: 'FashionHub Summer Collection', organizationId: orgId } })
+  const autodriveCampaign = await db.campaign.findFirst({ where: { name: 'AutoDrive EV Awareness', organizationId: orgId } })
+  const foodvibeCampaign = await db.campaign.findFirst({ where: { name: 'FoodVibe Recipe Series', organizationId: orgId } })
+  const sarah = await db.user.findUnique({ where: { email: 'sarah@vortexdigital.com' } })
+  const marcus = await db.user.findUnique({ where: { email: 'marcus.johnson@vortexdigital.com' } })
+  const priya = await db.user.findUnique({ where: { email: 'priya.sharma@vortexdigital.com' } })
+
+  // Get some content items for linking
+  const contentItems = await db.content.findMany({ where: { organizationId: orgId }, take: 20 })
+
+  await Promise.all([
+    // PENDING tasks (3)
+    db.disseminationTask.create({
+      data: {
+        title: 'Publish TechCorp Feature Launch Thread on Twitter',
+        description: 'Post the approved Twitter thread announcing the top 5 new features of the TechCorp platform.',
+        contentId: contentItems[16]?.id || null,
+        assigneeId: jordan.id,
+        disseminatorId: jordanDisseminator.id,
+        clientId: techcorp?.id || null,
+        campaignId: techcorpCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['twitter']),
+        postContent: '🚀 Big news! We just launched 5 game-changing features for our enterprise platform. Thread 🧵👇\n\n1/5 Real-time collaboration — now your whole team can work simultaneously with zero conflicts. #TechCorp #EnterpriseAI',
+        hashtags: '#TechCorp #EnterpriseAI #SaaS #ProductLaunch #Innovation',
+        scheduledAt: new Date(now + 1 * dayMs),
+        dueDate: new Date(now + 2 * dayMs),
+        priority: 'high',
+        status: 'pending',
+        assignedById: sarah?.id || null,
+        assignedAt: new Date(now - 0.5 * dayMs),
+        organizationId: orgId,
+      },
+    }),
+    db.disseminationTask.create({
+      data: {
+        title: 'Schedule FashionHub Summer Sale Instagram Posts',
+        description: 'Create and schedule Instagram posts for the FashionHub summer sale event.',
+        contentId: contentItems[15]?.id || null,
+        assigneeId: maya.id,
+        disseminatorId: mayaDisseminator.id,
+        clientId: fashionhub?.id || null,
+        campaignId: fashionCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['instagram']),
+        postContent: '☀️ SUMMER SALE IS HERE! ☀️ Up to 50% off select items. Shop the collection now → link in bio. #FashionHub #SummerSale #OOTD',
+        hashtags: '#FashionHub #SummerSale #OOTD #Fashion #SummerStyle #Sale',
+        scheduledAt: new Date(now + 2 * dayMs),
+        dueDate: new Date(now + 3 * dayMs),
+        priority: 'urgent',
+        status: 'pending',
+        assignedById: sarah?.id || null,
+        assignedAt: new Date(now - 1 * dayMs),
+        organizationId: orgId,
+      },
+    }),
+    db.disseminationTask.create({
+      data: {
+        title: 'Post WellnessCo Mindfulness Tips to Pinterest',
+        description: 'Publish the 5 mindfulness tip graphics as Pinterest pins with optimized descriptions.',
+        contentId: contentItems[6]?.id || null,
+        assigneeId: riley.id,
+        disseminatorId: rileyDisseminator.id,
+        clientId: null,
+        campaignId: null,
+        targetPlatforms: JSON.stringify(['pinterest', 'instagram']),
+        postContent: '🌿 Start your day with intention. 5 simple mindfulness techniques you can practice anywhere. Save this for later! #Mindfulness #WellnessCo #MentalHealth',
+        hashtags: '#Mindfulness #Wellness #MentalHealth #SelfCare #WellnessCo #DailyTips',
+        scheduledAt: new Date(now + 4 * dayMs),
+        dueDate: new Date(now + 5 * dayMs),
+        priority: 'medium',
+        status: 'pending',
+        assignedById: sarah?.id || null,
+        assignedAt: new Date(now - 0.5 * dayMs),
+        organizationId: orgId,
+      },
+    }),
+    // IN_PROGRESS tasks (3)
+    db.disseminationTask.create({
+      data: {
+        title: 'Distribute TechCorp Case Study on LinkedIn',
+        description: 'Publish the client success story carousel on LinkedIn with a thought-provoking hook.',
+        contentId: contentItems[10]?.id || null,
+        assigneeId: jordan.id,
+        disseminatorId: jordanDisseminator.id,
+        clientId: techcorp?.id || null,
+        campaignId: techcorpCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['linkedin']),
+        postContent: 'How did Acme Inc reduce infrastructure costs by 40%? 📊 Our latest case study reveals the strategy behind their cloud transformation with TechCorp.',
+        hashtags: '#TechCorp #CaseStudy #CloudTransformation #Enterprise #B2B',
+        scheduledAt: new Date(now - 1 * dayMs),
+        dueDate: new Date(now + 1 * dayMs),
+        priority: 'high',
+        status: 'in_progress',
+        startedAt: new Date(now - 4 * 3600000),
+        assignedById: sarah?.id || null,
+        assignedAt: new Date(now - 1 * dayMs),
+        organizationId: orgId,
+      },
+    }),
+    db.disseminationTask.create({
+      data: {
+        title: 'Publish FashionHub Style Guide Reel on TikTok',
+        description: 'Post the approved TikTok showing 3 ways to style a summer outfit. Use trending audio.',
+        contentId: contentItems[17]?.id || null,
+        assigneeId: maya.id,
+        disseminatorId: mayaDisseminator.id,
+        clientId: fashionhub?.id || null,
+        campaignId: fashionCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['tiktok', 'instagram']),
+        postContent: '3 ways to style your summer outfit 🌴 Which one is your fave? #FashionHub #SummerStyle #OOTD #StyleGuide #FashionTok',
+        hashtags: '#FashionHub #SummerStyle #OOTD #FashionTok #StyleGuide #Trending',
+        scheduledAt: new Date(now - 0.5 * dayMs),
+        dueDate: new Date(now + 0.5 * dayMs),
+        priority: 'high',
+        status: 'in_progress',
+        startedAt: new Date(now - 2 * 3600000),
+        assignedById: sarah?.id || null,
+        assignedAt: new Date(now - 0.5 * dayMs),
+        organizationId: orgId,
+      },
+    }),
+    db.disseminationTask.create({
+      data: {
+        title: 'Cross-Platform AutoDrive EV Range Video',
+        description: 'Publish the EV range explainer video on YouTube Shorts and Facebook.',
+        contentId: contentItems[18]?.id || null,
+        assigneeId: sam.id,
+        disseminatorId: samDisseminator.id,
+        clientId: autodrive?.id || null,
+        campaignId: autodriveCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['youtube', 'facebook']),
+        postContent: 'How far can an EV really go? 🚗⚡ We put our models to the test — the results might surprise you. Watch the full breakdown now!',
+        hashtags: '#AutoDrive #EV #ElectricVehicle #Range #Sustainability #CleanEnergy',
+        scheduledAt: new Date(now - 2 * dayMs),
+        dueDate: new Date(now + 1 * dayMs),
+        priority: 'medium',
+        status: 'in_progress',
+        startedAt: new Date(now - 6 * 3600000),
+        assignedById: marcus?.id || null,
+        assignedAt: new Date(now - 2 * dayMs),
+        organizationId: orgId,
+      },
+    }),
+    // COMPLETED tasks (3)
+    db.disseminationTask.create({
+      data: {
+        title: 'Publish TechCorp Product Features on Instagram',
+        description: 'Post the infographic highlighting 5 key features of the new SaaS platform.',
+        contentId: contentItems[4]?.id || null,
+        assigneeId: maya.id,
+        disseminatorId: mayaDisseminator.id,
+        clientId: techcorp?.id || null,
+        campaignId: techcorpCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['instagram']),
+        postContent: '🚀 Exciting news! Our new enterprise platform just got 5 game-changing features. See what\'s new →',
+        hashtags: '#TechCorp #Enterprise #SaaS #ProductUpdate #Innovation',
+        scheduledAt: new Date(now - 8 * dayMs),
+        dueDate: new Date(now - 7 * dayMs),
+        priority: 'high',
+        status: 'completed',
+        startedAt: new Date(now - 7.5 * dayMs),
+        completedAt: new Date(now - 7 * dayMs),
+        assignedById: sarah?.id || null,
+        assignedAt: new Date(now - 8 * dayMs),
+        completionNotes: 'Published successfully on Instagram during morning peak hours. Strong initial engagement.',
+        engagement: JSON.stringify({ likes: 1240, comments: 89, shares: 234, saves: 156, impressions: 45000 }),
+        organizationId: orgId,
+      },
+    }),
+    db.disseminationTask.create({
+      data: {
+        title: 'FashionHub Summer Collection Instagram Launch',
+        description: 'Launch the summer collection post on Instagram with carousel format.',
+        contentId: contentItems[1]?.id || null,
+        assigneeId: maya.id,
+        disseminatorId: mayaDisseminator.id,
+        clientId: fashionhub?.id || null,
+        campaignId: fashionCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['instagram', 'tiktok']),
+        postContent: 'Summer vibes are here! ☀️ Swipe to see our top 10 looks from the new collection → #FashionHubSummer',
+        hashtags: '#FashionHub #SummerCollection #Fashion #OOTD #NewArrivals',
+        scheduledAt: new Date(now - 6 * dayMs),
+        dueDate: new Date(now - 5 * dayMs),
+        priority: 'urgent',
+        status: 'completed',
+        startedAt: new Date(now - 5.5 * dayMs),
+        completedAt: new Date(now - 5 * dayMs),
+        assignedById: sarah?.id || null,
+        assignedAt: new Date(now - 6 * dayMs),
+        completionNotes: 'Exceeded expectations - carousel format drove high swipe-through rate. TikTok version went viral.',
+        engagement: JSON.stringify({ likes: 8900, comments: 432, shares: 1200, saves: 2300, impressions: 350000 }),
+        organizationId: orgId,
+      },
+    }),
+    db.disseminationTask.create({
+      data: {
+        title: 'AutoDrive EV Range Explainer on Twitter',
+        description: 'Post the EV range explainer thread on Twitter with engaging stats.',
+        contentId: contentItems[18]?.id || null,
+        assigneeId: jordan.id,
+        disseminatorId: jordanDisseminator.id,
+        clientId: autodrive?.id || null,
+        campaignId: autodriveCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['twitter', 'linkedin']),
+        postContent: 'How far can an EV really go? We put our models to the test. Watch the full video on YouTube →',
+        hashtags: '#AutoDrive #EV #ElectricVehicle #Range #CleanEnergy #Innovation',
+        scheduledAt: new Date(now - 7 * dayMs),
+        dueDate: new Date(now - 6 * dayMs),
+        priority: 'medium',
+        status: 'completed',
+        startedAt: new Date(now - 6.5 * dayMs),
+        completedAt: new Date(now - 6 * dayMs),
+        assignedById: marcus?.id || null,
+        assignedAt: new Date(now - 7 * dayMs),
+        completionNotes: 'Thread performed well on Twitter. LinkedIn post generated 3 qualified leads.',
+        engagement: JSON.stringify({ likes: 234, comments: 18, retweets: 67, impressions: 45000 }),
+        organizationId: orgId,
+      },
+    }),
+    // OVERDUE tasks (2)
+    db.disseminationTask.create({
+      data: {
+        title: 'Publish FoodVibe Recipe Cards on Instagram',
+        description: 'Post the weekly recipe card series as Instagram carousel posts.',
+        contentId: contentItems[2]?.id || null,
+        assigneeId: riley.id,
+        disseminatorId: rileyDisseminator.id,
+        clientId: foodvibe?.id || null,
+        campaignId: foodvibeCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['instagram', 'pinterest']),
+        postContent: '🍳 This week\'s seasonal special: Lemon Herb Grilled Salmon! Save this recipe for your next dinner. #FoodVibe #Recipe #CookingAtHome',
+        hashtags: '#FoodVibe #Recipe #CookingAtHome #SeasonalEating #Foodie #HealthyEating',
+        scheduledAt: new Date(now - 4 * dayMs),
+        dueDate: new Date(now - 2 * dayMs),
+        priority: 'medium',
+        status: 'pending',
+        assignedById: priya?.id || null,
+        assignedAt: new Date(now - 5 * dayMs),
+        organizationId: orgId,
+      },
+    }),
+    db.disseminationTask.create({
+      data: {
+        title: 'Distribute AutoDrive Comparison Chart on Facebook',
+        description: 'Share the AutoDrive EV comparison chart on Facebook.',
+        contentId: contentItems[7]?.id || null,
+        assigneeId: sam.id,
+        disseminatorId: samDisseminator.id,
+        clientId: autodrive?.id || null,
+        campaignId: autodriveCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['facebook', 'linkedin']),
+        postContent: 'See how AutoDrive EVs stack up against the competition 📊 The results speak for themselves. Explore our lineup →',
+        hashtags: '#AutoDrive #EV #Comparison #ElectricVehicle #CarShopping #GreenDriving',
+        scheduledAt: new Date(now - 3 * dayMs),
+        dueDate: new Date(now - 1 * dayMs),
+        priority: 'urgent',
+        status: 'in_progress',
+        startedAt: new Date(now - 1.5 * dayMs),
+        assignedById: marcus?.id || null,
+        assignedAt: new Date(now - 3 * dayMs),
+        organizationId: orgId,
+      },
+    }),
+    // FAILED task (1)
+    db.disseminationTask.create({
+      data: {
+        title: 'Publish TechCorp Thought Leadership on LinkedIn',
+        description: 'Publish the long-form thought leadership article on LinkedIn about the future of cloud infrastructure.',
+        contentId: contentItems[13]?.id || null,
+        assigneeId: jordan.id,
+        disseminatorId: jordanDisseminator.id,
+        clientId: techcorp?.id || null,
+        campaignId: techcorpCampaign?.id || null,
+        targetPlatforms: JSON.stringify(['linkedin']),
+        postContent: 'The future of cloud computing is here. Our CEO shares insights on what enterprise AI means for your business.',
+        hashtags: '#TechCorp #CloudComputing #EnterpriseAI #ThoughtLeadership #FutureOfWork',
+        scheduledAt: new Date(now - 4 * dayMs),
+        dueDate: new Date(now - 3 * dayMs),
+        priority: 'high',
+        status: 'failed',
+        startedAt: new Date(now - 4 * dayMs),
+        failureReason: 'LinkedIn API returned 403 error — article formatting exceeded character limit. Needs to be split into a post + article link format.',
+        assignedById: sarah?.id || null,
+        assignedAt: new Date(now - 5 * dayMs),
+        organizationId: orgId,
+      },
+    }),
+  ])
 }

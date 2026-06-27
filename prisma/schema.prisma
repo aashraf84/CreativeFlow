@@ -46,7 +46,9 @@ model Organization {
   purchaseOrders PurchaseOrder[]
   vendors      Vendor[]
   warehouses   Warehouse[]
-  itAssets     ITAsset[]
+  itAssets           ITAsset[]
+  disseminators      Disseminator[]
+  disseminationTasks DisseminationTask[] @relation("TaskAssigner")
 }
 
 model User {
@@ -77,6 +79,8 @@ model User {
   itAssets        ITAsset[]    @relation("ITAssetAssignee")
   issuancesReceived AssetIssuance[] @relation("AssetIssuanceRecipient")
   issuancesIssued   AssetIssuance[] @relation("AssetIssuanceIssuer")
+  disseminator      Disseminator?  @relation("DisseminatorUser")
+  assignedTasks     DisseminationTask[] @relation("TaskAssignee")
 
   @@index([organizationId])
 }
@@ -95,6 +99,7 @@ model Team {
   organization Organization  @relation(fields: [organizationId], references: [id])
   members      TeamMember[]
   contents     Content[]
+  disseminators Disseminator[]
 
   @@index([organizationId])
 }
@@ -132,6 +137,7 @@ model Client {
   assets       Asset[]
   influencers  Influencer[]
   brandKits    BrandKit[]
+  disseminationTasks DisseminationTask[]
 
   @@index([organizationId])
 }
@@ -155,6 +161,7 @@ model Campaign {
   invoices     Invoice[]
   timeEntries  TimeEntry[]
   influencers  Influencer[]
+  disseminationTasks DisseminationTask[]
 
   @@index([organizationId])
   @@index([clientId])
@@ -189,6 +196,7 @@ model Content {
   comments     Comment[]
   approvals    Approval[]
   timeEntries  TimeEntry[]
+  disseminationTasks DisseminationTask[] @relation("TaskContent")
 
   @@index([organizationId])
   @@index([stage])
@@ -897,4 +905,79 @@ model AssetIssuance {
   @@index([assetId])
   @@index([issuedToId])
   @@index([status])
+}
+
+// ─── Dissemination Module ─────────────────────────────────────────────────────
+
+model Disseminator {
+  id              String   @id @default(cuid())
+  userId          String
+  teamId          String?  // link to the dissemination team
+  speciality      String?  // e.g. "Instagram Reels", "LinkedIn Articles", "Multi-platform"
+  platforms       String?  // JSON array of platforms this disseminator handles: ["instagram","facebook"]
+  workloadCapacity Int     @default(10) // max concurrent tasks
+  status          String   @default("active") // active, on_leave, inactive
+  rating          Float    @default(0) // performance rating 0-5
+  totalTasksCompleted Int  @default(0)
+  totalPostsPublished Int  @default(0)
+  avgCompletionHours Float  @default(0) // average time to complete a task
+  onTimeRate      Float    @default(0) // percentage of tasks completed on time (0-100)
+  notes           String?
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  user            User         @relation("DisseminatorUser", fields: [userId], references: [id])
+  team            Team?        @relation(fields: [teamId], references: [id])
+  assignedTasks   DisseminationTask[] @relation("TaskDisseminator")
+
+  @@unique([userId])
+  @@index([organizationId])
+  @@index([status])
+}
+
+model DisseminationTask {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  contentId       String?  // link to the approved content piece
+  assigneeId      String?  // disseminator user id (who will post)
+  disseminatorId  String?  // link to disseminator profile
+  clientId        String?  // which client this is for
+  campaignId      String?  // which campaign
+  targetPlatforms String?  // JSON array: ["instagram","facebook","twitter"]
+  postContent     String?  // the actual content/caption to post
+  mediaUrls       String?  // JSON array of media URLs
+  hashtags        String?  // comma-separated hashtags
+  scheduledAt     DateTime? // when to post
+  dueDate         DateTime? // deadline for completion
+  priority        String   @default("medium") // low, medium, high, urgent
+  status          String   @default("pending") // pending, in_progress, completed, failed, overdue, cancelled
+  startedAt       DateTime?
+  completedAt     DateTime?
+  postId          String?  // link to the created post once published
+  failureReason   String?
+  assignedById    String?  // who assigned this task
+  assignedAt      DateTime?
+  completionNotes String?
+  engagement      String?  // JSON: engagement data pulled after publishing
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation("TaskAssigner", fields: [organizationId], references: [id])
+  content         Content?     @relation("TaskContent", fields: [contentId], references: [id])
+  assignee        User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  disseminator    Disseminator? @relation("TaskDisseminator", fields: [disseminatorId], references: [id])
+  client          Client?      @relation(fields: [clientId], references: [id])
+  campaign        Campaign?    @relation(fields: [campaignId], references: [id])
+
+  @@index([organizationId])
+  @@index([assigneeId])
+  @@index([disseminatorId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([scheduledAt])
 }

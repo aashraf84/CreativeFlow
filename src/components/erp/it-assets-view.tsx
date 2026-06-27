@@ -1078,7 +1078,7 @@ function AssetRow({ asset, onClick, onIssue, onReturn }: {
 
 // ── Main Component ───────────────────────────────────────────────────
 export function ITAssetsView() {
-  const { itAssets, assetIssuances, users, employees, setItAssets, setAssetIssuances } = useERPStore()
+  const { itAssets, assetIssuances, employees, setItAssets, setAssetIssuances } = useERPStore()
 
   // State
   const [categoryTab, setCategoryTab] = useState("All")
@@ -1096,12 +1096,11 @@ export function ITAssetsView() {
   // Merge users from both store sources
   const allUsers = useMemo(() => {
     const userMap = new Map<string, User>()
-    users.forEach(u => userMap.set(u.id, u))
     employees.forEach(e => {
-      if (e.user && !userMap.has(e.user.id)) userMap.set(e.user.id, e.user)
+      if (e.user) userMap.set(e.user.id, e.user)
     })
     return Array.from(userMap.values())
-  }, [users, employees])
+  }, [employees])
 
   // KPI computations
   const kpis = useMemo(() => {
