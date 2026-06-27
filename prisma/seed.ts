@@ -6,6 +6,22 @@ async function main() {
   console.log('🌱 Seeding database...')
 
   // Clear existing data in correct order (respecting foreign keys)
+  await prisma.purchaseOrderItem.deleteMany()
+  await prisma.purchaseOrder.deleteMany()
+  await prisma.stockMovement.deleteMany()
+  await prisma.stockLevel.deleteMany()
+  await prisma.warehouse.deleteMany()
+  await prisma.product.deleteMany()
+  await prisma.vendor.deleteMany()
+  await prisma.taxRate.deleteMany()
+  await prisma.account.deleteMany()
+  await prisma.expense.deleteMany()
+  await prisma.payrollItem.deleteMany()
+  await prisma.payrollRun.deleteMany()
+  await prisma.leaveRequest.deleteMany()
+  await prisma.jobPosting.deleteMany()
+  await prisma.employee.deleteMany()
+  await prisma.department.deleteMany()
   await prisma.brandKit.deleteMany()
   await prisma.influencer.deleteMany()
   await prisma.inboxMessage.deleteMany()
@@ -2536,6 +2552,1087 @@ async function main() {
   ])
   console.log(`✅ Created ${brandKits.length} brand kit items`)
 
+  // ============================================
+  // 20. Departments
+  // ============================================
+  const departments = await Promise.all([
+    prisma.department.create({
+      data: {
+        name: 'Creative',
+        description: 'Content creation, design, and multimedia production',
+        color: '#8b5cf6',
+        organizationId: org.id,
+      },
+    }),
+    prisma.department.create({
+      data: {
+        name: 'Operations',
+        description: 'Project management, logistics, and day-to-day operations',
+        color: '#3b82f6',
+        organizationId: org.id,
+      },
+    }),
+    prisma.department.create({
+      data: {
+        name: 'Finance',
+        description: 'Accounting, budgeting, and financial planning',
+        color: '#10b981',
+        organizationId: org.id,
+      },
+    }),
+    prisma.department.create({
+      data: {
+        name: 'HR',
+        description: 'Human resources, recruitment, and employee relations',
+        color: '#f59e0b',
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${departments.length} departments`)
+
+  // ============================================
+  // 21. Employees
+  // ============================================
+  const employees = await Promise.all([
+    prisma.employee.create({
+      data: {
+        userId: users[0].id,
+        employeeId: 'EMP-001',
+        firstName: 'Sarah',
+        lastName: 'Chen',
+        email: 'sarah.chen@vortexdigital.com',
+        phone: '+1-555-0101',
+        position: 'Chief Executive Officer',
+        departmentId: departments[0].id,
+        hireDate: new Date('2021-01-15'),
+        status: 'active',
+        employmentType: 'full-time',
+        salary: 125000,
+        salaryCurrency: 'USD',
+        taxId: 'TAX-SC-001',
+        organizationId: org.id,
+      },
+    }),
+    prisma.employee.create({
+      data: {
+        userId: users[1].id,
+        employeeId: 'EMP-002',
+        firstName: 'Marcus',
+        lastName: 'Williams',
+        email: 'marcus.williams@vortexdigital.com',
+        phone: '+1-555-0102',
+        position: 'Creative Director',
+        departmentId: departments[0].id,
+        hireDate: new Date('2021-03-01'),
+        status: 'active',
+        employmentType: 'full-time',
+        salary: 105000,
+        salaryCurrency: 'USD',
+        taxId: 'TAX-MW-002',
+        organizationId: org.id,
+      },
+    }),
+    prisma.employee.create({
+      data: {
+        userId: users[2].id,
+        employeeId: 'EMP-003',
+        firstName: 'Priya',
+        lastName: 'Sharma',
+        email: 'priya.sharma@vortexdigital.com',
+        phone: '+1-555-0103',
+        position: 'Operations Manager',
+        departmentId: departments[1].id,
+        hireDate: new Date('2021-06-15'),
+        status: 'active',
+        employmentType: 'full-time',
+        salary: 95000,
+        salaryCurrency: 'USD',
+        taxId: 'TAX-PS-003',
+        organizationId: org.id,
+      },
+    }),
+    prisma.employee.create({
+      data: {
+        userId: users[3].id,
+        employeeId: 'EMP-004',
+        firstName: 'Jake',
+        lastName: 'Morrison',
+        email: 'jake.morrison@vortexdigital.com',
+        phone: '+1-555-0104',
+        position: 'Finance Manager',
+        departmentId: departments[2].id,
+        hireDate: new Date('2022-01-10'),
+        status: 'active',
+        employmentType: 'full-time',
+        salary: 98000,
+        salaryCurrency: 'USD',
+        taxId: 'TAX-JM-004',
+        organizationId: org.id,
+      },
+    }),
+    prisma.employee.create({
+      data: {
+        userId: users[4].id,
+        employeeId: 'EMP-005',
+        firstName: 'Luna',
+        lastName: 'Rodriguez',
+        email: 'luna.rodriguez@vortexdigital.com',
+        phone: '+1-555-0105',
+        position: 'Graphic Designer',
+        departmentId: departments[0].id,
+        hireDate: new Date('2022-04-01'),
+        status: 'active',
+        employmentType: 'full-time',
+        salary: 72000,
+        salaryCurrency: 'USD',
+        taxId: 'TAX-LR-005',
+        organizationId: org.id,
+      },
+    }),
+    prisma.employee.create({
+      data: {
+        userId: users[5].id,
+        employeeId: 'EMP-006',
+        firstName: 'David',
+        lastName: 'Kim',
+        email: 'david.kim@vortexdigital.com',
+        phone: '+1-555-0106',
+        position: 'HR Specialist',
+        departmentId: departments[3].id,
+        hireDate: new Date('2022-09-15'),
+        status: 'active',
+        employmentType: 'full-time',
+        salary: 68000,
+        salaryCurrency: 'USD',
+        taxId: 'TAX-DK-006',
+        organizationId: org.id,
+      },
+    }),
+    prisma.employee.create({
+      data: {
+        userId: users[6].id,
+        employeeId: 'EMP-007',
+        firstName: 'Emma',
+        lastName: 'Thompson',
+        email: 'emma.thompson@vortexdigital.com',
+        phone: '+1-555-0107',
+        position: 'Content Writer',
+        departmentId: departments[0].id,
+        hireDate: new Date('2023-02-01'),
+        status: 'active',
+        employmentType: 'full-time',
+        salary: 65000,
+        salaryCurrency: 'USD',
+        taxId: 'TAX-ET-007',
+        organizationId: org.id,
+      },
+    }),
+    prisma.employee.create({
+      data: {
+        userId: users[7].id,
+        employeeId: 'EMP-008',
+        firstName: 'Alex',
+        lastName: 'Rivera',
+        email: 'alex.rivera@vortexdigital.com',
+        phone: '+1-555-0108',
+        position: 'Social Media Coordinator',
+        departmentId: departments[1].id,
+        hireDate: new Date('2023-06-01'),
+        status: 'on_leave',
+        employmentType: 'full-time',
+        salary: 58000,
+        salaryCurrency: 'USD',
+        taxId: 'TAX-AR-008',
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${employees.length} employees`)
+
+  // ============================================
+  // 22. Leave Requests
+  // ============================================
+  const leaveRequests = await Promise.all([
+    prisma.leaveRequest.create({
+      data: {
+        employeeId: employees[7].id,
+        type: 'vacation',
+        startDate: new Date('2024-12-20'),
+        endDate: new Date('2025-01-03'),
+        days: 10,
+        reason: 'Holiday vacation with family',
+        status: 'approved',
+        approvedById: users[3].id,
+        approvedAt: new Date('2024-12-01'),
+        organizationId: org.id,
+      },
+    }),
+    prisma.leaveRequest.create({
+      data: {
+        employeeId: employees[4].id,
+        type: 'sick',
+        startDate: new Date('2025-02-10'),
+        endDate: new Date('2025-02-11'),
+        days: 2,
+        reason: 'Feeling unwell',
+        status: 'approved',
+        approvedById: users[3].id,
+        approvedAt: new Date('2025-02-10'),
+        organizationId: org.id,
+      },
+    }),
+    prisma.leaveRequest.create({
+      data: {
+        employeeId: employees[6].id,
+        type: 'personal',
+        startDate: new Date('2025-03-15'),
+        endDate: new Date('2025-03-15'),
+        days: 1,
+        reason: 'Personal appointment',
+        status: 'pending',
+        organizationId: org.id,
+      },
+    }),
+    prisma.leaveRequest.create({
+      data: {
+        employeeId: employees[2].id,
+        type: 'vacation',
+        startDate: new Date('2025-04-01'),
+        endDate: new Date('2025-04-05'),
+        days: 5,
+        reason: 'Spring break trip',
+        status: 'pending',
+        organizationId: org.id,
+      },
+    }),
+    prisma.leaveRequest.create({
+      data: {
+        employeeId: employees[0].id,
+        type: 'vacation',
+        startDate: new Date('2024-07-01'),
+        endDate: new Date('2024-07-05'),
+        days: 5,
+        reason: 'Summer vacation',
+        status: 'rejected',
+        approvedById: users[0].id,
+        approvedAt: new Date('2024-06-20'),
+        comment: 'Critical project deadline during this period',
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${leaveRequests.length} leave requests`)
+
+  // ============================================
+  // 23. Payroll Runs & Items
+  // ============================================
+  const payrollRun1 = await prisma.payrollRun.create({
+    data: {
+      period: '2025-01',
+      status: 'completed',
+      runDate: new Date('2025-01-31'),
+      totalGross: 57333.33,
+      totalDeductions: 14333.33,
+      totalNet: 43000,
+      organizationId: org.id,
+    },
+  })
+
+  const payrollItems1 = await Promise.all(
+    employees.map((emp, i) => {
+      const baseSalary = [125000, 105000, 95000, 98000, 72000, 68000, 65000, 58000][i] / 12
+      const tax = baseSalary * 0.22
+      const deductions = baseSalary * 0.03
+      return prisma.payrollItem.create({
+        data: {
+          payrollRunId: payrollRun1.id,
+          employeeId: emp.id,
+          baseSalary: Math.round(baseSalary * 100) / 100,
+          overtime: 0,
+          bonuses: 0,
+          deductions: Math.round(deductions * 100) / 100,
+          tax: Math.round(tax * 100) / 100,
+          netPay: Math.round((baseSalary - tax - deductions) * 100) / 100,
+          organizationId: org.id,
+        },
+      })
+    })
+  )
+
+  const payrollRun2 = await prisma.payrollRun.create({
+    data: {
+      period: '2025-02',
+      status: 'draft',
+      runDate: new Date('2025-02-28'),
+      totalGross: 57333.33,
+      totalDeductions: 14333.33,
+      totalNet: 43000,
+      organizationId: org.id,
+    },
+  })
+
+  const payrollItems2 = await Promise.all(
+    employees.map((emp, i) => {
+      const baseSalary = [125000, 105000, 95000, 98000, 72000, 68000, 65000, 58000][i] / 12
+      const tax = baseSalary * 0.22
+      const deductions = baseSalary * 0.03
+      return prisma.payrollItem.create({
+        data: {
+          payrollRunId: payrollRun2.id,
+          employeeId: emp.id,
+          baseSalary: Math.round(baseSalary * 100) / 100,
+          overtime: i === 4 ? 500 : 0,
+          bonuses: i === 0 ? 2000 : 0,
+          deductions: Math.round(deductions * 100) / 100,
+          tax: Math.round(tax * 100) / 100,
+          netPay: Math.round((baseSalary - tax - deductions + (i === 4 ? 500 : 0) + (i === 0 ? 2000 : 0)) * 100) / 100,
+          organizationId: org.id,
+        },
+      })
+    })
+  )
+  console.log(`✅ Created 2 payroll runs with ${payrollItems1.length + payrollItems2.length} items`)
+
+  // ============================================
+  // 24. Job Postings
+  // ============================================
+  const jobPostings = await Promise.all([
+    prisma.jobPosting.create({
+      data: {
+        title: 'Senior Graphic Designer',
+        departmentId: departments[0].id,
+        type: 'full-time',
+        location: 'Remote',
+        salary_min: 80000,
+        salary_max: 100000,
+        description: 'We are looking for a senior graphic designer to lead visual projects and mentor junior designers.',
+        requirements: '5+ years experience in design, proficiency in Adobe Creative Suite, strong portfolio',
+        status: 'open',
+        postedDate: new Date('2025-01-15'),
+        closingDate: new Date('2025-03-15'),
+        applicants: 12,
+        organizationId: org.id,
+      },
+    }),
+    prisma.jobPosting.create({
+      data: {
+        title: 'Financial Analyst',
+        departmentId: departments[2].id,
+        type: 'full-time',
+        location: 'New York, NY',
+        salary_min: 75000,
+        salary_max: 95000,
+        description: 'Seeking a financial analyst to support budgeting and forecasting activities.',
+        requirements: '3+ years experience, CPA preferred, advanced Excel skills',
+        status: 'filled',
+        postedDate: new Date('2024-11-01'),
+        closingDate: new Date('2024-12-31'),
+        applicants: 28,
+        organizationId: org.id,
+      },
+    }),
+    prisma.jobPosting.create({
+      data: {
+        title: 'Social Media Intern',
+        departmentId: departments[1].id,
+        type: 'part-time',
+        location: 'Remote',
+        salary_min: 20000,
+        salary_max: 30000,
+        description: 'Looking for a social media intern to assist with content scheduling and community management.',
+        requirements: 'Currently enrolled in college, active on social media platforms, strong writing skills',
+        status: 'draft',
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${jobPostings.length} job postings`)
+
+  // ============================================
+  // 25. Expenses
+  // ============================================
+  const expenses = await Promise.all([
+    prisma.expense.create({
+      data: {
+        title: 'Adobe Creative Cloud Subscription',
+        description: 'Annual subscription for the design team',
+        amount: 599.88,
+        category: 'software',
+        date: new Date('2025-01-05'),
+        status: 'approved',
+        submittedById: users[1].id,
+        approvedById: users[0].id,
+        approvedAt: new Date('2025-01-06'),
+        organizationId: org.id,
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Office Supplies',
+        description: 'Printer paper, pens, notebooks for the office',
+        amount: 156.50,
+        category: 'office',
+        date: new Date('2025-01-10'),
+        status: 'approved',
+        submittedById: users[5].id,
+        approvedById: users[3].id,
+        approvedAt: new Date('2025-01-12'),
+        organizationId: org.id,
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Client Dinner - TechCorp',
+        description: 'Dinner meeting with TechCorp executives',
+        amount: 342.75,
+        category: 'travel',
+        date: new Date('2025-01-18'),
+        status: 'approved',
+        submittedById: users[0].id,
+        approvedById: users[0].id,
+        approvedAt: new Date('2025-01-19'),
+        organizationId: org.id,
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Facebook Ads Q1',
+        description: 'Q1 Facebook advertising campaign budget',
+        amount: 2500.00,
+        category: 'marketing',
+        date: new Date('2025-02-01'),
+        status: 'approved',
+        submittedById: users[2].id,
+        approvedById: users[0].id,
+        approvedAt: new Date('2025-02-01'),
+        organizationId: org.id,
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Conference Registration - SXSW',
+        description: 'Registration for SXSW Interactive conference',
+        amount: 1295.00,
+        category: 'travel',
+        date: new Date('2025-02-05'),
+        status: 'pending',
+        submittedById: users[6].id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Stock Photography License',
+        description: 'Annual Shutterstock license for the team',
+        amount: 299.00,
+        category: 'software',
+        date: new Date('2025-02-10'),
+        status: 'pending',
+        submittedById: users[4].id,
+        organizationId: org.id,
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Team Building Event',
+        description: 'Quarterly team building activity and catering',
+        amount: 875.00,
+        category: 'office',
+        date: new Date('2025-01-25'),
+        status: 'rejected',
+        submittedById: users[5].id,
+        approvedById: users[3].id,
+        approvedAt: new Date('2025-01-26'),
+        organizationId: org.id,
+      },
+    }),
+    prisma.expense.create({
+      data: {
+        title: 'Cloud Hosting - AWS',
+        description: 'Monthly AWS hosting costs for production servers',
+        amount: 456.80,
+        category: 'software',
+        date: new Date('2025-02-15'),
+        status: 'approved',
+        submittedById: users[2].id,
+        approvedById: users[0].id,
+        approvedAt: new Date('2025-02-15'),
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${expenses.length} expenses`)
+
+  // ============================================
+  // 26. Accounts (Chart of Accounts)
+  // ============================================
+  const accounts = await Promise.all([
+    prisma.account.create({
+      data: {
+        code: '1000',
+        name: 'Cash',
+        type: 'asset',
+        category: 'Current Assets',
+        balance: 125000,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        code: '1100',
+        name: 'Accounts Receivable',
+        type: 'asset',
+        category: 'Current Assets',
+        balance: 45000,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        code: '2000',
+        name: 'Accounts Payable',
+        type: 'liability',
+        category: 'Current Liabilities',
+        balance: 28000,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        code: '2100',
+        name: 'Accrued Expenses',
+        type: 'liability',
+        category: 'Current Liabilities',
+        balance: 12000,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        code: '3000',
+        name: 'Retained Earnings',
+        type: 'equity',
+        category: 'Shareholders Equity',
+        balance: 250000,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        code: '4000',
+        name: 'Service Revenue',
+        type: 'revenue',
+        category: 'Operating Revenue',
+        balance: 380000,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        code: '4100',
+        name: 'Consulting Revenue',
+        type: 'revenue',
+        category: 'Operating Revenue',
+        balance: 95000,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.account.create({
+      data: {
+        code: '5000',
+        name: 'Operating Expenses',
+        type: 'expense',
+        category: 'Operating Expenses',
+        balance: 185000,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${accounts.length} accounts`)
+
+  // ============================================
+  // 27. Tax Rates
+  // ============================================
+  const taxRates = await Promise.all([
+    prisma.taxRate.create({
+      data: {
+        name: 'VAT',
+        rate: 20,
+        type: 'sales',
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.taxRate.create({
+      data: {
+        name: 'Income Tax',
+        rate: 22,
+        type: 'income',
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${taxRates.length} tax rates`)
+
+  // ============================================
+  // 28. Products
+  // ============================================
+  const products = await Promise.all([
+    prisma.product.create({
+      data: {
+        name: 'Premium Notebook A5',
+        sku: 'NBK-A5-001',
+        description: 'A5 premium hardcover notebook with 200 pages',
+        category: 'stationery',
+        unit: 'pcs',
+        unitPrice: 12.99,
+        costPrice: 5.50,
+        reorderLevel: 50,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Ballpoint Pen Set',
+        sku: 'PEN-BP-010',
+        description: 'Set of 5 premium ballpoint pens in assorted colors',
+        category: 'stationery',
+        unit: 'set',
+        unitPrice: 8.99,
+        costPrice: 3.20,
+        reorderLevel: 100,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Wireless Mouse',
+        sku: 'ECH-WM-020',
+        description: 'Ergonomic wireless mouse with USB receiver',
+        category: 'electronics',
+        unit: 'pcs',
+        unitPrice: 29.99,
+        costPrice: 14.00,
+        reorderLevel: 25,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        name: 'USB-C Hub',
+        sku: 'ECH-UC-021',
+        description: '7-in-1 USB-C hub with HDMI, USB 3.0, SD card reader',
+        category: 'electronics',
+        unit: 'pcs',
+        unitPrice: 49.99,
+        costPrice: 22.00,
+        reorderLevel: 15,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Business Card (500 pcs)',
+        sku: 'PRT-BC-030',
+        description: 'Full color business cards printed on 350gsm cardstock',
+        category: 'print',
+        unit: 'pack',
+        unitPrice: 45.00,
+        costPrice: 18.00,
+        reorderLevel: 10,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Brochure A4 (1000 pcs)',
+        sku: 'PRT-BR-031',
+        description: 'Tri-fold A4 brochures, full color both sides',
+        category: 'print',
+        unit: 'pack',
+        unitPrice: 120.00,
+        costPrice: 55.00,
+        reorderLevel: 5,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Company T-Shirt (M)',
+        sku: 'MCH-TS-040',
+        description: 'Branded company t-shirt in medium size, cotton blend',
+        category: 'merchandise',
+        unit: 'pcs',
+        unitPrice: 18.99,
+        costPrice: 8.00,
+        reorderLevel: 30,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Company Tote Bag',
+        sku: 'MCH-TB-041',
+        description: 'Branded canvas tote bag with company logo',
+        category: 'merchandise',
+        unit: 'pcs',
+        unitPrice: 14.99,
+        costPrice: 6.50,
+        reorderLevel: 25,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Sticker Pack (100 pcs)',
+        sku: 'MCH-ST-042',
+        description: 'Custom die-cut sticker pack with brand designs',
+        category: 'merchandise',
+        unit: 'pack',
+        unitPrice: 9.99,
+        costPrice: 3.00,
+        reorderLevel: 40,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.product.create({
+      data: {
+        name: 'Standing Desk Converter',
+        sku: 'ECH-SD-022',
+        description: 'Adjustable standing desk converter for monitors',
+        category: 'electronics',
+        unit: 'pcs',
+        unitPrice: 199.99,
+        costPrice: 95.00,
+        reorderLevel: 5,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${products.length} products`)
+
+  // ============================================
+  // 29. Warehouses
+  // ============================================
+  const warehouses = await Promise.all([
+    prisma.warehouse.create({
+      data: {
+        name: 'Main Warehouse',
+        code: 'WH-MAIN',
+        location: '123 Industrial Blvd, Suite 100, New York, NY 10001',
+        isDefault: true,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.warehouse.create({
+      data: {
+        name: 'Secondary Storage',
+        code: 'WH-SEC',
+        location: '456 Storage Lane, Brooklyn, NY 11201',
+        isDefault: false,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${warehouses.length} warehouses`)
+
+  // ============================================
+  // 30. Stock Levels
+  // ============================================
+  const stockLevels = await Promise.all([
+    prisma.stockLevel.create({
+      data: {
+        productId: products[0].id,
+        warehouseId: warehouses[0].id,
+        quantity: 250,
+        reservedQuantity: 20,
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockLevel.create({
+      data: {
+        productId: products[1].id,
+        warehouseId: warehouses[0].id,
+        quantity: 500,
+        reservedQuantity: 50,
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockLevel.create({
+      data: {
+        productId: products[2].id,
+        warehouseId: warehouses[0].id,
+        quantity: 45,
+        reservedQuantity: 5,
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockLevel.create({
+      data: {
+        productId: products[4].id,
+        warehouseId: warehouses[0].id,
+        quantity: 30,
+        reservedQuantity: 10,
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockLevel.create({
+      data: {
+        productId: products[6].id,
+        warehouseId: warehouses[1].id,
+        quantity: 100,
+        reservedQuantity: 15,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${stockLevels.length} stock levels`)
+
+  // ============================================
+  // 31. Stock Movements
+  // ============================================
+  const stockMovements = await Promise.all([
+    prisma.stockMovement.create({
+      data: {
+        productId: products[0].id,
+        warehouseId: warehouses[0].id,
+        type: 'in',
+        quantity: 300,
+        reference: 'PO-2025-001',
+        notes: 'Initial stock receipt from supplier',
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockMovement.create({
+      data: {
+        productId: products[0].id,
+        warehouseId: warehouses[0].id,
+        type: 'out',
+        quantity: 50,
+        reference: 'REQ-001',
+        notes: 'Distributed to Creative team',
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockMovement.create({
+      data: {
+        productId: products[2].id,
+        warehouseId: warehouses[0].id,
+        type: 'in',
+        quantity: 60,
+        reference: 'PO-2025-002',
+        notes: 'New stock delivery',
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockMovement.create({
+      data: {
+        productId: products[2].id,
+        warehouseId: warehouses[0].id,
+        type: 'out',
+        quantity: 15,
+        reference: 'REQ-002',
+        notes: 'Issued to new employees',
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockMovement.create({
+      data: {
+        productId: products[4].id,
+        warehouseId: warehouses[0].id,
+        type: 'in',
+        quantity: 50,
+        reference: 'PO-2025-003',
+        notes: 'Print order received from vendor',
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockMovement.create({
+      data: {
+        productId: products[6].id,
+        warehouseId: warehouses[1].id,
+        type: 'in',
+        quantity: 150,
+        reference: 'PO-2025-004',
+        notes: 'Merchandise delivery',
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockMovement.create({
+      data: {
+        productId: products[6].id,
+        warehouseId: warehouses[1].id,
+        type: 'out',
+        quantity: 50,
+        reference: 'EVT-001',
+        notes: 'Distributed at trade show',
+        organizationId: org.id,
+      },
+    }),
+    prisma.stockMovement.create({
+      data: {
+        productId: products[2].id,
+        warehouseId: warehouses[0].id,
+        type: 'adjustment',
+        quantity: 0,
+        reference: 'ADJ-001',
+        notes: 'Stock count adjustment - found 0 missing',
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${stockMovements.length} stock movements`)
+
+  // ============================================
+  // 32. Vendors
+  // ============================================
+  const vendors = await Promise.all([
+    prisma.vendor.create({
+      data: {
+        name: 'OfficeMax Supplies',
+        email: 'orders@officemax-supplies.com',
+        phone: '+1-555-2001',
+        address: '789 Supply Chain Dr, Chicago, IL 60601',
+        category: 'office_supplies',
+        rating: 4.5,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        name: 'TechGear Pro',
+        email: 'sales@techgearpro.com',
+        phone: '+1-555-2002',
+        address: '321 Tech Blvd, San Jose, CA 95110',
+        category: 'electronics',
+        rating: 4.2,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        name: 'PrintMasters Inc.',
+        email: 'info@printmasters.com',
+        phone: '+1-555-2003',
+        address: '555 Print Ave, Nashville, TN 37201',
+        category: 'printing',
+        rating: 4.8,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+    prisma.vendor.create({
+      data: {
+        name: 'SwagWorld',
+        email: 'hello@swagworld.com',
+        phone: '+1-555-2004',
+        address: '100 Promo St, Austin, TX 78701',
+        category: 'merchandise',
+        rating: 3.9,
+        isActive: true,
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${vendors.length} vendors`)
+
+  // ============================================
+  // 33. Purchase Orders
+  // ============================================
+  const purchaseOrders = await Promise.all([
+    prisma.purchaseOrder.create({
+      data: {
+        number: 'PO-2025-001',
+        vendorId: vendors[0].id,
+        status: 'received',
+        items: '[]',
+        subtotal: 342.50,
+        tax: 68.50,
+        total: 411.00,
+        orderDate: new Date('2025-01-05'),
+        expectedDate: new Date('2025-01-12'),
+        notes: 'Q1 office supplies restock',
+        organizationId: org.id,
+        poItems: {
+          create: [
+            { productId: products[0].id, quantity: 50, unitPrice: 5.50, total: 275.00 },
+            { productId: products[1].id, quantity: 15, unitPrice: 4.50, total: 67.50 },
+          ],
+        },
+      },
+      include: { vendor: true, poItems: { include: { product: true } } },
+    }),
+    prisma.purchaseOrder.create({
+      data: {
+        number: 'PO-2025-002',
+        vendorId: vendors[1].id,
+        status: 'sent',
+        items: '[]',
+        subtotal: 840.00,
+        tax: 168.00,
+        total: 1008.00,
+        orderDate: new Date('2025-02-01'),
+        expectedDate: new Date('2025-02-15'),
+        notes: 'New equipment for team members',
+        organizationId: org.id,
+        poItems: {
+          create: [
+            { productId: products[2].id, quantity: 20, unitPrice: 14.00, total: 280.00 },
+            { productId: products[3].id, quantity: 10, unitPrice: 22.00, total: 220.00 },
+            { productId: products[9].id, quantity: 2, unitPrice: 95.00, total: 190.00 },
+          ],
+        },
+      },
+      include: { vendor: true, poItems: { include: { product: true } } },
+    }),
+    prisma.purchaseOrder.create({
+      data: {
+        number: 'PO-2025-003',
+        vendorId: vendors[2].id,
+        status: 'draft',
+        items: '[]',
+        subtotal: 550.00,
+        tax: 110.00,
+        total: 660.00,
+        orderDate: new Date('2025-02-20'),
+        notes: 'Client business cards and brochures',
+        organizationId: org.id,
+        poItems: {
+          create: [
+            { productId: products[4].id, quantity: 10, unitPrice: 18.00, total: 180.00 },
+            { productId: products[5].id, quantity: 2, unitPrice: 55.00, total: 110.00 },
+          ],
+        },
+      },
+      include: { vendor: true, poItems: { include: { product: true } } },
+    }),
+  ])
+  console.log(`✅ Created ${purchaseOrders.length} purchase orders`)
+
   console.log('🎉 Seeding complete!')
   console.log({
     organization: 1,
@@ -2557,6 +3654,20 @@ async function main() {
     inboxMessages: inboxMessages.length,
     influencers: influencers.length,
     brandKits: brandKits.length,
+    departments: departments.length,
+    employees: employees.length,
+    leaveRequests: leaveRequests.length,
+    payrollRuns: 2,
+    jobPostings: jobPostings.length,
+    expenses: expenses.length,
+    accounts: accounts.length,
+    taxRates: taxRates.length,
+    products: products.length,
+    warehouses: warehouses.length,
+    stockLevels: stockLevels.length,
+    stockMovements: stockMovements.length,
+    vendors: vendors.length,
+    purchaseOrders: purchaseOrders.length,
   })
 }
 

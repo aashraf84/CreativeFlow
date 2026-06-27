@@ -34,6 +34,18 @@ model Organization {
   inboxMessages InboxMessage[]
   influencers Influencer[]
   brandKits  BrandKit[]
+  employees  Employee[]
+  departments Department[]
+  leaveRequests LeaveRequest[]
+  payrollRuns PayrollRun[]
+  jobPostings  JobPosting[]
+  expenses     Expense[]
+  accounts     Account[]
+  taxRates     TaxRate[]
+  products     Product[]
+  purchaseOrders PurchaseOrder[]
+  vendors      Vendor[]
+  warehouses   Warehouse[]
 }
 
 model User {
@@ -59,6 +71,8 @@ model User {
   timeEntries     TimeEntry[]  @relation("TimeEntryUser")
   assetsUploaded  Asset[]      @relation("AssetUploader")
   notifications   Notification[] @relation("NotificationUser")
+  employee        Employee?    @relation("EmployeeUser")
+  expensesSubmitted Expense[] @relation("ExpenseSubmitter")
 
   @@index([organizationId])
 }
@@ -470,4 +484,350 @@ model BrandKit {
 
   @@index([organizationId])
   @@index([clientId])
+}
+
+// ─── HR Module ──────────────────────────────────────────────────────────────────
+
+model Department {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  color          String   @default("#10b981")
+  headId         String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  employees    Employee[]
+  jobPostings  JobPosting[]
+
+  @@index([organizationId])
+}
+
+model Employee {
+  id             String   @id @default(cuid())
+  userId         String?
+  employeeId     String
+  firstName      String
+  lastName       String
+  email          String
+  phone          String?
+  avatar         String?
+  position       String
+  departmentId   String
+  hireDate       DateTime
+  status         String   @default("active")
+  employmentType String   @default("full-time")
+  salary         Float?
+  salaryCurrency String   @default("USD")
+  bankAccount    String?
+  taxId          String?
+  emergencyContact String?
+  address        String?
+  notes          String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  department   Department  @relation(fields: [departmentId], references: [id])
+  leaveRequests LeaveRequest[]
+  payrollItems  PayrollItem[]
+  user          User?       @relation("EmployeeUser", fields: [userId], references: [id])
+
+  @@unique([userId])
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([status])
+}
+
+model LeaveRequest {
+  id             String   @id @default(cuid())
+  employeeId     String
+  type           String
+  startDate      DateTime
+  endDate        DateTime
+  days           Float
+  reason         String?
+  status         String   @default("pending")
+  approvedById   String?
+  approvedAt     DateTime?
+  comment        String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  employee     Employee     @relation(fields: [employeeId], references: [id])
+
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+model PayrollRun {
+  id             String   @id @default(cuid())
+  period         String
+  status         String   @default("draft")
+  runDate        DateTime
+  totalGross     Float    @default(0)
+  totalDeductions Float   @default(0)
+  totalNet       Float    @default(0)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  items        PayrollItem[]
+
+  @@index([organizationId])
+  @@index([period])
+}
+
+model PayrollItem {
+  id             String   @id @default(cuid())
+  payrollRunId   String
+  employeeId     String
+  baseSalary     Float    @default(0)
+  overtime       Float    @default(0)
+  bonuses        Float    @default(0)
+  deductions     Float    @default(0)
+  tax            Float    @default(0)
+  netPay         Float    @default(0)
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id])
+  employee   Employee   @relation(fields: [employeeId], references: [id])
+
+  @@index([payrollRunId])
+  @@index([employeeId])
+}
+
+model JobPosting {
+  id             String   @id @default(cuid())
+  title          String
+  departmentId   String
+  type           String   @default("full-time")
+  location       String?
+  salary_min     Float?
+  salary_max     Float?
+  description    String
+  requirements   String?
+  status         String   @default("open")
+  postedDate     DateTime?
+  closingDate    DateTime?
+  applicants     Int      @default(0)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  department   Department  @relation(fields: [departmentId], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+// ─── Finance Module ────────────────────────────────────────────────────────────
+
+model Expense {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  amount         Float
+  category       String
+  date           DateTime
+  status         String   @default("pending")
+  receiptUrl     String?
+  submittedById  String
+  approvedById   String?
+  approvedAt     DateTime?
+  campaignId     String?
+  clientId       String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  submittedBy  User         @relation("ExpenseSubmitter", fields: [submittedById], references: [id])
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([category])
+}
+
+model Account {
+  id             String   @id @default(cuid())
+  code           String
+  name           String
+  type           String
+  category       String?
+  balance        Float    @default(0)
+  isActive       Boolean  @default(true)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([type])
+}
+
+model TaxRate {
+  id             String   @id @default(cuid())
+  name           String
+  rate           Float
+  type           String
+  isActive       Boolean  @default(true)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+}
+
+// ─── Inventory Module ──────────────────────────────────────────────────────────
+
+model Product {
+  id             String   @id @default(cuid())
+  name           String
+  sku            String
+  description    String?
+  category       String?
+  unit           String   @default("pcs")
+  unitPrice      Float    @default(0)
+  costPrice      Float    @default(0)
+  reorderLevel   Int      @default(10)
+  imageUrl       String?
+  tags           String?
+  isActive       Boolean  @default(true)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  stockLevels    StockLevel[]
+  stockMovements StockMovement[]
+  poItems        PurchaseOrderItem[]
+
+  @@index([organizationId])
+  @@index([sku])
+  @@index([category])
+}
+
+model StockLevel {
+  id             String @id @default(cuid())
+  productId      String
+  warehouseId    String
+  quantity       Int    @default(0)
+  reservedQuantity Int  @default(0)
+  organizationId String
+
+  product    Product   @relation(fields: [productId], references: [id])
+  warehouse  Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([productId, warehouseId])
+  @@index([organizationId])
+}
+
+model Warehouse {
+  id             String   @id @default(cuid())
+  name           String
+  code           String
+  location       String?
+  isDefault      Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  stockLevels  StockLevel[]
+  stockMovements StockMovement[]
+
+  @@index([organizationId])
+}
+
+model StockMovement {
+  id             String   @id @default(cuid())
+  productId      String
+  warehouseId    String
+  type           String
+  quantity       Int
+  reference      String?
+  notes          String?
+  organizationId String
+  createdAt      DateTime @default(now())
+
+  product     Product   @relation(fields: [productId], references: [id])
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Vendor {
+  id             String   @id @default(cuid())
+  name           String
+  email          String?
+  phone          String?
+  address        String?
+  category       String?
+  rating         Float    @default(0)
+  isActive       Boolean  @default(true)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  purchaseOrders PurchaseOrder[]
+
+  @@index([organizationId])
+}
+
+model PurchaseOrder {
+  id             String   @id @default(cuid())
+  number         String
+  vendorId       String
+  status         String   @default("draft")
+  items          String
+  subtotal       Float    @default(0)
+  tax            Float    @default(0)
+  total          Float    @default(0)
+  orderDate      DateTime
+  expectedDate   DateTime?
+  notes          String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  vendor       Vendor       @relation(fields: [vendorId], references: [id])
+  poItems      PurchaseOrderItem[]
+
+  @@index([organizationId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model PurchaseOrderItem {
+  id              String @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  unitPrice       Float
+  total           Float
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  product       Product       @relation(fields: [productId], references: [id])
+
+  @@index([purchaseOrderId])
 }

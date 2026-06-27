@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit } from "@/lib/store";
+import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder } from "@/lib/store";
 import { Sidebar } from "@/components/erp/sidebar";
 import { Header } from "@/components/erp/header";
 import { DashboardView } from "@/components/erp/dashboard-view";
@@ -21,6 +21,14 @@ import { InvoicingView } from "@/components/erp/invoicing-view";
 import { AssetsView } from "@/components/erp/assets-view";
 import { BrandKitView } from "@/components/erp/brand-kit-view";
 import { InfluencersView } from "@/components/erp/influencers-view";
+import { EmployeesView } from "@/components/erp/employees-view";
+import { PayrollView } from "@/components/erp/payroll-view";
+import { RecruitmentView } from "@/components/erp/recruitment-view";
+import { ExpensesView } from "@/components/erp/expenses-view";
+import { FinanceAccountsView } from "@/components/erp/finance-accounts-view";
+import { ProductsView } from "@/components/erp/products-view";
+import { PurchaseOrdersView } from "@/components/erp/purchase-orders-view";
+import { VendorsView } from "@/components/erp/vendors-view";
 import { CreateContentModal } from "@/components/erp/create-content-modal";
 import { CreatePostModal } from "@/components/erp/create-post-modal";
 import { ContentDetailModal } from "@/components/erp/content-detail-modal";
@@ -44,6 +52,14 @@ const viewComponents: Record<ActiveView, React.ComponentType> = {
   assets: AssetsView,
   brandKit: BrandKitView,
   influencers: InfluencersView,
+  employees: EmployeesView,
+  payroll: PayrollView,
+  recruitment: RecruitmentView,
+  expenses: ExpensesView,
+  financeAccounts: FinanceAccountsView,
+  products: ProductsView,
+  purchaseOrders: PurchaseOrdersView,
+  vendors: VendorsView,
 };
 
 // Helper to safely extract data from various API response formats
@@ -61,6 +77,9 @@ export default function ERPPage() {
     setCurrentUser, isLoading, activeView,
     setApprovals, setInvoices, setTimeEntries, setAssets, setNotifications,
     setInboxMessages, setInfluencers, setBrandKits,
+    setDepartments, setEmployees, setLeaveRequests, setPayrollRuns, setJobPostings,
+    setExpenses, setFinanceAccounts, setTaxRates, setProducts, setWarehouses,
+    setStockMovements, setVendors, setPurchaseOrders,
   } = useERPStore();
   const [seeded, setSeeded] = useState(false);
 
@@ -78,7 +97,10 @@ export default function ERPPage() {
         dashboardRes, contentsRes, postsRes, teamsRes,
         accountsRes, campaignsRes, clientsRes, automationsRes, calendarRes,
         approvalsRes, invoicesRes, timeEntriesRes, assetsRes,
-        notificationsRes, inboxRes, influencersRes, brandKitRes
+        notificationsRes, inboxRes, influencersRes, brandKitRes,
+        departmentsRes, employeesRes, leaveRequestsRes, payrollRes,
+        jobPostingsRes, expensesRes, financeAccountsRes, taxRatesRes,
+        productsRes, warehousesRes, stockMovementsRes, vendorsRes, purchaseOrdersRes,
       ] = await Promise.all([
         fetch("/api/dashboard"),
         fetch("/api/contents"),
@@ -97,13 +119,29 @@ export default function ERPPage() {
         fetch("/api/inbox"),
         fetch("/api/influencers"),
         fetch("/api/brand-kit"),
+        fetch("/api/departments"),
+        fetch("/api/employees"),
+        fetch("/api/leave-requests"),
+        fetch("/api/payroll"),
+        fetch("/api/job-postings"),
+        fetch("/api/expenses"),
+        fetch("/api/accounts"),
+        fetch("/api/tax-rates"),
+        fetch("/api/products"),
+        fetch("/api/warehouses"),
+        fetch("/api/stock-movements"),
+        fetch("/api/vendors"),
+        fetch("/api/purchase-orders"),
       ]);
 
       const [
         dashboardJson, contentsJson, postsJson, teamsJson,
         accountsJson, campaignsJson, clientsJson, automationsJson, calendarJson,
         approvalsJson, invoicesJson, timeEntriesJson, assetsJson,
-        notificationsJson, inboxJson, influencersJson, brandKitJson
+        notificationsJson, inboxJson, influencersJson, brandKitJson,
+        departmentsJson, employeesJson, leaveRequestsJson, payrollJson,
+        jobPostingsJson, expensesJson, financeAccountsJson, taxRatesJson,
+        productsJson, warehousesJson, stockMovementsJson, vendorsJson, purchaseOrdersJson,
       ] = await Promise.all([
         dashboardRes.json(), contentsRes.json(), postsRes.json(),
         teamsRes.json(), accountsRes.json(), campaignsRes.json(),
@@ -112,6 +150,11 @@ export default function ERPPage() {
         approvalsRes.json(), invoicesRes.json(), timeEntriesRes.json(),
         assetsRes.json(), notificationsRes.json(), inboxRes.json(),
         influencersRes.json(), brandKitRes.json(),
+        departmentsRes.json(), employeesRes.json(), leaveRequestsRes.json(),
+        payrollRes.json(), jobPostingsRes.json(), expensesRes.json(),
+        financeAccountsRes.json(), taxRatesRes.json(),
+        productsRes.json(), warehousesRes.json(), stockMovementsRes.json(),
+        vendorsRes.json(), purchaseOrdersRes.json(),
       ]);
 
       // Dashboard - map API response to store format
@@ -215,6 +258,58 @@ export default function ERPPage() {
       // Brand Kits
       const brandKitData = brandKitJson?.brandKits || (Array.isArray(brandKitJson) ? brandKitJson : []);
       if (Array.isArray(brandKitData)) setBrandKits(brandKitData as BrandKit[]);
+
+      // Departments
+      const departmentsData = departmentsJson?.data || (Array.isArray(departmentsJson) ? departmentsJson : []);
+      if (Array.isArray(departmentsData)) setDepartments(departmentsData as Department[]);
+
+      // Employees
+      const employeesData = employeesJson?.data || (Array.isArray(employeesJson) ? employeesJson : []);
+      if (Array.isArray(employeesData)) setEmployees(employeesData as Employee[]);
+
+      // Leave Requests
+      const leaveRequestsData = leaveRequestsJson?.data || (Array.isArray(leaveRequestsJson) ? leaveRequestsJson : []);
+      if (Array.isArray(leaveRequestsData)) setLeaveRequests(leaveRequestsData as LeaveRequest[]);
+
+      // Payroll Runs
+      const payrollData = payrollJson?.data || (Array.isArray(payrollJson) ? payrollJson : []);
+      if (Array.isArray(payrollData)) setPayrollRuns(payrollData as PayrollRun[]);
+
+      // Job Postings
+      const jobPostingsData = jobPostingsJson?.data || (Array.isArray(jobPostingsJson) ? jobPostingsJson : []);
+      if (Array.isArray(jobPostingsData)) setJobPostings(jobPostingsData as JobPosting[]);
+
+      // Expenses
+      const expensesData = expensesJson?.data || (Array.isArray(expensesJson) ? expensesJson : []);
+      if (Array.isArray(expensesData)) setExpenses(expensesData as Expense[]);
+
+      // Finance Accounts
+      const financeAccountsData = financeAccountsJson?.data || (Array.isArray(financeAccountsJson) ? financeAccountsJson : []);
+      if (Array.isArray(financeAccountsData)) setFinanceAccounts(financeAccountsData as Account[]);
+
+      // Tax Rates
+      const taxRatesData = taxRatesJson?.data || (Array.isArray(taxRatesJson) ? taxRatesJson : []);
+      if (Array.isArray(taxRatesData)) setTaxRates(taxRatesData as TaxRate[]);
+
+      // Products
+      const productsData = productsJson?.data || (Array.isArray(productsJson) ? productsJson : []);
+      if (Array.isArray(productsData)) setProducts(productsData as Product[]);
+
+      // Warehouses
+      const warehousesData = warehousesJson?.data || (Array.isArray(warehousesJson) ? warehousesJson : []);
+      if (Array.isArray(warehousesData)) setWarehouses(warehousesData as Warehouse[]);
+
+      // Stock Movements
+      const stockMovementsData = stockMovementsJson?.data || (Array.isArray(stockMovementsJson) ? stockMovementsJson : []);
+      if (Array.isArray(stockMovementsData)) setStockMovements(stockMovementsData as StockMovement[]);
+
+      // Vendors
+      const vendorsData = vendorsJson?.data || (Array.isArray(vendorsJson) ? vendorsJson : []);
+      if (Array.isArray(vendorsData)) setVendors(vendorsData as Vendor[]);
+
+      // Purchase Orders
+      const purchaseOrdersData = purchaseOrdersJson?.data || (Array.isArray(purchaseOrdersJson) ? purchaseOrdersJson : []);
+      if (Array.isArray(purchaseOrdersData)) setPurchaseOrders(purchaseOrdersData as PurchaseOrder[]);
 
       // Set current user
       setCurrentUser({

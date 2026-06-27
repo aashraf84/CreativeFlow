@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 // Types for the ERP
-export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers'
+export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers' | 'employees' | 'payroll' | 'recruitment' | 'expenses' | 'financeAccounts' | 'products' | 'purchaseOrders' | 'vendors'
 
 export type ContentStage = 'idea' | 'design' | 'edit' | 'review' | 'approve' | 'disseminate' | 'archived'
 export type ContentPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -284,6 +284,230 @@ export interface BrandKit {
   createdAt: string
 }
 
+export interface Department {
+  id: string
+  name: string
+  description: string | null
+  color: string
+  headId: string | null
+  _count?: { employees: number; jobPostings: number }
+  createdAt: string
+}
+
+export interface Employee {
+  id: string
+  userId: string | null
+  employeeId: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string | null
+  avatar: string | null
+  position: string
+  departmentId: string
+  hireDate: string
+  status: string
+  employmentType: string
+  salary: number | null
+  salaryCurrency: string
+  bankAccount: string | null
+  taxId: string | null
+  emergencyContact: string | null
+  address: string | null
+  notes: string | null
+  department: Department
+  user: User | null
+  createdAt: string
+}
+
+export interface LeaveRequest {
+  id: string
+  employeeId: string
+  type: string
+  startDate: string
+  endDate: string
+  days: number
+  reason: string | null
+  status: string
+  approvedById: string | null
+  approvedAt: string | null
+  comment: string | null
+  employee: Employee
+  createdAt: string
+}
+
+export interface PayrollItem {
+  id: string
+  payrollRunId: string
+  employeeId: string
+  baseSalary: number
+  overtime: number
+  bonuses: number
+  deductions: number
+  tax: number
+  netPay: number
+  employee: Employee
+  createdAt: string
+}
+
+export interface PayrollRun {
+  id: string
+  period: string
+  status: string
+  runDate: string
+  totalGross: number
+  totalDeductions: number
+  totalNet: number
+  items: PayrollItem[]
+  createdAt: string
+}
+
+export interface JobPosting {
+  id: string
+  title: string
+  departmentId: string
+  type: string
+  location: string | null
+  salary_min: number | null
+  salary_max: number | null
+  description: string
+  requirements: string | null
+  status: string
+  postedDate: string | null
+  closingDate: string | null
+  applicants: number
+  department: Department
+  createdAt: string
+}
+
+export interface Expense {
+  id: string
+  title: string
+  description: string | null
+  amount: number
+  category: string
+  date: string
+  status: string
+  receiptUrl: string | null
+  submittedById: string
+  approvedById: string | null
+  approvedAt: string | null
+  campaignId: string | null
+  clientId: string | null
+  submittedBy: User
+  createdAt: string
+}
+
+export interface Account {
+  id: string
+  code: string
+  name: string
+  type: string
+  category: string | null
+  balance: number
+  isActive: boolean
+  createdAt: string
+}
+
+export interface TaxRate {
+  id: string
+  name: string
+  rate: number
+  type: string
+  isActive: boolean
+  createdAt: string
+}
+
+export interface Warehouse {
+  id: string
+  name: string
+  code: string
+  location: string | null
+  isDefault: boolean
+  isActive: boolean
+  _count?: { stockLevels: number; stockMovements: number }
+  createdAt: string
+}
+
+export interface StockLevel {
+  id: string
+  productId: string
+  warehouseId: string
+  quantity: number
+  reservedQuantity: number
+  warehouse: Warehouse
+}
+
+export interface Product {
+  id: string
+  name: string
+  sku: string
+  description: string | null
+  category: string | null
+  unit: string
+  unitPrice: number
+  costPrice: number
+  reorderLevel: number
+  imageUrl: string | null
+  tags: string | null
+  isActive: boolean
+  stockLevels: StockLevel[]
+  createdAt: string
+}
+
+export interface StockMovement {
+  id: string
+  productId: string
+  warehouseId: string
+  type: string
+  quantity: number
+  reference: string | null
+  notes: string | null
+  product: Product
+  warehouse: Warehouse
+  createdAt: string
+}
+
+export interface Vendor {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  address: string | null
+  category: string | null
+  rating: number
+  isActive: boolean
+  _count?: { purchaseOrders: number }
+  createdAt: string
+}
+
+export interface PurchaseOrderItem {
+  id: string
+  purchaseOrderId: string
+  productId: string
+  quantity: number
+  unitPrice: number
+  total: number
+  product: Product
+}
+
+export interface PurchaseOrder {
+  id: string
+  number: string
+  vendorId: string
+  status: string
+  items: string
+  subtotal: number
+  tax: number
+  total: number
+  orderDate: string
+  expectedDate: string | null
+  notes: string | null
+  vendor: Vendor
+  poItems: PurchaseOrderItem[]
+  createdAt: string
+}
+
 export interface DashboardData {
   totalContent: number
   contentByStage: Record<ContentStage, number>
@@ -333,6 +557,19 @@ interface ERPStore {
   inboxMessages: InboxMessage[]
   influencers: Influencer[]
   brandKits: BrandKit[]
+  departments: Department[]
+  employees: Employee[]
+  leaveRequests: LeaveRequest[]
+  payrollRuns: PayrollRun[]
+  jobPostings: JobPosting[]
+  expenses: Expense[]
+  financeAccounts: Account[]
+  taxRates: TaxRate[]
+  products: Product[]
+  warehouses: Warehouse[]
+  stockMovements: StockMovement[]
+  vendors: Vendor[]
+  purchaseOrders: PurchaseOrder[]
 
   // Loading states
   isLoading: boolean
@@ -358,6 +595,19 @@ interface ERPStore {
   setInboxMessages: (data: InboxMessage[]) => void
   setInfluencers: (data: Influencer[]) => void
   setBrandKits: (data: BrandKit[]) => void
+  setDepartments: (data: Department[]) => void
+  setEmployees: (data: Employee[]) => void
+  setLeaveRequests: (data: LeaveRequest[]) => void
+  setPayrollRuns: (data: PayrollRun[]) => void
+  setJobPostings: (data: JobPosting[]) => void
+  setExpenses: (data: Expense[]) => void
+  setFinanceAccounts: (data: Account[]) => void
+  setTaxRates: (data: TaxRate[]) => void
+  setProducts: (data: Product[]) => void
+  setWarehouses: (data: Warehouse[]) => void
+  setStockMovements: (data: StockMovement[]) => void
+  setVendors: (data: Vendor[]) => void
+  setPurchaseOrders: (data: PurchaseOrder[]) => void
 
   // Modals
   showCreateContent: boolean
@@ -401,6 +651,19 @@ export const useERPStore = create<ERPStore>((set) => ({
   inboxMessages: [],
   influencers: [],
   brandKits: [],
+  departments: [],
+  employees: [],
+  leaveRequests: [],
+  payrollRuns: [],
+  jobPostings: [],
+  expenses: [],
+  financeAccounts: [],
+  taxRates: [],
+  products: [],
+  warehouses: [],
+  stockMovements: [],
+  vendors: [],
+  purchaseOrders: [],
 
   // Loading
   isLoading: false,
@@ -426,6 +689,19 @@ export const useERPStore = create<ERPStore>((set) => ({
   setInboxMessages: (data) => set({ inboxMessages: data }),
   setInfluencers: (data) => set({ influencers: data }),
   setBrandKits: (data) => set({ brandKits: data }),
+  setDepartments: (data) => set({ departments: data }),
+  setEmployees: (data) => set({ employees: data }),
+  setLeaveRequests: (data) => set({ leaveRequests: data }),
+  setPayrollRuns: (data) => set({ payrollRuns: data }),
+  setJobPostings: (data) => set({ jobPostings: data }),
+  setExpenses: (data) => set({ expenses: data }),
+  setFinanceAccounts: (data) => set({ financeAccounts: data }),
+  setTaxRates: (data) => set({ taxRates: data }),
+  setProducts: (data) => set({ products: data }),
+  setWarehouses: (data) => set({ warehouses: data }),
+  setStockMovements: (data) => set({ stockMovements: data }),
+  setVendors: (data) => set({ vendors: data }),
+  setPurchaseOrders: (data) => set({ purchaseOrders: data }),
 
   // Modals
   showCreateContent: false,

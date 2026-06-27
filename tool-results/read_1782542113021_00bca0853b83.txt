@@ -1,0 +1,834 @@
+     1→     1→generator client {
+     2→     2→  provider = "prisma-client-js"
+     3→     3→}
+     4→     4→
+     5→     5→datasource db {
+     6→     6→  provider = "sqlite"
+     7→     7→  url      = env("DATABASE_URL")
+     8→     8→}
+     9→     9→
+    10→    10→model Organization {
+    11→    11→  id          String   @id @default(cuid())
+    12→    12→  name        String
+    13→    13→  slug        String   @unique
+    14→    14→  logo        String?
+    15→    15→  plan        String   @default("starter")
+    16→    16→  maxUsers    Int      @default(10)
+    17→    17→  maxAccounts Int      @default(25)
+    18→    18→  createdAt   DateTime @default(now())
+    19→    19→  updatedAt   DateTime @updatedAt
+    20→    20→
+    21→    21→  users      User[]
+    22→    22→  teams      Team[]
+    23→    23→  clients    Client[]
+    24→    24→  campaigns  Campaign[]
+    25→    25→  contents   Content[]
+    26→    26→  socialAccounts SocialAccount[]
+    27→    27→  automations AutomationRule[]
+    28→    28→  activities ActivityLog[]
+    29→    29→  approvals  Approval[]
+    30→    30→  invoices   Invoice[]
+    31→    31→  timeEntries TimeEntry[]
+    32→    32→  assets     Asset[]
+    33→    33→  notifications Notification[]
+    34→    34→  inboxMessages InboxMessage[]
+    35→    35→  influencers Influencer[]
+    36→    36→  brandKits  BrandKit[]
+    37→    37→  employees  Employee[]
+    38→    38→  departments Department[]
+    39→    39→  leaveRequests LeaveRequest[]
+    40→    40→  payrollRuns PayrollRun[]
+    41→    41→  jobPostings  JobPosting[]
+    42→    42→  expenses     Expense[]
+    43→    43→  accounts     Account[]
+    44→    44→  taxRates     TaxRate[]
+    45→    45→  products     Product[]
+    46→    46→  purchaseOrders PurchaseOrder[]
+    47→    47→  vendors      Vendor[]
+    48→    48→  warehouses   Warehouse[]
+    49→    49→}
+    50→    50→
+    51→    51→model User {
+    52→    52→  id             String   @id @default(cuid())
+    53→    53→  email          String   @unique
+    54→    54→  name           String
+    55→    55→  avatar         String?
+    56→    56→  role           String   @default("member")
+    57→    57→  organizationId String
+    58→    58→  createdAt      DateTime @default(now())
+    59→    59→  updatedAt      DateTime @updatedAt
+    60→    60→
+    61→    61→  organization   Organization  @relation(fields: [organizationId], references: [id])
+    62→    62→  teamMemberships TeamMember[]
+    63→    63→  contents       Content[]     @relation("ContentCreator")
+    64→    64→  assignedContents Content[]   @relation("ContentAssignee")
+    65→    65→  socialAccounts  SocialAccount[]
+    66→    66→  posts           Post[]
+    67→    67→  comments        Comment[]
+    68→    68→  activities      ActivityLog[] @relation("ActivityActor")
+    69→    69→  approvalsRequested Approval[] @relation("ApprovalRequester")
+    70→    70→  approvalsReviewed  Approval[] @relation("ApprovalReviewer")
+    71→    71→  timeEntries     TimeEntry[]  @relation("TimeEntryUser")
+    72→    72→  assetsUploaded  Asset[]      @relation("AssetUploader")
+    73→    73→  notifications   Notification[] @relation("NotificationUser")
+    74→    74→  employee        Employee?    @relation("EmployeeUser")
+    75→    75→  expensesSubmitted Expense[] @relation("ExpenseSubmitter")
+    76→    76→
+    77→    77→  @@index([organizationId])
+    78→    78→}
+    79→    79→
+    80→    80→model Team {
+    81→    81→  id             String   @id @default(cuid())
+    82→    82→  name           String
+    83→    83→  type           String   // creatives, content, design, edit, archive, dissemination
+    84→    84→  color          String   @default("#6366f1")
+    85→    85→  icon           String?
+    86→    86→  description    String?
+    87→    87→  organizationId String
+    88→    88→  createdAt      DateTime @default(now())
+    89→    89→  updatedAt      DateTime @updatedAt
+    90→    90→
+    91→    91→  organization Organization  @relation(fields: [organizationId], references: [id])
+    92→    92→  members      TeamMember[]
+    93→    93→  contents     Content[]
+    94→    94→
+    95→    95→  @@index([organizationId])
+    96→    96→}
+    97→    97→
+    98→    98→model TeamMember {
+    99→    99→  id       String @id @default(cuid())
+   100→   100→  userId   String
+   101→   101→  teamId   String
+   102→   102→  role     String @default("member") // lead, member
+   103→   103→  joinedAt DateTime @default(now())
+   104→   104→
+   105→   105→  user User @relation(fields: [userId], references: [id])
+   106→   106→  team Team @relation(fields: [teamId], references: [id])
+   107→   107→
+   108→   108→  @@unique([userId, teamId])
+   109→   109→}
+   110→   110→
+   111→   111→model Client {
+   112→   112→  id             String   @id @default(cuid())
+   113→   113→  name           String
+   114→   114→  logo           String?
+   115→   115→  industry       String?
+   116→   116→  website        String?
+   117→   117→  email          String?
+   118→   118→  phone          String?
+   119→   119→  status         String   @default("active") // active, inactive, prospect
+   120→   120→  organizationId String
+   121→   121→  createdAt      DateTime @default(now())
+   122→   122→  updatedAt      DateTime @updatedAt
+   123→   123→
+   124→   124→  organization Organization @relation(fields: [organizationId], references: [id])
+   125→   125→  campaigns    Campaign[]
+   126→   126→  invoices     Invoice[]
+   127→   127→  timeEntries  TimeEntry[]
+   128→   128→  assets       Asset[]
+   129→   129→  influencers  Influencer[]
+   130→   130→  brandKits    BrandKit[]
+   131→   131→
+   132→   132→  @@index([organizationId])
+   133→   133→}
+   134→   134→
+   135→   135→model Campaign {
+   136→   136→  id             String   @id @default(cuid())
+   137→   137→  name           String
+   138→   138→  description    String?
+   139→   139→  status         String   @default("draft") // draft, active, paused, completed
+   140→   140→  startDate      DateTime?
+   141→   141→  endDate        DateTime?
+   142→   142→  budget         Float?
+   143→   143→  clientId       String?
+   144→   144→  organizationId String
+   145→   145→  createdAt      DateTime @default(now())
+   146→   146→  updatedAt      DateTime @updatedAt
+   147→   147→
+   148→   148→  organization Organization @relation(fields: [organizationId], references: [id])
+   149→   149→  client       Client?      @relation(fields: [clientId], references: [id])
+   150→   150→  contents     Content[]
+   151→   151→  invoices     Invoice[]
+   152→   152→  timeEntries  TimeEntry[]
+   153→   153→  influencers  Influencer[]
+   154→   154→
+   155→   155→  @@index([organizationId])
+   156→   156→  @@index([clientId])
+   157→   157→}
+   158→   158→
+   159→   159→model Content {
+   160→   160→  id             String   @id @default(cuid())
+   161→   161→  title          String
+   162→   162→  description    String?
+   163→   163→  type           String   @default("post") // post, story, reel, carousel, video, graphic, article
+   164→   164→  stage          String   @default("idea") // idea, design, edit, review, approve, disseminate, archived
+   165→   165→  priority       String   @default("medium") // low, medium, high, urgent
+   166→   166→  format         String?  // square, portrait, landscape, vertical
+   167→   167→  tags           String?  // comma-separated tags
+   168→   168→  metadata       String?  // JSON string for extra data
+   169→   169→  dueDate        DateTime?
+   170→   170→  publishedAt    DateTime?
+   171→   171→  organizationId String
+   172→   172→  campaignId     String?
+   173→   173→  creatorId      String?
+   174→   174→  assigneeId     String?
+   175→   175→  teamId         String?
+   176→   176→  createdAt      DateTime @default(now())
+   177→   177→  updatedAt      DateTime @updatedAt
+   178→   178→
+   179→   179→  organization Organization @relation(fields: [organizationId], references: [id])
+   180→   180→  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+   181→   181→  creator      User?        @relation("ContentCreator", fields: [creatorId], references: [id])
+   182→   182→  assignee     User?        @relation("ContentAssignee", fields: [assigneeId], references: [id])
+   183→   183→  team         Team?        @relation(fields: [teamId], references: [id])
+   184→   184→  posts        Post[]
+   185→   185→  comments     Comment[]
+   186→   186→  approvals    Approval[]
+   187→   187→  timeEntries  TimeEntry[]
+   188→   188→
+   189→   189→  @@index([organizationId])
+   190→   190→  @@index([stage])
+   191→   191→  @@index([campaignId])
+   192→   192→}
+   193→   193→
+   194→   194→model SocialAccount {
+   195→   195→  id             String   @id @default(cuid())
+   196→   196→  platform       String   // instagram, facebook, twitter, linkedin, tiktok, youtube, pinterest, snapchat
+   197→   197→  accountId      String
+   198→   198→  username       String
+   199→   199→  displayName    String?
+   200→   200→  avatar         String?
+   201→   201→  accessToken    String?
+   202→   202→  refreshToken   String?
+   203→   203→  tokenExpiry    DateTime?
+   204→   204→  followers      Int      @default(0)
+   205→   205→  isVerified     Boolean  @default(false)
+   206→   206→  isActive       Boolean  @default(true)
+   207→   207→  userId         String
+   208→   208→  organizationId String
+   209→   209→  createdAt      DateTime @default(now())
+   210→   210→  updatedAt      DateTime @updatedAt
+   211→   211→
+   212→   212→  user           User          @relation(fields: [userId], references: [id])
+   213→   213→  organization   Organization  @relation(fields: [organizationId], references: [id])
+   214→   214→  posts          Post[]
+   215→   215→  inboxMessages  InboxMessage[]
+   216→   216→
+   217→   217→  @@unique([platform, accountId])
+   218→   218→  @@index([organizationId])
+   219→   219→  @@index([userId])
+   220→   220→}
+   221→   221→
+   222→   222→model Post {
+   223→   223→  id              String    @id @default(cuid())
+   224→   224→  content         String
+   225→   225→  mediaUrls       String?   // comma-separated URLs
+   226→   226→  platform        String    // instagram, facebook, twitter, etc.
+   227→   227→  status          String    @default("draft") // draft, scheduled, publishing, published, failed
+   228→   228→  scheduledAt     DateTime?
+   229→   229→  publishedAt     DateTime?
+   230→   230→  engagement      String?   // JSON string with likes, comments, shares, etc.
+   231→   231→  failureReason   String?
+   232→   232→  socialAccountId String
+   233→   233→  contentId       String?
+   234→   234→  userId          String
+   235→   235→  organizationId  String
+   236→   236→  createdAt       DateTime  @default(now())
+   237→   237→  updatedAt       DateTime  @updatedAt
+   238→   238→
+   239→   239→  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id])
+   240→   240→  contentItem     Content?      @relation(fields: [contentId], references: [id])
+   241→   241→  user            User          @relation(fields: [userId], references: [id])
+   242→   242→  approvals       Approval[]
+   243→   243→
+   244→   244→  @@index([organizationId])
+   245→   245→  @@index([socialAccountId])
+   246→   246→  @@index([status])
+   247→   247→  @@index([scheduledAt])
+   248→   248→}
+   249→   249→
+   250→   250→model AutomationRule {
+   251→   251→  id             String   @id @default(cuid())
+   252→   252→  name           String
+   253→   253→  description    String?
+   254→   254→  trigger        String   // stage_change, content_created, scheduled_time, engagement_threshold
+   255→   255→  conditions     String   // JSON string
+   256→   256→  actions        String   // JSON string
+   257→   257→  isActive       Boolean  @default(true)
+   258→   258→  organizationId String
+   259→   259→  createdAt      DateTime @default(now())
+   260→   260→  updatedAt      DateTime @updatedAt
+   261→   261→
+   262→   262→  organization Organization @relation(fields: [organizationId], references: [id])
+   263→   263→
+   264→   264→  @@index([organizationId])
+   265→   265→}
+   266→   266→
+   267→   267→model Comment {
+   268→   268→  id        String   @id @default(cuid())
+   269→   269→  text      String
+   270→   270→  contentId String
+   271→   271→  userId    String
+   272→   272→  createdAt DateTime @default(now())
+   273→   273→
+   274→   274→  contentItem Content @relation(fields: [contentId], references: [id])
+   275→   275→  user        User    @relation(fields: [userId], references: [id])
+   276→   276→
+   277→   277→  @@index([contentId])
+   278→   278→}
+   279→   279→
+   280→   280→model ActivityLog {
+   281→   281→  id             String   @id @default(cuid())
+   282→   282→  action         String   // created, updated, moved, commented, published, assigned
+   283→   283→  entity         String   // content, campaign, post, team, account
+   284→   284→  entityId       String?
+   285→   285→  details        String?  // JSON string
+   286→   286→  organizationId String
+   287→   287→  actorId        String
+   288→   288→  createdAt      DateTime @default(now())
+   289→   289→
+   290→   290→  organization Organization @relation(fields: [organizationId], references: [id])
+   291→   291→  actor        User         @relation("ActivityActor", fields: [actorId], references: [id])
+   292→   292→
+   293→   293→  @@index([organizationId])
+   294→   294→  @@index([createdAt])
+   295→   295→}
+   296→   296→
+   297→   297→// ─── New Models for Enhanced ERP ──────────────────────────────────────────────
+   298→   298→
+   299→   299→model Approval {
+   300→   300→  id             String   @id @default(cuid())
+   301→   301→  type           String   // content_review, post_publish, campaign_launch, budget_approval
+   302→   302→  status         String   @default("pending") // pending, approved, rejected, changes_requested
+   303→   303→  comment        String?
+   304→   304→  organizationId String
+   305→   305→  contentId      String?
+   306→   306→  postId         String?
+   307→   307→  requestedById  String
+   308→   308→  reviewedById   String?
+   309→   309→  reviewedAt     DateTime?
+   310→   310→  createdAt      DateTime @default(now())
+   311→   311→  updatedAt      DateTime @updatedAt
+   312→   312→
+   313→   313→  organization Organization @relation(fields: [organizationId], references: [id])
+   314→   314→  content      Content?     @relation(fields: [contentId], references: [id])
+   315→   315→  post         Post?        @relation(fields: [postId], references: [id])
+   316→   316→  requestedBy  User         @relation("ApprovalRequester", fields: [requestedById], references: [id])
+   317→   317→  reviewedBy   User?        @relation("ApprovalReviewer", fields: [reviewedById], references: [id])
+   318→   318→
+   319→   319→  @@index([organizationId])
+   320→   320→  @@index([status])
+   321→   321→}
+   322→   322→
+   323→   323→model Invoice {
+   324→   324→  id             String   @id @default(cuid())
+   325→   325→  number         String   @unique
+   326→   326→  clientId       String
+   327→   327→  campaignId     String?
+   328→   328→  status         String   @default("draft") // draft, sent, paid, overdue, cancelled
+   329→   329→  items          String   // JSON array: [{description, quantity, rate, amount}]
+   330→   330→  subtotal       Float    @default(0)
+   331→   331→  tax            Float    @default(0)
+   332→   332→  total          Float    @default(0)
+   333→   333→  dueDate        DateTime?
+   334→   334→  paidAt         DateTime?
+   335→   335→  notes          String?
+   336→   336→  organizationId String
+   337→   337→  createdAt      DateTime @default(now())
+   338→   338→  updatedAt      DateTime @updatedAt
+   339→   339→
+   340→   340→  organization Organization @relation(fields: [organizationId], references: [id])
+   341→   341→  client       Client       @relation(fields: [clientId], references: [id])
+   342→   342→  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+   343→   343→
+   344→   344→  @@index([organizationId])
+   345→   345→  @@index([clientId])
+   346→   346→  @@index([status])
+   347→   347→}
+   348→   348→
+   349→   349→model TimeEntry {
+   350→   350→  id             String   @id @default(cuid())
+   351→   351→  description    String
+   352→   352→  hours          Float
+   353→   353→  billable       Boolean  @default(true)
+   354→   354→  date           DateTime
+   355→   355→  userId         String
+   356→   356→  clientId       String?
+   357→   357→  campaignId     String?
+   358→   358→  contentId      String?
+   359→   359→  organizationId String
+   360→   360→  createdAt      DateTime @default(now())
+   361→   361→  updatedAt      DateTime @updatedAt
+   362→   362→
+   363→   363→  organization Organization @relation(fields: [organizationId], references: [id])
+   364→   364→  user         User         @relation("TimeEntryUser", fields: [userId], references: [id])
+   365→   365→  client       Client?      @relation(fields: [clientId], references: [id])
+   366→   366→  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+   367→   367→  content      Content?     @relation(fields: [contentId], references: [id])
+   368→   368→
+   369→   369→  @@index([organizationId])
+   370→   370→  @@index([userId])
+   371→   371→  @@index([clientId])
+   372→   372→}
+   373→   373→
+   374→   374→model Asset {
+   375→   375→  id             String   @id @default(cuid())
+   376→   376→  name           String
+   377→   377→  type           String   // image, video, document, template, font, brand-guide
+   378→   378→  url            String
+   379→   379→  thumbnailUrl   String?
+   380→   380→  size           Int      @default(0) // in bytes
+   381→   381→  mimeType       String?
+   382→   382→  tags           String?  // comma-separated
+   383→   383→  folder         String?  // folder path
+   384→   384→  metadata       String?  // JSON for width, height, duration, etc.
+   385→   385→  organizationId String
+   386→   386→  uploadedById   String
+   387→   387→  clientId       String?
+   388→   388→  createdAt      DateTime @default(now())
+   389→   389→  updatedAt      DateTime @updatedAt
+   390→   390→
+   391→   391→  organization Organization @relation(fields: [organizationId], references: [id])
+   392→   392→  uploadedBy   User         @relation("AssetUploader", fields: [uploadedById], references: [id])
+   393→   393→  client       Client?      @relation(fields: [clientId], references: [id])
+   394→   394→
+   395→   395→  @@index([organizationId])
+   396→   396→  @@index([type])
+   397→   397→  @@index([folder])
+   398→   398→}
+   399→   399→
+   400→   400→model Notification {
+   401→   401→  id             String   @id @default(cuid())
+   402→   402→  title          String
+   403→   403→  message        String
+   404→   404→  type           String   // info, warning, success, error, approval, mention
+   405→   405→  category       String   // content, approval, post, invoice, system
+   406→   406→  isRead         Boolean  @default(false)
+   407→   407→  actionUrl      String?
+   408→   408→  organizationId String
+   409→   409→  userId         String
+   410→   410→  createdAt      DateTime @default(now())
+   411→   411→
+   412→   412→  organization Organization @relation(fields: [organizationId], references: [id])
+   413→   413→  user         User         @relation("NotificationUser", fields: [userId], references: [id])
+   414→   414→
+   415→   415→  @@index([organizationId])
+   416→   416→  @@index([userId])
+   417→   417→  @@index([isRead])
+   418→   418→}
+   419→   419→
+   420→   420→model InboxMessage {
+   421→   421→  id             String   @id @default(cuid())
+   422→   422→  platform       String
+   423→   423→  senderName     String
+   424→   424→  senderAvatar   String?
+   425→   425→  content        String
+   426→   426→  type           String   // comment, mention, dm, reply, review
+   427→   427→  status         String   @default("unread") // unread, read, replied, ignored
+   428→   428→  postUrl        String?
+   429→   429→  socialAccountId String
+   430→   430→  organizationId String
+   431→   431→  repliedAt      DateTime?
+   432→   432→  createdAt      DateTime @default(now())
+   433→   433→
+   434→   434→  socialAccount  SocialAccount @relation(fields: [socialAccountId], references: [id])
+   435→   435→  organization   Organization  @relation(fields: [organizationId], references: [id])
+   436→   436→
+   437→   437→  @@index([organizationId])
+   438→   438→  @@index([status])
+   439→   439→  @@index([platform])
+   440→   440→}
+   441→   441→
+   442→   442→model Influencer {
+   443→   443→  id               String   @id @default(cuid())
+   444→   444→  name             String
+   445→   445→  username         String
+   446→   446→  platform         String
+   447→   447→  followers        Int      @default(0)
+   448→   448→  engagementRate   Float    @default(0)
+   449→   449→  niche            String?  // comma-separated niches
+   450→   450→  email            String?
+   451→   451→  phone            String?
+   452→   452→  notes            String?
+   453→   453→  status           String   @default("prospect") // prospect, contacted, negotiating, active, completed, declined
+   454→   454→  rate             Float?   // per-post rate
+   455→   455→  contractStart    DateTime?
+   456→   456→  contractEnd      DateTime?
+   457→   457→  organizationId   String
+   458→   458→  clientId         String?
+   459→   459→  campaignId       String?
+   460→   460→  createdAt        DateTime @default(now())
+   461→   461→  updatedAt        DateTime @updatedAt
+   462→   462→
+   463→   463→  organization Organization @relation(fields: [organizationId], references: [id])
+   464→   464→  client       Client?      @relation(fields: [clientId], references: [id])
+   465→   465→  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+   466→   466→
+   467→   467→  @@index([organizationId])
+   468→   468→  @@index([status])
+   469→   469→  @@index([platform])
+   470→   470→}
+   471→   471→
+   472→   472→model BrandKit {
+   473→   473→  id             String   @id @default(cuid())
+   474→   474→  name           String
+   475→   475→  type           String   // color, font, logo, voice, guideline
+   476→   476→  value          String   // JSON: color hex, font family, logo url, etc.
+   477→   477→  clientId       String?
+   478→   478→  organizationId String
+   479→   479→  createdAt      DateTime @default(now())
+   480→   480→  updatedAt      DateTime @updatedAt
+   481→   481→
+   482→   482→  organization Organization @relation(fields: [organizationId], references: [id])
+   483→   483→  client       Client?      @relation(fields: [clientId], references: [id])
+   484→   484→
+   485→   485→  @@index([organizationId])
+   486→   486→  @@index([clientId])
+   487→   487→}
+   488→   488→
+   489→   489→// ─── HR Module ──────────────────────────────────────────────────────────────────
+   490→   490→
+   491→   491→model Department {
+   492→   492→  id             String   @id @default(cuid())
+   493→   493→  name           String
+   494→   494→  description    String?
+   495→   495→  color          String   @default("#10b981")
+   496→   496→  headId         String?
+   497→   497→  organizationId String
+   498→   498→  createdAt      DateTime @default(now())
+   499→   499→  updatedAt      DateTime @updatedAt
+   500→   500→
+   501→   501→  organization Organization @relation(fields: [organizationId], references: [id])
+   502→   502→  employees    Employee[]
+   503→   503→  jobPostings  JobPosting[]
+   504→   504→
+   505→   505→  @@index([organizationId])
+   506→   506→}
+   507→   507→
+   508→   508→model Employee {
+   509→   509→  id             String   @id @default(cuid())
+   510→   510→  userId         String?
+   511→   511→  employeeId     String
+   512→   512→  firstName      String
+   513→   513→  lastName       String
+   514→   514→  email          String
+   515→   515→  phone          String?
+   516→   516→  avatar         String?
+   517→   517→  position       String
+   518→   518→  departmentId   String
+   519→   519→  hireDate       DateTime
+   520→   520→  status         String   @default("active")
+   521→   521→  employmentType String   @default("full-time")
+   522→   522→  salary         Float?
+   523→   523→  salaryCurrency String   @default("USD")
+   524→   524→  bankAccount    String?
+   525→   525→  taxId          String?
+   526→   526→  emergencyContact String?
+   527→   527→  address        String?
+   528→   528→  notes          String?
+   529→   529→  organizationId String
+   530→   530→  createdAt      DateTime @default(now())
+   531→   531→  updatedAt      DateTime @updatedAt
+   532→   532→
+   533→   533→  organization Organization @relation(fields: [organizationId], references: [id])
+   534→   534→  department   Department  @relation(fields: [departmentId], references: [id])
+   535→   535→  leaveRequests LeaveRequest[]
+   536→   536→  payrollItems  PayrollItem[]
+   537→   537→  user          User?       @relation("EmployeeUser", fields: [userId], references: [id])
+   538→   538→
+   539→   539→  @@unique([userId])
+   540→   540→
+   541→   541→  @@index([organizationId])
+   542→   542→  @@index([departmentId])
+   543→   543→  @@index([status])
+   544→   544→}
+   545→   545→
+   546→   546→model LeaveRequest {
+   547→   547→  id             String   @id @default(cuid())
+   548→   548→  employeeId     String
+   549→   549→  type           String
+   550→   550→  startDate      DateTime
+   551→   551→  endDate        DateTime
+   552→   552→  days           Float
+   553→   553→  reason         String?
+   554→   554→  status         String   @default("pending")
+   555→   555→  approvedById   String?
+   556→   556→  approvedAt     DateTime?
+   557→   557→  comment        String?
+   558→   558→  organizationId String
+   559→   559→  createdAt      DateTime @default(now())
+   560→   560→  updatedAt      DateTime @updatedAt
+   561→   561→
+   562→   562→  organization Organization @relation(fields: [organizationId], references: [id])
+   563→   563→  employee     Employee     @relation(fields: [employeeId], references: [id])
+   564→   564→
+   565→   565→  @@index([organizationId])
+   566→   566→  @@index([employeeId])
+   567→   567→  @@index([status])
+   568→   568→}
+   569→   569→
+   570→   570→model PayrollRun {
+   571→   571→  id             String   @id @default(cuid())
+   572→   572→  period         String
+   573→   573→  status         String   @default("draft")
+   574→   574→  runDate        DateTime
+   575→   575→  totalGross     Float    @default(0)
+   576→   576→  totalDeductions Float   @default(0)
+   577→   577→  totalNet       Float    @default(0)
+   578→   578→  organizationId String
+   579→   579→  createdAt      DateTime @default(now())
+   580→   580→  updatedAt      DateTime @updatedAt
+   581→   581→
+   582→   582→  organization Organization @relation(fields: [organizationId], references: [id])
+   583→   583→  items        PayrollItem[]
+   584→   584→
+   585→   585→  @@index([organizationId])
+   586→   586→  @@index([period])
+   587→   587→}
+   588→   588→
+   589→   589→model PayrollItem {
+   590→   590→  id             String   @id @default(cuid())
+   591→   591→  payrollRunId   String
+   592→   592→  employeeId     String
+   593→   593→  baseSalary     Float    @default(0)
+   594→   594→  overtime       Float    @default(0)
+   595→   595→  bonuses        Float    @default(0)
+   596→   596→  deductions     Float    @default(0)
+   597→   597→  tax            Float    @default(0)
+   598→   598→  netPay         Float    @default(0)
+   599→   599→  organizationId String
+   600→   600→  createdAt      DateTime @default(now())
+   601→   601→
+   602→   602→  payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id])
+   603→   603→  employee   Employee   @relation(fields: [employeeId], references: [id])
+   604→   604→
+   605→   605→  @@index([payrollRunId])
+   606→   606→  @@index([employeeId])
+   607→   607→}
+   608→   608→
+   609→   609→model JobPosting {
+   610→   610→  id             String   @id @default(cuid())
+   611→   611→  title          String
+   612→   612→  departmentId   String
+   613→   613→  type           String   @default("full-time")
+   614→   614→  location       String?
+   615→   615→  salary_min     Float?
+   616→   616→  salary_max     Float?
+   617→   617→  description    String
+   618→   618→  requirements   String?
+   619→   619→  status         String   @default("open")
+   620→   620→  postedDate     DateTime?
+   621→   621→  closingDate    DateTime?
+   622→   622→  applicants     Int      @default(0)
+   623→   623→  organizationId String
+   624→   624→  createdAt      DateTime @default(now())
+   625→   625→  updatedAt      DateTime @updatedAt
+   626→   626→
+   627→   627→  organization Organization @relation(fields: [organizationId], references: [id])
+   628→   628→  department   Department  @relation(fields: [departmentId], references: [id])
+   629→   629→
+   630→   630→  @@index([organizationId])
+   631→   631→  @@index([status])
+   632→   632→}
+   633→   633→
+   634→   634→// ─── Finance Module ────────────────────────────────────────────────────────────
+   635→   635→
+   636→   636→model Expense {
+   637→   637→  id             String   @id @default(cuid())
+   638→   638→  title          String
+   639→   639→  description    String?
+   640→   640→  amount         Float
+   641→   641→  category       String
+   642→   642→  date           DateTime
+   643→   643→  status         String   @default("pending")
+   644→   644→  receiptUrl     String?
+   645→   645→  submittedById  String
+   646→   646→  approvedById   String?
+   647→   647→  approvedAt     DateTime?
+   648→   648→  campaignId     String?
+   649→   649→  clientId       String?
+   650→   650→  organizationId String
+   651→   651→  createdAt      DateTime @default(now())
+   652→   652→  updatedAt      DateTime @updatedAt
+   653→   653→
+   654→   654→  organization Organization @relation(fields: [organizationId], references: [id])
+   655→   655→  submittedBy  User         @relation("ExpenseSubmitter", fields: [submittedById], references: [id])
+   656→   656→
+   657→   657→  @@index([organizationId])
+   658→   658→  @@index([status])
+   659→   659→  @@index([category])
+   660→   660→}
+   661→   661→
+   662→   662→model Account {
+   663→   663→  id             String   @id @default(cuid())
+   664→   664→  code           String
+   665→   665→  name           String
+   666→   666→  type           String
+   667→   667→  category       String?
+   668→   668→  balance        Float    @default(0)
+   669→   669→  isActive       Boolean  @default(true)
+   670→   670→  organizationId String
+   671→   671→  createdAt      DateTime @default(now())
+   672→   672→  updatedAt      DateTime @updatedAt
+   673→   673→
+   674→   674→  organization Organization @relation(fields: [organizationId], references: [id])
+   675→   675→
+   676→   676→  @@index([organizationId])
+   677→   677→  @@index([type])
+   678→   678→}
+   679→   679→
+   680→   680→model TaxRate {
+   681→   681→  id             String   @id @default(cuid())
+   682→   682→  name           String
+   683→   683→  rate           Float
+   684→   684→  type           String
+   685→   685→  isActive       Boolean  @default(true)
+   686→   686→  organizationId String
+   687→   687→  createdAt      DateTime @default(now())
+   688→   688→  updatedAt      DateTime @updatedAt
+   689→   689→
+   690→   690→  organization Organization @relation(fields: [organizationId], references: [id])
+   691→   691→
+   692→   692→  @@index([organizationId])
+   693→   693→}
+   694→   694→
+   695→   695→// ─── Inventory Module ──────────────────────────────────────────────────────────
+   696→   696→
+   697→   697→model Product {
+   698→   698→  id             String   @id @default(cuid())
+   699→   699→  name           String
+   700→   700→  sku            String
+   701→   701→  description    String?
+   702→   702→  category       String?
+   703→   703→  unit           String   @default("pcs")
+   704→   704→  unitPrice      Float    @default(0)
+   705→   705→  costPrice      Float    @default(0)
+   706→   706→  reorderLevel   Int      @default(10)
+   707→   707→  imageUrl       String?
+   708→   708→  tags           String?
+   709→   709→  isActive       Boolean  @default(true)
+   710→   710→  organizationId String
+   711→   711→  createdAt      DateTime @default(now())
+   712→   712→  updatedAt      DateTime @updatedAt
+   713→   713→
+   714→   714→  organization   Organization  @relation(fields: [organizationId], references: [id])
+   715→   715→  stockLevels    StockLevel[]
+   716→   716→  stockMovements StockMovement[]
+   717→   717→  poItems        PurchaseOrderItem[]
+   718→   718→
+   719→   719→  @@index([organizationId])
+   720→   720→  @@index([sku])
+   721→   721→  @@index([category])
+   722→   722→}
+   723→   723→
+   724→   724→model StockLevel {
+   725→   725→  id             String @id @default(cuid())
+   726→   726→  productId      String
+   727→   727→  warehouseId    String
+   728→   728→  quantity       Int    @default(0)
+   729→   729→  reservedQuantity Int  @default(0)
+   730→   730→  organizationId String
+   731→   731→
+   732→   732→  product    Product   @relation(fields: [productId], references: [id])
+   733→   733→  warehouse  Warehouse @relation(fields: [warehouseId], references: [id])
+   734→   734→
+   735→   735→  @@unique([productId, warehouseId])
+   736→   736→  @@index([organizationId])
+   737→   737→}
+   738→   738→
+   739→   739→model Warehouse {
+   740→   740→  id             String   @id @default(cuid())
+   741→   741→  name           String
+   742→   742→  code           String
+   743→   743→  location       String?
+   744→   744→  isDefault      Boolean  @default(false)
+   745→   745→  isActive       Boolean  @default(true)
+   746→   746→  organizationId String
+   747→   747→  createdAt      DateTime @default(now())
+   748→   748→  updatedAt      DateTime @updatedAt
+   749→   749→
+   750→   750→  organization Organization @relation(fields: [organizationId], references: [id])
+   751→   751→  stockLevels  StockLevel[]
+   752→   752→  stockMovements StockMovement[]
+   753→   753→
+   754→   754→  @@index([organizationId])
+   755→   755→}
+   756→   756→
+   757→   757→model StockMovement {
+   758→   758→  id             String   @id @default(cuid())
+   759→   759→  productId      String
+   760→   760→  warehouseId    String
+   761→   761→  type           String
+   762→   762→  quantity       Int
+   763→   763→  reference      String?
+   764→   764→  notes          String?
+   765→   765→  organizationId String
+   766→   766→  createdAt      DateTime @default(now())
+   767→   767→
+   768→   768→  product     Product   @relation(fields: [productId], references: [id])
+   769→   769→  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+   770→   770→
+   771→   771→  @@index([organizationId])
+   772→   772→  @@index([productId])
+   773→   773→  @@index([type])
+   774→   774→  @@index([createdAt])
+   775→   775→}
+   776→   776→
+   777→   777→model Vendor {
+   778→   778→  id             String   @id @default(cuid())
+   779→   779→  name           String
+   780→   780→  email          String?
+   781→   781→  phone          String?
+   782→   782→  address        String?
+   783→   783→  category       String?
+   784→   784→  rating         Float    @default(0)
+   785→   785→  isActive       Boolean  @default(true)
+   786→   786→  organizationId String
+   787→   787→  createdAt      DateTime @default(now())
+   788→   788→  updatedAt      DateTime @updatedAt
+   789→   789→
+   790→   790→  organization   Organization     @relation(fields: [organizationId], references: [id])
+   791→   791→  purchaseOrders PurchaseOrder[]
+   792→   792→
+   793→   793→  @@index([organizationId])
+   794→   794→}
+   795→   795→
+   796→   796→model PurchaseOrder {
+   797→   797→  id             String   @id @default(cuid())
+   798→   798→  number         String
+   799→   799→  vendorId       String
+   800→   800→  status         String   @default("draft")
+   801→   801→  items          String
+   802→   802→  subtotal       Float    @default(0)
+   803→   803→  tax            Float    @default(0)
+   804→   804→  total          Float    @default(0)
+   805→   805→  orderDate      DateTime
+   806→   806→  expectedDate   DateTime?
+   807→   807→  notes          String?
+   808→   808→  organizationId String
+   809→   809→  createdAt      DateTime @default(now())
+   810→   810→  updatedAt      DateTime @updatedAt
+   811→   811→
+   812→   812→  organization Organization @relation(fields: [organizationId], references: [id])
+   813→   813→  vendor       Vendor       @relation(fields: [vendorId], references: [id])
+   814→   814→  poItems      PurchaseOrderItem[]
+   815→   815→
+   816→   816→  @@index([organizationId])
+   817→   817→  @@index([vendorId])
+   818→   818→  @@index([status])
+   819→   819→}
+   820→   820→
+   821→   821→model PurchaseOrderItem {
+   822→   822→  id              String @id @default(cuid())
+   823→   823→  purchaseOrderId String
+   824→   824→  productId       String
+   825→   825→  quantity        Int
+   826→   826→  unitPrice       Float
+   827→   827→  total           Float
+   828→   828→
+   829→   829→  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+   830→   830→  product       Product       @relation(fields: [productId], references: [id])
+   831→   831→
+   832→   832→  @@index([purchaseOrderId])
+   833→   833→}
+   834→   834→

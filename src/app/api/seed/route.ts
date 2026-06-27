@@ -318,6 +318,143 @@ export async function GET() {
       db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[20].id, details: JSON.stringify({ title: 'TechCorp Year-in-Review Video', fromStage: 'disseminate', toStage: 'archived' }), organizationId: org.id, actorId: emma.id, createdAt: new Date(now.getTime() - 55 * dayMs) } }),
     ])
 
+    // ============================================
+    // HR: Departments
+    // ============================================
+    const departments = await Promise.all([
+      db.department.create({ data: { name: 'Engineering', description: 'Software development and technical operations', color: '#10b981', headId: marcus.id, organizationId: org.id } }),
+      db.department.create({ data: { name: 'Marketing', description: 'Brand strategy, campaigns, and content creation', color: '#f59e0b', headId: priya.id, organizationId: org.id } }),
+      db.department.create({ data: { name: 'Design', description: 'Visual design, UX/UI, and creative assets', color: '#ec4899', headId: jake.id, organizationId: org.id } }),
+      db.department.create({ data: { name: 'Human Resources', description: 'People operations, recruitment, and culture', color: '#8b5cf6', headId: luna.id, organizationId: org.id } }),
+      db.department.create({ data: { name: 'Finance', description: 'Financial planning, accounting, and payroll', color: '#06b6d4', headId: david.id, organizationId: org.id } }),
+      db.department.create({ data: { name: 'Operations', description: 'Business operations and process optimization', color: '#f97316', headId: emma.id, organizationId: org.id } }),
+    ])
+
+    const [engDept, mktDept, designDept, hrDept, finDept, opsDept] = departments
+
+    // ============================================
+    // HR: Employees
+    // ============================================
+    const employees = await Promise.all([
+      db.employee.create({ data: { employeeId: 'EMP-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@vortexdigital.com', phone: '+1-555-0101', position: 'CEO', departmentId: engDept.id, hireDate: new Date('2021-01-15'), status: 'active', employmentType: 'full-time', salary: 185000, salaryCurrency: 'USD', bankAccount: '****4521', taxId: 'SSN-***-**-1234', emergencyContact: 'James Chen +1-555-0102', address: '123 Tech Ave, San Francisco, CA', userId: sarah.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-002', firstName: 'Marcus', lastName: 'Williams', email: 'marcus.williams@vortexdigital.com', phone: '+1-555-0103', position: 'VP of Engineering', departmentId: engDept.id, hireDate: new Date('2021-03-01'), status: 'active', employmentType: 'full-time', salary: 165000, salaryCurrency: 'USD', bankAccount: '****7832', taxId: 'SSN-***-**-5678', emergencyContact: 'Lisa Williams +1-555-0104', address: '456 Code St, San Francisco, CA', userId: marcus.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-003', firstName: 'Priya', lastName: 'Sharma', email: 'priya.sharma@vortexdigital.com', phone: '+1-555-0105', position: 'Marketing Director', departmentId: mktDept.id, hireDate: new Date('2021-06-15'), status: 'active', employmentType: 'full-time', salary: 145000, salaryCurrency: 'USD', bankAccount: '****3291', taxId: 'SSN-***-**-9012', emergencyContact: 'Raj Sharma +1-555-0106', address: '789 Market Blvd, San Jose, CA', userId: priya.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-004', firstName: 'Jake', lastName: 'Morrison', email: 'jake.morrison@vortexdigital.com', phone: '+1-555-0107', position: 'Creative Director', departmentId: designDept.id, hireDate: new Date('2021-09-01'), status: 'active', employmentType: 'full-time', salary: 135000, salaryCurrency: 'USD', bankAccount: '****6543', taxId: 'SSN-***-**-3456', emergencyContact: 'Amy Morrison +1-555-0108', address: '321 Design Ln, Oakland, CA', userId: jake.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-005', firstName: 'Luna', lastName: 'Rodriguez', email: 'luna.rodriguez@vortexdigital.com', phone: '+1-555-0109', position: 'HR Manager', departmentId: hrDept.id, hireDate: new Date('2022-01-10'), status: 'active', employmentType: 'full-time', salary: 115000, salaryCurrency: 'USD', bankAccount: '****8765', taxId: 'SSN-***-**-7890', emergencyContact: 'Carlos Rodriguez +1-555-0110', address: '654 People Dr, San Francisco, CA', userId: luna.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-006', firstName: 'David', lastName: 'Kim', email: 'david.kim@vortexdigital.com', phone: '+1-555-0111', position: 'Finance Director', departmentId: finDept.id, hireDate: new Date('2022-03-15'), status: 'active', employmentType: 'full-time', salary: 140000, salaryCurrency: 'USD', bankAccount: '****2345', taxId: 'SSN-***-**-2345', emergencyContact: 'Suki Kim +1-555-0112', address: '987 Finance Way, Palo Alto, CA', userId: david.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-007', firstName: 'Emma', lastName: 'Thompson', email: 'emma.thompson@vortexdigital.com', phone: '+1-555-0113', position: 'Operations Manager', departmentId: opsDept.id, hireDate: new Date('2022-06-01'), status: 'active', employmentType: 'full-time', salary: 120000, salaryCurrency: 'USD', bankAccount: '****5678', taxId: 'SSN-***-**-6789', emergencyContact: 'Tom Thompson +1-555-0114', address: '147 Ops Circle, Mountain View, CA', userId: emma.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-008', firstName: 'Alex', lastName: 'Nakamura', email: 'alex.nakamura@vortexdigital.com', phone: '+1-555-0115', position: 'Senior Developer', departmentId: engDept.id, hireDate: new Date('2022-09-15'), status: 'on_leave', employmentType: 'full-time', salary: 130000, salaryCurrency: 'USD', bankAccount: '****9012', taxId: 'SSN-***-**-0123', emergencyContact: 'Yuki Nakamura +1-555-0116', address: '258 Dev Road, San Francisco, CA', userId: alex.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-009', firstName: 'Mia', lastName: 'Chang', email: 'mia.chang@vortexdigital.com', phone: '+1-555-0117', position: 'Content Strategist', departmentId: mktDept.id, hireDate: new Date('2023-01-20'), status: 'active', employmentType: 'full-time', salary: 95000, salaryCurrency: 'USD', bankAccount: '****3456', taxId: 'SSN-***-**-4567', emergencyContact: 'Wei Chang +1-555-0118', address: '369 Content Ave, San Jose, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-010', firstName: 'Ryan', lastName: 'O\'Brien', email: 'ryan.obrien@vortexdigital.com', phone: '+1-555-0119', position: 'UX Designer', departmentId: designDept.id, hireDate: new Date('2023-04-01'), status: 'probation', employmentType: 'full-time', salary: 90000, salaryCurrency: 'USD', bankAccount: '****7890', taxId: 'SSN-***-**-8901', emergencyContact: 'Kate O\'Brien +1-555-0120', address: '481 Design Blvd, Oakland, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-011', firstName: 'Sophie', lastName: 'Martinez', email: 'sophie.martinez@vortexdigital.com', phone: '+1-555-0121', position: 'Junior Developer', departmentId: engDept.id, hireDate: new Date('2024-01-15'), status: 'probation', employmentType: 'full-time', salary: 78000, salaryCurrency: 'USD', bankAccount: '****1357', taxId: 'SSN-***-**-2468', emergencyContact: 'Pablo Martinez +1-555-0122', address: '592 Code Way, San Francisco, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-012', firstName: 'James', lastName: 'Wilson', email: 'james.wilson@vortexdigital.com', phone: '+1-555-0123', position: 'Accountant', departmentId: finDept.id, hireDate: new Date('2022-11-01'), status: 'active', employmentType: 'full-time', salary: 85000, salaryCurrency: 'USD', bankAccount: '****2468', taxId: 'SSN-***-**-1357', emergencyContact: 'Mary Wilson +1-555-0124', address: '703 Ledger St, Palo Alto, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-013', firstName: 'Olivia', lastName: 'Patel', email: 'olivia.patel@vortexdigital.com', phone: '+1-555-0125', position: 'Social Media Manager', departmentId: mktDept.id, hireDate: new Date('2023-07-01'), status: 'active', employmentType: 'part-time', salary: 65000, salaryCurrency: 'USD', bankAccount: '****3579', taxId: 'SSN-***-**-4680', emergencyContact: 'Ravi Patel +1-555-0126', address: '814 Social Ave, San Jose, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-014', firstName: 'Nathan', lastName: 'Brooks', email: 'nathan.brooks@vortexdigital.com', phone: '+1-555-0127', position: 'Backend Developer', departmentId: engDept.id, hireDate: new Date('2021-05-20'), status: 'terminated', employmentType: 'full-time', salary: 125000, salaryCurrency: 'USD', bankAccount: '****4680', taxId: 'SSN-***-**-5791', emergencyContact: 'Diana Brooks +1-555-0128', address: '925 Server Ln, San Francisco, CA', organizationId: org.id } }),
+    ])
+
+    const [empSarah, empMarcus, empPriya, empJake, empLuna, empDavid, empEmma, empAlex, empMia, empRyan, empSophie, empJames, empOlivia, empNathan] = employees
+
+    // ============================================
+    // HR: Leave Requests
+    // ============================================
+    await Promise.all([
+      db.leaveRequest.create({ data: { employeeId: empAlex.id, type: 'vacation', startDate: new Date(now.getTime() - 3 * dayMs), endDate: new Date(now.getTime() + 4 * dayMs), days: 7, reason: 'Family vacation to Japan', status: 'approved', approvedById: empMarcus.id, approvedAt: new Date(now.getTime() - 10 * dayMs), organizationId: org.id } }),
+      db.leaveRequest.create({ data: { employeeId: empMia.id, type: 'sick', startDate: new Date(now.getTime() - 1 * dayMs), endDate: new Date(now.getTime() + 1 * dayMs), days: 3, reason: 'Flu recovery', status: 'pending', organizationId: org.id } }),
+      db.leaveRequest.create({ data: { employeeId: empEmma.id, type: 'personal', startDate: new Date(now.getTime() + 5 * dayMs), endDate: new Date(now.getTime() + 6 * dayMs), days: 2, reason: 'Moving to new apartment', status: 'pending', organizationId: org.id } }),
+      db.leaveRequest.create({ data: { employeeId: empRyan.id, type: 'vacation', startDate: new Date(now.getTime() + 14 * dayMs), endDate: new Date(now.getTime() + 21 * dayMs), days: 7, reason: 'Honeymoon trip', status: 'pending', organizationId: org.id } }),
+      db.leaveRequest.create({ data: { employeeId: empSarah.id, type: 'personal', startDate: new Date(now.getTime() - 15 * dayMs), endDate: new Date(now.getTime() - 14 * dayMs), days: 1, reason: 'Doctor appointment', status: 'approved', approvedById: empMarcus.id, approvedAt: new Date(now.getTime() - 20 * dayMs), organizationId: org.id } }),
+      db.leaveRequest.create({ data: { employeeId: empJames.id, type: 'sick', startDate: new Date(now.getTime() - 7 * dayMs), endDate: new Date(now.getTime() - 5 * dayMs), days: 3, reason: 'Migraine', status: 'approved', approvedById: empDavid.id, approvedAt: new Date(now.getTime() - 8 * dayMs), organizationId: org.id } }),
+      db.leaveRequest.create({ data: { employeeId: empOlivia.id, type: 'vacation', startDate: new Date(now.getTime() + 10 * dayMs), endDate: new Date(now.getTime() + 17 * dayMs), days: 7, reason: 'Visit family in India', status: 'rejected', approvedById: empLuna.id, approvedAt: new Date(now.getTime() - 3 * dayMs), comment: 'Too many team members on leave during this period', organizationId: org.id } }),
+      db.leaveRequest.create({ data: { employeeId: empSophie.id, type: 'personal', startDate: new Date(now.getTime() + 3 * dayMs), endDate: new Date(now.getTime() + 3 * dayMs), days: 1, reason: 'Bank appointment', status: 'pending', organizationId: org.id } }),
+    ])
+
+    // ============================================
+    // HR: Payroll Runs & Items
+    // ============================================
+    const payrollRun1 = await db.payrollRun.create({
+      data: {
+        period: '2025-01', status: 'completed', runDate: new Date('2025-01-31'), totalGross: 142800, totalDeductions: 42840, totalNet: 99960,
+        organizationId: org.id,
+        items: {
+          create: [
+            { employeeId: empSarah.id, baseSalary: 15417, overtime: 0, bonuses: 2000, deductions: 2500, tax: 4375, netPay: 10542, organizationId: org.id },
+            { employeeId: empMarcus.id, baseSalary: 13750, overtime: 500, bonuses: 0, deductions: 2200, tax: 3900, netPay: 8150, organizationId: org.id },
+            { employeeId: empPriya.id, baseSalary: 12083, overtime: 0, bonuses: 1500, deductions: 1900, tax: 3437, netPay: 8246, organizationId: org.id },
+            { employeeId: empJake.id, baseSalary: 11250, overtime: 300, bonuses: 0, deductions: 1800, tax: 3188, netPay: 6562, organizationId: org.id },
+            { employeeId: empLuna.id, baseSalary: 9583, overtime: 0, bonuses: 1000, deductions: 1500, tax: 2725, netPay: 6358, organizationId: org.id },
+            { employeeId: empDavid.id, baseSalary: 11667, overtime: 0, bonuses: 0, deductions: 1850, tax: 3325, netPay: 6492, organizationId: org.id },
+            { employeeId: empEmma.id, baseSalary: 10000, overtime: 200, bonuses: 500, deductions: 1600, tax: 2850, netPay: 6250, organizationId: org.id },
+            { employeeId: empAlex.id, baseSalary: 10833, overtime: 0, bonuses: 0, deductions: 1733, tax: 3108, netPay: 5992, organizationId: org.id },
+            { employeeId: empMia.id, baseSalary: 7917, overtime: 150, bonuses: 0, deductions: 1267, tax: 2275, netPay: 4525, organizationId: org.id },
+            { employeeId: empJames.id, baseSalary: 7083, overtime: 0, bonuses: 300, deductions: 1133, tax: 2033, netPay: 4217, organizationId: org.id },
+          ],
+        },
+      },
+    })
+
+    const payrollRun2 = await db.payrollRun.create({
+      data: {
+        period: '2025-02', status: 'completed', runDate: new Date('2025-02-28'), totalGross: 148500, totalDeductions: 44550, totalNet: 103950,
+        organizationId: org.id,
+        items: {
+          create: [
+            { employeeId: empSarah.id, baseSalary: 15417, overtime: 0, bonuses: 3000, deductions: 2600, tax: 4708, netPay: 11109, organizationId: org.id },
+            { employeeId: empMarcus.id, baseSalary: 13750, overtime: 750, bonuses: 0, deductions: 2300, tax: 4050, netPay: 8150, organizationId: org.id },
+            { employeeId: empPriya.id, baseSalary: 12083, overtime: 0, bonuses: 2000, deductions: 2000, tax: 3625, netPay: 8458, organizationId: org.id },
+            { employeeId: empJake.id, baseSalary: 11250, overtime: 500, bonuses: 1000, deductions: 1900, tax: 3438, netPay: 7412, organizationId: org.id },
+            { employeeId: empLuna.id, baseSalary: 9583, overtime: 0, bonuses: 500, deductions: 1550, tax: 2775, netPay: 5758, organizationId: org.id },
+            { employeeId: empDavid.id, baseSalary: 11667, overtime: 250, bonuses: 0, deductions: 1900, tax: 3417, netPay: 6600, organizationId: org.id },
+            { employeeId: empEmma.id, baseSalary: 10000, overtime: 400, bonuses: 500, deductions: 1650, tax: 2925, netPay: 6325, organizationId: org.id },
+            { employeeId: empAlex.id, baseSalary: 10833, overtime: 0, bonuses: 0, deductions: 1733, tax: 3108, netPay: 5992, organizationId: org.id },
+            { employeeId: empMia.id, baseSalary: 7917, overtime: 300, bonuses: 500, deductions: 1267, tax: 2425, netPay: 5025, organizationId: org.id },
+            { employeeId: empSophie.id, baseSalary: 6500, overtime: 0, bonuses: 0, deductions: 1040, tax: 1870, netPay: 3590, organizationId: org.id },
+            { employeeId: empJames.id, baseSalary: 7083, overtime: 100, bonuses: 0, deductions: 1133, tax: 2083, netPay: 3967, organizationId: org.id },
+            { employeeId: empOlivia.id, baseSalary: 5417, overtime: 0, bonuses: 200, deductions: 867, tax: 1567, netPay: 3183, organizationId: org.id },
+          ],
+        },
+      },
+    })
+
+    const payrollRun3 = await db.payrollRun.create({
+      data: {
+        period: '2025-03', status: 'draft', runDate: new Date(now.getTime()), totalGross: 152000, totalDeductions: 45600, totalNet: 106400,
+        organizationId: org.id,
+        items: {
+          create: [
+            { employeeId: empSarah.id, baseSalary: 15417, overtime: 0, bonuses: 0, deductions: 2467, tax: 4429, netPay: 8521, organizationId: org.id },
+            { employeeId: empMarcus.id, baseSalary: 13750, overtime: 300, bonuses: 1000, deductions: 2200, tax: 3975, netPay: 8875, organizationId: org.id },
+            { employeeId: empPriya.id, baseSalary: 12083, overtime: 0, bonuses: 0, deductions: 1933, tax: 3488, netPay: 6662, organizationId: org.id },
+            { employeeId: empJake.id, baseSalary: 11250, overtime: 200, bonuses: 0, deductions: 1800, tax: 3255, netPay: 6395, organizationId: org.id },
+            { employeeId: empLuna.id, baseSalary: 9583, overtime: 0, bonuses: 500, deductions: 1533, tax: 2769, netPay: 5781, organizationId: org.id },
+            { employeeId: empDavid.id, baseSalary: 11667, overtime: 0, bonuses: 0, deductions: 1867, tax: 3367, netPay: 6433, organizationId: org.id },
+            { employeeId: empEmma.id, baseSalary: 10000, overtime: 0, bonuses: 800, deductions: 1600, tax: 2900, netPay: 6300, organizationId: org.id },
+            { employeeId: empAlex.id, baseSalary: 10833, overtime: 0, bonuses: 0, deductions: 1733, tax: 3108, netPay: 5992, organizationId: org.id },
+            { employeeId: empMia.id, baseSalary: 7917, overtime: 0, bonuses: 300, deductions: 1267, tax: 2300, netPay: 4650, organizationId: org.id },
+            { employeeId: empRyan.id, baseSalary: 7500, overtime: 0, bonuses: 0, deductions: 1200, tax: 2175, netPay: 4125, organizationId: org.id },
+            { employeeId: empSophie.id, baseSalary: 6500, overtime: 100, bonuses: 0, deductions: 1040, tax: 1895, netPay: 3665, organizationId: org.id },
+            { employeeId: empJames.id, baseSalary: 7083, overtime: 0, bonuses: 200, deductions: 1133, tax: 2067, netPay: 4083, organizationId: org.id },
+            { employeeId: empOlivia.id, baseSalary: 5417, overtime: 0, bonuses: 0, deductions: 867, tax: 1566, netPay: 2984, organizationId: org.id },
+          ],
+        },
+      },
+    })
+
+    void payrollRun1; void payrollRun2; void payrollRun3
+
+    // ============================================
+    // HR: Job Postings
+    // ============================================
+    await Promise.all([
+      db.jobPosting.create({ data: { title: 'Senior Frontend Developer', departmentId: engDept.id, type: 'full-time', location: 'San Francisco, CA', salary_min: 130000, salary_max: 170000, description: 'We are looking for an experienced frontend developer to join our engineering team. You will build cutting-edge web applications using React, TypeScript, and Next.js.', requirements: '5+ years of React/TypeScript experience|Strong understanding of modern CSS and design systems|Experience with Next.js and server-side rendering|Excellent communication skills', status: 'open', postedDate: new Date(now.getTime() - 14 * dayMs), applicants: 23, organizationId: org.id } }),
+      db.jobPosting.create({ data: { title: 'Marketing Coordinator', departmentId: mktDept.id, type: 'full-time', location: 'San Jose, CA', salary_min: 60000, salary_max: 80000, description: 'Join our marketing team to coordinate campaigns, manage social media content calendars, and track performance metrics across all platforms.', requirements: '2+ years of marketing experience|Proficiency with marketing analytics tools|Strong organizational and project management skills|Experience with social media management', status: 'open', postedDate: new Date(now.getTime() - 7 * dayMs), applicants: 15, organizationId: org.id } }),
+      db.jobPosting.create({ data: { title: 'UI/UX Designer', departmentId: designDept.id, type: 'full-time', location: 'Remote', salary_min: 95000, salary_max: 130000, description: 'We need a talented UI/UX designer to create intuitive and beautiful user experiences for our products. You will work closely with product and engineering teams.', requirements: '3+ years of product design experience|Proficiency in Figma and design systems|Portfolio demonstrating user-centered design process|Strong prototyping skills', status: 'open', postedDate: new Date(now.getTime() - 3 * dayMs), applicants: 31, organizationId: org.id } }),
+      db.jobPosting.create({ data: { title: 'Backend Engineer', departmentId: engDept.id, type: 'full-time', location: 'San Francisco, CA', salary_min: 125000, salary_max: 165000, description: 'Seeking a backend engineer to design and implement scalable APIs and microservices. You will work on our core platform serving millions of users.', requirements: '4+ years of backend development|Experience with Node.js and PostgreSQL|Understanding of microservices architecture|Strong problem-solving skills', status: 'open', postedDate: new Date(now.getTime() - 21 * dayMs), applicants: 42, organizationId: org.id } }),
+      db.jobPosting.create({ data: { title: 'DevOps Engineer', departmentId: engDept.id, type: 'full-time', location: 'Remote', salary_min: 120000, salary_max: 155000, description: 'We are looking for a DevOps engineer to manage our cloud infrastructure, CI/CD pipelines, and ensure system reliability.', requirements: '3+ years of DevOps experience|Experience with AWS/GCP and Kubernetes|Strong knowledge of CI/CD tools|Experience with infrastructure as code', status: 'filled', postedDate: new Date(now.getTime() - 45 * dayMs), closingDate: new Date(now.getTime() - 10 * dayMs), applicants: 28, organizationId: org.id } }),
+      db.jobPosting.create({ data: { title: 'Content Writer (Intern)', departmentId: mktDept.id, type: 'internship', location: 'San Jose, CA', salary_min: 25000, salary_max: 35000, description: 'Great opportunity for a budding content writer to learn and grow. You will create blog posts, social media content, and marketing copy.', requirements: 'Pursuing a degree in English, Journalism, or Communications|Strong writing skills|Familiarity with social media platforms|Eager to learn and take feedback', status: 'open', postedDate: new Date(now.getTime() - 5 * dayMs), applicants: 19, organizationId: org.id } }),
+      db.jobPosting.create({ data: { title: 'Financial Analyst', departmentId: finDept.id, type: 'full-time', location: 'Palo Alto, CA', salary_min: 80000, salary_max: 110000, description: 'Join our finance team to analyze financial data, prepare reports, and support strategic decision-making across the organization.', requirements: '3+ years of financial analysis experience|Proficiency in Excel and financial modeling|CPA or CFA preferred|Strong analytical and communication skills', status: 'draft', applicants: 0, organizationId: org.id } }),
+      db.jobPosting.create({ data: { title: 'Office Manager', departmentId: opsDept.id, type: 'full-time', location: 'San Francisco, CA', salary_min: 55000, salary_max: 75000, description: 'Manage daily office operations, coordinate facilities, and support the team with administrative tasks.', requirements: '2+ years of office management experience|Strong organizational skills|Proficiency in office software|Excellent interpersonal communication', status: 'closed', postedDate: new Date(now.getTime() - 60 * dayMs), closingDate: new Date(now.getTime() - 30 * dayMs), applicants: 34, organizationId: org.id } }),
+    ])
+
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
@@ -341,6 +478,10 @@ export async function GET() {
         inboxMessages: 10,
         influencers: 5,
         brandKits: 6,
+        departments: departments.length,
+        employees: employees.length,
+        payrollRuns: 3,
+        jobPostings: 8,
       },
     })
   } catch (error) {

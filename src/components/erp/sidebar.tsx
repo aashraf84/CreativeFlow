@@ -24,6 +24,12 @@ import {
   FolderOpen,
   Palette,
   Receipt,
+  Banknote,
+  UserPlus,
+  Landmark,
+  Package,
+  ShoppingCart,
+  Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -54,6 +60,23 @@ const manageNav: NavItem[] = [
   { id: "brandKit", label: "Brand Kit", icon: Palette },
 ];
 
+const hrNav: NavItem[] = [
+  { id: "employees", label: "Employees", icon: Users },
+  { id: "payroll", label: "Payroll", icon: Banknote },
+  { id: "recruitment", label: "Recruitment", icon: UserPlus },
+];
+
+const financeNav: NavItem[] = [
+  { id: "expenses", label: "Expenses", icon: Receipt },
+  { id: "financeAccounts", label: "Accounts", icon: Landmark },
+];
+
+const inventoryNav: NavItem[] = [
+  { id: "products", label: "Products", icon: Package },
+  { id: "purchaseOrders", label: "Purchase Orders", icon: ShoppingCart },
+  { id: "vendors", label: "Vendors", icon: Store },
+];
+
 const insightNav: NavItem[] = [
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "automation", label: "Automation", icon: Zap, badge: "Pro" },
@@ -75,7 +98,7 @@ export function Sidebar() {
   const getBadge = (id: ActiveView): string | undefined => {
     if (id === 'inbox' && unreadInbox > 0) return String(unreadInbox);
     if (id === 'approvals' && pendingApprovals > 0) return String(pendingApprovals);
-    const item = [...mainNav, ...manageNav, ...insightNav, ...bottomNav].find(n => n.id === id);
+    const item = [...mainNav, ...manageNav, ...hrNav, ...financeNav, ...inventoryNav, ...insightNav, ...bottomNav].find(n => n.id === id);
     return item?.badge;
   };
 
@@ -139,6 +162,66 @@ export function Sidebar() {
               </p>
             )}
             {manageNav.map((item) => (
+              <NavButton
+                key={item.id}
+                item={{ ...item, badge: getBadge(item.id) }}
+                isActive={activeView === item.id}
+                onClick={() => setActiveView(item.id)}
+                collapsed={!sidebarOpen}
+              />
+            ))}
+          </div>
+
+          <Separator className="my-2" />
+
+          {/* HR Section */}
+          <div className="space-y-0.5">
+            {sidebarOpen && (
+              <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                HR
+              </p>
+            )}
+            {hrNav.map((item) => (
+              <NavButton
+                key={item.id}
+                item={{ ...item, badge: getBadge(item.id) }}
+                isActive={activeView === item.id}
+                onClick={() => setActiveView(item.id)}
+                collapsed={!sidebarOpen}
+              />
+            ))}
+          </div>
+
+          <Separator className="my-2" />
+
+          {/* Finance Section */}
+          <div className="space-y-0.5">
+            {sidebarOpen && (
+              <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                Finance
+              </p>
+            )}
+            {financeNav.map((item) => (
+              <NavButton
+                key={item.id}
+                item={{ ...item, badge: getBadge(item.id) }}
+                isActive={activeView === item.id}
+                onClick={() => setActiveView(item.id)}
+                collapsed={!sidebarOpen}
+              />
+            ))}
+          </div>
+
+          <Separator className="my-2" />
+
+          {/* Inventory Section */}
+          <div className="space-y-0.5">
+            {sidebarOpen && (
+              <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                Inventory
+              </p>
+            )}
+            {inventoryNav.map((item) => (
               <NavButton
                 key={item.id}
                 item={{ ...item, badge: getBadge(item.id) }}
