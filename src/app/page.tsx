@@ -96,49 +96,61 @@ export default function ERPPage() {
         setSeeded(true);
       }
 
-      // Load all data in parallel
-      const [
-        dashboardRes, contentsRes, postsRes, teamsRes,
-        accountsRes, campaignsRes, clientsRes, automationsRes, calendarRes,
-        approvalsRes, invoicesRes, timeEntriesRes, assetsRes,
-        notificationsRes, inboxRes, influencersRes, brandKitRes,
-        departmentsRes, employeesRes, leaveRequestsRes, payrollRes,
-        jobPostingsRes, expensesRes, financeAccountsRes, taxRatesRes,
-        journalEntriesRes, productsRes, warehousesRes, stockMovementsRes, vendorsRes, purchaseOrdersRes,
-        itAssetsRes, assetIssuancesRes,
-        disseminatorsRes, disseminationTasksRes,
-        conversationsRes, commTemplatesRes, commContactsRes,
-      ] = await Promise.all([
+      // Load data in batches to avoid overwhelming the server
+      const safeJson = (res: Response) => res.json().catch(() => ({}));
+
+      // Batch 1: Core data
+      const [dashboardRes, contentsRes, postsRes, teamsRes, accountsRes, campaignsRes] = await Promise.all([
         fetch("/api/dashboard"),
         fetch("/api/contents"),
         fetch("/api/posts"),
         fetch("/api/teams"),
         fetch("/api/social-accounts"),
         fetch("/api/campaigns"),
+      ]);
+
+      // Batch 2: Business data
+      const [clientsRes, automationsRes, calendarRes, approvalsRes, invoicesRes, timeEntriesRes] = await Promise.all([
         fetch("/api/clients"),
         fetch("/api/automation"),
         fetch("/api/calendar"),
         fetch("/api/approvals"),
         fetch("/api/invoices"),
         fetch("/api/time-entries"),
+      ]);
+
+      // Batch 3: Assets & Media
+      const [assetsRes, notificationsRes, inboxRes, influencersRes, brandKitRes, departmentsRes] = await Promise.all([
         fetch("/api/assets"),
         fetch("/api/notifications"),
         fetch("/api/inbox"),
         fetch("/api/influencers"),
         fetch("/api/brand-kit"),
         fetch("/api/departments"),
+      ]);
+
+      // Batch 4: HR & Finance
+      const [employeesRes, leaveRequestsRes, payrollRes, jobPostingsRes, expensesRes, financeAccountsRes] = await Promise.all([
         fetch("/api/employees"),
         fetch("/api/leave-requests"),
         fetch("/api/payroll"),
         fetch("/api/job-postings"),
         fetch("/api/expenses"),
         fetch("/api/accounts"),
+      ]);
+
+      // Batch 5: Finance details & Inventory
+      const [taxRatesRes, journalEntriesRes, productsRes, warehousesRes, stockMovementsRes, vendorsRes] = await Promise.all([
         fetch("/api/tax-rates"),
         fetch("/api/journal-entries"),
         fetch("/api/products"),
         fetch("/api/warehouses"),
         fetch("/api/stock-movements"),
         fetch("/api/vendors"),
+      ]);
+
+      // Batch 6: Remaining
+      const [purchaseOrdersRes, itAssetsRes, assetIssuancesRes, disseminatorsRes, disseminationTasksRes, conversationsRes, commTemplatesRes, commContactsRes] = await Promise.all([
         fetch("/api/purchase-orders"),
         fetch("/api/it-assets"),
         fetch("/api/asset-issuances"),
@@ -149,34 +161,45 @@ export default function ERPPage() {
         fetch("/api/communications/contacts"),
       ]);
 
-      const [
-        dashboardJson, contentsJson, postsJson, teamsJson,
-        accountsJson, campaignsJson, clientsJson, automationsJson, calendarJson,
-        approvalsJson, invoicesJson, timeEntriesJson, assetsJson,
-        notificationsJson, inboxJson, influencersJson, brandKitJson,
-        departmentsJson, employeesJson, leaveRequestsJson, payrollJson,
-        jobPostingsJson, expensesJson, financeAccountsJson, taxRatesJson,
-        journalEntriesJson, productsJson, warehousesJson, stockMovementsJson, vendorsJson, purchaseOrdersJson,
-        itAssetsJson, assetIssuancesJson,
-        disseminatorsJson, disseminationTasksJson,
-        conversationsJson, commTemplatesJson, commContactsJson,
-      ] = await Promise.all([
-        dashboardRes.json(), contentsRes.json(), postsRes.json(),
-        teamsRes.json(), accountsRes.json(), campaignsRes.json(),
-        clientsRes.json(), automationsRes.json(),
-        calendarRes.json(),
-        approvalsRes.json(), invoicesRes.json(), timeEntriesRes.json(),
-        assetsRes.json(), notificationsRes.json(), inboxRes.json(),
-        influencersRes.json(), brandKitRes.json(),
-        departmentsRes.json(), employeesRes.json(), leaveRequestsRes.json(),
-        payrollRes.json(), jobPostingsRes.json(), expensesRes.json(),
-        financeAccountsRes.json(), taxRatesRes.json(),
-        journalEntriesRes.json(), productsRes.json(), warehousesRes.json(), stockMovementsRes.json(),
-        vendorsRes.json(), purchaseOrdersRes.json(),
-        itAssetsRes.json(), assetIssuancesRes.json(),
-        disseminatorsRes.json(), disseminationTasksRes.json(),
-        conversationsRes.json(), commTemplatesRes.json(), commContactsRes.json(),
-      ]);
+      // Parse all JSON responses safely
+      const dashboardJson = await safeJson(dashboardRes);
+      const contentsJson = await safeJson(contentsRes);
+      const postsJson = await safeJson(postsRes);
+      const teamsJson = await safeJson(teamsRes);
+      const accountsJson = await safeJson(accountsRes);
+      const campaignsJson = await safeJson(campaignsRes);
+      const clientsJson = await safeJson(clientsRes);
+      const automationsJson = await safeJson(automationsRes);
+      const calendarJson = await safeJson(calendarRes);
+      const approvalsJson = await safeJson(approvalsRes);
+      const invoicesJson = await safeJson(invoicesRes);
+      const timeEntriesJson = await safeJson(timeEntriesRes);
+      const assetsJson = await safeJson(assetsRes);
+      const notificationsJson = await safeJson(notificationsRes);
+      const inboxJson = await safeJson(inboxRes);
+      const influencersJson = await safeJson(influencersRes);
+      const brandKitJson = await safeJson(brandKitRes);
+      const departmentsJson = await safeJson(departmentsRes);
+      const employeesJson = await safeJson(employeesRes);
+      const leaveRequestsJson = await safeJson(leaveRequestsRes);
+      const payrollJson = await safeJson(payrollRes);
+      const jobPostingsJson = await safeJson(jobPostingsRes);
+      const expensesJson = await safeJson(expensesRes);
+      const financeAccountsJson = await safeJson(financeAccountsRes);
+      const taxRatesJson = await safeJson(taxRatesRes);
+      const journalEntriesJson = await safeJson(journalEntriesRes);
+      const productsJson = await safeJson(productsRes);
+      const warehousesJson = await safeJson(warehousesRes);
+      const stockMovementsJson = await safeJson(stockMovementsRes);
+      const vendorsJson = await safeJson(vendorsRes);
+      const purchaseOrdersJson = await safeJson(purchaseOrdersRes);
+      const itAssetsJson = await safeJson(itAssetsRes);
+      const assetIssuancesJson = await safeJson(assetIssuancesRes);
+      const disseminatorsJson = await safeJson(disseminatorsRes);
+      const disseminationTasksJson = await safeJson(disseminationTasksRes);
+      const conversationsJson = await safeJson(conversationsRes);
+      const commTemplatesJson = await safeJson(commTemplatesRes);
+      const commContactsJson = await safeJson(commContactsRes);
 
       // Dashboard - map API response to store format
       if (dashboardJson && !dashboardJson.error) {

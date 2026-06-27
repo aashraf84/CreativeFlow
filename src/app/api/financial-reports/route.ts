@@ -102,8 +102,8 @@ export async function GET(request: Request) {
       const totalEquity = equityAccounts.reduce((s, a) => s + a.computedBalance, 0)
 
       // Calculate net income to include in equity for balanced books
-      const revenueAccounts = accounts.filter(a => a.type === 'revenue')
-      const expenseAccounts = accounts.filter(a => a.type === 'expense')
+      const revenueAccounts = accountsWithBalances.filter(a => a.type === 'revenue')
+      const expenseAccounts = accountsWithBalances.filter(a => a.type === 'expense')
       const totalRevenue = revenueAccounts.reduce((s, a) => s + a.computedBalance, 0)
       const totalExpenses = expenseAccounts.reduce((s, a) => s + a.computedBalance, 0)
       const netIncome = totalRevenue - totalExpenses

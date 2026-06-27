@@ -133,6 +133,31 @@ export function FinanceAccountsView() {
   const [editingTax, setEditingTax] = useState<TaxRate | null>(null)
   const [taxForm, setTaxForm] = useState<TaxRateFormData>(defaultTaxForm)
 
+  // ── Fallback data fetching with retry ────────────────────────────────
+  useEffect(() => {
+    const fetchWithRetry = async (url: string, setter: (data: unknown[]) => void, maxRetries = 3) => {
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const res = await fetch(url)
+          const json = await res.json()
+          if (json.data) { setter(json.data); return }
+        } catch { /* retry */ }
+        if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 2000 * (i + 1)))
+      }
+    }
+    if (financeAccounts.length === 0) {
+      fetchWithRetry("/api/accounts", (d) => useERPStore.getState().setFinanceAccounts(d as Account[]))
+    }
+    if (journalEntries.length === 0) {
+      fetchWithRetry("/api/journal-entries", (d) => useERPStore.getState().setJournalEntries(d as JournalEntry[]))
+    }
+    if (taxRates.length === 0) {
+      fetchWithRetry("/api/tax-rates", (d) => useERPStore.getState().setTaxRates(d as TaxRate[]))
+    }
+    // Pre-fetch trial balance report so it's ready when the user clicks the tab
+    fetchWithRetry("/api/financial-reports?type=trial-balance", (d) => setReportData(d as Record<string, unknown>))
+  }, []) // only on mount
+
   // ── Computed ─────────────────────────────────────────────────────
   const parentAccounts = useMemo(() => financeAccounts.filter((a) => !a.parentId), [financeAccounts])
   const childAccountsMap = useMemo(() => {
@@ -159,11 +184,8 @@ export function FinanceAccountsView() {
   const kpis = useMemo(() => {
     const byType: Record<string, number> = {}
     financeAccounts.forEach((a) => {
-      if (!a.parentId) return // only leaf accounts for real totals
-      const totals = safeParse(a._count?.journalLines, 0)
-      if (totals > 0 || a.balance !== 0) {
-        byType[a.type] = (byType[a.type] || 0) + a.balance
-      }
+      if (!a.parentId) return // only leaf/child accounts for totals
+      byType[a.type] = (byType[a.type] || 0) + a.balance
     })
     return {
       totalAssets: byType["asset"] || 0,
@@ -348,13 +370,19 @@ export function FinanceAccountsView() {
       else if (activeTab === "pnl") type = "pnl"
       if (!type) return
       setReportLoading(true)
-      try {
-        const params = new URLSearchParams({ type })
-        if (reportPeriod) params.set("period", reportPeriod)
-        const res = await fetch(`/api/financial-reports?${params}`)
-        const json = await res.json()
-        if (!cancelled) setReportData(json.data || null)
-      } catch { /* ignore */ }
+      // Retry up to 3 times with delay for transient server failures
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const params = new URLSearchParams({ type })
+          if (reportPeriod) params.set("period", reportPeriod)
+          const res = await fetch(`/api/financial-reports?${params}`)
+          const json = await res.json()
+          if (!cancelled) setReportData(json.data || null)
+          break // success, stop retrying
+        } catch {
+          if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+        }
+      }
       if (!cancelled) setReportLoading(false)
     }
     fetchReport()
@@ -536,7 +564,7 @@ export function FinanceAccountsView() {
                         </React.Fragment>
                       )
                     })}
-                    {filteredAccounts.length === 0 && (
+                    {financeAccounts.length === 0 && (
                       <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No accounts found. Add your first account to get started.</td></tr>
                     )}
                   </tbody>
