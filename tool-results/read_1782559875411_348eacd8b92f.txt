@@ -1,0 +1,2002 @@
+     1→import { NextResponse } from 'next/server'
+     2→import { db } from '@/lib/db'
+     3→
+     4→export async function GET() {
+     5→  try {
+     6→    // Check if data already exists - skip seeding if so
+     7→    const existingOrg = await db.organization.findFirst()
+     8→    const existingApprovals = existingOrg ? await db.approval.count({ where: { organizationId: existingOrg.id } }) : 0
+     9→    const existingDisseminators = existingOrg ? await db.disseminator.count({ where: { organizationId: existingOrg.id } }) : 0
+    10→    const existingCommContacts = existingOrg ? await db.communicationContact.count({ where: { organizationId: existingOrg.id } }) : 0
+    11→    
+    12→    if (existingOrg && existingApprovals > 0 && existingDisseminators > 0 && existingCommContacts > 0) {
+    13→      return NextResponse.json({ success: true, message: 'Database already seeded', skipped: true })
+    14→    }
+    15→    
+    16→    // If org exists and has approvals but no disseminators, create them
+    17→    if (existingOrg && existingApprovals > 0 && existingDisseminators === 0) {
+    18→      await seedDisseminators(existingOrg.id)
+    19→    }
+    20→    
+    21→    // If org exists but no communication data, seed communications
+    22→    if (existingOrg && existingCommContacts === 0) {
+    23→      await seedCommunications(existingOrg.id)
+    24→      return NextResponse.json({ success: true, message: 'Communications seeded', skipped: false })
+    25→    }
+    26→
+    27→    // Clear existing data in correct order (respecting foreign keys)
+    28→    await db.communicationMessage.deleteMany()
+    29→    await db.conversation.deleteMany()
+    30→    await db.communicationTemplate.deleteMany()
+    31→    await db.communicationContact.deleteMany()
+    32→    await db.brandKit.deleteMany()
+    33→    await db.influencer.deleteMany()
+    34→    await db.inboxMessage.deleteMany()
+    35→    await db.notification.deleteMany()
+    36→    await db.asset.deleteMany()
+    37→    await db.timeEntry.deleteMany()
+    38→    await db.invoice.deleteMany()
+    39→    await db.approval.deleteMany()
+    40→    await db.activityLog.deleteMany()
+    41→    await db.comment.deleteMany()
+    42→    await db.disseminationTask.deleteMany()
+    43→    await db.disseminator.deleteMany()
+    44→    await db.post.deleteMany()
+    45→    await db.automationRule.deleteMany()
+    46→    await db.socialAccount.deleteMany()
+    47→    await db.content.deleteMany()
+    48→    await db.campaign.deleteMany()
+    49→    await db.client.deleteMany()
+    50→    await db.teamMember.deleteMany()
+    51→    await db.team.deleteMany()
+    52→    await db.user.deleteMany()
+    53→    await db.organization.deleteMany()
+    54→
+    55→    // ============================================
+    56→    // 1. Organization
+    57→    // ============================================
+    58→    const org = await db.organization.create({
+    59→      data: {
+    60→        name: 'Vortex Digital',
+    61→        slug: 'vortex-digital',
+    62→        logo: '/logo.svg',
+    63→        plan: 'professional',
+    64→        maxUsers: 25,
+    65→        maxAccounts: 50,
+    66→      },
+    67→    })
+    68→
+    69→    // ============================================
+    70→    // 2. Users
+    71→    // ============================================
+    72→    const users = await Promise.all([
+    73→      db.user.create({
+    74→        data: { email: 'sarah.chen@vortexdigital.com', name: 'Sarah Chen', role: 'admin', organizationId: org.id },
+    75→      }),
+    76→      db.user.create({
+    77→        data: { email: 'marcus.williams@vortexdigital.com', name: 'Marcus Williams', role: 'lead', organizationId: org.id },
+    78→      }),
+    79→      db.user.create({
+    80→        data: { email: 'priya.sharma@vortexdigital.com', name: 'Priya Sharma', role: 'lead', organizationId: org.id },
+    81→      }),
+    82→      db.user.create({
+    83→        data: { email: 'jake.morrison@vortexdigital.com', name: 'Jake Morrison', role: 'lead', organizationId: org.id },
+    84→      }),
+    85→      db.user.create({
+    86→        data: { email: 'luna.rodriguez@vortexdigital.com', name: 'Luna Rodriguez', role: 'member', organizationId: org.id },
+    87→      }),
+    88→      db.user.create({
+    89→        data: { email: 'david.kim@vortexdigital.com', name: 'David Kim', role: 'member', organizationId: org.id },
+    90→      }),
+    91→      db.user.create({
+    92→        data: { email: 'emma.thompson@vortexdigital.com', name: 'Emma Thompson', role: 'member', organizationId: org.id },
+    93→      }),
+    94→      db.user.create({
+    95→        data: { email: 'alex.nakamura@vortexdigital.com', name: 'Alex Nakamura', role: 'member', organizationId: org.id },
+    96→      }),
+    97→      db.user.create({
+    98→        data: { email: 'maya.patel@vortexdigital.com', name: 'Maya Patel', role: 'member', organizationId: org.id },
+    99→      }),
+   100→      db.user.create({
+   101→        data: { email: 'jordan.lee@vortexdigital.com', name: 'Jordan Lee', role: 'member', organizationId: org.id },
+   102→      }),
+   103→      db.user.create({
+   104→        data: { email: 'sam.rodriguez@vortexdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: org.id },
+   105→      }),
+   106→      db.user.create({
+   107→        data: { email: 'riley.kim@vortexdigital.com', name: 'Riley Kim', role: 'member', organizationId: org.id },
+   108→      }),
+   109→    ])
+   110→
+   111→    const [sarah, marcus, priya, jake, luna, david, emma, alex, maya, jordan, sam, riley] = users
+   112→
+   113→    // ============================================
+   114→    // 3. Teams
+   115→    // ============================================
+   116→    const teams = await Promise.all([
+   117→      db.team.create({
+   118→        data: { name: 'Creatives', type: 'creatives', color: '#f59e0b', icon: 'lightbulb', description: 'Ideation and creative direction for all campaigns', organizationId: org.id },
+   119→      }),
+   120→      db.team.create({
+   121→        data: { name: 'Content', type: 'content', color: '#10b981', icon: 'pen-tool', description: 'Copywriting and content creation across all platforms', organizationId: org.id },
+   122→      }),
+   123→      db.team.create({
+   124→        data: { name: 'Design', type: 'design', color: '#8b5cf6', icon: 'palette', description: 'Visual design, graphics, and brand assets', organizationId: org.id },
+   125→      }),
+   126→      db.team.create({
+   127→        data: { name: 'Edit', type: 'edit', color: '#ef4444', icon: 'film', description: 'Video editing, post-production, and quality review', organizationId: org.id },
+   128→      }),
+   129→      db.team.create({
+   130→        data: { name: 'Archive', type: 'archive', color: '#6b7280', icon: 'archive', description: 'Content archiving and asset management', organizationId: org.id },
+   131→      }),
+   132→      db.team.create({
+   133→        data: { name: 'Dissemination', type: 'dissemination', color: '#3b82f6', icon: 'share-2', description: 'Scheduling, publishing, and distribution across platforms', organizationId: org.id },
+   134→      }),
+   135→    ])
+   136→
+   137→    const [creativesTeam, contentTeam, designTeam, editTeam, archiveTeam, disseminationTeam] = teams
+   138→
+   139→    // Team Members
+   140→    await Promise.all([
+   141→      db.teamMember.create({ data: { userId: marcus.id, teamId: creativesTeam.id, role: 'lead' } }),
+   142→      db.teamMember.create({ data: { userId: luna.id, teamId: creativesTeam.id, role: 'member' } }),
+   143→      db.teamMember.create({ data: { userId: priya.id, teamId: contentTeam.id, role: 'lead' } }),
+   144→      db.teamMember.create({ data: { userId: david.id, teamId: contentTeam.id, role: 'member' } }),
+   145→      db.teamMember.create({ data: { userId: emma.id, teamId: contentTeam.id, role: 'member' } }),
+   146→      db.teamMember.create({ data: { userId: jake.id, teamId: designTeam.id, role: 'lead' } }),
+   147→      db.teamMember.create({ data: { userId: luna.id, teamId: designTeam.id, role: 'member' } }),
+   148→      db.teamMember.create({ data: { userId: alex.id, teamId: designTeam.id, role: 'member' } }),
+   149→      db.teamMember.create({ data: { userId: marcus.id, teamId: editTeam.id, role: 'lead' } }),
+   150→      db.teamMember.create({ data: { userId: david.id, teamId: editTeam.id, role: 'member' } }),
+   151→      db.teamMember.create({ data: { userId: emma.id, teamId: archiveTeam.id, role: 'lead' } }),
+   152→      db.teamMember.create({ data: { userId: alex.id, teamId: disseminationTeam.id, role: 'lead' } }),
+   153→      db.teamMember.create({ data: { userId: luna.id, teamId: disseminationTeam.id, role: 'member' } }),
+   154→      db.teamMember.create({ data: { userId: maya.id, teamId: disseminationTeam.id, role: 'member' } }),
+   155→      db.teamMember.create({ data: { userId: jordan.id, teamId: disseminationTeam.id, role: 'member' } }),
+   156→      db.teamMember.create({ data: { userId: sam.id, teamId: disseminationTeam.id, role: 'member' } }),
+   157→      db.teamMember.create({ data: { userId: riley.id, teamId: disseminationTeam.id, role: 'member' } }),
+   158→    ])
+   159→
+   160→    // ============================================
+   161→    // 4. Clients
+   162→    // ============================================
+   163→    const clients = await Promise.all([
+   164→      db.client.create({
+   165→        data: { name: 'TechCorp', industry: 'Technology', website: 'https://techcorp.io', email: 'marketing@techcorp.io', phone: '+1-555-0101', status: 'active', organizationId: org.id },
+   166→      }),
+   167→      db.client.create({
+   168→        data: { name: 'FashionHub', industry: 'Fashion & Retail', website: 'https://fashionhub.com', email: 'pr@fashionhub.com', phone: '+1-555-0202', status: 'active', organizationId: org.id },
+   169→      }),
+   170→      db.client.create({
+   171→        data: { name: 'FoodVibe', industry: 'Food & Beverage', website: 'https://foodvibe.co', email: 'hello@foodvibe.co', phone: '+1-555-0303', status: 'active', organizationId: org.id },
+   172→      }),
+   173→      db.client.create({
+   174→        data: { name: 'AutoDrive', industry: 'Automotive', website: 'https://autodrive.com', email: 'media@autodrive.com', phone: '+1-555-0404', status: 'active', organizationId: org.id },
+   175→      }),
+   176→      db.client.create({
+   177→        data: { name: 'WellnessCo', industry: 'Health & Wellness', website: 'https://wellnessco.com', email: 'info@wellnessco.com', phone: '+1-555-0505', status: 'prospect', organizationId: org.id },
+   178→      }),
+   179→    ])
+   180→
+   181→    const [techcorp, fashionhub, foodvibe, autodrive, wellnessco] = clients
+   182→
+   183→    // ============================================
+   184→    // 5. Campaigns
+   185→    // ============================================
+   186→    const campaigns = await Promise.all([
+   187→      db.campaign.create({
+   188→        data: { name: 'TechCorp Spring Launch 2025', description: 'Full social media campaign for TechCorp\'s new SaaS product launch targeting enterprise clients', status: 'active', startDate: new Date('2025-02-01'), endDate: new Date('2025-04-30'), budget: 45000, clientId: techcorp.id, organizationId: org.id },
+   189→      }),
+   190→      db.campaign.create({
+   191→        data: { name: 'FashionHub Summer Collection', description: 'Visual-first campaign for FashionHub\'s summer line across Instagram and TikTok', status: 'active', startDate: new Date('2025-03-01'), endDate: new Date('2025-06-30'), budget: 32000, clientId: fashionhub.id, organizationId: org.id },
+   192→      }),
+   193→      db.campaign.create({
+   194→        data: { name: 'FoodVibe Taste Stories', description: 'User-generated content campaign encouraging food lovers to share their taste stories', status: 'draft', startDate: new Date('2025-05-01'), endDate: new Date('2025-07-31'), budget: 18000, clientId: foodvibe.id, organizationId: org.id },
+   195→      }),
+   196→      db.campaign.create({
+   197→        data: { name: 'AutoDrive EV Revolution', description: 'Multi-platform campaign for AutoDrive\'s electric vehicle lineup launch', status: 'completed', startDate: new Date('2024-10-01'), endDate: new Date('2025-01-31'), budget: 68000, clientId: autodrive.id, organizationId: org.id },
+   198→      }),
+   199→    ])
+   200→
+   201→    const [techcorpCampaign, fashionCampaign, foodvibeCampaign, autodriveCampaign] = campaigns
+   202→
+   203→    // ============================================
+   204→    // 6. Content Items
+   205→    // ============================================
+   206→    const now = new Date()
+   207→    const dayMs = 86400000
+   208→
+   209→    const contentItems = await Promise.all([
+   210→      // IDEA stage
+   211→      db.content.create({ data: { title: 'TechCorp CEO Spotlight Interview', description: 'Behind-the-scenes interview series with TechCorp leadership about the future of enterprise AI', type: 'video', stage: 'idea', priority: 'high', format: 'landscape', tags: 'interview,leadership,behind-the-scenes', dueDate: new Date(now.getTime() + 14 * dayMs), organizationId: org.id, campaignId: techcorpCampaign.id, creatorId: marcus.id, assigneeId: marcus.id, teamId: creativesTeam.id } }),
+   212→      db.content.create({ data: { title: 'FashionHub Summer Lookbook Reel', description: 'Fast-paced reel showcasing the top 10 summer looks from the new collection', type: 'reel', stage: 'idea', priority: 'medium', format: 'vertical', tags: 'lookbook,summer,fashion-reel', dueDate: new Date(now.getTime() + 10 * dayMs), organizationId: org.id, campaignId: fashionCampaign.id, creatorId: luna.id, assigneeId: luna.id, teamId: creativesTeam.id } }),
+   213→      db.content.create({ data: { title: 'FoodVibe Recipe Card Series', description: 'Weekly recipe cards featuring seasonal ingredients for Instagram carousel posts', type: 'carousel', stage: 'idea', priority: 'medium', format: 'square', tags: 'recipe,seasonal,carousel', dueDate: new Date(now.getTime() + 7 * dayMs), organizationId: org.id, campaignId: foodvibeCampaign.id, creatorId: priya.id, assigneeId: priya.id, teamId: contentTeam.id } }),
+   214→      db.content.create({ data: { title: 'AutoDrive Community Poll Series', description: 'Interactive LinkedIn polls about EV preferences and sustainability', type: 'post', stage: 'idea', priority: 'low', format: 'square', tags: 'poll,community,engagement', dueDate: new Date(now.getTime() + 21 * dayMs), organizationId: org.id, campaignId: autodriveCampaign.id, creatorId: emma.id, assigneeId: emma.id, teamId: contentTeam.id } }),
+   215→      // DESIGN stage
+   216→      db.content.create({ data: { title: 'TechCorp Product Feature Infographic', description: 'Infographic breaking down the 5 key features of the new SaaS platform', type: 'graphic', stage: 'design', priority: 'high', format: 'landscape', tags: 'infographic,product-features,saas', dueDate: new Date(now.getTime() + 5 * dayMs), organizationId: org.id, campaignId: techcorpCampaign.id, creatorId: marcus.id, assigneeId: jake.id, teamId: designTeam.id } }),
+   217→      db.content.create({ data: { title: 'FashionHub Brand Story Carousel', description: '7-slide carousel telling the FashionHub sustainability story', type: 'carousel', stage: 'design', priority: 'high', format: 'square', tags: 'brand-story,sustainability,carousel', dueDate: new Date(now.getTime() + 3 * dayMs), organizationId: org.id, campaignId: fashionCampaign.id, creatorId: priya.id, assigneeId: alex.id, teamId: designTeam.id } }),
+   218→      db.content.create({ data: { title: 'WellnessCo Mindfulness Tips Graphic Set', description: 'Set of 5 daily mindfulness tip graphics for Instagram feed', type: 'graphic', stage: 'design', priority: 'medium', format: 'square', tags: 'mindfulness,wellness,daily-tips', dueDate: new Date(now.getTime() + 8 * dayMs), organizationId: org.id, creatorId: luna.id, assigneeId: jake.id, teamId: designTeam.id } }),
+   219→      db.content.create({ data: { title: 'AutoDrive EV Comparison Chart', description: 'Visual comparison chart of AutoDrive EV models vs competitors', type: 'graphic', stage: 'design', priority: 'urgent', format: 'landscape', tags: 'comparison,ev,competitive', dueDate: new Date(now.getTime() + 2 * dayMs), organizationId: org.id, campaignId: autodriveCampaign.id, creatorId: marcus.id, assigneeId: luna.id, teamId: designTeam.id } }),
+   220→      // EDIT stage
+   221→      db.content.create({ data: { title: 'TechCorp Platform Demo Video', description: '3-minute product demo video for LinkedIn and YouTube', type: 'video', stage: 'edit', priority: 'urgent', format: 'landscape', tags: 'demo,product,video', dueDate: new Date(now.getTime() + 1 * dayMs), organizationId: org.id, campaignId: techcorpCampaign.id, creatorId: marcus.id, assigneeId: david.id, teamId: editTeam.id } }),
+   222→      db.content.create({ data: { title: 'FashionHub BTS Fashion Show Reel', description: 'Behind-the-scenes reel from the summer fashion show photoshoot', type: 'reel', stage: 'edit', priority: 'high', format: 'vertical', tags: 'behind-the-scenes,fashion-show,reel', dueDate: new Date(now.getTime() + 4 * dayMs), organizationId: org.id, campaignId: fashionCampaign.id, creatorId: luna.id, assigneeId: marcus.id, teamId: editTeam.id } }),
+   223→      db.content.create({ data: { title: 'FoodVibe Kitchen Stories Episode 3', description: 'Third episode of the Kitchen Stories video series featuring a local chef', type: 'video', stage: 'edit', priority: 'medium', format: 'landscape', tags: 'kitchen-stories,video-series,chef', dueDate: new Date(now.getTime() + 6 * dayMs), organizationId: org.id, campaignId: foodvibeCampaign.id, creatorId: priya.id, assigneeId: david.id, teamId: editTeam.id } }),
+   224→      // REVIEW stage
+   225→      db.content.create({ data: { title: 'TechCorp Case Study Carousel', description: 'Client success story carousel for TechCorp enterprise solution', type: 'carousel', stage: 'review', priority: 'high', format: 'square', tags: 'case-study,success-story,enterprise', dueDate: new Date(now.getTime() - 1 * dayMs), organizationId: org.id, campaignId: techcorpCampaign.id, creatorId: priya.id, assigneeId: sarah.id, teamId: contentTeam.id } }),
+   226→      db.content.create({ data: { title: 'FashionHub Influencer Collaboration Post', description: 'Sponsored post with @StyleMaven featuring FashionHub summer accessories', type: 'post', stage: 'review', priority: 'high', format: 'square', tags: 'influencer,sponsored,accessories', dueDate: new Date(now.getTime() - 1 * dayMs), organizationId: org.id, campaignId: fashionCampaign.id, creatorId: emma.id, assigneeId: priya.id, teamId: contentTeam.id } }),
+   227→      db.content.create({ data: { title: 'AutoDrive Test Drive Story Series', description: '5-part Instagram story series of real customer test drive experiences', type: 'story', stage: 'review', priority: 'medium', format: 'vertical', tags: 'test-drive,stories,customer-experience', dueDate: new Date(now.getTime() - 2 * dayMs), organizationId: org.id, campaignId: autodriveCampaign.id, creatorId: david.id, assigneeId: jake.id, teamId: contentTeam.id } }),
+   228→      // APPROVE stage
+   229→      db.content.create({ data: { title: 'TechCorp LinkedIn Thought Leadership Article', description: 'Long-form article on the future of cloud infrastructure for LinkedIn publishing', type: 'article', stage: 'approve', priority: 'medium', format: 'landscape', tags: 'thought-leadership,linkedin,cloud', dueDate: new Date(now.getTime() - 3 * dayMs), organizationId: org.id, campaignId: techcorpCampaign.id, creatorId: priya.id, assigneeId: sarah.id, teamId: contentTeam.id } }),
+   230→      db.content.create({ data: { title: 'FashionHub Summer Sale Announcement', description: 'Promotional graphics and copy for the 4th of July summer sale event', type: 'post', stage: 'approve', priority: 'urgent', format: 'square', tags: 'sale,promotion,summer', dueDate: new Date(now.getTime() - 1 * dayMs), organizationId: org.id, campaignId: fashionCampaign.id, creatorId: emma.id, assigneeId: sarah.id, teamId: contentTeam.id } }),
+   231→      db.content.create({ data: { title: 'WellnessCo 30-Day Challenge Graphic', description: 'Launch graphic for the 30-day wellness challenge community event', type: 'graphic', stage: 'approve', priority: 'medium', format: 'square', tags: 'challenge,community,wellness', dueDate: new Date(now.getTime() - 2 * dayMs), organizationId: org.id, creatorId: luna.id, assigneeId: sarah.id, teamId: designTeam.id } }),
+   232→      // DISSEMINATE stage
+   233→      db.content.create({ data: { title: 'TechCorp Feature Launch Thread', description: 'Twitter/X thread announcing the top 5 new features of the platform', type: 'post', stage: 'disseminate', priority: 'high', format: 'landscape', tags: 'launch,thread,features', dueDate: new Date(now.getTime() - 5 * dayMs), organizationId: org.id, campaignId: techcorpCampaign.id, creatorId: david.id, assigneeId: alex.id, teamId: disseminationTeam.id } }),
+   234→      db.content.create({ data: { title: 'FashionHub Style Guide TikTok', description: 'TikTok video showing 3 ways to style a summer outfit', type: 'video', stage: 'disseminate', priority: 'high', format: 'vertical', tags: 'style-guide,tiktok,outfit', dueDate: new Date(now.getTime() - 4 * dayMs), organizationId: org.id, campaignId: fashionCampaign.id, creatorId: luna.id, assigneeId: alex.id, teamId: disseminationTeam.id } }),
+   235→      db.content.create({ data: { title: 'AutoDrive EV Range Explainer Video', description: 'Short-form explainer video about EV range and charging for YouTube Shorts', type: 'video', stage: 'disseminate', priority: 'medium', format: 'vertical', tags: 'ev-range,explainer,youtube-shorts', dueDate: new Date(now.getTime() - 6 * dayMs), organizationId: org.id, campaignId: autodriveCampaign.id, creatorId: david.id, assigneeId: luna.id, teamId: disseminationTeam.id } }),
+   236→      // ARCHIVED stage
+   237→      db.content.create({ data: { title: 'AutoDrive Holiday Campaign Banner', description: 'Holiday season promotional banners across all platforms', type: 'graphic', stage: 'archived', priority: 'low', format: 'landscape', tags: 'holiday,promotional,banner', dueDate: new Date(now.getTime() - 30 * dayMs), publishedAt: new Date(now.getTime() - 35 * dayMs), organizationId: org.id, campaignId: autodriveCampaign.id, creatorId: jake.id, assigneeId: emma.id, teamId: archiveTeam.id } }),
+   238→      db.content.create({ data: { title: 'TechCorp Year-in-Review Video', description: 'Annual recap video highlighting TechCorp milestones and achievements', type: 'video', stage: 'archived', priority: 'low', format: 'landscape', tags: 'year-in-review,recap,milestones', dueDate: new Date(now.getTime() - 60 * dayMs), publishedAt: new Date(now.getTime() - 55 * dayMs), organizationId: org.id, campaignId: techcorpCampaign.id, creatorId: marcus.id, assigneeId: emma.id, teamId: archiveTeam.id } }),
+   239→    ])
+   240→
+   241→    // ============================================
+   242→    // 7. Social Accounts
+   243→    // ============================================
+   244→    const socialAccounts = await Promise.all([
+   245→      db.socialAccount.create({ data: { platform: 'instagram', accountId: 'ig_techcorp_official', username: '@techcorp', displayName: 'TechCorp Official', followers: 245000, isVerified: true, isActive: true, userId: alex.id, organizationId: org.id } }),
+   246→      db.socialAccount.create({ data: { platform: 'instagram', accountId: 'ig_fashionhub', username: '@fashionhub', displayName: 'FashionHub', followers: 890000, isVerified: true, isActive: true, userId: luna.id, organizationId: org.id } }),
+   247→      db.socialAccount.create({ data: { platform: 'facebook', accountId: 'fb_techcorp', username: 'TechCorp', displayName: 'TechCorp Inc.', followers: 180000, isVerified: true, isActive: true, userId: alex.id, organizationId: org.id } }),
+   248→      db.socialAccount.create({ data: { platform: 'facebook', accountId: 'fb_foodvibe', username: 'FoodVibe', displayName: 'FoodVibe', followers: 320000, isVerified: false, isActive: true, userId: luna.id, organizationId: org.id } }),
+   249→      db.socialAccount.create({ data: { platform: 'twitter', accountId: 'tw_techcorp', username: '@techcorp_io', displayName: 'TechCorp', followers: 95000, isVerified: true, isActive: true, userId: alex.id, organizationId: org.id } }),
+   250→      db.socialAccount.create({ data: { platform: 'twitter', accountId: 'tw_autodrive', username: '@autodrive_ev', displayName: 'AutoDrive', followers: 67000, isVerified: false, isActive: true, userId: luna.id, organizationId: org.id } }),
+   251→      db.socialAccount.create({ data: { platform: 'linkedin', accountId: 'li_techcorp', username: 'techcorp', displayName: 'TechCorp', followers: 420000, isVerified: true, isActive: true, userId: alex.id, organizationId: org.id } }),
+   252→      db.socialAccount.create({ data: { platform: 'linkedin', accountId: 'li_wellnessco', username: 'wellnessco', displayName: 'WellnessCo', followers: 28000, isVerified: false, isActive: true, userId: luna.id, organizationId: org.id } }),
+   253→      db.socialAccount.create({ data: { platform: 'tiktok', accountId: 'tt_fashionhub', username: '@fashionhub', displayName: 'FashionHub', followers: 1250000, isVerified: true, isActive: true, userId: luna.id, organizationId: org.id } }),
+   254→      db.socialAccount.create({ data: { platform: 'tiktok', accountId: 'tt_foodvibe', username: '@foodvibe', displayName: 'FoodVibe', followers: 560000, isVerified: false, isActive: true, userId: luna.id, organizationId: org.id } }),
+   255→      db.socialAccount.create({ data: { platform: 'youtube', accountId: 'yt_techcorp', username: 'TechCorp', displayName: 'TechCorp', followers: 78000, isVerified: true, isActive: true, userId: alex.id, organizationId: org.id } }),
+   256→      db.socialAccount.create({ data: { platform: 'youtube', accountId: 'yt_autodrive', username: 'AutoDrive', displayName: 'AutoDrive Official', followers: 145000, isVerified: false, isActive: true, userId: alex.id, organizationId: org.id } }),
+   257→    ])
+   258→
+   259→    // ============================================
+   260→    // 8. Posts
+   261→    // ============================================
+   262→    const [igTechcorp, igFashionhub, fbTechcorp, fbFoodvibe, twTechcorp, twAutodrive, liTechcorp, liWellnessco, ttFashionhub, ttFoodvibe, ytTechcorp, ytAutodrive] = socialAccounts
+   263→
+   264→    const posts = await Promise.all([
+   265→      // Published
+   266→      db.post.create({ data: { content: '🚀 Exciting news! Our new enterprise platform just got 5 game-changing features. See what\'s new →', platform: 'instagram', status: 'published', scheduledAt: new Date(now.getTime() - 7 * dayMs), publishedAt: new Date(now.getTime() - 7 * dayMs), engagement: JSON.stringify({ likes: 1240, comments: 89, shares: 234, saves: 156, impressions: 45000 }), socialAccountId: igTechcorp.id, contentId: contentItems[16].id, userId: alex.id, organizationId: org.id } }),
+   267→      db.post.create({ data: { content: 'Summer vibes are here! ☀️ Swipe to see our top 10 looks from the new collection → #FashionHubSummer', platform: 'instagram', status: 'published', scheduledAt: new Date(now.getTime() - 5 * dayMs), publishedAt: new Date(now.getTime() - 5 * dayMs), engagement: JSON.stringify({ likes: 8900, comments: 432, shares: 1200, saves: 2300, impressions: 350000 }), socialAccountId: igFashionhub.id, contentId: contentItems[17].id, userId: luna.id, organizationId: org.id } }),
+   268→      db.post.create({ data: { content: 'The future of cloud computing is here. Our CEO shares insights on what enterprise AI means for your business. Read the full article on our blog.', platform: 'linkedin', status: 'published', scheduledAt: new Date(now.getTime() - 3 * dayMs), publishedAt: new Date(now.getTime() - 3 * dayMs), engagement: JSON.stringify({ likes: 340, comments: 56, shares: 89, impressions: 28000 }), socialAccountId: liTechcorp.id, userId: alex.id, organizationId: org.id } }),
+   269→      db.post.create({ data: { content: '3 ways to style your summer outfit 🌴 Which one is your fave? #FashionHub #SummerStyle #OOTD', platform: 'tiktok', status: 'published', scheduledAt: new Date(now.getTime() - 4 * dayMs), publishedAt: new Date(now.getTime() - 4 * dayMs), engagement: JSON.stringify({ likes: 45000, comments: 2100, shares: 8900, views: 890000 }), socialAccountId: ttFashionhub.id, contentId: contentItems[17].id, userId: luna.id, organizationId: org.id } }),
+   270→      db.post.create({ data: { content: '🎄 Holiday season is here! Save big on AutoDrive this season. Visit autodrive.com for exclusive deals.', platform: 'facebook', status: 'published', scheduledAt: new Date(now.getTime() - 35 * dayMs), publishedAt: new Date(now.getTime() - 35 * dayMs), engagement: JSON.stringify({ likes: 890, comments: 45, shares: 120, impressions: 65000 }), socialAccountId: fbTechcorp.id, userId: alex.id, organizationId: org.id } }),
+   271→      db.post.create({ data: { content: 'How far can an EV really go? We put our models to the test. Watch the full video on YouTube →', platform: 'twitter', status: 'published', scheduledAt: new Date(now.getTime() - 6 * dayMs), publishedAt: new Date(now.getTime() - 6 * dayMs), engagement: JSON.stringify({ likes: 234, comments: 18, retweets: 67, impressions: 45000 }), socialAccountId: twAutodrive.id, contentId: contentItems[18].id, userId: luna.id, organizationId: org.id } }),
+   272→      // Scheduled
+   273→      db.post.create({ data: { content: '📣 New feature alert! Our platform now supports real-time collaboration. See it in action →', platform: 'twitter', status: 'scheduled', scheduledAt: new Date(now.getTime() + 1 * dayMs), socialAccountId: twTechcorp.id, contentId: contentItems[16].id, userId: alex.id, organizationId: org.id } }),
+   274→      db.post.create({ data: { content: 'Summer Sale starts NOW! 🎉 Up to 50% off select items. Shop the collection → #FashionHubSale', platform: 'instagram', status: 'scheduled', scheduledAt: new Date(now.getTime() + 2 * dayMs), socialAccountId: igFashionhub.id, contentId: contentItems[15].id, userId: luna.id, organizationId: org.id } }),
+   275→      db.post.create({ data: { content: 'Wondering about EV range? Our latest explainer breaks down everything you need to know about going electric.', platform: 'youtube', status: 'scheduled', scheduledAt: new Date(now.getTime() + 3 * dayMs), socialAccountId: ytAutodrive.id, contentId: contentItems[18].id, userId: alex.id, organizationId: org.id } }),
+   276→      db.post.create({ data: { content: 'Monday motivation! Start your week with these 3 simple mindfulness techniques 🧘‍♀️ #WellnessCo', platform: 'linkedin', status: 'scheduled', scheduledAt: new Date(now.getTime() + 4 * dayMs), socialAccountId: liWellnessco.id, contentId: contentItems[14].id, userId: luna.id, organizationId: org.id } }),
+   277→      db.post.create({ data: { content: 'Fresh recipes coming your way! 🍳 This week\'s seasonal special: Lemon Herb Grilled Salmon', platform: 'facebook', status: 'scheduled', scheduledAt: new Date(now.getTime() + 5 * dayMs), socialAccountId: fbFoodvibe.id, userId: luna.id, organizationId: org.id } }),
+   278→      // Draft
+   279→      db.post.create({ data: { content: 'Behind the scenes of our product photoshoot 📸 Stay tuned for the full reveal!', platform: 'instagram', status: 'draft', socialAccountId: igFashionhub.id, userId: luna.id, organizationId: org.id } }),
+   280→      db.post.create({ data: { content: 'Introducing Kitchen Stories: a new video series featuring local chefs and their signature dishes.', platform: 'tiktok', status: 'draft', socialAccountId: ttFoodvibe.id, contentId: contentItems[8].id, userId: luna.id, organizationId: org.id } }),
+   281→      db.post.create({ data: { content: 'Our 30-day wellness challenge starts soon! Are you ready? Sign up at wellnessco.com/challenge', platform: 'instagram', status: 'draft', socialAccountId: igFashionhub.id, contentId: contentItems[14].id, userId: luna.id, organizationId: org.id } }),
+   282→      db.post.create({ data: { content: 'Customer spotlight: How TechCorp helped Acme Inc reduce their infrastructure costs by 40%', platform: 'linkedin', status: 'draft', socialAccountId: liTechcorp.id, contentId: contentItems[10].id, userId: alex.id, organizationId: org.id } }),
+   283→    ])
+   284→
+   285→    // ============================================
+   286→    // 9. Automation Rules
+   287→    // ============================================
+   288→    const automations = await Promise.all([
+   289→      db.automationRule.create({ data: { name: 'Auto-assign to Design Team', description: 'When content moves to design stage, automatically assign to the Design team lead', trigger: 'stage_change', conditions: JSON.stringify({ fromStage: 'idea', toStage: 'design' }), actions: JSON.stringify({ assignToTeam: 'design', notifyTeamLead: true }), isActive: true, organizationId: org.id } }),
+   290→      db.automationRule.create({ data: { name: 'Content Review Reminder', description: 'Send a reminder when content has been in review stage for more than 48 hours', trigger: 'scheduled_time', conditions: JSON.stringify({ stage: 'review', hoursInStage: 48 }), actions: JSON.stringify({ sendReminder: true, escalateTo: 'admin' }), isActive: true, organizationId: org.id } }),
+   291→      db.automationRule.create({ data: { name: 'Auto-archive Completed Campaigns', description: 'Move all content to archive when a campaign status changes to completed', trigger: 'stage_change', conditions: JSON.stringify({ campaignStatus: 'completed' }), actions: JSON.stringify({ moveContentToArchive: true }), isActive: true, organizationId: org.id } }),
+   292→      db.automationRule.create({ data: { name: 'High Engagement Alert', description: 'Notify the team when a published post gets more than 1000 likes in the first hour', trigger: 'engagement_threshold', conditions: JSON.stringify({ metric: 'likes', threshold: 1000, timeWindow: '1h' }), actions: JSON.stringify({ notifyTeam: true, boostPost: true }), isActive: true, organizationId: org.id } }),
+   293→      db.automationRule.create({ data: { name: 'New Content Welcome Message', description: 'Send a welcome message to the content creator when new content is created', trigger: 'content_created', conditions: JSON.stringify({ contentType: ['post', 'video', 'graphic'] }), actions: JSON.stringify({ sendMessage: true, assignDefaultTeam: true }), isActive: false, organizationId: org.id } }),
+   294→    ])
+   295→
+   296→    // ============================================
+   297→    // 10. Comments
+   298→    // ============================================
+   299→    await Promise.all([
+   300→      db.comment.create({ data: { text: 'Great concept! Let\'s make sure we highlight the AI-powered features prominently.', contentId: contentItems[0].id, userId: sarah.id } }),
+   301→      db.comment.create({ data: { text: 'I agree. Should we also include a demo snippet in the intro?', contentId: contentItems[0].id, userId: marcus.id } }),
+   302→      db.comment.create({ data: { text: 'The color palette needs to match TechCorp\'s brand guidelines. Please use the updated brand kit.', contentId: contentItems[4].id, userId: sarah.id } }),
+   303→      db.comment.create({ data: { text: 'Updated the colors. Can you review the new version?', contentId: contentItems[4].id, userId: jake.id } }),
+   304→      db.comment.create({ data: { text: 'This is urgent - the client wants it by Friday. Can we prioritize?', contentId: contentItems[7].id, userId: marcus.id } }),
+   305→      db.comment.create({ data: { text: 'Already on it. I\'ll have the first draft by tomorrow morning.', contentId: contentItems[7].id, userId: luna.id } }),
+   306→      db.comment.create({ data: { text: 'The video needs better transitions between sections. Also, the audio levels are inconsistent.', contentId: contentItems[8].id, userId: marcus.id } }),
+   307→      db.comment.create({ data: { text: 'Good catch! I\'ll fix the transitions and normalize the audio.', contentId: contentItems[8].id, userId: david.id } }),
+   308→      db.comment.create({ data: { text: 'Client approved the draft copy. Ready for final review.', contentId: contentItems[10].id, userId: priya.id } }),
+   309→      db.comment.create({ data: { text: 'Looks great! Minor edits on slide 3 - the font size is too small.', contentId: contentItems[10].id, userId: sarah.id } }),
+   310→      db.comment.create({ data: { text: 'Need to get influencer approval before we publish this.', contentId: contentItems[11].id, userId: priya.id } }),
+   311→      db.comment.create({ data: { text: 'Influencer approved! We\'re good to go.', contentId: contentItems[11].id, userId: emma.id } }),
+   312→      db.comment.create({ data: { text: 'The sale copy needs more urgency. Add countdown language.', contentId: contentItems[15].id, userId: sarah.id } }),
+   313→      db.comment.create({ data: { text: 'Updated with "Limited time only" and "Ends Sunday" messaging.', contentId: contentItems[15].id, userId: emma.id } }),
+   314→      db.comment.create({ data: { text: 'Please schedule this for Monday 9AM EST.', contentId: contentItems[16].id, userId: alex.id } }),
+   315→    ])
+   316→
+   317→    // ============================================
+   318→    // 11. Activity Log
+   319→    // ============================================
+   320→    await Promise.all([
+   321→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[0].id, details: JSON.stringify({ title: 'TechCorp CEO Spotlight Interview', stage: 'idea' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 2 * dayMs) } }),
+   322→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[1].id, details: JSON.stringify({ title: 'FashionHub Summer Lookbook Reel', stage: 'idea' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 2 * dayMs) } }),
+   323→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[4].id, details: JSON.stringify({ title: 'TechCorp Product Feature Infographic', fromStage: 'idea', toStage: 'design' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.9 * dayMs) } }),
+   324→      db.activityLog.create({ data: { action: 'assigned', entity: 'content', entityId: contentItems[4].id, details: JSON.stringify({ title: 'TechCorp Product Feature Infographic', assignee: 'Jake Morrison' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.9 * dayMs) } }),
+   325→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[7].id, details: JSON.stringify({ title: 'AutoDrive EV Comparison Chart', fromStage: 'idea', toStage: 'design' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.8 * dayMs) } }),
+   326→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[8].id, details: JSON.stringify({ title: 'TechCorp Platform Demo Video', stage: 'edit' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.7 * dayMs) } }),
+   327→      db.activityLog.create({ data: { action: 'commented', entity: 'content', entityId: contentItems[0].id, details: JSON.stringify({ title: 'TechCorp CEO Spotlight Interview', comment: 'Great concept!' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 1.5 * dayMs) } }),
+   328→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[10].id, details: JSON.stringify({ title: 'TechCorp Case Study Carousel', fromStage: 'edit', toStage: 'review' }), organizationId: org.id, actorId: priya.id, createdAt: new Date(now.getTime() - 1.4 * dayMs) } }),
+   329→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[11].id, details: JSON.stringify({ title: 'FashionHub Influencer Collaboration Post', fromStage: 'edit', toStage: 'review' }), organizationId: org.id, actorId: emma.id, createdAt: new Date(now.getTime() - 1.3 * dayMs) } }),
+   330→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[0].id, details: JSON.stringify({ platform: 'instagram', account: '@techcorp' }), organizationId: org.id, actorId: alex.id, createdAt: new Date(now.getTime() - 7 * dayMs) } }),
+   331→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[1].id, details: JSON.stringify({ platform: 'instagram', account: '@fashionhub' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 5 * dayMs) } }),
+   332→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[2].id, details: JSON.stringify({ platform: 'linkedin', account: 'TechCorp' }), organizationId: org.id, actorId: alex.id, createdAt: new Date(now.getTime() - 3 * dayMs) } }),
+   333→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[3].id, details: JSON.stringify({ platform: 'tiktok', account: '@fashionhub' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 4 * dayMs) } }),
+   334→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[13].id, details: JSON.stringify({ title: 'TechCorp LinkedIn Thought Leadership Article', fromStage: 'review', toStage: 'approve' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 1.2 * dayMs) } }),
+   335→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[14].id, details: JSON.stringify({ title: 'FashionHub Summer Sale Announcement', fromStage: 'review', toStage: 'approve' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 1.1 * dayMs) } }),
+   336→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[16].id, details: JSON.stringify({ title: 'TechCorp Feature Launch Thread', fromStage: 'approve', toStage: 'disseminate' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 1 * dayMs) } }),
+   337→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[17].id, details: JSON.stringify({ title: 'FashionHub Style Guide TikTok', fromStage: 'approve', toStage: 'disseminate' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 0.9 * dayMs) } }),
+   338→      db.activityLog.create({ data: { action: 'created', entity: 'campaign', entityId: foodvibeCampaign.id, details: JSON.stringify({ name: 'FoodVibe Taste Stories', status: 'draft' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 3 * dayMs) } }),
+   339→      db.activityLog.create({ data: { action: 'updated', entity: 'campaign', entityId: techcorpCampaign.id, details: JSON.stringify({ name: 'TechCorp Spring Launch 2025', field: 'budget', value: 45000 }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 2.5 * dayMs) } }),
+   340→      db.activityLog.create({ data: { action: 'created', entity: 'account', entityId: socialAccounts[0].id, details: JSON.stringify({ platform: 'instagram', username: '@techcorp' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 30 * dayMs) } }),
+   341→      db.activityLog.create({ data: { action: 'created', entity: 'account', entityId: socialAccounts[1].id, details: JSON.stringify({ platform: 'instagram', username: '@fashionhub' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 30 * dayMs) } }),
+   342→      db.activityLog.create({ data: { action: 'assigned', entity: 'content', entityId: contentItems[5].id, details: JSON.stringify({ title: 'FashionHub Brand Story Carousel', assignee: 'Alex Nakamura' }), organizationId: org.id, actorId: jake.id, createdAt: new Date(now.getTime() - 1.6 * dayMs) } }),
+   343→      db.activityLog.create({ data: { action: 'commented', entity: 'content', entityId: contentItems[7].id, details: JSON.stringify({ title: 'AutoDrive EV Comparison Chart', comment: 'This is urgent!' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.5 * dayMs) } }),
+   344→      db.activityLog.create({ data: { action: 'commented', entity: 'content', entityId: contentItems[8].id, details: JSON.stringify({ title: 'TechCorp Platform Demo Video', comment: 'Needs better transitions' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.4 * dayMs) } }),
+   345→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[18].id, details: JSON.stringify({ title: 'AutoDrive EV Range Explainer Video', fromStage: 'approve', toStage: 'disseminate' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 0.8 * dayMs) } }),
+   346→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[15].id, details: JSON.stringify({ title: 'FashionHub Summer Sale Announcement', fromStage: 'design', toStage: 'approve' }), organizationId: org.id, actorId: jake.id, createdAt: new Date(now.getTime() - 0.7 * dayMs) } }),
+   347→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[2].id, details: JSON.stringify({ title: 'FoodVibe Recipe Card Series', stage: 'idea' }), organizationId: org.id, actorId: priya.id, createdAt: new Date(now.getTime() - 0.6 * dayMs) } }),
+   348→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[3].id, details: JSON.stringify({ title: 'AutoDrive Community Poll Series', stage: 'idea' }), organizationId: org.id, actorId: emma.id, createdAt: new Date(now.getTime() - 0.5 * dayMs) } }),
+   349→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[6].id, details: JSON.stringify({ title: 'WellnessCo Mindfulness Tips Graphic Set', fromStage: 'idea', toStage: 'design' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 0.4 * dayMs) } }),
+   350→      db.activityLog.create({ data: { action: 'updated', entity: 'content', entityId: contentItems[12].id, details: JSON.stringify({ title: 'AutoDrive Test Drive Story Series', field: 'priority', value: 'medium' }), organizationId: org.id, actorId: david.id, createdAt: new Date(now.getTime() - 0.3 * dayMs) } }),
+   351→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[4].id, details: JSON.stringify({ platform: 'facebook', account: 'TechCorp Inc.' }), organizationId: org.id, actorId: alex.id, createdAt: new Date(now.getTime() - 35 * dayMs) } }),
+   352→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[5].id, details: JSON.stringify({ platform: 'twitter', account: '@autodrive_ev' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 6 * dayMs) } }),
+   353→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[19].id, details: JSON.stringify({ title: 'AutoDrive Holiday Campaign Banner', fromStage: 'disseminate', toStage: 'archived' }), organizationId: org.id, actorId: emma.id, createdAt: new Date(now.getTime() - 30 * dayMs) } }),
+   354→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[20].id, details: JSON.stringify({ title: 'TechCorp Year-in-Review Video', fromStage: 'disseminate', toStage: 'archived' }), organizationId: org.id, actorId: emma.id, createdAt: new Date(now.getTime() - 55 * dayMs) } }),
+   355→    ])
+   356→
+   357→    // ============================================
+   358→    // HR: Departments
+   359→    // ============================================
+   360→    const departments = await Promise.all([
+   361→      db.department.create({ data: { name: 'Engineering', description: 'Software development and technical operations', color: '#10b981', headId: marcus.id, organizationId: org.id } }),
+   362→      db.department.create({ data: { name: 'Marketing', description: 'Brand strategy, campaigns, and content creation', color: '#f59e0b', headId: priya.id, organizationId: org.id } }),
+   363→      db.department.create({ data: { name: 'Design', description: 'Visual design, UX/UI, and creative assets', color: '#ec4899', headId: jake.id, organizationId: org.id } }),
+   364→      db.department.create({ data: { name: 'Human Resources', description: 'People operations, recruitment, and culture', color: '#8b5cf6', headId: luna.id, organizationId: org.id } }),
+   365→      db.department.create({ data: { name: 'Finance', description: 'Financial planning, accounting, and payroll', color: '#06b6d4', headId: david.id, organizationId: org.id } }),
+   366→      db.department.create({ data: { name: 'Operations', description: 'Business operations and process optimization', color: '#f97316', headId: emma.id, organizationId: org.id } }),
+   367→    ])
+   368→
+   369→    const [engDept, mktDept, designDept, hrDept, finDept, opsDept] = departments
+   370→
+   371→    // ============================================
+   372→    // HR: Employees
+   373→    // ============================================
+   374→    const employees = await Promise.all([
+   375→      db.employee.create({ data: { employeeId: 'EMP-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@vortexdigital.com', phone: '+1-555-0101', position: 'CEO', departmentId: engDept.id, hireDate: new Date('2021-01-15'), status: 'active', employmentType: 'full-time', salary: 185000, salaryCurrency: 'USD', bankAccount: '****4521', taxId: 'SSN-***-**-1234', emergencyContact: 'James Chen +1-555-0102', address: '123 Tech Ave, San Francisco, CA', userId: sarah.id, organizationId: org.id } }),
+   376→      db.employee.create({ data: { employeeId: 'EMP-002', firstName: 'Marcus', lastName: 'Williams', email: 'marcus.williams@vortexdigital.com', phone: '+1-555-0103', position: 'VP of Engineering', departmentId: engDept.id, hireDate: new Date('2021-03-01'), status: 'active', employmentType: 'full-time', salary: 165000, salaryCurrency: 'USD', bankAccount: '****7832', taxId: 'SSN-***-**-5678', emergencyContact: 'Lisa Williams +1-555-0104', address: '456 Code St, San Francisco, CA', userId: marcus.id, organizationId: org.id } }),
+   377→      db.employee.create({ data: { employeeId: 'EMP-003', firstName: 'Priya', lastName: 'Sharma', email: 'priya.sharma@vortexdigital.com', phone: '+1-555-0105', position: 'Marketing Director', departmentId: mktDept.id, hireDate: new Date('2021-06-15'), status: 'active', employmentType: 'full-time', salary: 145000, salaryCurrency: 'USD', bankAccount: '****3291', taxId: 'SSN-***-**-9012', emergencyContact: 'Raj Sharma +1-555-0106', address: '789 Market Blvd, San Jose, CA', userId: priya.id, organizationId: org.id } }),
+   378→      db.employee.create({ data: { employeeId: 'EMP-004', firstName: 'Jake', lastName: 'Morrison', email: 'jake.morrison@vortexdigital.com', phone: '+1-555-0107', position: 'Creative Director', departmentId: designDept.id, hireDate: new Date('2021-09-01'), status: 'active', employmentType: 'full-time', salary: 135000, salaryCurrency: 'USD', bankAccount: '****6543', taxId: 'SSN-***-**-3456', emergencyContact: 'Amy Morrison +1-555-0108', address: '321 Design Ln, Oakland, CA', userId: jake.id, organizationId: org.id } }),
+   379→      db.employee.create({ data: { employeeId: 'EMP-005', firstName: 'Luna', lastName: 'Rodriguez', email: 'luna.rodriguez@vortexdigital.com', phone: '+1-555-0109', position: 'HR Manager', departmentId: hrDept.id, hireDate: new Date('2022-01-10'), status: 'active', employmentType: 'full-time', salary: 115000, salaryCurrency: 'USD', bankAccount: '****8765', taxId: 'SSN-***-**-7890', emergencyContact: 'Carlos Rodriguez +1-555-0110', address: '654 People Dr, San Francisco, CA', userId: luna.id, organizationId: org.id } }),
+   380→      db.employee.create({ data: { employeeId: 'EMP-006', firstName: 'David', lastName: 'Kim', email: 'david.kim@vortexdigital.com', phone: '+1-555-0111', position: 'Finance Director', departmentId: finDept.id, hireDate: new Date('2022-03-15'), status: 'active', employmentType: 'full-time', salary: 140000, salaryCurrency: 'USD', bankAccount: '****2345', taxId: 'SSN-***-**-2345', emergencyContact: 'Suki Kim +1-555-0112', address: '987 Finance Way, Palo Alto, CA', userId: david.id, organizationId: org.id } }),
+   381→      db.employee.create({ data: { employeeId: 'EMP-007', firstName: 'Emma', lastName: 'Thompson', email: 'emma.thompson@vortexdigital.com', phone: '+1-555-0113', position: 'Operations Manager', departmentId: opsDept.id, hireDate: new Date('2022-06-01'), status: 'active', employmentType: 'full-time', salary: 120000, salaryCurrency: 'USD', bankAccount: '****5678', taxId: 'SSN-***-**-6789', emergencyContact: 'Tom Thompson +1-555-0114', address: '147 Ops Circle, Mountain View, CA', userId: emma.id, organizationId: org.id } }),
+   382→      db.employee.create({ data: { employeeId: 'EMP-008', firstName: 'Alex', lastName: 'Nakamura', email: 'alex.nakamura@vortexdigital.com', phone: '+1-555-0115', position: 'Senior Developer', departmentId: engDept.id, hireDate: new Date('2022-09-15'), status: 'on_leave', employmentType: 'full-time', salary: 130000, salaryCurrency: 'USD', bankAccount: '****9012', taxId: 'SSN-***-**-0123', emergencyContact: 'Yuki Nakamura +1-555-0116', address: '258 Dev Road, San Francisco, CA', userId: alex.id, organizationId: org.id } }),
+   383→      db.employee.create({ data: { employeeId: 'EMP-009', firstName: 'Mia', lastName: 'Chang', email: 'mia.chang@vortexdigital.com', phone: '+1-555-0117', position: 'Content Strategist', departmentId: mktDept.id, hireDate: new Date('2023-01-20'), status: 'active', employmentType: 'full-time', salary: 95000, salaryCurrency: 'USD', bankAccount: '****3456', taxId: 'SSN-***-**-4567', emergencyContact: 'Wei Chang +1-555-0118', address: '369 Content Ave, San Jose, CA', organizationId: org.id } }),
+   384→      db.employee.create({ data: { employeeId: 'EMP-010', firstName: 'Ryan', lastName: 'O\'Brien', email: 'ryan.obrien@vortexdigital.com', phone: '+1-555-0119', position: 'UX Designer', departmentId: designDept.id, hireDate: new Date('2023-04-01'), status: 'probation', employmentType: 'full-time', salary: 90000, salaryCurrency: 'USD', bankAccount: '****7890', taxId: 'SSN-***-**-8901', emergencyContact: 'Kate O\'Brien +1-555-0120', address: '481 Design Blvd, Oakland, CA', organizationId: org.id } }),
+   385→      db.employee.create({ data: { employeeId: 'EMP-011', firstName: 'Sophie', lastName: 'Martinez', email: 'sophie.martinez@vortexdigital.com', phone: '+1-555-0121', position: 'Junior Developer', departmentId: engDept.id, hireDate: new Date('2024-01-15'), status: 'probation', employmentType: 'full-time', salary: 78000, salaryCurrency: 'USD', bankAccount: '****1357', taxId: 'SSN-***-**-2468', emergencyContact: 'Pablo Martinez +1-555-0122', address: '592 Code Way, San Francisco, CA', organizationId: org.id } }),
+   386→      db.employee.create({ data: { employeeId: 'EMP-012', firstName: 'James', lastName: 'Wilson', email: 'james.wilson@vortexdigital.com', phone: '+1-555-0123', position: 'Accountant', departmentId: finDept.id, hireDate: new Date('2022-11-01'), status: 'active', employmentType: 'full-time', salary: 85000, salaryCurrency: 'USD', bankAccount: '****2468', taxId: 'SSN-***-**-1357', emergencyContact: 'Mary Wilson +1-555-0124', address: '703 Ledger St, Palo Alto, CA', organizationId: org.id } }),
+   387→      db.employee.create({ data: { employeeId: 'EMP-013', firstName: 'Olivia', lastName: 'Patel', email: 'olivia.patel@vortexdigital.com', phone: '+1-555-0125', position: 'Social Media Manager', departmentId: mktDept.id, hireDate: new Date('2023-07-01'), status: 'active', employmentType: 'part-time', salary: 65000, salaryCurrency: 'USD', bankAccount: '****3579', taxId: 'SSN-***-**-4680', emergencyContact: 'Ravi Patel +1-555-0126', address: '814 Social Ave, San Jose, CA', organizationId: org.id } }),
+   388→      db.employee.create({ data: { employeeId: 'EMP-014', firstName: 'Nathan', lastName: 'Brooks', email: 'nathan.brooks@vortexdigital.com', phone: '+1-555-0127', position: 'Backend Developer', departmentId: engDept.id, hireDate: new Date('2021-05-20'), status: 'terminated', employmentType: 'full-time', salary: 125000, salaryCurrency: 'USD', bankAccount: '****4680', taxId: 'SSN-***-**-5791', emergencyContact: 'Diana Brooks +1-555-0128', address: '925 Server Ln, San Francisco, CA', organizationId: org.id } }),
+   389→    ])
+   390→
+   391→    const [empSarah, empMarcus, empPriya, empJake, empLuna, empDavid, empEmma, empAlex, empMia, empRyan, empSophie, empJames, empOlivia, empNathan] = employees
+   392→
+   393→    // ============================================
+   394→    // HR: Leave Requests
+   395→    // ============================================
+   396→    await Promise.all([
+   397→      db.leaveRequest.create({ data: { employeeId: empAlex.id, type: 'vacation', startDate: new Date(now.getTime() - 3 * dayMs), endDate: new Date(now.getTime() + 4 * dayMs), days: 7, reason: 'Family vacation to Japan', status: 'approved', approvedById: empMarcus.id, approvedAt: new Date(now.getTime() - 10 * dayMs), organizationId: org.id } }),
+   398→      db.leaveRequest.create({ data: { employeeId: empMia.id, type: 'sick', startDate: new Date(now.getTime() - 1 * dayMs), endDate: new Date(now.getTime() + 1 * dayMs), days: 3, reason: 'Flu recovery', status: 'pending', organizationId: org.id } }),
+   399→      db.leaveRequest.create({ data: { employeeId: empEmma.id, type: 'personal', startDate: new Date(now.getTime() + 5 * dayMs), endDate: new Date(now.getTime() + 6 * dayMs), days: 2, reason: 'Moving to new apartment', status: 'pending', organizationId: org.id } }),
+   400→      db.leaveRequest.create({ data: { employeeId: empRyan.id, type: 'vacation', startDate: new Date(now.getTime() + 14 * dayMs), endDate: new Date(now.getTime() + 21 * dayMs), days: 7, reason: 'Honeymoon trip', status: 'pending', organizationId: org.id } }),
+   401→      db.leaveRequest.create({ data: { employeeId: empSarah.id, type: 'personal', startDate: new Date(now.getTime() - 15 * dayMs), endDate: new Date(now.getTime() - 14 * dayMs), days: 1, reason: 'Doctor appointment', status: 'approved', approvedById: empMarcus.id, approvedAt: new Date(now.getTime() - 20 * dayMs), organizationId: org.id } }),
+   402→      db.leaveRequest.create({ data: { employeeId: empJames.id, type: 'sick', startDate: new Date(now.getTime() - 7 * dayMs), endDate: new Date(now.getTime() - 5 * dayMs), days: 3, reason: 'Migraine', status: 'approved', approvedById: empDavid.id, approvedAt: new Date(now.getTime() - 8 * dayMs), organizationId: org.id } }),
+   403→      db.leaveRequest.create({ data: { employeeId: empOlivia.id, type: 'vacation', startDate: new Date(now.getTime() + 10 * dayMs), endDate: new Date(now.getTime() + 17 * dayMs), days: 7, reason: 'Visit family in India', status: 'rejected', approvedById: empLuna.id, approvedAt: new Date(now.getTime() - 3 * dayMs), comment: 'Too many team members on leave during this period', organizationId: org.id } }),
+   404→      db.leaveRequest.create({ data: { employeeId: empSophie.id, type: 'personal', startDate: new Date(now.getTime() + 3 * dayMs), endDate: new Date(now.getTime() + 3 * dayMs), days: 1, reason: 'Bank appointment', status: 'pending', organizationId: org.id } }),
+   405→    ])
+   406→
+   407→    // ============================================
+   408→    // HR: Payroll Runs & Items
+   409→    // ============================================
+   410→    const payrollRun1 = await db.payrollRun.create({
+   411→      data: {
+   412→        period: '2025-01', status: 'completed', runDate: new Date('2025-01-31'), totalGross: 142800, totalDeductions: 42840, totalNet: 99960,
+   413→        organizationId: org.id,
+   414→        items: {
+   415→          create: [
+   416→            { employeeId: empSarah.id, baseSalary: 15417, overtime: 0, bonuses: 2000, deductions: 2500, tax: 4375, netPay: 10542, organizationId: org.id },
+   417→            { employeeId: empMarcus.id, baseSalary: 13750, overtime: 500, bonuses: 0, deductions: 2200, tax: 3900, netPay: 8150, organizationId: org.id },
+   418→            { employeeId: empPriya.id, baseSalary: 12083, overtime: 0, bonuses: 1500, deductions: 1900, tax: 3437, netPay: 8246, organizationId: org.id },
+   419→            { employeeId: empJake.id, baseSalary: 11250, overtime: 300, bonuses: 0, deductions: 1800, tax: 3188, netPay: 6562, organizationId: org.id },
+   420→            { employeeId: empLuna.id, baseSalary: 9583, overtime: 0, bonuses: 1000, deductions: 1500, tax: 2725, netPay: 6358, organizationId: org.id },
+   421→            { employeeId: empDavid.id, baseSalary: 11667, overtime: 0, bonuses: 0, deductions: 1850, tax: 3325, netPay: 6492, organizationId: org.id },
+   422→            { employeeId: empEmma.id, baseSalary: 10000, overtime: 200, bonuses: 500, deductions: 1600, tax: 2850, netPay: 6250, organizationId: org.id },
+   423→            { employeeId: empAlex.id, baseSalary: 10833, overtime: 0, bonuses: 0, deductions: 1733, tax: 3108, netPay: 5992, organizationId: org.id },
+   424→            { employeeId: empMia.id, baseSalary: 7917, overtime: 150, bonuses: 0, deductions: 1267, tax: 2275, netPay: 4525, organizationId: org.id },
+   425→            { employeeId: empJames.id, baseSalary: 7083, overtime: 0, bonuses: 300, deductions: 1133, tax: 2033, netPay: 4217, organizationId: org.id },
+   426→          ],
+   427→        },
+   428→      },
+   429→    })
+   430→
+   431→    const payrollRun2 = await db.payrollRun.create({
+   432→      data: {
+   433→        period: '2025-02', status: 'completed', runDate: new Date('2025-02-28'), totalGross: 148500, totalDeductions: 44550, totalNet: 103950,
+   434→        organizationId: org.id,
+   435→        items: {
+   436→          create: [
+   437→            { employeeId: empSarah.id, baseSalary: 15417, overtime: 0, bonuses: 3000, deductions: 2600, tax: 4708, netPay: 11109, organizationId: org.id },
+   438→            { employeeId: empMarcus.id, baseSalary: 13750, overtime: 750, bonuses: 0, deductions: 2300, tax: 4050, netPay: 8150, organizationId: org.id },
+   439→            { employeeId: empPriya.id, baseSalary: 12083, overtime: 0, bonuses: 2000, deductions: 2000, tax: 3625, netPay: 8458, organizationId: org.id },
+   440→            { employeeId: empJake.id, baseSalary: 11250, overtime: 500, bonuses: 1000, deductions: 1900, tax: 3438, netPay: 7412, organizationId: org.id },
+   441→            { employeeId: empLuna.id, baseSalary: 9583, overtime: 0, bonuses: 500, deductions: 1550, tax: 2775, netPay: 5758, organizationId: org.id },
+   442→            { employeeId: empDavid.id, baseSalary: 11667, overtime: 250, bonuses: 0, deductions: 1900, tax: 3417, netPay: 6600, organizationId: org.id },
+   443→            { employeeId: empEmma.id, baseSalary: 10000, overtime: 400, bonuses: 500, deductions: 1650, tax: 2925, netPay: 6325, organizationId: org.id },
+   444→            { employeeId: empAlex.id, baseSalary: 10833, overtime: 0, bonuses: 0, deductions: 1733, tax: 3108, netPay: 5992, organizationId: org.id },
+   445→            { employeeId: empMia.id, baseSalary: 7917, overtime: 300, bonuses: 500, deductions: 1267, tax: 2425, netPay: 5025, organizationId: org.id },
+   446→            { employeeId: empSophie.id, baseSalary: 6500, overtime: 0, bonuses: 0, deductions: 1040, tax: 1870, netPay: 3590, organizationId: org.id },
+   447→            { employeeId: empJames.id, baseSalary: 7083, overtime: 100, bonuses: 0, deductions: 1133, tax: 2083, netPay: 3967, organizationId: org.id },
+   448→            { employeeId: empOlivia.id, baseSalary: 5417, overtime: 0, bonuses: 200, deductions: 867, tax: 1567, netPay: 3183, organizationId: org.id },
+   449→          ],
+   450→        },
+   451→      },
+   452→    })
+   453→
+   454→    const payrollRun3 = await db.payrollRun.create({
+   455→      data: {
+   456→        period: '2025-03', status: 'draft', runDate: new Date(now.getTime()), totalGross: 152000, totalDeductions: 45600, totalNet: 106400,
+   457→        organizationId: org.id,
+   458→        items: {
+   459→          create: [
+   460→            { employeeId: empSarah.id, baseSalary: 15417, overtime: 0, bonuses: 0, deductions: 2467, tax: 4429, netPay: 8521, organizationId: org.id },
+   461→            { employeeId: empMarcus.id, baseSalary: 13750, overtime: 300, bonuses: 1000, deductions: 2200, tax: 3975, netPay: 8875, organizationId: org.id },
+   462→            { employeeId: empPriya.id, baseSalary: 12083, overtime: 0, bonuses: 0, deductions: 1933, tax: 3488, netPay: 6662, organizationId: org.id },
+   463→            { employeeId: empJake.id, baseSalary: 11250, overtime: 200, bonuses: 0, deductions: 1800, tax: 3255, netPay: 6395, organizationId: org.id },
+   464→            { employeeId: empLuna.id, baseSalary: 9583, overtime: 0, bonuses: 500, deductions: 1533, tax: 2769, netPay: 5781, organizationId: org.id },
+   465→            { employeeId: empDavid.id, baseSalary: 11667, overtime: 0, bonuses: 0, deductions: 1867, tax: 3367, netPay: 6433, organizationId: org.id },
+   466→            { employeeId: empEmma.id, baseSalary: 10000, overtime: 0, bonuses: 800, deductions: 1600, tax: 2900, netPay: 6300, organizationId: org.id },
+   467→            { employeeId: empAlex.id, baseSalary: 10833, overtime: 0, bonuses: 0, deductions: 1733, tax: 3108, netPay: 5992, organizationId: org.id },
+   468→            { employeeId: empMia.id, baseSalary: 7917, overtime: 0, bonuses: 300, deductions: 1267, tax: 2300, netPay: 4650, organizationId: org.id },
+   469→            { employeeId: empRyan.id, baseSalary: 7500, overtime: 0, bonuses: 0, deductions: 1200, tax: 2175, netPay: 4125, organizationId: org.id },
+   470→            { employeeId: empSophie.id, baseSalary: 6500, overtime: 100, bonuses: 0, deductions: 1040, tax: 1895, netPay: 3665, organizationId: org.id },
+   471→            { employeeId: empJames.id, baseSalary: 7083, overtime: 0, bonuses: 200, deductions: 1133, tax: 2067, netPay: 4083, organizationId: org.id },
+   472→            { employeeId: empOlivia.id, baseSalary: 5417, overtime: 0, bonuses: 0, deductions: 867, tax: 1566, netPay: 2984, organizationId: org.id },
+   473→          ],
+   474→        },
+   475→      },
+   476→    })
+   477→
+   478→    void payrollRun1; void payrollRun2; void payrollRun3
+   479→
+   480→    // ============================================
+   481→    // HR: Job Postings
+   482→    // ============================================
+   483→    await Promise.all([
+   484→      db.jobPosting.create({ data: { title: 'Senior Frontend Developer', departmentId: engDept.id, type: 'full-time', location: 'San Francisco, CA', salary_min: 130000, salary_max: 170000, description: 'We are looking for an experienced frontend developer to join our engineering team. You will build cutting-edge web applications using React, TypeScript, and Next.js.', requirements: '5+ years of React/TypeScript experience|Strong understanding of modern CSS and design systems|Experience with Next.js and server-side rendering|Excellent communication skills', status: 'open', postedDate: new Date(now.getTime() - 14 * dayMs), applicants: 23, organizationId: org.id } }),
+   485→      db.jobPosting.create({ data: { title: 'Marketing Coordinator', departmentId: mktDept.id, type: 'full-time', location: 'San Jose, CA', salary_min: 60000, salary_max: 80000, description: 'Join our marketing team to coordinate campaigns, manage social media content calendars, and track performance metrics across all platforms.', requirements: '2+ years of marketing experience|Proficiency with marketing analytics tools|Strong organizational and project management skills|Experience with social media management', status: 'open', postedDate: new Date(now.getTime() - 7 * dayMs), applicants: 15, organizationId: org.id } }),
+   486→      db.jobPosting.create({ data: { title: 'UI/UX Designer', departmentId: designDept.id, type: 'full-time', location: 'Remote', salary_min: 95000, salary_max: 130000, description: 'We need a talented UI/UX designer to create intuitive and beautiful user experiences for our products. You will work closely with product and engineering teams.', requirements: '3+ years of product design experience|Proficiency in Figma and design systems|Portfolio demonstrating user-centered design process|Strong prototyping skills', status: 'open', postedDate: new Date(now.getTime() - 3 * dayMs), applicants: 31, organizationId: org.id } }),
+   487→      db.jobPosting.create({ data: { title: 'Backend Engineer', departmentId: engDept.id, type: 'full-time', location: 'San Francisco, CA', salary_min: 125000, salary_max: 165000, description: 'Seeking a backend engineer to design and implement scalable APIs and microservices. You will work on our core platform serving millions of users.', requirements: '4+ years of backend development|Experience with Node.js and PostgreSQL|Understanding of microservices architecture|Strong problem-solving skills', status: 'open', postedDate: new Date(now.getTime() - 21 * dayMs), applicants: 42, organizationId: org.id } }),
+   488→      db.jobPosting.create({ data: { title: 'DevOps Engineer', departmentId: engDept.id, type: 'full-time', location: 'Remote', salary_min: 120000, salary_max: 155000, description: 'We are looking for a DevOps engineer to manage our cloud infrastructure, CI/CD pipelines, and ensure system reliability.', requirements: '3+ years of DevOps experience|Experience with AWS/GCP and Kubernetes|Strong knowledge of CI/CD tools|Experience with infrastructure as code', status: 'filled', postedDate: new Date(now.getTime() - 45 * dayMs), closingDate: new Date(now.getTime() - 10 * dayMs), applicants: 28, organizationId: org.id } }),
+   489→      db.jobPosting.create({ data: { title: 'Content Writer (Intern)', departmentId: mktDept.id, type: 'internship', location: 'San Jose, CA', salary_min: 25000, salary_max: 35000, description: 'Great opportunity for a budding content writer to learn and grow. You will create blog posts, social media content, and marketing copy.', requirements: 'Pursuing a degree in English, Journalism, or Communications|Strong writing skills|Familiarity with social media platforms|Eager to learn and take feedback', status: 'open', postedDate: new Date(now.getTime() - 5 * dayMs), applicants: 19, organizationId: org.id } }),
+   490→      db.jobPosting.create({ data: { title: 'Financial Analyst', departmentId: finDept.id, type: 'full-time', location: 'Palo Alto, CA', salary_min: 80000, salary_max: 110000, description: 'Join our finance team to analyze financial data, prepare reports, and support strategic decision-making across the organization.', requirements: '3+ years of financial analysis experience|Proficiency in Excel and financial modeling|CPA or CFA preferred|Strong analytical and communication skills', status: 'draft', applicants: 0, organizationId: org.id } }),
+   491→      db.jobPosting.create({ data: { title: 'Office Manager', departmentId: opsDept.id, type: 'full-time', location: 'San Francisco, CA', salary_min: 55000, salary_max: 75000, description: 'Manage daily office operations, coordinate facilities, and support the team with administrative tasks.', requirements: '2+ years of office management experience|Strong organizational skills|Proficiency in office software|Excellent interpersonal communication', status: 'closed', postedDate: new Date(now.getTime() - 60 * dayMs), closingDate: new Date(now.getTime() - 30 * dayMs), applicants: 34, organizationId: org.id } }),
+   492→    ])
+   493→
+   494→    // ============================================
+   495→    // 20. Disseminators
+   496→    // ============================================
+   497→    const disseminators = await Promise.all([
+   498→      db.disseminator.create({
+   499→        data: {
+   500→          userId: maya.id,
+   501→          teamId: disseminationTeam.id,
+   502→          speciality: 'Instagram & TikTok Specialist',
+   503→          platforms: JSON.stringify(['instagram', 'tiktok']),
+   504→          workloadCapacity: 8,
+   505→          status: 'active',
+   506→          rating: 4.7,
+   507→          totalTasksCompleted: 47,
+   508→          totalPostsPublished: 156,
+   509→          avgCompletionHours: 2.5,
+   510→          onTimeRate: 94.2,
+   511→          notes: 'Expert at short-form video content and Instagram Reels. Great engagement rates on visual platforms.',
+   512→          organizationId: org.id,
+   513→        },
+   514→      }),
+   515→      db.disseminator.create({
+   516→        data: {
+   517→          userId: jordan.id,
+   518→          teamId: disseminationTeam.id,
+   519→          speciality: 'LinkedIn & Twitter Expert',
+   520→          platforms: JSON.stringify(['linkedin', 'twitter']),
+   521→          workloadCapacity: 10,
+   522→          status: 'active',
+   523→          rating: 4.5,
+   524→          totalTasksCompleted: 38,
+   525→          totalPostsPublished: 124,
+   526→          avgCompletionHours: 3.1,
+   527→          onTimeRate: 89.5,
+   528→          notes: 'Specializes in B2B content distribution and thought leadership posts. Strong LinkedIn network.',
+   529→          organizationId: org.id,
+   530→        },
+   531→      }),
+   532→      db.disseminator.create({
+   533→        data: {
+   534→          userId: sam.id,
+   535→          teamId: disseminationTeam.id,
+   536→          speciality: 'Multi-Platform Publisher',
+   537→          platforms: JSON.stringify(['instagram', 'facebook', 'youtube']),
+   538→          workloadCapacity: 12,
+   539→          status: 'active',
+   540→          rating: 4.8,
+   541→          totalTasksCompleted: 62,
+   542→          totalPostsPublished: 201,
+   543→          avgCompletionHours: 1.8,
+   544→          onTimeRate: 96.8,
+   545→          notes: 'Fastest disseminator on the team. Handles high-volume publishing across multiple platforms with excellent quality.',
+   546→          organizationId: org.id,
+   547→        },
+   548→      }),
+   549→      db.disseminator.create({
+   550→        data: {
+   551→          userId: riley.id,
+   552→          teamId: disseminationTeam.id,
+   553→          speciality: 'Pinterest & Visual Content',
+   554→          platforms: JSON.stringify(['pinterest', 'instagram']),
+   555→          workloadCapacity: 6,
+   556→          status: 'active',
+   557→          rating: 4.3,
+   558→          totalTasksCompleted: 29,
+   559→          totalPostsPublished: 87,
+   560→          avgCompletionHours: 3.5,
+   561→          onTimeRate: 86.2,
+   562→          notes: 'Creative visual content specialist. Strong at Pinterest strategy and Instagram carousel design.',
+   563→          organizationId: org.id,
+   564→        },
+   565→      }),
+   566→    ])
+   567→
+   568→    const [mayaDisseminator, jordanDisseminator, samDisseminator, rileyDisseminator] = disseminators
+   569→
+   570→    // ============================================
+   571→    // 21. Dissemination Tasks
+   572→    // ============================================
+   573→    const disseminationTasks = await Promise.all([
+   574→      // PENDING tasks (3)
+   575→      db.disseminationTask.create({
+   576→        data: {
+   577→          title: 'Publish TechCorp Feature Launch Thread on Twitter',
+   578→          description: 'Post the approved Twitter thread announcing the top 5 new features of the TechCorp platform. Thread should go out during peak engagement hours (9-10 AM EST).',
+   579→          contentId: contentItems[16].id,
+   580→          assigneeId: jordan.id,
+   581→          disseminatorId: jordanDisseminator.id,
+   582→          clientId: techcorp.id,
+   583→          campaignId: techcorpCampaign.id,
+   584→          targetPlatforms: JSON.stringify(['twitter']),
+   585→          postContent: '🚀 Big news! We just launched 5 game-changing features for our enterprise platform. Thread 🧵👇\n\n1/5 Real-time collaboration — now your whole team can work simultaneously with zero conflicts. #TechCorp #EnterpriseAI',
+   586→          hashtags: '#TechCorp #EnterpriseAI #SaaS #ProductLaunch #Innovation',
+   587→          scheduledAt: new Date(now.getTime() + 1 * dayMs),
+   588→          dueDate: new Date(now.getTime() + 2 * dayMs),
+   589→          priority: 'high',
+   590→          status: 'pending',
+   591→          assignedById: sarah.id,
+   592→          assignedAt: new Date(now.getTime() - 0.5 * dayMs),
+   593→          organizationId: org.id,
+   594→        },
+   595→      }),
+   596→      db.disseminationTask.create({
+   597→        data: {
+   598→          title: 'Schedule FashionHub Summer Sale Instagram Posts',
+   599→          description: 'Create and schedule Instagram posts for the FashionHub summer sale event. Include carousel and story formats.',
+   600→          contentId: contentItems[15].id,
+   601→          assigneeId: maya.id,
+   602→          disseminatorId: mayaDisseminator.id,
+   603→          clientId: fashionhub.id,
+   604→          campaignId: fashionCampaign.id,
+   605→          targetPlatforms: JSON.stringify(['instagram']),
+   606→          postContent: '☀️ SUMMER SALE IS HERE! ☀️ Up to 50% off select items. Shop the collection now → link in bio. #FashionHub #SummerSale #OOTD',
+   607→          hashtags: '#FashionHub #SummerSale #OOTD #Fashion #SummerStyle #Sale',
+   608→          scheduledAt: new Date(now.getTime() + 2 * dayMs),
+   609→          dueDate: new Date(now.getTime() + 3 * dayMs),
+   610→          priority: 'urgent',
+   611→          status: 'pending',
+   612→          assignedById: sarah.id,
+   613→          assignedAt: new Date(now.getTime() - 1 * dayMs),
+   614→          organizationId: org.id,
+   615→        },
+   616→      }),
+   617→      db.disseminationTask.create({
+   618→        data: {
+   619→          title: 'Post WellnessCo Mindfulness Tips to Pinterest',
+   620→          description: 'Publish the 5 mindfulness tip graphics as Pinterest pins with optimized descriptions and boards.',
+   621→          contentId: contentItems[6].id,
+   622→          assigneeId: riley.id,
+   623→          disseminatorId: rileyDisseminator.id,
+   624→          clientId: null,
+   625→          campaignId: null,
+   626→          targetPlatforms: JSON.stringify(['pinterest', 'instagram']),
+   627→          postContent: '🌿 Start your day with intention. 5 simple mindfulness techniques you can practice anywhere. Save this for later! #Mindfulness #WellnessCo #MentalHealth',
+   628→          hashtags: '#Mindfulness #Wellness #MentalHealth #SelfCare #WellnessCo #DailyTips',
+   629→          scheduledAt: new Date(now.getTime() + 4 * dayMs),
+   630→          dueDate: new Date(now.getTime() + 5 * dayMs),
+   631→          priority: 'medium',
+   632→          status: 'pending',
+   633→          assignedById: sarah.id,
+   634→          assignedAt: new Date(now.getTime() - 0.5 * dayMs),
+   635→          organizationId: org.id,
+   636→        },
+   637→      }),
+   638→
+   639→      // IN_PROGRESS tasks (3)
+   640→      db.disseminationTask.create({
+   641→        data: {
+   642→          title: 'Distribute TechCorp Case Study on LinkedIn',
+   643→          description: 'Publish the client success story carousel on LinkedIn with a thought-provoking hook. Tag the client page.',
+   644→          contentId: contentItems[10].id,
+   645→          assigneeId: jordan.id,
+   646→          disseminatorId: jordanDisseminator.id,
+   647→          clientId: techcorp.id,
+   648→          campaignId: techcorpCampaign.id,
+   649→          targetPlatforms: JSON.stringify(['linkedin']),
+   650→          postContent: 'How did Acme Inc reduce infrastructure costs by 40%? 📊 Our latest case study reveals the strategy behind their cloud transformation with TechCorp. Swipe through the key results →',
+   651→          hashtags: '#TechCorp #CaseStudy #CloudTransformation #Enterprise #B2B',
+   652→          scheduledAt: new Date(now.getTime() - 1 * dayMs),
+   653→          dueDate: new Date(now.getTime() + 1 * dayMs),
+   654→          priority: 'high',
+   655→          status: 'in_progress',
+   656→          startedAt: new Date(now.getTime() - 4 * 3600000),
+   657→          assignedById: sarah.id,
+   658→          assignedAt: new Date(now.getTime() - 1 * dayMs),
+   659→          organizationId: org.id,
+   660→        },
+   661→      }),
+   662→      db.disseminationTask.create({
+   663→        data: {
+   664→          title: 'Publish FashionHub Style Guide Reel on TikTok',
+   665→          description: 'Post the approved TikTok showing 3 ways to style a summer outfit. Use trending audio and relevant hashtags.',
+   666→          contentId: contentItems[17].id,
+   667→          assigneeId: maya.id,
+   668→          disseminatorId: mayaDisseminator.id,
+   669→          clientId: fashionhub.id,
+   670→          campaignId: fashionCampaign.id,
+   671→          targetPlatforms: JSON.stringify(['tiktok', 'instagram']),
+   672→          postContent: '3 ways to style your summer outfit 🌴 Which one is your fave? #FashionHub #SummerStyle #OOTD #StyleGuide #FashionTok',
+   673→          hashtags: '#FashionHub #SummerStyle #OOTD #FashionTok #StyleGuide #Trending',
+   674→          scheduledAt: new Date(now.getTime() - 0.5 * dayMs),
+   675→          dueDate: new Date(now.getTime() + 0.5 * dayMs),
+   676→          priority: 'high',
+   677→          status: 'in_progress',
+   678→          startedAt: new Date(now.getTime() - 2 * 3600000),
+   679→          assignedById: sarah.id,
+   680→          assignedAt: new Date(now.getTime() - 0.5 * dayMs),
+   681→          organizationId: org.id,
+   682→        },
+   683→      }),
+   684→      db.disseminationTask.create({
+   685→        data: {
+   686→          title: 'Cross-Platform AutoDrive EV Range Video',
+   687→          description: 'Publish the EV range explainer video on YouTube Shorts and Facebook. Write platform-specific captions.',
+   688→          contentId: contentItems[18].id,
+   689→          assigneeId: sam.id,
+   690→          disseminatorId: samDisseminator.id,
+   691→          clientId: autodrive.id,
+   692→          campaignId: autodriveCampaign.id,
+   693→          targetPlatforms: JSON.stringify(['youtube', 'facebook']),
+   694→          postContent: 'How far can an EV really go? 🚗⚡ We put our models to the test — the results might surprise you. Watch the full breakdown now!',
+   695→          hashtags: '#AutoDrive #EV #ElectricVehicle #Range #Sustainability #CleanEnergy',
+   696→          scheduledAt: new Date(now.getTime() - 2 * dayMs),
+   697→          dueDate: new Date(now.getTime() + 1 * dayMs),
+   698→          priority: 'medium',
+   699→          status: 'in_progress',
+   700→          startedAt: new Date(now.getTime() - 6 * 3600000),
+   701→          assignedById: marcus.id,
+   702→          assignedAt: new Date(now.getTime() - 2 * dayMs),
+   703→          organizationId: org.id,
+   704→        },
+   705→      }),
+   706→
+   707→      // COMPLETED tasks (3)
+   708→      db.disseminationTask.create({
+   709→        data: {
+   710→          title: 'Publish TechCorp Product Features on Instagram',
+   711→          description: 'Post the infographic highlighting 5 key features of the new SaaS platform on Instagram feed.',
+   712→          contentId: contentItems[4].id,
+   713→          assigneeId: maya.id,
+   714→          disseminatorId: mayaDisseminator.id,
+   715→          clientId: techcorp.id,
+   716→          campaignId: techcorpCampaign.id,
+   717→          targetPlatforms: JSON.stringify(['instagram']),
+   718→          postContent: '🚀 Exciting news! Our new enterprise platform just got 5 game-changing features. See what\'s new →',
+   719→          hashtags: '#TechCorp #Enterprise #SaaS #ProductUpdate #Innovation',
+   720→          scheduledAt: new Date(now.getTime() - 8 * dayMs),
+   721→          dueDate: new Date(now.getTime() - 7 * dayMs),
+   722→          priority: 'high',
+   723→          status: 'completed',
+   724→          startedAt: new Date(now.getTime() - 7.5 * dayMs),
+   725→          completedAt: new Date(now.getTime() - 7 * dayMs),
+   726→          assignedById: sarah.id,
+   727→          assignedAt: new Date(now.getTime() - 8 * dayMs),
+   728→          completionNotes: 'Published successfully on Instagram during morning peak hours. Strong initial engagement.',
+   729→          engagement: JSON.stringify({ likes: 1240, comments: 89, shares: 234, saves: 156, impressions: 45000 }),
+   730→          organizationId: org.id,
+   731→        },
+   732→      }),
+   733→      db.disseminationTask.create({
+   734→        data: {
+   735→          title: 'FashionHub Summer Collection Instagram Launch',
+   736→          description: 'Launch the summer collection post on Instagram with carousel format showing top 10 looks.',
+   737→          contentId: contentItems[1].id,
+   738→          assigneeId: maya.id,
+   739→          disseminatorId: mayaDisseminator.id,
+   740→          clientId: fashionhub.id,
+   741→          campaignId: fashionCampaign.id,
+   742→          targetPlatforms: JSON.stringify(['instagram', 'tiktok']),
+   743→          postContent: 'Summer vibes are here! ☀️ Swipe to see our top 10 looks from the new collection → #FashionHubSummer',
+   744→          hashtags: '#FashionHub #SummerCollection #Fashion #OOTD #NewArrivals',
+   745→          scheduledAt: new Date(now.getTime() - 6 * dayMs),
+   746→          dueDate: new Date(now.getTime() - 5 * dayMs),
+   747→          priority: 'urgent',
+   748→          status: 'completed',
+   749→          startedAt: new Date(now.getTime() - 5.5 * dayMs),
+   750→          completedAt: new Date(now.getTime() - 5 * dayMs),
+   751→          assignedById: sarah.id,
+   752→          assignedAt: new Date(now.getTime() - 6 * dayMs),
+   753→          completionNotes: 'Exceeded expectations - carousel format drove high swipe-through rate. TikTok version went viral.',
+   754→          engagement: JSON.stringify({ likes: 8900, comments: 432, shares: 1200, saves: 2300, impressions: 350000 }),
+   755→          organizationId: org.id,
+   756→        },
+   757→      }),
+   758→      db.disseminationTask.create({
+   759→        data: {
+   760→          title: 'AutoDrive EV Range Explainer on Twitter',
+   761→          description: 'Post the EV range explainer thread on Twitter with engaging stats and visuals.',
+   762→          contentId: contentItems[18].id,
+   763→          assigneeId: jordan.id,
+   764→          disseminatorId: jordanDisseminator.id,
+   765→          clientId: autodrive.id,
+   766→          campaignId: autodriveCampaign.id,
+   767→          targetPlatforms: JSON.stringify(['twitter', 'linkedin']),
+   768→          postContent: 'How far can an EV really go? We put our models to the test. Watch the full video on YouTube →',
+   769→          hashtags: '#AutoDrive #EV #ElectricVehicle #Range #CleanEnergy #Innovation',
+   770→          scheduledAt: new Date(now.getTime() - 7 * dayMs),
+   771→          dueDate: new Date(now.getTime() - 6 * dayMs),
+   772→          priority: 'medium',
+   773→          status: 'completed',
+   774→          startedAt: new Date(now.getTime() - 6.5 * dayMs),
+   775→          completedAt: new Date(now.getTime() - 6 * dayMs),
+   776→          assignedById: marcus.id,
+   777→          assignedAt: new Date(now.getTime() - 7 * dayMs),
+   778→          completionNotes: 'Thread performed well on Twitter. LinkedIn post generated 3 qualified leads.',
+   779→          engagement: JSON.stringify({ likes: 234, comments: 18, retweets: 67, impressions: 45000 }),
+   780→          organizationId: org.id,
+   781→        },
+   782→      }),
+   783→
+   784→      // OVERDUE tasks (2)
+   785→      db.disseminationTask.create({
+   786→        data: {
+   787→          title: 'Publish FoodVibe Recipe Cards on Instagram',
+   788→          description: 'Post the weekly recipe card series as Instagram carousel posts. Seasonal ingredients theme.',
+   789→          contentId: contentItems[2].id,
+   790→          assigneeId: riley.id,
+   791→          disseminatorId: rileyDisseminator.id,
+   792→          clientId: foodvibe.id,
+   793→          campaignId: foodvibeCampaign.id,
+   794→          targetPlatforms: JSON.stringify(['instagram', 'pinterest']),
+   795→          postContent: '🍳 This week\'s seasonal special: Lemon Herb Grilled Salmon! Save this recipe for your next dinner. #FoodVibe #Recipe #CookingAtHome',
+   796→          hashtags: '#FoodVibe #Recipe #CookingAtHome #SeasonalEating #Foodie #HealthyEating',
+   797→          scheduledAt: new Date(now.getTime() - 4 * dayMs),
+   798→          dueDate: new Date(now.getTime() - 2 * dayMs),
+   799→          priority: 'medium',
+   800→          status: 'pending',
+   801→          assignedById: priya.id,
+   802→          assignedAt: new Date(now.getTime() - 5 * dayMs),
+   803→          organizationId: org.id,
+   804→        },
+   805→      }),
+   806→      db.disseminationTask.create({
+   807→        data: {
+   808→          title: 'Distribute AutoDrive Comparison Chart on Facebook',
+   809→          description: 'Share the AutoDrive EV comparison chart on Facebook with a compelling caption targeting EV-curious buyers.',
+   810→          contentId: contentItems[7].id,
+   811→          assigneeId: sam.id,
+   812→          disseminatorId: samDisseminator.id,
+   813→          clientId: autodrive.id,
+   814→          campaignId: autodriveCampaign.id,
+   815→          targetPlatforms: JSON.stringify(['facebook', 'linkedin']),
+   816→          postContent: 'See how AutoDrive EVs stack up against the competition 📊 The results speak for themselves. Explore our lineup →',
+   817→          hashtags: '#AutoDrive #EV #Comparison #ElectricVehicle #CarShopping #GreenDriving',
+   818→          scheduledAt: new Date(now.getTime() - 3 * dayMs),
+   819→          dueDate: new Date(now.getTime() - 1 * dayMs),
+   820→          priority: 'urgent',
+   821→          status: 'in_progress',
+   822→          startedAt: new Date(now.getTime() - 1.5 * dayMs),
+   823→          assignedById: marcus.id,
+   824→          assignedAt: new Date(now.getTime() - 3 * dayMs),
+   825→          organizationId: org.id,
+   826→        },
+   827→      }),
+   828→
+   829→      // FAILED task (1)
+   830→      db.disseminationTask.create({
+   831→        data: {
+   832→          title: 'Publish TechCorp Thought Leadership on LinkedIn',
+   833→          description: 'Publish the long-form thought leadership article on LinkedIn about the future of cloud infrastructure.',
+   834→          contentId: contentItems[13].id,
+   835→          assigneeId: jordan.id,
+   836→          disseminatorId: jordanDisseminator.id,
+   837→          clientId: techcorp.id,
+   838→          campaignId: techcorpCampaign.id,
+   839→          targetPlatforms: JSON.stringify(['linkedin']),
+   840→          postContent: 'The future of cloud computing is here. Our CEO shares insights on what enterprise AI means for your business. Read the full article on our blog.',
+   841→          hashtags: '#TechCorp #CloudComputing #EnterpriseAI #ThoughtLeadership #FutureOfWork',
+   842→          scheduledAt: new Date(now.getTime() - 4 * dayMs),
+   843→          dueDate: new Date(now.getTime() - 3 * dayMs),
+   844→          priority: 'high',
+   845→          status: 'failed',
+   846→          startedAt: new Date(now.getTime() - 4 * dayMs),
+   847→          failureReason: 'LinkedIn API returned 403 error — article formatting exceeded character limit. Needs to be split into a post + article link format. Retrying after content adjustment.',
+   848→          assignedById: sarah.id,
+   849→          assignedAt: new Date(now.getTime() - 5 * dayMs),
+   850→          organizationId: org.id,
+   851→        },
+   852→      }),
+   853→    ])
+   854→
+   855→    return NextResponse.json({
+   856→      success: true,
+   857→      message: 'Database seeded successfully',
+   858→      data: {
+   859→        organization: 1,
+   860→        users: users.length,
+   861→        teams: teams.length,
+   862→        clients: clients.length,
+   863→        campaigns: campaigns.length,
+   864→        content: contentItems.length,
+   865→        socialAccounts: socialAccounts.length,
+   866→        posts: posts.length,
+   867→        automations: automations.length,
+   868→        comments: 15,
+   869→        activities: 34,
+   870→        approvals: 5,
+   871→        invoices: 4,
+   872→        timeEntries: 12,
+   873→        assets: 10,
+   874→        notifications: 8,
+   875→        inboxMessages: 10,
+   876→        influencers: 5,
+   877→        brandKits: 6,
+   878→        departments: departments.length,
+   879→        employees: employees.length,
+   880→        payrollRuns: 3,
+   881→        jobPostings: 8,
+   882→        disseminators: disseminators.length,
+   883→        disseminationTasks: disseminationTasks.length,
+   884→      },
+   885→    })
+   886→  } catch (error) {
+   887→    console.error('Seed error:', error)
+   888→    return NextResponse.json(
+   889→      { success: false, message: 'Failed to seed database', error: String(error) },
+   890→      { status: 500 }
+   891→    )
+   892→  }
+   893→}
+   894→
+   895→async function seedDisseminators(orgId: string) {
+   896→  const now = Date.now()
+   897→  const dayMs = 86400000
+   898→
+   899→  // Create disseminator users if they don't exist
+   900→  const [maya, jordan, sam, riley] = await Promise.all([
+   901→    db.user.upsert({
+   902→      where: { email: 'maya.patel@vortexdigital.com' },
+   903→      update: {},
+   904→      create: { email: 'maya.patel@vortexdigital.com', name: 'Maya Patel', role: 'member', organizationId: orgId },
+   905→    }),
+   906→    db.user.upsert({
+   907→      where: { email: 'jordan.lee@vortexdigital.com' },
+   908→      update: {},
+   909→      create: { email: 'jordan.lee@vortexdigital.com', name: 'Jordan Lee', role: 'member', organizationId: orgId },
+   910→    }),
+   911→    db.user.upsert({
+   912→      where: { email: 'sam.rodriguez@vortexdigital.com' },
+   913→      update: {},
+   914→      create: { email: 'sam.rodriguez@vortexdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: orgId },
+   915→    }),
+   916→    db.user.upsert({
+   917→      where: { email: 'riley.kim@vortexdigital.com' },
+   918→      update: {},
+   919→      create: { email: 'riley.kim@vortexdigital.com', name: 'Riley Kim', role: 'member', organizationId: orgId },
+   920→    }),
+   921→  ])
+   922→
+   923→  // Find the dissemination team
+   924→  const disseminationTeam = await db.team.findFirst({ where: { type: 'dissemination', organizationId: orgId } })
+   925→
+   926→  // Add team members if team exists
+   927→  if (disseminationTeam) {
+   928→    await Promise.all([
+   929→      db.teamMember.upsert({ where: { userId_teamId: { userId: maya.id, teamId: disseminationTeam.id } }, update: {}, create: { userId: maya.id, teamId: disseminationTeam.id, role: 'member' } }),
+   930→      db.teamMember.upsert({ where: { userId_teamId: { userId: jordan.id, teamId: disseminationTeam.id } }, update: {}, create: { userId: jordan.id, teamId: disseminationTeam.id, role: 'member' } }),
+   931→      db.teamMember.upsert({ where: { userId_teamId: { userId: sam.id, teamId: disseminationTeam.id } }, update: {}, create: { userId: sam.id, teamId: disseminationTeam.id, role: 'member' } }),
+   932→      db.teamMember.upsert({ where: { userId_teamId: { userId: riley.id, teamId: disseminationTeam.id } }, update: {}, create: { userId: riley.id, teamId: disseminationTeam.id, role: 'member' } }),
+   933→    ])
+   934→  }
+   935→
+   936→  const disseminators = await Promise.all([
+   937→    db.disseminator.create({
+   938→      data: {
+   939→        userId: maya.id,
+   940→        teamId: disseminationTeam?.id,
+   941→        speciality: 'Instagram & TikTok Specialist',
+   942→        platforms: JSON.stringify(['instagram', 'tiktok']),
+   943→        workloadCapacity: 8,
+   944→        status: 'active',
+   945→        rating: 4.7,
+   946→        totalTasksCompleted: 47,
+   947→        totalPostsPublished: 156,
+   948→        avgCompletionHours: 2.5,
+   949→        onTimeRate: 94.2,
+   950→        notes: 'Expert at short-form video content and Instagram Reels. Great engagement rates on visual platforms.',
+   951→        organizationId: orgId,
+   952→      },
+   953→    }),
+   954→    db.disseminator.create({
+   955→      data: {
+   956→        userId: jordan.id,
+   957→        teamId: disseminationTeam?.id,
+   958→        speciality: 'LinkedIn & Twitter Expert',
+   959→        platforms: JSON.stringify(['linkedin', 'twitter']),
+   960→        workloadCapacity: 10,
+   961→        status: 'active',
+   962→        rating: 4.5,
+   963→        totalTasksCompleted: 38,
+   964→        totalPostsPublished: 124,
+   965→        avgCompletionHours: 3.1,
+   966→        onTimeRate: 89.5,
+   967→        notes: 'Specializes in B2B content distribution and thought leadership posts. Strong LinkedIn network.',
+   968→        organizationId: orgId,
+   969→      },
+   970→    }),
+   971→    db.disseminator.create({
+   972→      data: {
+   973→        userId: sam.id,
+   974→        teamId: disseminationTeam?.id,
+   975→        speciality: 'Multi-Platform Publisher',
+   976→        platforms: JSON.stringify(['instagram', 'facebook', 'youtube']),
+   977→        workloadCapacity: 12,
+   978→        status: 'active',
+   979→        rating: 4.8,
+   980→        totalTasksCompleted: 62,
+   981→        totalPostsPublished: 201,
+   982→        avgCompletionHours: 1.8,
+   983→        onTimeRate: 96.8,
+   984→        notes: 'Fastest disseminator on the team. Handles high-volume publishing across multiple platforms with excellent quality.',
+   985→        organizationId: orgId,
+   986→      },
+   987→    }),
+   988→    db.disseminator.create({
+   989→      data: {
+   990→        userId: riley.id,
+   991→        teamId: disseminationTeam?.id,
+   992→        speciality: 'Pinterest & Visual Content',
+   993→        platforms: JSON.stringify(['pinterest', 'instagram']),
+   994→        workloadCapacity: 6,
+   995→        status: 'active',
+   996→        rating: 4.3,
+   997→        totalTasksCompleted: 29,
+   998→        totalPostsPublished: 87,
+   999→        avgCompletionHours: 3.5,
+  1000→        onTimeRate: 86.2,
+  1001→        notes: 'Creative visual content specialist. Strong at Pinterest strategy and Instagram carousel design.',
+  1002→        organizationId: orgId,
+  1003→      },
+  1004→    }),
+  1005→  ])
+  1006→
+  1007→  const [mayaDisseminator, jordanDisseminator, samDisseminator, rileyDisseminator] = disseminators
+  1008→
+  1009→  // Find existing clients and campaigns
+  1010→  const techcorp = await db.client.findFirst({ where: { name: 'TechCorp', organizationId: orgId } })
+  1011→  const fashionhub = await db.client.findFirst({ where: { name: 'FashionHub', organizationId: orgId } })
+  1012→  const autodrive = await db.client.findFirst({ where: { name: 'AutoDrive', organizationId: orgId } })
+  1013→  const foodvibe = await db.client.findFirst({ where: { name: 'FoodVibe', organizationId: orgId } })
+  1014→  const techcorpCampaign = await db.campaign.findFirst({ where: { name: 'TechCorp Product Launch', organizationId: orgId } })
+  1015→  const fashionCampaign = await db.campaign.findFirst({ where: { name: 'FashionHub Summer Collection', organizationId: orgId } })
+  1016→  const autodriveCampaign = await db.campaign.findFirst({ where: { name: 'AutoDrive EV Awareness', organizationId: orgId } })
+  1017→  const foodvibeCampaign = await db.campaign.findFirst({ where: { name: 'FoodVibe Recipe Series', organizationId: orgId } })
+  1018→  const sarah = await db.user.findUnique({ where: { email: 'sarah@vortexdigital.com' } })
+  1019→  const marcus = await db.user.findUnique({ where: { email: 'marcus.johnson@vortexdigital.com' } })
+  1020→  const priya = await db.user.findUnique({ where: { email: 'priya.sharma@vortexdigital.com' } })
+  1021→
+  1022→  // Get some content items for linking
+  1023→  const contentItems = await db.content.findMany({ where: { organizationId: orgId }, take: 20 })
+  1024→
+  1025→  await Promise.all([
+  1026→    // PENDING tasks (3)
+  1027→    db.disseminationTask.create({
+  1028→      data: {
+  1029→        title: 'Publish TechCorp Feature Launch Thread on Twitter',
+  1030→        description: 'Post the approved Twitter thread announcing the top 5 new features of the TechCorp platform.',
+  1031→        contentId: contentItems[16]?.id || null,
+  1032→        assigneeId: jordan.id,
+  1033→        disseminatorId: jordanDisseminator.id,
+  1034→        clientId: techcorp?.id || null,
+  1035→        campaignId: techcorpCampaign?.id || null,
+  1036→        targetPlatforms: JSON.stringify(['twitter']),
+  1037→        postContent: '🚀 Big news! We just launched 5 game-changing features for our enterprise platform. Thread 🧵👇\n\n1/5 Real-time collaboration — now your whole team can work simultaneously with zero conflicts. #TechCorp #EnterpriseAI',
+  1038→        hashtags: '#TechCorp #EnterpriseAI #SaaS #ProductLaunch #Innovation',
+  1039→        scheduledAt: new Date(now + 1 * dayMs),
+  1040→        dueDate: new Date(now + 2 * dayMs),
+  1041→        priority: 'high',
+  1042→        status: 'pending',
+  1043→        assignedById: sarah?.id || null,
+  1044→        assignedAt: new Date(now - 0.5 * dayMs),
+  1045→        organizationId: orgId,
+  1046→      },
+  1047→    }),
+  1048→    db.disseminationTask.create({
+  1049→      data: {
+  1050→        title: 'Schedule FashionHub Summer Sale Instagram Posts',
+  1051→        description: 'Create and schedule Instagram posts for the FashionHub summer sale event.',
+  1052→        contentId: contentItems[15]?.id || null,
+  1053→        assigneeId: maya.id,
+  1054→        disseminatorId: mayaDisseminator.id,
+  1055→        clientId: fashionhub?.id || null,
+  1056→        campaignId: fashionCampaign?.id || null,
+  1057→        targetPlatforms: JSON.stringify(['instagram']),
+  1058→        postContent: '☀️ SUMMER SALE IS HERE! ☀️ Up to 50% off select items. Shop the collection now → link in bio. #FashionHub #SummerSale #OOTD',
+  1059→        hashtags: '#FashionHub #SummerSale #OOTD #Fashion #SummerStyle #Sale',
+  1060→        scheduledAt: new Date(now + 2 * dayMs),
+  1061→        dueDate: new Date(now + 3 * dayMs),
+  1062→        priority: 'urgent',
+  1063→        status: 'pending',
+  1064→        assignedById: sarah?.id || null,
+  1065→        assignedAt: new Date(now - 1 * dayMs),
+  1066→        organizationId: orgId,
+  1067→      },
+  1068→    }),
+  1069→    db.disseminationTask.create({
+  1070→      data: {
+  1071→        title: 'Post WellnessCo Mindfulness Tips to Pinterest',
+  1072→        description: 'Publish the 5 mindfulness tip graphics as Pinterest pins with optimized descriptions.',
+  1073→        contentId: contentItems[6]?.id || null,
+  1074→        assigneeId: riley.id,
+  1075→        disseminatorId: rileyDisseminator.id,
+  1076→        clientId: null,
+  1077→        campaignId: null,
+  1078→        targetPlatforms: JSON.stringify(['pinterest', 'instagram']),
+  1079→        postContent: '🌿 Start your day with intention. 5 simple mindfulness techniques you can practice anywhere. Save this for later! #Mindfulness #WellnessCo #MentalHealth',
+  1080→        hashtags: '#Mindfulness #Wellness #MentalHealth #SelfCare #WellnessCo #DailyTips',
+  1081→        scheduledAt: new Date(now + 4 * dayMs),
+  1082→        dueDate: new Date(now + 5 * dayMs),
+  1083→        priority: 'medium',
+  1084→        status: 'pending',
+  1085→        assignedById: sarah?.id || null,
+  1086→        assignedAt: new Date(now - 0.5 * dayMs),
+  1087→        organizationId: orgId,
+  1088→      },
+  1089→    }),
+  1090→    // IN_PROGRESS tasks (3)
+  1091→    db.disseminationTask.create({
+  1092→      data: {
+  1093→        title: 'Distribute TechCorp Case Study on LinkedIn',
+  1094→        description: 'Publish the client success story carousel on LinkedIn with a thought-provoking hook.',
+  1095→        contentId: contentItems[10]?.id || null,
+  1096→        assigneeId: jordan.id,
+  1097→        disseminatorId: jordanDisseminator.id,
+  1098→        clientId: techcorp?.id || null,
+  1099→        campaignId: techcorpCampaign?.id || null,
+  1100→        targetPlatforms: JSON.stringify(['linkedin']),
+  1101→        postContent: 'How did Acme Inc reduce infrastructure costs by 40%? 📊 Our latest case study reveals the strategy behind their cloud transformation with TechCorp.',
+  1102→        hashtags: '#TechCorp #CaseStudy #CloudTransformation #Enterprise #B2B',
+  1103→        scheduledAt: new Date(now - 1 * dayMs),
+  1104→        dueDate: new Date(now + 1 * dayMs),
+  1105→        priority: 'high',
+  1106→        status: 'in_progress',
+  1107→        startedAt: new Date(now - 4 * 3600000),
+  1108→        assignedById: sarah?.id || null,
+  1109→        assignedAt: new Date(now - 1 * dayMs),
+  1110→        organizationId: orgId,
+  1111→      },
+  1112→    }),
+  1113→    db.disseminationTask.create({
+  1114→      data: {
+  1115→        title: 'Publish FashionHub Style Guide Reel on TikTok',
+  1116→        description: 'Post the approved TikTok showing 3 ways to style a summer outfit. Use trending audio.',
+  1117→        contentId: contentItems[17]?.id || null,
+  1118→        assigneeId: maya.id,
+  1119→        disseminatorId: mayaDisseminator.id,
+  1120→        clientId: fashionhub?.id || null,
+  1121→        campaignId: fashionCampaign?.id || null,
+  1122→        targetPlatforms: JSON.stringify(['tiktok', 'instagram']),
+  1123→        postContent: '3 ways to style your summer outfit 🌴 Which one is your fave? #FashionHub #SummerStyle #OOTD #StyleGuide #FashionTok',
+  1124→        hashtags: '#FashionHub #SummerStyle #OOTD #FashionTok #StyleGuide #Trending',
+  1125→        scheduledAt: new Date(now - 0.5 * dayMs),
+  1126→        dueDate: new Date(now + 0.5 * dayMs),
+  1127→        priority: 'high',
+  1128→        status: 'in_progress',
+  1129→        startedAt: new Date(now - 2 * 3600000),
+  1130→        assignedById: sarah?.id || null,
+  1131→        assignedAt: new Date(now - 0.5 * dayMs),
+  1132→        organizationId: orgId,
+  1133→      },
+  1134→    }),
+  1135→    db.disseminationTask.create({
+  1136→      data: {
+  1137→        title: 'Cross-Platform AutoDrive EV Range Video',
+  1138→        description: 'Publish the EV range explainer video on YouTube Shorts and Facebook.',
+  1139→        contentId: contentItems[18]?.id || null,
+  1140→        assigneeId: sam.id,
+  1141→        disseminatorId: samDisseminator.id,
+  1142→        clientId: autodrive?.id || null,
+  1143→        campaignId: autodriveCampaign?.id || null,
+  1144→        targetPlatforms: JSON.stringify(['youtube', 'facebook']),
+  1145→        postContent: 'How far can an EV really go? 🚗⚡ We put our models to the test — the results might surprise you. Watch the full breakdown now!',
+  1146→        hashtags: '#AutoDrive #EV #ElectricVehicle #Range #Sustainability #CleanEnergy',
+  1147→        scheduledAt: new Date(now - 2 * dayMs),
+  1148→        dueDate: new Date(now + 1 * dayMs),
+  1149→        priority: 'medium',
+  1150→        status: 'in_progress',
+  1151→        startedAt: new Date(now - 6 * 3600000),
+  1152→        assignedById: marcus?.id || null,
+  1153→        assignedAt: new Date(now - 2 * dayMs),
+  1154→        organizationId: orgId,
+  1155→      },
+  1156→    }),
+  1157→    // COMPLETED tasks (3)
+  1158→    db.disseminationTask.create({
+  1159→      data: {
+  1160→        title: 'Publish TechCorp Product Features on Instagram',
+  1161→        description: 'Post the infographic highlighting 5 key features of the new SaaS platform.',
+  1162→        contentId: contentItems[4]?.id || null,
+  1163→        assigneeId: maya.id,
+  1164→        disseminatorId: mayaDisseminator.id,
+  1165→        clientId: techcorp?.id || null,
+  1166→        campaignId: techcorpCampaign?.id || null,
+  1167→        targetPlatforms: JSON.stringify(['instagram']),
+  1168→        postContent: '🚀 Exciting news! Our new enterprise platform just got 5 game-changing features. See what\'s new →',
+  1169→        hashtags: '#TechCorp #Enterprise #SaaS #ProductUpdate #Innovation',
+  1170→        scheduledAt: new Date(now - 8 * dayMs),
+  1171→        dueDate: new Date(now - 7 * dayMs),
+  1172→        priority: 'high',
+  1173→        status: 'completed',
+  1174→        startedAt: new Date(now - 7.5 * dayMs),
+  1175→        completedAt: new Date(now - 7 * dayMs),
+  1176→        assignedById: sarah?.id || null,
+  1177→        assignedAt: new Date(now - 8 * dayMs),
+  1178→        completionNotes: 'Published successfully on Instagram during morning peak hours. Strong initial engagement.',
+  1179→        engagement: JSON.stringify({ likes: 1240, comments: 89, shares: 234, saves: 156, impressions: 45000 }),
+  1180→        organizationId: orgId,
+  1181→      },
+  1182→    }),
+  1183→    db.disseminationTask.create({
+  1184→      data: {
+  1185→        title: 'FashionHub Summer Collection Instagram Launch',
+  1186→        description: 'Launch the summer collection post on Instagram with carousel format.',
+  1187→        contentId: contentItems[1]?.id || null,
+  1188→        assigneeId: maya.id,
+  1189→        disseminatorId: mayaDisseminator.id,
+  1190→        clientId: fashionhub?.id || null,
+  1191→        campaignId: fashionCampaign?.id || null,
+  1192→        targetPlatforms: JSON.stringify(['instagram', 'tiktok']),
+  1193→        postContent: 'Summer vibes are here! ☀️ Swipe to see our top 10 looks from the new collection → #FashionHubSummer',
+  1194→        hashtags: '#FashionHub #SummerCollection #Fashion #OOTD #NewArrivals',
+  1195→        scheduledAt: new Date(now - 6 * dayMs),
+  1196→        dueDate: new Date(now - 5 * dayMs),
+  1197→        priority: 'urgent',
+  1198→        status: 'completed',
+  1199→        startedAt: new Date(now - 5.5 * dayMs),
+  1200→        completedAt: new Date(now - 5 * dayMs),
+  1201→        assignedById: sarah?.id || null,
+  1202→        assignedAt: new Date(now - 6 * dayMs),
+  1203→        completionNotes: 'Exceeded expectations - carousel format drove high swipe-through rate. TikTok version went viral.',
+  1204→        engagement: JSON.stringify({ likes: 8900, comments: 432, shares: 1200, saves: 2300, impressions: 350000 }),
+  1205→        organizationId: orgId,
+  1206→      },
+  1207→    }),
+  1208→    db.disseminationTask.create({
+  1209→      data: {
+  1210→        title: 'AutoDrive EV Range Explainer on Twitter',
+  1211→        description: 'Post the EV range explainer thread on Twitter with engaging stats.',
+  1212→        contentId: contentItems[18]?.id || null,
+  1213→        assigneeId: jordan.id,
+  1214→        disseminatorId: jordanDisseminator.id,
+  1215→        clientId: autodrive?.id || null,
+  1216→        campaignId: autodriveCampaign?.id || null,
+  1217→        targetPlatforms: JSON.stringify(['twitter', 'linkedin']),
+  1218→        postContent: 'How far can an EV really go? We put our models to the test. Watch the full video on YouTube →',
+  1219→        hashtags: '#AutoDrive #EV #ElectricVehicle #Range #CleanEnergy #Innovation',
+  1220→        scheduledAt: new Date(now - 7 * dayMs),
+  1221→        dueDate: new Date(now - 6 * dayMs),
+  1222→        priority: 'medium',
+  1223→        status: 'completed',
+  1224→        startedAt: new Date(now - 6.5 * dayMs),
+  1225→        completedAt: new Date(now - 6 * dayMs),
+  1226→        assignedById: marcus?.id || null,
+  1227→        assignedAt: new Date(now - 7 * dayMs),
+  1228→        completionNotes: 'Thread performed well on Twitter. LinkedIn post generated 3 qualified leads.',
+  1229→        engagement: JSON.stringify({ likes: 234, comments: 18, retweets: 67, impressions: 45000 }),
+  1230→        organizationId: orgId,
+  1231→      },
+  1232→    }),
+  1233→    // OVERDUE tasks (2)
+  1234→    db.disseminationTask.create({
+  1235→      data: {
+  1236→        title: 'Publish FoodVibe Recipe Cards on Instagram',
+  1237→        description: 'Post the weekly recipe card series as Instagram carousel posts.',
+  1238→        contentId: contentItems[2]?.id || null,
+  1239→        assigneeId: riley.id,
+  1240→        disseminatorId: rileyDisseminator.id,
+  1241→        clientId: foodvibe?.id || null,
+  1242→        campaignId: foodvibeCampaign?.id || null,
+  1243→        targetPlatforms: JSON.stringify(['instagram', 'pinterest']),
+  1244→        postContent: '🍳 This week\'s seasonal special: Lemon Herb Grilled Salmon! Save this recipe for your next dinner. #FoodVibe #Recipe #CookingAtHome',
+  1245→        hashtags: '#FoodVibe #Recipe #CookingAtHome #SeasonalEating #Foodie #HealthyEating',
+  1246→        scheduledAt: new Date(now - 4 * dayMs),
+  1247→        dueDate: new Date(now - 2 * dayMs),
+  1248→        priority: 'medium',
+  1249→        status: 'pending',
+  1250→        assignedById: priya?.id || null,
+  1251→        assignedAt: new Date(now - 5 * dayMs),
+  1252→        organizationId: orgId,
+  1253→      },
+  1254→    }),
+  1255→    db.disseminationTask.create({
+  1256→      data: {
+  1257→        title: 'Distribute AutoDrive Comparison Chart on Facebook',
+  1258→        description: 'Share the AutoDrive EV comparison chart on Facebook.',
+  1259→        contentId: contentItems[7]?.id || null,
+  1260→        assigneeId: sam.id,
+  1261→        disseminatorId: samDisseminator.id,
+  1262→        clientId: autodrive?.id || null,
+  1263→        campaignId: autodriveCampaign?.id || null,
+  1264→        targetPlatforms: JSON.stringify(['facebook', 'linkedin']),
+  1265→        postContent: 'See how AutoDrive EVs stack up against the competition 📊 The results speak for themselves. Explore our lineup →',
+  1266→        hashtags: '#AutoDrive #EV #Comparison #ElectricVehicle #CarShopping #GreenDriving',
+  1267→        scheduledAt: new Date(now - 3 * dayMs),
+  1268→        dueDate: new Date(now - 1 * dayMs),
+  1269→        priority: 'urgent',
+  1270→        status: 'in_progress',
+  1271→        startedAt: new Date(now - 1.5 * dayMs),
+  1272→        assignedById: marcus?.id || null,
+  1273→        assignedAt: new Date(now - 3 * dayMs),
+  1274→        organizationId: orgId,
+  1275→      },
+  1276→    }),
+  1277→    // FAILED task (1)
+  1278→    db.disseminationTask.create({
+  1279→      data: {
+  1280→        title: 'Publish TechCorp Thought Leadership on LinkedIn',
+  1281→        description: 'Publish the long-form thought leadership article on LinkedIn about the future of cloud infrastructure.',
+  1282→        contentId: contentItems[13]?.id || null,
+  1283→        assigneeId: jordan.id,
+  1284→        disseminatorId: jordanDisseminator.id,
+  1285→        clientId: techcorp?.id || null,
+  1286→        campaignId: techcorpCampaign?.id || null,
+  1287→        targetPlatforms: JSON.stringify(['linkedin']),
+  1288→        postContent: 'The future of cloud computing is here. Our CEO shares insights on what enterprise AI means for your business.',
+  1289→        hashtags: '#TechCorp #CloudComputing #EnterpriseAI #ThoughtLeadership #FutureOfWork',
+  1290→        scheduledAt: new Date(now - 4 * dayMs),
+  1291→        dueDate: new Date(now - 3 * dayMs),
+  1292→        priority: 'high',
+  1293→        status: 'failed',
+  1294→        startedAt: new Date(now - 4 * dayMs),
+  1295→        failureReason: 'LinkedIn API returned 403 error — article formatting exceeded character limit. Needs to be split into a post + article link format.',
+  1296→        assignedById: sarah?.id || null,
+  1297→        assignedAt: new Date(now - 5 * dayMs),
+  1298→        organizationId: orgId,
+  1299→      },
+  1300→    }),
+  1301→  ])
+  1302→}
+  1303→
+  1304→async function seedCommunications(orgId: string) {
+  1305→  const now = Date.now()
+  1306→  const dayMs = 86400000
+  1307→  const hourMs = 3600000
+  1308→
+  1309→  // Find existing users
+  1310→  const sarah = await db.user.findUnique({ where: { email: 'sarah@vortexdigital.com' } })
+  1311→  const marcus = await db.user.findUnique({ where: { email: 'marcus.johnson@vortexdigital.com' } })
+  1312→  const priya = await db.user.findUnique({ where: { email: 'priya.sharma@vortexdigital.com' } })
+  1313→
+  1314→  // Find existing clients and influencers
+  1315→  const techcorp = await db.client.findFirst({ where: { name: 'TechCorp', organizationId: orgId } })
+  1316→  const fashionhub = await db.client.findFirst({ where: { name: 'FashionHub', organizationId: orgId } })
+  1317→  const autodrive = await db.client.findFirst({ where: { name: 'AutoDrive', organizationId: orgId } })
+  1318→  const foodvibe = await db.client.findFirst({ where: { name: 'FoodVibe', organizationId: orgId } })
+  1319→  const techcorpCampaign = await db.campaign.findFirst({ where: { name: 'TechCorp Product Launch', organizationId: orgId } })
+  1320→  const fashionCampaign = await db.campaign.findFirst({ where: { name: 'FashionHub Summer Collection', organizationId: orgId } })
+  1321→
+  1322→  const influencers = await db.influencer.findMany({ where: { organizationId: orgId }, take: 6 })
+  1323→
+  1324→  // ============================================
+  1325→  // 1. Communication Templates
+  1326→  // ============================================
+  1327→  const templates = await Promise.all([
+  1328→    db.communicationTemplate.create({
+  1329→      data: {
+  1330→        name: 'Welcome Email',
+  1331→        subject: 'Welcome to {{company}}!',
+  1332→        body: 'Hi {{name}},\n\nWelcome to {{company}}! We\'re excited to have you on board.\n\nOur team is ready to help you achieve your goals. If you have any questions, don\'t hesitate to reach out.\n\nBest regards,\nThe {{company}} Team',
+  1333→        type: 'email',
+  1334→        category: 'welcome',
+  1335→        variables: JSON.stringify(['name', 'company']),
+  1336→        isDefault: true,
+  1337→        isActive: true,
+  1338→        organizationId: orgId,
+  1339→      },
+  1340→    }),
+  1341→    db.communicationTemplate.create({
+  1342→      data: {
+  1343→        name: 'Follow-Up Email',
+  1344→        subject: 'Following up on our conversation',
+  1345→        body: 'Hi {{name}},\n\nI wanted to follow up on our recent conversation about {{topic}}. I\'ve attached the relevant documents for your review.\n\nPlease let me know if you have any questions or if there\'s anything else I can help with.\n\nBest,\n{{senderName}}',
+  1346→        type: 'email',
+  1347→        category: 'follow_up',
+  1348→        variables: JSON.stringify(['name', 'topic', 'senderName']),
+  1349→        isDefault: false,
+  1350→        isActive: true,
+  1351→        organizationId: orgId,
+  1352→      },
+  1353→    }),
+  1354→    db.communicationTemplate.create({
+  1355→      data: {
+  1356→        name: 'Proposal Email',
+  1357→        subject: 'Proposal for {{projectName}}',
+  1358→        body: 'Dear {{name}},\n\nThank you for your interest in working with us. Please find our proposal for {{projectName}} attached.\n\nThe proposal outlines our approach, timeline, and investment details. We believe this will be a great partnership.\n\nLooking forward to your feedback.\n\nRegards,\n{{senderName}}',
+  1359→        type: 'email',
+  1360→        category: 'proposal',
+  1361→        variables: JSON.stringify(['name', 'projectName', 'senderName']),
+  1362→        isDefault: false,
+  1363→        isActive: true,
+  1364→        organizationId: orgId,
+  1365→      },
+  1366→    }),
+  1367→    db.communicationTemplate.create({
+  1368→      data: {
+  1369→        name: 'Invoice Reminder',
+  1370→        subject: 'Invoice #{{invoiceNumber}} Reminder',
+  1371→        body: 'Hi {{name}},\n\nThis is a friendly reminder that invoice #{{invoiceNumber}} for {{amount}} is due on {{dueDate}}.\n\nIf you\'ve already processed this payment, please disregard this message.\n\nThank you for your prompt attention.\n\nBest,\nAccounts Team',
+  1372→        type: 'email',
+  1373→        category: 'invoice',
+  1374→        variables: JSON.stringify(['name', 'invoiceNumber', 'amount', 'dueDate']),
+  1375→        isDefault: false,
+  1376→        isActive: true,
+  1377→        organizationId: orgId,
+  1378→      },
+  1379→    }),
+  1380→    db.communicationTemplate.create({
+  1381→      data: {
+  1382→        name: 'Campaign Update',
+  1383→        subject: 'Campaign Update: {{campaignName}}',
+  1384→        body: 'Hi {{name}},\n\nHere\'s your weekly update on the {{campaignName}} campaign:\n\n📊 Impressions: {{impressions}}\n📈 Engagement Rate: {{engagementRate}}%\n👥 Reach: {{reach}}\n\nThe campaign is performing well and we\'re on track to meet our targets.\n\nBest,\n{{senderName}}',
+  1385→        type: 'email',
+  1386→        category: 'campaign',
+  1387→        variables: JSON.stringify(['name', 'campaignName', 'impressions', 'engagementRate', 'reach', 'senderName']),
+  1388→        isDefault: false,
+  1389→        isActive: true,
+  1390→        organizationId: orgId,
+  1391→      },
+  1392→    }),
+  1393→    db.communicationTemplate.create({
+  1394→      data: {
+  1395→        name: 'WhatsApp Quick Update',
+  1396→        subject: null,
+  1397→        body: 'Hi {{name}}! 👋 Quick update on {{topic}}: {{update}}. Let me know if you need anything else!',
+  1398→        type: 'whatsapp',
+  1399→        category: 'notification',
+  1400→        variables: JSON.stringify(['name', 'topic', 'update']),
+  1401→        isDefault: true,
+  1402→        isActive: true,
+  1403→        organizationId: orgId,
+  1404→      },
+  1405→    }),
+  1406→    db.communicationTemplate.create({
+  1407→      data: {
+  1408→        name: 'WhatsApp Meeting Reminder',
+  1409→        subject: null,
+  1410→        body: '📋 Reminder: You have a meeting tomorrow at {{time}} about {{topic}}. Location: {{location}}. See you there!',
+  1411→        type: 'whatsapp',
+  1412→        category: 'reminder',
+  1413→        variables: JSON.stringify(['time', 'topic', 'location']),
+  1414→        isDefault: false,
+  1415→        isActive: true,
+  1416→        organizationId: orgId,
+  1417→      },
+  1418→    }),
+  1419→    db.communicationTemplate.create({
+  1420→      data: {
+  1421→        name: 'WhatsApp Content Approval',
+  1422→        subject: null,
+  1423→        body: '🎨 Hi {{name}}! New content ready for review: "{{contentTitle}}". Please check and approve at your earliest convenience. Link: {{reviewLink}}',
+  1424→        type: 'whatsapp',
+  1425→        category: 'notification',
+  1426→        variables: JSON.stringify(['name', 'contentTitle', 'reviewLink']),
+  1427→        isDefault: false,
+  1428→        isActive: true,
+  1429→        organizationId: orgId,
+  1430→      },
+  1431→    }),
+  1432→  ])
+  1433→
+  1434→  // ============================================
+  1435→  // 2. Communication Contacts
+  1436→  // ============================================
+  1437→  const contacts = await Promise.all([
+  1438→    db.communicationContact.create({
+  1439→      data: {
+  1440→        name: 'Alex Thompson',
+  1441→        email: 'alex.thompson@techcorp.io',
+  1442→        phone: '+1-555-0101',
+  1443→        whatsappNumber: '+1-555-0101',
+  1444→        company: 'TechCorp',
+  1445→        role: 'client',
+  1446→        notes: 'Primary contact for TechCorp. Prefers email for formal communication, WhatsApp for quick updates.',
+  1447→        preferredChannel: 'email',
+  1448→        lastContactedAt: new Date(now - 2 * hourMs),
+  1449→        isFavorite: true,
+  1450→        tags: 'VIP,Enterprise',
+  1451→        clientId: techcorp?.id || null,
+  1452→        organizationId: orgId,
+  1453→      },
+  1454→    }),
+  1455→    db.communicationContact.create({
+  1456→      data: {
+  1457→        name: 'Sophia Martinez',
+  1458→        email: 'sophia@fashionhub.com',
+  1459→        phone: '+1-555-0202',
+  1460→        whatsappNumber: '+1-555-0202',
+  1461→        company: 'FashionHub',
+  1462→        role: 'client',
+  1463→        notes: 'Creative director at FashionHub. Loves WhatsApp for quick back-and-forth on visual content.',
+  1464→        preferredChannel: 'whatsapp',
+  1465→        lastContactedAt: new Date(now - 5 * hourMs),
+  1466→        isFavorite: true,
+  1467→        tags: 'Creative,VIP',
+  1468→        clientId: fashionhub?.id || null,
+  1469→        organizationId: orgId,
+  1470→      },
+  1471→    }),
+  1472→    db.communicationContact.create({
+  1473→      data: {
+  1474→        name: 'David Park',
+  1475→        email: 'david.park@autodrive.co',
+  1476→        phone: '+1-555-0303',
+  1477→        whatsappNumber: '+1-555-0303',
+  1478→        company: 'AutoDrive',
+  1479→        role: 'client',
+  1480→        notes: 'Marketing VP at AutoDrive. Very responsive on WhatsApp.',
+  1481→        preferredChannel: 'whatsapp',
+  1482→        lastContactedAt: new Date(now - 1 * dayMs),
+  1483→        isFavorite: false,
+  1484→        tags: 'Automotive,Decision Maker',
+  1485→        clientId: autodrive?.id || null,
+  1486→        organizationId: orgId,
+  1487→      },
+  1488→    }),
+  1489→    db.communicationContact.create({
+  1490→      data: {
+  1491→        name: 'Emma Wilson',
+  1492→        email: 'emma@foodvibe.com',
+  1493→        phone: '+1-555-0404',
+  1494→        whatsappNumber: null,
+  1495→        company: 'FoodVibe',
+  1496→        role: 'client',
+  1497→        notes: 'Brand manager at FoodVibe. Email only - no WhatsApp.',
+  1498→        preferredChannel: 'email',
+  1499→        lastContactedAt: new Date(now - 3 * dayMs),
+  1500→        isFavorite: false,
+  1501→        tags: 'Food & Beverage',
+  1502→        clientId: foodvibe?.id || null,
+  1503→        organizationId: orgId,
+  1504→      },
+  1505→    }),
+  1506→    db.communicationContact.create({
+  1507→      data: {
+  1508→        name: 'Raj Patel',
+  1509→        email: 'raj@innovateai.com',
+  1510→        phone: '+1-555-0505',
+  1511→        whatsappNumber: '+1-555-0505',
+  1512→        company: 'InnovateAI',
+  1513→        role: 'partner',
+  1514→        notes: 'Technology partner. Quick responses on WhatsApp, detailed discussions via email.',
+  1515→        preferredChannel: 'email',
+  1516→        lastContactedAt: new Date(now - 12 * hourMs),
+  1517→        isFavorite: true,
+  1518→        tags: 'Tech,Partner',
+  1519→        organizationId: orgId,
+  1520→      },
+  1521→    }),
+  1522→    db.communicationContact.create({
+  1523→      data: {
+  1524→        name: 'Lisa Chen',
+  1525→        email: 'lisa.chen@brightmedia.co',
+  1526→        phone: '+1-555-0606',
+  1527→        whatsappNumber: '+1-555-0606',
+  1528→        company: 'BrightMedia',
+  1529→        role: 'vendor',
+  1530→        notes: 'Media buying vendor. Handles our paid social placements.',
+  1531→        preferredChannel: 'email',
+  1532→        lastContactedAt: new Date(now - 2 * dayMs),
+  1533→        isFavorite: false,
+  1534→        tags: 'Media,Vendor',
+  1535→        organizationId: orgId,
+  1536→      },
+  1537→    }),
+  1538→    // Influencer contacts
+  1539→    ...(influencers.slice(0, 4).map((inf, i) =>
+  1540→      db.communicationContact.create({
+  1541→        data: {
+  1542→          name: inf.name,
+  1543→          email: inf.email || `${inf.username}@example.com`,
+  1544→          phone: inf.phone || `+1-555-07${i + 1}`,
+  1545→          whatsappNumber: inf.phone || `+1-555-07${i + 1}`,
+  1546→          company: null,
+  1547→          role: 'influencer',
+  1548→          notes: `Contact for influencer ${inf.name} (${inf.platform})`,
+  1549→          preferredChannel: 'whatsapp' as const,
+  1550→          lastContactedAt: new Date(now - (i + 1) * dayMs),
+  1551→          isFavorite: i === 0,
+  1552→          tags: 'Influencer',
+  1553→          influencerId: inf.id,
+  1554→          organizationId: orgId,
+  1555→        },
+  1556→      })
+  1557→    )),
+  1558→  ])
+  1559→
+  1560→  // ============================================
+  1561→  // 3. Conversations with Messages
+  1562→  // ============================================
+  1563→  // Email conversation: TechCorp product launch discussion
+  1564→  const emailConv1 = await db.conversation.create({
+  1565→    data: {
+  1566→      subject: 'TechCorp Product Launch - Content Calendar',
+  1567→      type: 'email',
+  1568→      status: 'active',
+  1569→      priority: 'high',
+  1570→      channel: 'email',
+  1571→      clientId: techcorp?.id || null,
+  1572→      campaignId: techcorpCampaign?.id || null,
+  1573→      assignedToId: sarah?.id || null,
+  1574→      lastMessageAt: new Date(now - 2 * hourMs),
+  1575→      lastMessagePreview: 'Thanks for the updated timeline. We\'ll review and get back to you by EOD.',
+  1576→      unreadCount: 2,
+  1577→      tags: 'Product Launch,Urgent',
+  1578→      organizationId: orgId,
+  1579→      messages: {
+  1580→        create: [
+  1581→          {
+  1582→            senderId: null,
+  1583→            senderName: 'Alex Thompson',
+  1584→            senderEmail: 'alex.thompson@techcorp.io',
+  1585→            recipientName: 'Sarah Chen',
+  1586→            recipientEmail: 'sarah@vortexdigital.com',
+  1587→            subject: 'TechCorp Product Launch - Content Calendar',
+  1588→            body: 'Hi Sarah,\n\nWe\'re finalizing the product launch timeline and wanted to align on the content calendar. Can we schedule a call this week to go over the key dates and deliverables?\n\nWe have some new feature announcements that we\'d like to stagger across platforms.\n\nBest regards,\nAlex Thompson\nTechCorp',
+  1589→            type: 'email',
+  1590→            direction: 'inbound',
+  1591→            status: 'read',
+  1592→            isStarred: true,
+  1593→            isRead: true,
+  1594→            readAt: new Date(now - 47 * hourMs),
+  1595→            deliveredAt: new Date(now - 48 * hourMs),
+  1596→            openedAt: new Date(now - 47.5 * hourMs),
+  1597→            organizationId: orgId,
+  1598→          },
+  1599→          {
+  1600→            senderId: sarah?.id || null,
+  1601→            senderName: 'Sarah Chen',
+  1602→            senderEmail: 'sarah@vortexdigital.com',
+  1603→            recipientName: 'Alex Thompson',
+  1604→            recipientEmail: 'alex.thompson@techcorp.io',
+  1605→            subject: 'Re: TechCorp Product Launch - Content Calendar',
+  1606→            body: 'Hi Alex,\n\nAbsolutely! I\'ve reviewed the feature list and drafted a preliminary content calendar. How does Thursday at 2 PM work for a call?\n\nI\'m thinking we can break the launch into 3 phases:\n1. Teaser content (Week 1-2)\n2. Feature deep-dives (Week 3-4)\n3. Customer testimonials (Week 5-6)\n\nLet me know your thoughts.\n\nBest,\nSarah',
+  1607→            type: 'email',
+  1608→            direction: 'outbound',
+  1609→            status: 'read',
+  1610→            isStarred: false,
+  1611→            isRead: true,
+  1612→            readAt: null,
+  1613→            deliveredAt: new Date(now - 24 * hourMs),
+  1614→            openedAt: new Date(now - 23 * hourMs),
+  1615→            repliedAt: new Date(now - 2 * hourMs),
+  1616→            organizationId: orgId,
+  1617→          },
+  1618→          {
+  1619→            senderId: null,
+  1620→            senderName: 'Alex Thompson',
+  1621→            senderEmail: 'alex.thompson@techcorp.io',
+  1622→            recipientName: 'Sarah Chen',
+  1623→            recipientEmail: 'sarah@vortexdigital.com',
+  1624→            subject: 'Re: TechCorp Product Launch - Content Calendar',
+  1625→            body: 'Hi Sarah,\n\nThanks for the updated timeline. We\'ll review and get back to you by EOD.\n\nThe 3-phase approach looks solid. One addition — we\'d like to add a live Q&A session in Week 3 for the developer community.\n\nTalk soon,\nAlex',
+  1626→            type: 'email',
+  1627→            direction: 'inbound',
+  1628→            status: 'read',
+  1629→            isStarred: false,
+  1630→            isRead: false,
+  1631→            readAt: null,
+  1632→            deliveredAt: new Date(now - 2 * hourMs),
+  1633→            organizationId: orgId,
+  1634→          },
+  1635→        ],
+  1636→      },
+  1637→    },
+  1638→  })
+  1639→
+  1640→  // WhatsApp conversation: FashionHub creative review
+  1641→  const waConv1 = await db.conversation.create({
+  1642→    data: {
+  1643→      subject: null,
+  1644→      type: 'whatsapp',
+  1645→      status: 'active',
+  1646→      priority: 'normal',
+  1647→      channel: 'whatsapp',
+  1648→      clientId: fashionhub?.id || null,
+  1649→      campaignId: fashionCampaign?.id || null,
+  1650→      assignedToId: priya?.id || null,
+  1651→      lastMessageAt: new Date(now - 30 * 60000),
+  1652→      lastMessagePreview: 'Love the new carousel designs! 💕 Can we add more pastel tones?',
+  1653→      unreadCount: 1,
+  1654→      tags: 'Creative Review',
+  1655→      organizationId: orgId,
+  1656→      messages: {
+  1657→        create: [
+  1658→          {
+  1659→            senderId: priya?.id || null,
+  1660→            senderName: 'Priya Sharma',
+  1661→            senderPhone: '+1-555-1001',
+  1662→            recipientName: 'Sophia Martinez',
+  1663→            recipientPhone: '+1-555-0202',
+  1664→            body: 'Hi Sophia! 👋 The new summer collection content is ready for review. I\'ll send over the carousel designs in a sec.',
+  1665→            type: 'whatsapp',
+  1666→            direction: 'outbound',
+  1667→            status: 'delivered',
+  1668→            isStarred: false,
+  1669→            isRead: true,
+  1670→            deliveredAt: new Date(now - 2 * hourMs),
+  1671→            organizationId: orgId,
+  1672→          },
+  1673→          {
+  1674→            senderId: null,
+  1675→            senderName: 'Sophia Martinez',
+  1676→            senderPhone: '+1-555-0202',
+  1677→            recipientName: 'Priya Sharma',
+  1678→            recipientPhone: '+1-555-1001',
+  1679→            body: 'Omg yes please! 🎨 I\'ve been waiting for these. Quick question — did you go with the neon or pastel theme for the hero shots?',
+  1680→            type: 'whatsapp',
+  1681→            direction: 'inbound',
+  1682→            status: 'read',
+  1683→            isStarred: false,
+  1684→            isRead: true,
+  1685→            readAt: new Date(now - 1.5 * hourMs),
+  1686→            organizationId: orgId,
+  1687→          },
+  1688→          {
+  1689→            senderId: priya?.id || null,
+  1690→            senderName: 'Priya Sharma',
+  1691→            senderPhone: '+1-555-1001',
+  1692→            recipientName: 'Sophia Martinez',
+  1693→            recipientPhone: '+1-555-0202',
+  1694→            body: 'We went with pastel for the hero shots and neon for the BTS content. Best of both worlds! ✨ Sending now...',
+  1695→            type: 'whatsapp',
+  1696→            direction: 'outbound',
+  1697→            status: 'delivered',
+  1698→            isStarred: false,
+  1699→            isRead: true,
+  1700→            deliveredAt: new Date(now - 1 * hourMs),
+  1701→            organizationId: orgId,
+  1702→          },
+  1703→          {
+  1704→            senderId: null,
+  1705→            senderName: 'Sophia Martinez',
+  1706→            senderPhone: '+1-555-0202',
+  1707→            recipientName: 'Priya Sharma',
+  1708→            recipientPhone: '+1-555-1001',
+  1709→            body: 'Love the new carousel designs! 💕 Can we add more pastel tones?',
+  1710→            type: 'whatsapp',
+  1711→            direction: 'inbound',
+  1712→            status: 'delivered',
+  1713→            isStarred: false,
+  1714→            isRead: false,
+  1715→            organizationId: orgId,
+  1716→          },
+  1717→        ],
+  1718→      },
+  1719→    },
+  1720→  })
+  1721→
+  1722→  // WhatsApp conversation: AutoDrive campaign quick chat
+  1723→  const waConv2 = await db.conversation.create({
+  1724→    data: {
+  1725→      subject: null,
+  1726→      type: 'whatsapp',
+  1727→      status: 'active',
+  1728→      priority: 'urgent',
+  1729→      channel: 'whatsapp',
+  1730→      clientId: autodrive?.id || null,
+  1731→      assignedToId: marcus?.id || null,
+  1732→      lastMessageAt: new Date(now - 15 * 60000),
+  1733→      lastMessagePreview: 'We need the EV comparison infographic ASAP 🚗⚡',
+  1734→      unreadCount: 3,
+  1735→      tags: 'Urgent,Campaign',
+  1736→      organizationId: orgId,
+  1737→      messages: {
+  1738→        create: [
+  1739→          {
+  1740→            senderId: null,
+  1741→            senderName: 'David Park',
+  1742→            senderPhone: '+1-555-0303',
+  1743→            recipientName: 'Marcus Johnson',
+  1744→            recipientPhone: '+1-555-1002',
+  1745→            body: 'Hey Marcus! Quick question about the EV campaign timeline. Are we still on track for the launch next week?',
+  1746→            type: 'whatsapp',
+  1747→            direction: 'inbound',
+  1748→            status: 'read',
+  1749→            isStarred: false,
+  1750→            isRead: true,
+  1751→            readAt: new Date(now - 4 * hourMs),
+  1752→            organizationId: orgId,
+  1753→          },
+  1754→          {
+  1755→            senderId: marcus?.id || null,
+  1756→            senderName: 'Marcus Johnson',
+  1757→            senderPhone: '+1-555-1002',
+  1758→            recipientName: 'David Park',
+  1759→            recipientPhone: '+1-555-0303',
+  1760→            body: 'Hi David! Yes, we\'re on track. The video content is in final review and the social posts are scheduled. 📅',
+  1761→            type: 'whatsapp',
+  1762→            direction: 'outbound',
+  1763→            status: 'delivered',
+  1764→            isStarred: false,
+  1765→            isRead: true,
+  1766→            deliveredAt: new Date(now - 3.5 * hourMs),
+  1767→            organizationId: orgId,
+  1768→          },
+  1769→          {
+  1770→            senderId: null,
+  1771→            senderName: 'David Park',
+  1772→            senderPhone: '+1-555-0303',
+  1773→            recipientName: 'Marcus Johnson',
+  1774→            recipientPhone: '+1-555-1002',
+  1775→            body: 'Perfect! One thing — our CEO wants to add a comparison chart. Can we get that designed by Thursday?',
+  1776→            type: 'whatsapp',
+  1777→            direction: 'inbound',
+  1778→            status: 'delivered',
+  1779→            isStarred: false,
+  1780→            isRead: false,
+  1781→            organizationId: orgId,
+  1782→          },
+  1783→          {
+  1784→            senderId: null,
+  1785→            senderName: 'David Park',
+  1786→            senderPhone: '+1-555-0303',
+  1787→            recipientName: 'Marcus Johnson',
+  1788→            recipientPhone: '+1-555-1002',
+  1789→            body: 'We need the EV comparison infographic ASAP 🚗⚡',
+  1790→            type: 'whatsapp',
+  1791→            direction: 'inbound',
+  1792→            status: 'delivered',
+  1793→            isStarred: true,
+  1794→            isRead: false,
+  1795→            organizationId: orgId,
+  1796→          },
+  1797→        ],
+  1798→      },
+  1799→    },
+  1800→  })
+  1801→
+  1802→  // Email conversation: Proposal follow-up
+  1803→  const emailConv2 = await db.conversation.create({
+  1804→    data: {
+  1805→      subject: 'Q3 Marketing Partnership Proposal',
+  1806→      type: 'email',
+  1807→      status: 'active',
+  1808→      priority: 'normal',
+  1809→      channel: 'email',
+  1810→      assignedToId: sarah?.id || null,
+  1811→      lastMessageAt: new Date(now - 1 * dayMs),
+  1812→      lastMessagePreview: 'We\'d like to proceed with the partnership. Can we schedule a kickoff meeting?',
+  1813→      unreadCount: 1,
+  1814→      tags: 'Proposal,Partnership',
+  1815→      organizationId: orgId,
+  1816→      messages: {
+  1817→        create: [
+  1818→          {
+  1819→            senderId: sarah?.id || null,
+  1820→            senderName: 'Sarah Chen',
+  1821→            senderEmail: 'sarah@vortexdigital.com',
+  1822→            recipientName: 'Raj Patel',
+  1823→            recipientEmail: 'raj@innovateai.com',
+  1824→            subject: 'Q3 Marketing Partnership Proposal',
+  1825→            body: 'Dear Raj,\n\nFollowing our discussion at the Tech Summit last week, I\'m pleased to share our Q3 partnership proposal.\n\nThe proposal outlines a comprehensive marketing collaboration that leverages both our strengths in AI-driven content and your platform\'s reach.\n\nKey highlights:\n- Joint webinar series\n- Co-branded content creation\n- Cross-platform promotion\n- Shared analytics dashboard\n\nI\'d love to discuss this further at your convenience.\n\nBest regards,\nSarah Chen\nCEO, Vortex Digital',
+  1826→            type: 'email',
+  1827→            direction: 'outbound',
+  1828→            status: 'read',
+  1829→            isStarred: true,
+  1830→            isRead: true,
+  1831→            deliveredAt: new Date(now - 5 * dayMs),
+  1832→            openedAt: new Date(now - 4.8 * dayMs),
+  1833→            clickedAt: new Date(now - 4.5 * dayMs),
+  1834→            organizationId: orgId,
+  1835→          },
+  1836→          {
+  1837→            senderId: null,
+  1838→            senderName: 'Raj Patel',
+  1839→            senderEmail: 'raj@innovateai.com',
+  1840→            recipientName: 'Sarah Chen',
+  1841→            recipientEmail: 'sarah@vortexdigital.com',
+  1842→            subject: 'Re: Q3 Marketing Partnership Proposal',
+  1843→            body: 'Hi Sarah,\n\nThank you for the detailed proposal. We\'ve reviewed it with our team and are very interested in the joint webinar series and co-branded content.\n\nWe\'d like to proceed with the partnership. Can we schedule a kickoff meeting next week?\n\nBest,\nRaj Patel\nInnovateAI',
+  1844→            type: 'email',
+  1845→            direction: 'inbound',
+  1846→            status: 'read',
+  1847→            isStarred: false,
+  1848→            isRead: false,
+  1849→            readAt: null,
+  1850→            deliveredAt: new Date(now - 1 * dayMs),
+  1851→            organizationId: orgId,
+  1852→          },
+  1853→        ],
+  1854→      },
+  1855→    },
+  1856→  })
+  1857→
+  1858→  // Email conversation: Invoice reminder
+  1859→  const emailConv3 = await db.conversation.create({
+  1860→    data: {
+  1861→      subject: 'Invoice #INV-2024-089 - Payment Reminder',
+  1862→      type: 'email',
+  1863→      status: 'active',
+  1864→      priority: 'high',
+  1865→      channel: 'email',
+  1866→      clientId: foodvibe?.id || null,
+  1867→      assignedToId: marcus?.id || null,
+  1868→      lastMessageAt: new Date(now - 3 * dayMs),
+  1869→      lastMessagePreview: 'Payment has been processed. Should reflect in your account within 2-3 business days.',
+  1870→      unreadCount: 0,
+  1871→      tags: 'Invoice,Payment',
+  1872→      organizationId: orgId,
+  1873→      messages: {
+  1874→        create: [
+  1875→          {
+  1876→            senderId: marcus?.id || null,
+  1877→            senderName: 'Marcus Johnson',
+  1878→            senderEmail: 'marcus.johnson@vortexdigital.com',
+  1879→            recipientName: 'Emma Wilson',
+  1880→            recipientEmail: 'emma@foodvibe.com',
+  1881→            subject: 'Invoice #INV-2024-089 - Payment Reminder',
+  1882→            body: 'Hi Emma,\n\nThis is a friendly reminder that invoice #INV-2024-089 for $4,500.00 was due on March 1st.\n\nIf you\'ve already processed the payment, please disregard this message. Otherwise, please let us know if you need any clarification on the invoice.\n\nThank you for your prompt attention.\n\nBest regards,\nMarcus Johnson\nVortex Digital',
+  1883→            type: 'email',
+  1884→            direction: 'outbound',
+  1885→            status: 'read',
+  1886→            isStarred: false,
+  1887→            isRead: true,
+  1888→            deliveredAt: new Date(now - 7 * dayMs),
+  1889→            openedAt: new Date(now - 6.5 * dayMs),
+  1890→            organizationId: orgId,
+  1891→          },
+  1892→          {
+  1893→            senderId: null,
+  1894→            senderName: 'Emma Wilson',
+  1895→            senderEmail: 'emma@foodvibe.com',
+  1896→            recipientName: 'Marcus Johnson',
+  1897→            recipientEmail: 'marcus.johnson@vortexdigital.com',
+  1898→            subject: 'Re: Invoice #INV-2024-089 - Payment Reminder',
+  1899→            body: 'Hi Marcus,\n\nApologies for the delay. Payment has been processed. Should reflect in your account within 2-3 business days.\n\nThanks for your patience.\n\nEmma',
+  1900→            type: 'email',
+  1901→            direction: 'inbound',
+  1902→            status: 'read',
+  1903→            isStarred: false,
+  1904→            isRead: true,
+  1905→            readAt: new Date(now - 2.5 * dayMs),
+  1906→            deliveredAt: new Date(now - 3 * dayMs),
+  1907→            organizationId: orgId,
+  1908→          },
+  1909→        ],
+  1910→      },
+  1911→    },
+  1912→  })
+  1913→
+  1914→  // Archived email conversation
+  1915→  const emailConv4 = await db.conversation.create({
+  1916→    data: {
+  1917→      subject: 'Brand Guidelines Update - Q1',
+  1918→      type: 'email',
+  1919→      status: 'archived',
+  1920→      priority: 'low',
+  1921→      channel: 'email',
+  1922→      clientId: fashionhub?.id || null,
+  1923→      assignedToId: priya?.id || null,
+  1924→      lastMessageAt: new Date(now - 14 * dayMs),
+  1925→      lastMessagePreview: 'Updated guidelines look great. We\'ll implement them across all new content.',
+  1926→      unreadCount: 0,
+  1927→      tags: 'Brand,Guidelines',
+  1928→      organizationId: orgId,
+  1929→      messages: {
+  1930→        create: [
+  1931→          {
+  1932→            senderId: null,
+  1933→            senderName: 'Sophia Martinez',
+  1934→            senderEmail: 'sophia@fashionhub.com',
+  1935→            recipientName: 'Priya Sharma',
+  1936→            recipientEmail: 'priya.sharma@vortexdigital.com',
+  1937→            subject: 'Brand Guidelines Update - Q1',
+  1938→            body: 'Hi Priya,\n\nWe\'ve updated our brand guidelines for Q1. Key changes include:\n- New primary color palette\n- Updated logo usage rules\n- Fresh typography guidelines\n\nPlease ensure all future content follows the new guidelines.\n\nThanks,\nSophia',
+  1939→            type: 'email',
+  1940→            direction: 'inbound',
+  1941→            status: 'read',
+  1942→            isStarred: false,
+  1943→            isRead: true,
+  1944→            readAt: new Date(now - 20 * dayMs),
+  1945→            deliveredAt: new Date(now - 21 * dayMs),
+  1946→            openedAt: new Date(now - 20.5 * dayMs),
+  1947→            organizationId: orgId,
+  1948→          },
+  1949→          {
+  1950→            senderId: priya?.id || null,
+  1951→            senderName: 'Priya Sharma',
+  1952→            senderEmail: 'priya.sharma@vortexdigital.com',
+  1953→            recipientName: 'Sophia Martinez',
+  1954→            recipientEmail: 'sophia@fashionhub.com',
+  1955→            subject: 'Re: Brand Guidelines Update - Q1',
+  1956→            body: 'Hi Sophia,\n\nUpdated guidelines look great. We\'ll implement them across all new content.\n\nBest,\nPriya',
+  1957→            type: 'email',
+  1958→            direction: 'outbound',
+  1959→            status: 'read',
+  1960→            isStarred: false,
+  1961→            isRead: true,
+  1962→            deliveredAt: new Date(now - 14 * dayMs),
+  1963→            openedAt: new Date(now - 13.5 * dayMs),
+  1964→            organizationId: orgId,
+  1965→          },
+  1966→        ],
+  1967→      },
+  1968→    },
+  1969→  })
+  1970→
+  1971→  // Closed WhatsApp conversation
+  1972→  const waConv3 = await db.conversation.create({
+  1973→    data: {
+  1974→      subject: null,
+  1975→      type: 'whatsapp',
+  1976→      status: 'closed',
+  1977→      priority: 'low',
+  1978→      channel: 'whatsapp',
+  1979→      clientId: techcorp?.id || null,
+  1980→      lastMessageAt: new Date(now - 10 * dayMs),
+  1981→      lastMessagePreview: '👍 All confirmed! See you at the event.',
+  1982→      unreadCount: 0,
+  1983→      tags: 'Event',
+  1984→      organizationId: orgId,
+  1985→      messages: {
+  1986→        create: [
+  1987→          {
+  1988→            senderId: null,
+  1989→            senderName: 'Alex Thompson',
+  1990→            senderPhone: '+1-555-0101',
+  1991→            recipientName: 'Sarah Chen',
+  1992→            recipientPhone: '+1-555-1003',
+  1993→            body: 'Hi Sarah! Are we still good for the product demo event on the 15th? 🎯',
+  1994→            type: 'whatsapp',
+  1995→            direction: 'inbound',
+  1996→            status: 'read',
+  1997→            isStarred: false,
+  1998→            isRead: true,
+  1999→            readAt: new Date(now - 11 * dayMs),
+  2000→            organizationId: orgId,
+
+[showing lines 1-2000 of 2082; use offset=2001 with limit to continue reading]

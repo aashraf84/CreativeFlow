@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
+    const parentId = searchParams.get('parentId')
 
     const org = await db.organization.findFirst()
     if (!org) {
@@ -16,9 +17,16 @@ export async function GET(request: Request) {
     }
 
     if (type) where.type = type
+    if (parentId) where.parentId = parentId
+    if (searchParams.get('activeOnly') === 'true') where.isActive = true
 
     const accounts = await db.account.findMany({
       where,
+      include: {
+        parent: { select: { id: true, code: true, name: true } },
+        children: { select: { id: true, code: true, name: true, type: true, balance: true } },
+        _count: { select: { journalLines: true } },
+      },
       orderBy: { code: 'asc' },
     })
 
@@ -43,9 +51,17 @@ export async function POST(request: Request) {
         name: body.name,
         type: body.type,
         category: body.category || null,
+        description: body.description || null,
+        normalBalance: body.normalBalance || 'debit',
+        parentId: body.parentId || null,
         balance: body.balance || 0,
         isActive: body.isActive !== undefined ? body.isActive : true,
         organizationId: org.id,
+      },
+      include: {
+        parent: { select: { id: true, code: true, name: true } },
+        children: { select: { id: true, code: true, name: true, type: true, balance: true } },
+        _count: { select: { journalLines: true } },
       },
     })
 

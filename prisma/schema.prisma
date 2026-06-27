@@ -53,6 +53,8 @@ model Organization {
   conversations     Conversation[]
   communicationMessages CommunicationMessage[]
   communicationContacts CommunicationContact[]
+  journalEntries    JournalEntry[]
+  invoiceItems      InvoiceItem[]
 }
 
 model User {
@@ -87,6 +89,7 @@ model User {
   assignedTasks     DisseminationTask[] @relation("TaskAssignee")
   conversationsAssigned Conversation[] @relation("ConversationAssignee")
   messagesSent      CommunicationMessage[] @relation("MessageSender")
+  journalEntriesCreated JournalEntry[] @relation("JournalEntryCreator")
 
   @@index([organizationId])
 }
@@ -347,7 +350,6 @@ model Invoice {
   clientId       String
   campaignId     String?
   status         String   @default("draft") // draft, sent, paid, overdue, cancelled
-  items          String   // JSON array: [{description, quantity, rate, amount}]
   subtotal       Float    @default(0)
   tax            Float    @default(0)
   total          Float    @default(0)
@@ -358,13 +360,32 @@ model Invoice {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  client       Client       @relation(fields: [clientId], references: [id])
-  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  client       Client        @relation(fields: [clientId], references: [id])
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id])
+  invoiceItems InvoiceItem[]
 
   @@index([organizationId])
   @@index([clientId])
   @@index([status])
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Float    @default(1)
+  rate        Float    @default(0)
+  amount      Float    @default(0)
+  organizationId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  invoice     Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([invoiceId])
+  @@index([organizationId])
 }
 
 model TimeEntry {
@@ -686,18 +707,26 @@ model Account {
   id             String   @id @default(cuid())
   code           String
   name           String
-  type           String
+  type           String          // asset, liability, equity, revenue, expense
   category       String?
+  description    String?
+  normalBalance  String   @default("debit") // debit or credit
+  parentId       String?
   balance        Float    @default(0)
   isActive       Boolean  @default(true)
   organizationId String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  parent         Account?       @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children       Account[]      @relation("AccountHierarchy")
+  journalLines   JournalEntryLine[]
 
   @@index([organizationId])
   @@index([type])
+  @@index([parentId])
+  @@index([code])
 }
 
 model TaxRate {
@@ -1120,4 +1149,52 @@ model CommunicationContact {
   @@index([organizationId])
   @@index([email])
   @@index([phone])
+}
+
+model JournalEntry {
+  id             String   @id @default(cuid())
+  number         String   @unique
+  date           DateTime
+  description    String
+  reference      String?   // e.g. INV-001, PAY-042
+  source         String    // manual, invoice, expense, payroll, transfer
+  sourceId       String?   // ID of the source document
+  status         String    @default("draft") // draft, posted, void
+  isAdjusting    Boolean   @default(false)
+  period         String    // e.g. "2026-01" for fiscal period
+  totalDebit     Float     @default(0)
+  totalCredit    Float     @default(0)
+  organizationId String
+  createdById    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdBy      User?        @relation("JournalEntryCreator", fields: [createdById], references: [id])
+  lines          JournalEntryLine[]
+
+  @@index([organizationId])
+  @@index([date])
+  @@index([status])
+  @@index([period])
+  @@index([source])
+}
+
+model JournalEntryLine {
+  id             String   @id @default(cuid())
+  journalEntryId String
+  accountId      String
+  debit          Float    @default(0)
+  credit         Float    @default(0)
+  description    String?
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account        Account      @relation(fields: [accountId], references: [id])
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@index([organizationId])
 }

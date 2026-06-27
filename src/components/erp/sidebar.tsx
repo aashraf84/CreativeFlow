@@ -68,8 +68,9 @@ const hrNav: NavItem[] = [
 ];
 
 const financeNav: NavItem[] = [
-  { id: "expenses", label: "Expenses", icon: Receipt },
   { id: "financeAccounts", label: "Accounts", icon: Landmark },
+  { id: "invoicing", label: "Invoicing", icon: Receipt },
+  { id: "expenses", label: "Expenses", icon: Receipt },
 ];
 
 const inventoryNav: NavItem[] = [
@@ -82,7 +83,6 @@ const inventoryNav: NavItem[] = [
 const insightNav: NavItem[] = [
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "automation", label: "Automation", icon: Zap, badge: "Pro" },
-  { id: "invoicing", label: "Invoicing", icon: Receipt },
   { id: "archive", label: "Archive", icon: Archive },
 ];
 

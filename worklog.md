@@ -1,5 +1,134 @@
 # Work Log - Task 3a: Build 3 Professional HR Views for VortexERP
 
+## Work Log - Task 3: Finance Accounts System for VortexERP
+
+## Date: 2026-06-27
+
+## Summary
+Built a complete finance accounts system for VortexERP with journal entries, chart of accounts hierarchy, financial reports (Trial Balance, Balance Sheet, P&L), and tax rate management. All data is computed from actual journal entry lines for accuracy.
+
+## Files Created
+
+### 1. `src/app/api/journal-entries/route.ts` - Journal Entries API (NEW)
+- **GET**: List journal entries with filters (status, source, period, search), includes lines with account details, pagination
+- **POST**: Create journal entry with lines, validates totalDebit === totalCredit, auto-generates number like JE-001
+
+### 2. `src/app/api/journal-entries/[id]/route.ts` - Journal Entry Detail API (NEW)
+- **GET**: Single journal entry with full details (lines with account names)
+- **PUT**: Update journal entry (only if status is draft), can post/void status changes
+
+### 3. `src/app/api/tax-rates/[id]/route.ts` - Tax Rate Detail API (NEW)
+- **PUT**: Update tax rate (name, rate, type, isActive)
+- **DELETE**: Soft delete (sets isActive=false)
+
+## Files Modified
+
+### 4. `src/app/api/accounts/route.ts` - Accounts API (UPDATED)
+- **GET**: Added parentId filter, includes children and parent relations, _count of journalLines
+- **POST**: Added description, normalBalance, parentId fields
+
+### 5. `src/app/api/accounts/[id]/route.ts` - Account Detail API (UPDATED)
+- **GET**: Added computed balance from journal lines, recent transactions
+- **PUT**: Added update for all new fields (description, normalBalance, parentId)
+- **DELETE**: Prevents deletion if account has journal lines or children
+
+### 6. `src/app/api/financial-reports/route.ts` - Financial Reports API (REWRITTEN)
+- **GET**: Enhanced with report type parameter:
+  - `type=trial-balance`: All accounts with debit/credit totals from posted JEs, balanced check
+  - `type=balance-sheet`: Assets, Liabilities, Equity sections with computed balances
+  - `type=pnl`: Revenue and Expense breakdown with Net Income
+  - `type=cash-flow`: Cash accounts summary with operating cash flow
+  - All computed from actual journal entry lines, not fabricated data
+- Supports period filtering
+
+### 7. `src/app/api/invoices/route.ts` - Invoices API (UPDATED)
+- Replaced old `items` string field with `invoiceItems` relation
+- GET includes invoiceItems, POST creates invoice with nested invoice items
+
+### 8. `src/app/api/invoices/[id]/route.ts` - Invoice Detail API (UPDATED)
+- PUT handles invoice items update (delete and recreate)
+- Removed `items` field references
+
+### 9. `src/app/api/seed/route.ts` - Seed Data (UPDATED)
+- Added cleanup for JournalEntryLine, JournalEntry, InvoiceItem at top
+- Updated seed check condition to include journal entries count
+- Added incremental seeding for finance data (when basic data exists but no finance data)
+- Added `seedFinance()` function creating:
+  - **28 Chart of Accounts** with parent-child hierarchy
+  - **5 Tax Rates** (Federal Income, State Income, Sales, Payroll, VAT)
+  - **10 Journal Entries** (JE-001 through JE-010) with proper double-entry lines
+
+### 10. `src/lib/store.ts` - Store Types (UPDATED)
+- Updated `Account` interface with parentId, description, normalBalance, parent, children, _count
+- Added `JournalEntryLine` interface
+- Added `JournalEntry` interface with createdBy and lines
+- Added `InvoiceItem` interface
+- Updated `Invoice` interface (removed items string, added invoiceItems array)
+- Added journalEntries, invoiceItems state with setters
+
+### 11. `src/app/page.tsx` - Data Loading (UPDATED)
+- Added fetch for `/api/journal-entries`
+- Added journal entries data extraction and store update
+- Added invoice items extraction from invoice data
+
+### 12. `src/components/erp/finance-accounts-view.tsx` - Finance View (REWRITTEN)
+7 comprehensive tabs with emerald/teal color scheme:
+
+**Tab 1: Chart of Accounts**
+- Tree/hierarchical view with expandable parent→child groups
+- KPI cards for each account type (Total Assets, Liabilities, Equity, Revenue, Expenses)
+- Account type filter pills and search by code/name
+- Table with Code, Name, Type, Normal Balance, Balance, Status, Transaction Count
+- Add/Edit Account dialog with all fields
+- Delete account (only if no journal lines)
+- Click child account row to navigate to General Ledger
+
+**Tab 2: General Ledger**
+- Account selector dropdown
+- All journal entry lines for selected account
+- Running balance calculated per row
+- Date, JE Number, Description, Reference, Debit, Credit, Balance columns
+- Totals at bottom
+
+**Tab 3: Journal Entries**
+- List with filters (status, source, period, search)
+- Expandable entries showing all lines
+- Post/Void buttons
+- Create Journal Entry dialog with dynamic line items
+- Total Debit/Credit validation (must be equal)
+- Save as Draft or Post immediately
+
+**Tab 4: Trial Balance**
+- All active accounts with debit/credit totals from posted JEs
+- Balanced/Not Balanced indicator
+- Period selector
+- Export button (visual only)
+
+**Tab 5: Balance Sheet**
+- Standard format: Assets, Liabilities, Equity sections
+- Parent/child hierarchy display
+- Validation: Total Assets === Total Liabilities + Equity
+- Period selector
+
+**Tab 6: P&L Statement**
+- Revenue and Expense sections with account breakdown
+- Net Income calculation
+- CSS-based visual bar chart (Revenue vs Expenses)
+- Period selector
+
+**Tab 7: Tax Rates**
+- Table of tax rates with name, rate, type, status
+- Add/Edit tax rate dialog
+- Delete (soft delete via PUT)
+- Toggle active/inactive
+
+## Design
+- Emerald/teal primary colors
+- Framer-motion animations
+- shadcn/ui components
+- Responsive design
+- All data from Zustand store with API mutations
+
 ## Date: 2026-06-27
 
 ## Summary

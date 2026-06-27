@@ -8,8 +8,9 @@ export async function GET() {
     const existingApprovals = existingOrg ? await db.approval.count({ where: { organizationId: existingOrg.id } }) : 0
     const existingDisseminators = existingOrg ? await db.disseminator.count({ where: { organizationId: existingOrg.id } }) : 0
     const existingCommContacts = existingOrg ? await db.communicationContact.count({ where: { organizationId: existingOrg.id } }) : 0
+    const existingJournalEntries = existingOrg ? await db.journalEntry.count({ where: { organizationId: existingOrg.id } }) : 0
     
-    if (existingOrg && existingApprovals > 0 && existingDisseminators > 0 && existingCommContacts > 0) {
+    if (existingOrg && existingApprovals > 0 && existingDisseminators > 0 && existingCommContacts > 0 && existingJournalEntries > 0) {
       return NextResponse.json({ success: true, message: 'Database already seeded', skipped: true })
     }
     
@@ -19,12 +20,26 @@ export async function GET() {
     }
     
     // If org exists but no communication data, seed communications
-    if (existingOrg && existingCommContacts === 0) {
+    if (existingOrg && existingCommContacts === 0 && existingApprovals > 0) {
       await seedCommunications(existingOrg.id)
-      return NextResponse.json({ success: true, message: 'Communications seeded', skipped: false })
+    }
+
+    // If org exists with all basic data but no finance data, seed finance only
+    if (existingOrg && existingApprovals > 0 && existingJournalEntries === 0) {
+      const adminUser = await db.user.findFirst({ where: { organizationId: existingOrg.id, role: 'admin' } })
+      await seedFinance(existingOrg.id, adminUser?.id || '')
+      return NextResponse.json({ success: true, message: 'Finance data seeded', skipped: false })
+    }
+
+    // Full seed already complete
+    if (existingOrg && existingJournalEntries > 0) {
+      return NextResponse.json({ success: true, message: 'Database already seeded', skipped: true })
     }
 
     // Clear existing data in correct order (respecting foreign keys)
+    await db.journalEntryLine.deleteMany()
+    await db.journalEntry.deleteMany()
+    await db.invoiceItem.deleteMany()
     await db.communicationMessage.deleteMany()
     await db.conversation.deleteMany()
     await db.communicationTemplate.deleteMany()
@@ -852,6 +867,9 @@ export async function GET() {
       }),
     ])
 
+    // Seed finance data
+    const financeResult = await seedFinance(org.id, sarah.id)
+
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
@@ -881,6 +899,9 @@ export async function GET() {
         jobPostings: 8,
         disseminators: disseminators.length,
         disseminationTasks: disseminationTasks.length,
+        financeAccounts: financeResult.accounts,
+        taxRates: financeResult.taxRates,
+        journalEntries: financeResult.journalEntries,
       },
     })
   } catch (error) {
@@ -2078,4 +2099,333 @@ async function seedCommunications(orgId: string) {
     contacts: contacts.length,
     conversations: 7,
   }
+}
+
+async function seedFinance(orgId: string, userId: string) {
+  // Clean up existing finance data
+  await db.journalEntryLine.deleteMany({ where: { organizationId: orgId } })
+  await db.journalEntry.deleteMany({ where: { organizationId: orgId } })
+  await db.account.deleteMany({ where: { organizationId: orgId } })
+  await db.taxRate.deleteMany({ where: { organizationId: orgId } })
+
+  // ─── Chart of Accounts ────────────────────────────────────────
+
+  // ASSETS - Current Assets (parent)
+  const currentAssets = await db.account.create({
+    data: { code: '1000', name: 'Current Assets', type: 'asset', category: 'current_assets', description: 'Assets expected to be converted to cash within one year', normalBalance: 'debit', balance: 0, isActive: true, organizationId: orgId },
+  })
+  const cash = await db.account.create({ data: { code: '1100', name: 'Cash', type: 'asset', category: 'current_assets', description: 'Cash on hand and in bank accounts', normalBalance: 'debit', balance: 45000, isActive: true, parentId: currentAssets.id, organizationId: orgId } })
+  const accountsReceivable = await db.account.create({ data: { code: '1200', name: 'Accounts Receivable', type: 'asset', category: 'current_assets', description: 'Amounts owed by customers', normalBalance: 'debit', balance: 28500, isActive: true, parentId: currentAssets.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '1300', name: 'Petty Cash', type: 'asset', category: 'current_assets', description: 'Small cash fund for minor expenses', normalBalance: 'debit', balance: 500, isActive: true, parentId: currentAssets.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '1400', name: 'Inventory', type: 'asset', category: 'current_assets', description: 'Goods available for sale', normalBalance: 'debit', balance: 12000, isActive: true, parentId: currentAssets.id, organizationId: orgId } })
+
+  // ASSETS - Fixed Assets (parent)
+  const fixedAssets = await db.account.create({
+    data: { code: '1500', name: 'Fixed Assets', type: 'asset', category: 'fixed_assets', description: 'Long-term tangible assets', normalBalance: 'debit', balance: 0, isActive: true, organizationId: orgId },
+  })
+  await db.account.create({ data: { code: '1510', name: 'Office Equipment', type: 'asset', category: 'fixed_assets', description: 'Furniture, fixtures, and office equipment', normalBalance: 'debit', balance: 8500, isActive: true, parentId: fixedAssets.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '1520', name: 'Computers', type: 'asset', category: 'fixed_assets', description: 'Computer hardware and software', normalBalance: 'debit', balance: 15000, isActive: true, parentId: fixedAssets.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '1530', name: 'Vehicles', type: 'asset', category: 'fixed_assets', description: 'Company vehicles', normalBalance: 'debit', balance: 25000, isActive: true, parentId: fixedAssets.id, organizationId: orgId } })
+
+  // LIABILITIES - Current Liabilities (parent)
+  const currentLiabilities = await db.account.create({
+    data: { code: '2000', name: 'Current Liabilities', type: 'liability', category: 'current_liabilities', description: 'Obligations due within one year', normalBalance: 'credit', balance: 0, isActive: true, organizationId: orgId },
+  })
+  await db.account.create({ data: { code: '2100', name: 'Accounts Payable', type: 'liability', category: 'current_liabilities', description: 'Amounts owed to vendors', normalBalance: 'credit', balance: 15000, isActive: true, parentId: currentLiabilities.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '2200', name: 'Accrued Expenses', type: 'liability', category: 'current_liabilities', description: 'Expenses incurred but not yet paid', normalBalance: 'credit', balance: 5000, isActive: true, parentId: currentLiabilities.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '2300', name: 'Tax Payable', type: 'liability', category: 'current_liabilities', description: 'Taxes owed to government', normalBalance: 'credit', balance: 3500, isActive: true, parentId: currentLiabilities.id, organizationId: orgId } })
+
+  // LIABILITIES - Long-term Liabilities (parent)
+  const longTermLiabilities = await db.account.create({
+    data: { code: '2500', name: 'Long-term Liabilities', type: 'liability', category: 'long_term_liabilities', description: 'Obligations due beyond one year', normalBalance: 'credit', balance: 0, isActive: true, organizationId: orgId },
+  })
+  const bankLoan = await db.account.create({ data: { code: '2510', name: 'Bank Loan', type: 'liability', category: 'long_term_liabilities', description: 'Long-term bank loan', normalBalance: 'credit', balance: 50000, isActive: true, parentId: longTermLiabilities.id, organizationId: orgId } })
+
+  // EQUITY (parent)
+  const ownersEquity = await db.account.create({
+    data: { code: '3000', name: "Owner's Equity", type: 'equity', category: 'equity', description: "Owner's interest in the business", normalBalance: 'credit', balance: 0, isActive: true, organizationId: orgId },
+  })
+  const ownersCapital = await db.account.create({ data: { code: '3100', name: "Owner's Capital", type: 'equity', category: 'equity', description: "Owner's investment in the business", normalBalance: 'credit', balance: 100000, isActive: true, parentId: ownersEquity.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '3200', name: 'Retained Earnings', type: 'equity', category: 'equity', description: 'Accumulated profits not distributed', normalBalance: 'credit', balance: 0, isActive: true, parentId: ownersEquity.id, organizationId: orgId } })
+
+  // REVENUE (parent)
+  const revenue = await db.account.create({
+    data: { code: '4000', name: 'Revenue', type: 'revenue', category: 'revenue', description: 'Income from business operations', normalBalance: 'credit', balance: 0, isActive: true, organizationId: orgId },
+  })
+  const serviceRevenue = await db.account.create({ data: { code: '4100', name: 'Service Revenue', type: 'revenue', category: 'revenue', description: 'Revenue from services rendered', normalBalance: 'credit', balance: 15000, isActive: true, parentId: revenue.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '4200', name: 'Product Revenue', type: 'revenue', category: 'revenue', description: 'Revenue from product sales', normalBalance: 'credit', balance: 0, isActive: true, parentId: revenue.id, organizationId: orgId } })
+  const consultingRevenue = await db.account.create({ data: { code: '4300', name: 'Consulting Revenue', type: 'revenue', category: 'revenue', description: 'Revenue from consulting services', normalBalance: 'credit', balance: 8000, isActive: true, parentId: revenue.id, organizationId: orgId } })
+
+  // EXPENSE - Operating Expenses (parent)
+  const operatingExpenses = await db.account.create({
+    data: { code: '5000', name: 'Operating Expenses', type: 'expense', category: 'operating_expenses', description: 'Day-to-day operating costs', normalBalance: 'debit', balance: 0, isActive: true, organizationId: orgId },
+  })
+  const salaries = await db.account.create({ data: { code: '5100', name: 'Salaries', type: 'expense', category: 'operating_expenses', description: 'Employee salaries and wages', normalBalance: 'debit', balance: 12000, isActive: true, parentId: operatingExpenses.id, organizationId: orgId } })
+  const rentExpense = await db.account.create({ data: { code: '5200', name: 'Rent', type: 'expense', category: 'operating_expenses', description: 'Office and facility rent', normalBalance: 'debit', balance: 5000, isActive: true, parentId: operatingExpenses.id, organizationId: orgId } })
+  const utilities = await db.account.create({ data: { code: '5300', name: 'Utilities', type: 'expense', category: 'operating_expenses', description: 'Electricity, water, internet', normalBalance: 'debit', balance: 1200, isActive: true, parentId: operatingExpenses.id, organizationId: orgId } })
+  const officeSupplies = await db.account.create({ data: { code: '5400', name: 'Office Supplies', type: 'expense', category: 'operating_expenses', description: 'Office consumables and supplies', normalBalance: 'debit', balance: 800, isActive: true, parentId: operatingExpenses.id, organizationId: orgId } })
+  const marketing = await db.account.create({ data: { code: '5500', name: 'Marketing', type: 'expense', category: 'operating_expenses', description: 'Marketing and advertising costs', normalBalance: 'debit', balance: 3500, isActive: true, parentId: operatingExpenses.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '5600', name: 'Insurance', type: 'expense', category: 'operating_expenses', description: 'Business insurance premiums', normalBalance: 'debit', balance: 0, isActive: true, parentId: operatingExpenses.id, organizationId: orgId } })
+
+  // EXPENSE - Cost of Goods Sold (parent)
+  const cogs = await db.account.create({
+    data: { code: '6000', name: 'Cost of Goods Sold', type: 'expense', category: 'cogs', description: 'Direct costs of producing goods', normalBalance: 'debit', balance: 0, isActive: true, organizationId: orgId },
+  })
+  await db.account.create({ data: { code: '6100', name: 'Materials', type: 'expense', category: 'cogs', description: 'Raw materials cost', normalBalance: 'debit', balance: 0, isActive: true, parentId: cogs.id, organizationId: orgId } })
+  await db.account.create({ data: { code: '6200', name: 'Direct Labor', type: 'expense', category: 'cogs', description: 'Direct labor costs', normalBalance: 'debit', balance: 0, isActive: true, parentId: cogs.id, organizationId: orgId } })
+
+  const totalAccounts = 28
+
+  // ─── Tax Rates ────────────────────────────────────────────────
+  await Promise.all([
+    db.taxRate.create({ data: { name: 'Federal Income Tax', rate: 21, type: 'income', isActive: true, organizationId: orgId } }),
+    db.taxRate.create({ data: { name: 'State Income Tax', rate: 8.84, type: 'income', isActive: true, organizationId: orgId } }),
+    db.taxRate.create({ data: { name: 'Sales Tax', rate: 8.25, type: 'sales', isActive: true, organizationId: orgId } }),
+    db.taxRate.create({ data: { name: 'Payroll Tax', rate: 7.65, type: 'payroll', isActive: true, organizationId: orgId } }),
+    db.taxRate.create({ data: { name: 'VAT', rate: 20, type: 'vat', isActive: false, organizationId: orgId } }),
+  ])
+
+  // ─── Journal Entries ──────────────────────────────────────────
+
+  // JE-001: Initial capital investment
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-001',
+      date: new Date('2026-01-01'),
+      description: 'Initial capital investment by owner',
+      reference: 'CAP-001',
+      source: 'manual',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-01',
+      totalDebit: 100000,
+      totalCredit: 100000,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: cash.id, debit: 100000, credit: 0, description: 'Cash received from owner', organizationId: orgId },
+          { accountId: ownersCapital.id, debit: 0, credit: 100000, description: "Owner's capital contribution", organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  // JE-002: Bank loan received
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-002',
+      date: new Date('2026-01-05'),
+      description: 'Bank loan received',
+      reference: 'LOAN-001',
+      source: 'manual',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-01',
+      totalDebit: 50000,
+      totalCredit: 50000,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: cash.id, debit: 50000, credit: 0, description: 'Cash received from bank loan', organizationId: orgId },
+          { accountId: bankLoan.id, debit: 0, credit: 50000, description: 'Bank loan liability', organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  // JE-003: Office rent payment
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-003',
+      date: new Date('2026-01-10'),
+      description: 'Office rent payment for January',
+      reference: 'CHK-001',
+      source: 'manual',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-01',
+      totalDebit: 5000,
+      totalCredit: 5000,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: rentExpense.id, debit: 5000, credit: 0, description: 'January rent expense', organizationId: orgId },
+          { accountId: cash.id, debit: 0, credit: 5000, description: 'Cash paid for rent', organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  // JE-004: Service revenue
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-004',
+      date: new Date('2026-01-15'),
+      description: 'Service revenue earned on account',
+      reference: 'INV-SVC-001',
+      source: 'invoice',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-01',
+      totalDebit: 15000,
+      totalCredit: 15000,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: accountsReceivable.id, debit: 15000, credit: 0, description: 'Amount receivable from client', organizationId: orgId },
+          { accountId: serviceRevenue.id, debit: 0, credit: 15000, description: 'Service revenue earned', organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  // JE-005: Salary payment
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-005',
+      date: new Date('2026-01-31'),
+      description: 'Salary payment for January',
+      reference: 'PAYROLL-001',
+      source: 'payroll',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-01',
+      totalDebit: 12000,
+      totalCredit: 12000,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: salaries.id, debit: 12000, credit: 0, description: 'January salaries expense', organizationId: orgId },
+          { accountId: cash.id, debit: 0, credit: 12000, description: 'Cash paid for salaries', organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  // JE-006: Client payment received
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-006',
+      date: new Date('2026-02-05'),
+      description: 'Client payment received',
+      reference: 'RCPT-001',
+      source: 'manual',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-02',
+      totalDebit: 15000,
+      totalCredit: 15000,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: cash.id, debit: 15000, credit: 0, description: 'Cash received from client', organizationId: orgId },
+          { accountId: accountsReceivable.id, debit: 0, credit: 15000, description: 'Accounts receivable cleared', organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  // JE-007: Office supplies purchase
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-007',
+      date: new Date('2026-02-08'),
+      description: 'Office supplies purchase',
+      reference: 'CHK-002',
+      source: 'manual',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-02',
+      totalDebit: 800,
+      totalCredit: 800,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: officeSupplies.id, debit: 800, credit: 0, description: 'Office supplies purchased', organizationId: orgId },
+          { accountId: cash.id, debit: 0, credit: 800, description: 'Cash paid for supplies', organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  // JE-008: Marketing expense
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-008',
+      date: new Date('2026-02-10'),
+      description: 'Marketing expense - digital advertising',
+      reference: 'CHK-003',
+      source: 'manual',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-02',
+      totalDebit: 3500,
+      totalCredit: 3500,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: marketing.id, debit: 3500, credit: 0, description: 'Digital advertising expense', organizationId: orgId },
+          { accountId: cash.id, debit: 0, credit: 3500, description: 'Cash paid for marketing', organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  // JE-009: Consulting revenue
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-009',
+      date: new Date('2026-02-15'),
+      description: 'Consulting revenue earned',
+      reference: 'INV-CON-001',
+      source: 'invoice',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-02',
+      totalDebit: 8000,
+      totalCredit: 8000,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: cash.id, debit: 8000, credit: 0, description: 'Cash received for consulting', organizationId: orgId },
+          { accountId: consultingRevenue.id, debit: 0, credit: 8000, description: 'Consulting revenue earned', organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  // JE-010: Utility payment
+  await db.journalEntry.create({
+    data: {
+      number: 'JE-010',
+      date: new Date('2026-02-20'),
+      description: 'Utility payment for February',
+      reference: 'CHK-004',
+      source: 'manual',
+      status: 'posted',
+      isAdjusting: false,
+      period: '2026-02',
+      totalDebit: 1200,
+      totalCredit: 1200,
+      organizationId: orgId,
+      createdById: userId,
+      lines: {
+        create: [
+          { accountId: utilities.id, debit: 1200, credit: 0, description: 'February utilities expense', organizationId: orgId },
+          { accountId: cash.id, debit: 0, credit: 1200, description: 'Cash paid for utilities', organizationId: orgId },
+        ],
+      },
+    },
+  })
+
+  return { accounts: totalAccounts, taxRates: 5, journalEntries: 10 }
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder, type ITAsset, type AssetIssuance, type Disseminator, type DisseminationTask, type Conversation, type CommunicationTemplate, type CommunicationContact } from "@/lib/store";
+import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder, type ITAsset, type AssetIssuance, type Disseminator, type DisseminationTask, type Conversation, type CommunicationTemplate, type CommunicationContact, type JournalEntry, type InvoiceItem } from "@/lib/store";
 import { Sidebar } from "@/components/erp/sidebar";
 import { Header } from "@/components/erp/header";
 import { DashboardView } from "@/components/erp/dashboard-view";
@@ -80,7 +80,7 @@ export default function ERPPage() {
     setApprovals, setInvoices, setTimeEntries, setAssets, setNotifications,
     setInboxMessages, setInfluencers, setBrandKits,
     setDepartments, setEmployees, setLeaveRequests, setPayrollRuns, setJobPostings,
-    setExpenses, setFinanceAccounts, setTaxRates, setProducts, setWarehouses,
+    setExpenses, setFinanceAccounts, setTaxRates, setJournalEntries, setInvoiceItems, setProducts, setWarehouses,
     setStockMovements, setVendors, setPurchaseOrders, setItAssets, setAssetIssuances,
     setDisseminators, setDisseminationTasks,
     setConversations, setCommunicationTemplates, setCommunicationContacts,
@@ -104,7 +104,7 @@ export default function ERPPage() {
         notificationsRes, inboxRes, influencersRes, brandKitRes,
         departmentsRes, employeesRes, leaveRequestsRes, payrollRes,
         jobPostingsRes, expensesRes, financeAccountsRes, taxRatesRes,
-        productsRes, warehousesRes, stockMovementsRes, vendorsRes, purchaseOrdersRes,
+        journalEntriesRes, productsRes, warehousesRes, stockMovementsRes, vendorsRes, purchaseOrdersRes,
         itAssetsRes, assetIssuancesRes,
         disseminatorsRes, disseminationTasksRes,
         conversationsRes, commTemplatesRes, commContactsRes,
@@ -134,6 +134,7 @@ export default function ERPPage() {
         fetch("/api/expenses"),
         fetch("/api/accounts"),
         fetch("/api/tax-rates"),
+        fetch("/api/journal-entries"),
         fetch("/api/products"),
         fetch("/api/warehouses"),
         fetch("/api/stock-movements"),
@@ -155,7 +156,7 @@ export default function ERPPage() {
         notificationsJson, inboxJson, influencersJson, brandKitJson,
         departmentsJson, employeesJson, leaveRequestsJson, payrollJson,
         jobPostingsJson, expensesJson, financeAccountsJson, taxRatesJson,
-        productsJson, warehousesJson, stockMovementsJson, vendorsJson, purchaseOrdersJson,
+        journalEntriesJson, productsJson, warehousesJson, stockMovementsJson, vendorsJson, purchaseOrdersJson,
         itAssetsJson, assetIssuancesJson,
         disseminatorsJson, disseminationTasksJson,
         conversationsJson, commTemplatesJson, commContactsJson,
@@ -170,7 +171,7 @@ export default function ERPPage() {
         departmentsRes.json(), employeesRes.json(), leaveRequestsRes.json(),
         payrollRes.json(), jobPostingsRes.json(), expensesRes.json(),
         financeAccountsRes.json(), taxRatesRes.json(),
-        productsRes.json(), warehousesRes.json(), stockMovementsRes.json(),
+        journalEntriesRes.json(), productsRes.json(), warehousesRes.json(), stockMovementsRes.json(),
         vendorsRes.json(), purchaseOrdersRes.json(),
         itAssetsRes.json(), assetIssuancesRes.json(),
         disseminatorsRes.json(), disseminationTasksRes.json(),
@@ -310,6 +311,21 @@ export default function ERPPage() {
       // Tax Rates
       const taxRatesData = taxRatesJson?.data || (Array.isArray(taxRatesJson) ? taxRatesJson : []);
       if (Array.isArray(taxRatesData)) setTaxRates(taxRatesData as TaxRate[]);
+
+      // Journal Entries
+      const journalEntriesData = journalEntriesJson?.data || (Array.isArray(journalEntriesJson) ? journalEntriesJson : []);
+      if (Array.isArray(journalEntriesData)) setJournalEntries(journalEntriesData as JournalEntry[]);
+
+      // Invoice Items - extract from invoices
+      const allInvoiceItems: InvoiceItem[] = [];
+      if (Array.isArray(invoicesData)) {
+        for (const inv of invoicesData as Record<string, unknown>[]) {
+          if (inv.invoiceItems && Array.isArray(inv.invoiceItems)) {
+            allInvoiceItems.push(...(inv.invoiceItems as InvoiceItem[]));
+          }
+        }
+      }
+      if (allInvoiceItems.length > 0) setInvoiceItems(allInvoiceItems);
 
       // Products
       const productsData = productsJson?.data || (Array.isArray(productsJson) ? productsJson : []);

@@ -180,7 +180,6 @@ export interface Invoice {
   clientId: string
   campaignId: string | null
   status: string
-  items: string
   subtotal: number
   tax: number
   total: number
@@ -189,6 +188,7 @@ export interface Invoice {
   notes: string | null
   client: Client
   campaign: Campaign | null
+  invoiceItems: InvoiceItem[]
   createdAt: string
 }
 
@@ -404,9 +404,63 @@ export interface Account {
   name: string
   type: string
   category: string | null
+  description: string | null
+  normalBalance: string
+  parentId: string | null
   balance: number
   isActive: boolean
+  organizationId: string
   createdAt: string
+  updatedAt: string
+  parent: { id: string; code: string; name: string } | null
+  children: { id: string; code: string; name: string; type: string; balance: number }[]
+  _count?: { journalLines: number }
+}
+
+export interface JournalEntryLine {
+  id: string
+  journalEntryId: string
+  accountId: string
+  debit: number
+  credit: number
+  description: string | null
+  organizationId: string
+  createdAt: string
+  updatedAt: string
+  account: { id: string; code: string; name: string; type: string }
+}
+
+export interface JournalEntry {
+  id: string
+  number: string
+  date: string
+  description: string
+  reference: string | null
+  source: string
+  sourceId: string | null
+  status: string
+  isAdjusting: boolean
+  period: string
+  totalDebit: number
+  totalCredit: number
+  organizationId: string
+  createdById: string | null
+  createdAt: string
+  updatedAt: string
+  createdBy: { id: string; name: string; email: string } | null
+  lines: JournalEntryLine[]
+}
+
+export interface InvoiceItem {
+  id: string
+  invoiceId: string
+  description: string
+  quantity: number
+  rate: number
+  amount: number
+  organizationId: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface TaxRate {
@@ -759,6 +813,8 @@ interface ERPStore {
   expenses: Expense[]
   financeAccounts: Account[]
   taxRates: TaxRate[]
+  journalEntries: JournalEntry[]
+  invoiceItems: InvoiceItem[]
   products: Product[]
   warehouses: Warehouse[]
   stockMovements: StockMovement[]
@@ -804,6 +860,8 @@ interface ERPStore {
   setExpenses: (data: Expense[]) => void
   setFinanceAccounts: (data: Account[]) => void
   setTaxRates: (data: TaxRate[]) => void
+  setJournalEntries: (data: JournalEntry[]) => void
+  setInvoiceItems: (data: InvoiceItem[]) => void
   setProducts: (data: Product[]) => void
   setWarehouses: (data: Warehouse[]) => void
   setStockMovements: (data: StockMovement[]) => void
@@ -867,6 +925,8 @@ export const useERPStore = create<ERPStore>((set) => ({
   expenses: [],
   financeAccounts: [],
   taxRates: [],
+  journalEntries: [],
+  invoiceItems: [],
   products: [],
   warehouses: [],
   stockMovements: [],
@@ -912,6 +972,8 @@ export const useERPStore = create<ERPStore>((set) => ({
   setExpenses: (data) => set({ expenses: data }),
   setFinanceAccounts: (data) => set({ financeAccounts: data }),
   setTaxRates: (data) => set({ taxRates: data }),
+  setJournalEntries: (data) => set({ journalEntries: data }),
+  setInvoiceItems: (data) => set({ invoiceItems: data }),
   setProducts: (data) => set({ products: data }),
   setWarehouses: (data) => set({ warehouses: data }),
   setStockMovements: (data) => set({ stockMovements: data }),

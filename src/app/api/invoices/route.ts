@@ -21,6 +21,7 @@ export async function GET(request: Request) {
       include: {
         client: { select: { id: true, name: true, logo: true, industry: true, status: true } },
         campaign: { select: { id: true, name: true, status: true } },
+        invoiceItems: true,
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -40,13 +41,14 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
+    const invoiceItems = body.items || []
+
     const invoice = await db.invoice.create({
       data: {
         number: body.number,
         clientId: body.clientId,
         campaignId: body.campaignId || null,
         status: body.status || 'draft',
-        items: typeof body.items === 'string' ? body.items : JSON.stringify(body.items),
         subtotal: body.subtotal || 0,
         tax: body.tax || 0,
         total: body.total || 0,
@@ -54,10 +56,20 @@ export async function POST(request: Request) {
         paidAt: body.paidAt ? new Date(body.paidAt) : null,
         notes: body.notes || null,
         organizationId: org.id,
+        invoiceItems: invoiceItems.length > 0 ? {
+          create: invoiceItems.map((item: { description: string; quantity?: number; rate?: number; amount?: number }) => ({
+            description: item.description,
+            quantity: item.quantity || 1,
+            rate: item.rate || 0,
+            amount: item.amount || 0,
+            organizationId: org.id,
+          })),
+        } : undefined,
       },
       include: {
         client: { select: { id: true, name: true, logo: true, industry: true, status: true } },
         campaign: { select: { id: true, name: true, status: true } },
+        invoiceItems: true,
       },
     })
 
