@@ -614,6 +614,94 @@ export interface AssetIssuance {
   issuedBy: User
 }
 
+export interface CommunicationTemplate {
+  id: string
+  name: string
+  subject: string | null
+  body: string
+  type: string  // email, whatsapp
+  category: string | null
+  variables: string | null  // JSON array
+  isDefault: boolean
+  isActive: boolean
+  organizationId: string
+  createdAt: string
+}
+
+export interface Conversation {
+  id: string
+  subject: string | null
+  type: string  // email, whatsapp, mixed
+  status: string  // active, archived, closed
+  priority: string  // low, normal, high, urgent
+  channel: string  // email, whatsapp, manual
+  clientId: string | null
+  influencerId: string | null
+  campaignId: string | null
+  assignedToId: string | null
+  lastMessageAt: string
+  lastMessagePreview: string | null
+  unreadCount: number
+  tags: string | null
+  organizationId: string
+  createdAt: string
+  updatedAt: string
+  client: { id: string; name: string; logo: string | null } | null
+  influencer: { id: string; name: string; username: string; platform: string } | null
+  assignedTo: { id: string; name: string; email: string; avatar: string | null } | null
+  messages: CommunicationMessage[]
+}
+
+export interface CommunicationMessage {
+  id: string
+  conversationId: string
+  senderId: string | null
+  senderName: string
+  senderEmail: string | null
+  senderPhone: string | null
+  recipientName: string
+  recipientEmail: string | null
+  recipientPhone: string | null
+  subject: string | null
+  body: string
+  htmlBody: string | null
+  mediaUrls: string | null  // JSON array
+  type: string  // email, whatsapp, note
+  direction: string  // inbound, outbound
+  status: string  // draft, queued, sent, delivered, read, failed, bounced
+  failureReason: string | null
+  templateId: string | null
+  isStarred: boolean
+  isRead: boolean
+  readAt: string | null
+  deliveredAt: string | null
+  openedAt: string | null
+  clickedAt: string | null
+  repliedAt: string | null
+  organizationId: string
+  createdAt: string
+}
+
+export interface CommunicationContact {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  whatsappNumber: string | null
+  company: string | null
+  role: string | null
+  avatar: string | null
+  notes: string | null
+  preferredChannel: string  // email, whatsapp
+  lastContactedAt: string | null
+  isFavorite: boolean
+  tags: string | null
+  clientId: string | null
+  influencerId: string | null
+  organizationId: string
+  createdAt: string
+}
+
 export interface DashboardData {
   totalContent: number
   contentByStage: Record<ContentStage, number>
@@ -680,6 +768,9 @@ interface ERPStore {
   assetIssuances: AssetIssuance[]
   disseminators: Disseminator[]
   disseminationTasks: DisseminationTask[]
+  conversations: Conversation[]
+  communicationTemplates: CommunicationTemplate[]
+  communicationContacts: CommunicationContact[]
 
   // Loading states
   isLoading: boolean
@@ -722,6 +813,9 @@ interface ERPStore {
   setAssetIssuances: (data: AssetIssuance[]) => void
   setDisseminators: (data: Disseminator[]) => void
   setDisseminationTasks: (data: DisseminationTask[]) => void
+  setConversations: (data: Conversation[]) => void
+  setCommunicationTemplates: (data: CommunicationTemplate[]) => void
+  setCommunicationContacts: (data: CommunicationContact[]) => void
 
   // Modals
   showCreateContent: boolean
@@ -782,6 +876,9 @@ export const useERPStore = create<ERPStore>((set) => ({
   assetIssuances: [],
   disseminators: [],
   disseminationTasks: [],
+  conversations: [],
+  communicationTemplates: [],
+  communicationContacts: [],
 
   // Loading
   isLoading: false,
@@ -824,6 +921,9 @@ export const useERPStore = create<ERPStore>((set) => ({
   setAssetIssuances: (data) => set({ assetIssuances: data }),
   setDisseminators: (data) => set({ disseminators: data }),
   setDisseminationTasks: (data) => set({ disseminationTasks: data }),
+  setConversations: (data) => set({ conversations: data }),
+  setCommunicationTemplates: (data) => set({ communicationTemplates: data }),
+  setCommunicationContacts: (data) => set({ communicationContacts: data }),
 
   // Modals
   showCreateContent: false,

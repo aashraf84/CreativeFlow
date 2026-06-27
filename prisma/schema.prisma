@@ -49,6 +49,10 @@ model Organization {
   itAssets           ITAsset[]
   disseminators      Disseminator[]
   disseminationTasks DisseminationTask[] @relation("TaskAssigner")
+  communicationTemplates CommunicationTemplate[]
+  conversations     Conversation[]
+  communicationMessages CommunicationMessage[]
+  communicationContacts CommunicationContact[]
 }
 
 model User {
@@ -81,6 +85,8 @@ model User {
   issuancesIssued   AssetIssuance[] @relation("AssetIssuanceIssuer")
   disseminator      Disseminator?  @relation("DisseminatorUser")
   assignedTasks     DisseminationTask[] @relation("TaskAssignee")
+  conversationsAssigned Conversation[] @relation("ConversationAssignee")
+  messagesSent      CommunicationMessage[] @relation("MessageSender")
 
   @@index([organizationId])
 }
@@ -138,6 +144,8 @@ model Client {
   influencers  Influencer[]
   brandKits    BrandKit[]
   disseminationTasks DisseminationTask[]
+  conversations Conversation[]
+  communicationContacts CommunicationContact[]
 
   @@index([organizationId])
 }
@@ -162,6 +170,7 @@ model Campaign {
   timeEntries  TimeEntry[]
   influencers  Influencer[]
   disseminationTasks DisseminationTask[]
+  conversations Conversation[]
 
   @@index([organizationId])
   @@index([clientId])
@@ -475,6 +484,8 @@ model Influencer {
   organization Organization @relation(fields: [organizationId], references: [id])
   client       Client?      @relation(fields: [clientId], references: [id])
   campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+  conversations Conversation[]
+  communicationContacts CommunicationContact[]
 
   @@index([organizationId])
   @@index([status])
@@ -980,4 +991,133 @@ model DisseminationTask {
   @@index([priority])
   @@index([dueDate])
   @@index([scheduledAt])
+}
+
+// ─── Communication Module ───────────────────────────────────────────────────
+
+model CommunicationTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  subject         String?  // for email
+  body            String
+  type            String   @default("email") // email, whatsapp, sms
+  category        String?  // welcome, follow_up, proposal, invoice, reminder, campaign, notification
+  variables       String?  // JSON array of template variables: ["name", "company", "date"]
+  isDefault       Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  messages        CommunicationMessage[]
+
+  @@index([organizationId])
+  @@index([type])
+}
+
+model Conversation {
+  id              String   @id @default(cuid())
+  subject         String?
+  type            String   @default("email") // email, whatsapp, mixed
+  status          String   @default("active") // active, archived, closed
+  priority        String   @default("normal") // low, normal, high, urgent
+  channel         String   @default("email") // email, whatsapp, manual
+  clientId        String?
+  influencerId    String?
+  campaignId      String?
+  assignedToId    String?  // userId assigned to this conversation
+  lastMessageAt   DateTime @default(now())
+  lastMessagePreview String? // preview of last message
+  unreadCount     Int      @default(0)
+  tags            String?  // comma-separated tags
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  client          Client?      @relation(fields: [clientId], references: [id])
+  influencer      Influencer?  @relation(fields: [influencerId], references: [id])
+  campaign        Campaign?    @relation(fields: [campaignId], references: [id])
+  assignedTo      User?        @relation("ConversationAssignee", fields: [assignedToId], references: [id])
+  messages        CommunicationMessage[]
+
+  @@index([organizationId])
+  @@index([clientId])
+  @@index([influencerId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([lastMessageAt])
+}
+
+model CommunicationMessage {
+  id                String   @id @default(cuid())
+  conversationId    String
+  senderId          String?  // userId (null for external contacts)
+  senderName        String
+  senderEmail       String?  // email of sender
+  senderPhone       String?  // phone of sender
+  recipientName     String
+  recipientEmail    String?  // for email
+  recipientPhone    String?  // for whatsapp
+  subject           String?  // for email
+  body              String
+  htmlBody          String?  // rich HTML for email
+  mediaUrls         String?  // JSON array of attachment URLs
+  type              String   @default("email") // email, whatsapp, note
+  direction         String   @default("outbound") // inbound, outbound
+  status            String   @default("sent") // draft, queued, sent, delivered, read, failed, bounced
+  failureReason     String?
+  templateId        String?
+  isStarred         Boolean  @default(false)
+  isRead            Boolean  @default(true)
+  readAt            DateTime?
+  deliveredAt       DateTime?
+  openedAt          DateTime? // email open tracking
+  clickedAt         DateTime? // link click tracking
+  repliedAt         DateTime?
+  externalId        String?  // external message ID from provider
+  organizationId    String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  conversation      Conversation @relation(fields: [conversationId], references: [id])
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  sender            User?        @relation("MessageSender", fields: [senderId], references: [id])
+  template          CommunicationTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([conversationId])
+  @@index([organizationId])
+  @@index([senderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model CommunicationContact {
+  id              String   @id @default(cuid())
+  name            String
+  email           String?
+  phone           String?
+  whatsappNumber  String?
+  company         String?
+  role            String?  // client, influencer, partner, vendor
+  avatar          String?
+  notes           String?
+  preferredChannel String  @default("email") // email, whatsapp
+  lastContactedAt  DateTime?
+  isFavorite      Boolean  @default(false)
+  tags            String?
+  clientId        String?
+  influencerId    String?
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  client          Client?      @relation(fields: [clientId], references: [id])
+  influencer      Influencer?  @relation(fields: [influencerId], references: [id])
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([phone])
 }

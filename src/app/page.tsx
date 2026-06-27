@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder, type ITAsset, type AssetIssuance, type Disseminator, type DisseminationTask } from "@/lib/store";
+import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder, type ITAsset, type AssetIssuance, type Disseminator, type DisseminationTask, type Conversation, type CommunicationTemplate, type CommunicationContact } from "@/lib/store";
 import { Sidebar } from "@/components/erp/sidebar";
 import { Header } from "@/components/erp/header";
 import { DashboardView } from "@/components/erp/dashboard-view";
@@ -83,6 +83,7 @@ export default function ERPPage() {
     setExpenses, setFinanceAccounts, setTaxRates, setProducts, setWarehouses,
     setStockMovements, setVendors, setPurchaseOrders, setItAssets, setAssetIssuances,
     setDisseminators, setDisseminationTasks,
+    setConversations, setCommunicationTemplates, setCommunicationContacts,
   } = useERPStore();
   const [seeded, setSeeded] = useState(false);
 
@@ -106,6 +107,7 @@ export default function ERPPage() {
         productsRes, warehousesRes, stockMovementsRes, vendorsRes, purchaseOrdersRes,
         itAssetsRes, assetIssuancesRes,
         disseminatorsRes, disseminationTasksRes,
+        conversationsRes, commTemplatesRes, commContactsRes,
       ] = await Promise.all([
         fetch("/api/dashboard"),
         fetch("/api/contents"),
@@ -141,6 +143,9 @@ export default function ERPPage() {
         fetch("/api/asset-issuances"),
         fetch("/api/disseminators"),
         fetch("/api/dissemination-tasks"),
+        fetch("/api/communications/conversations"),
+        fetch("/api/communications/templates"),
+        fetch("/api/communications/contacts"),
       ]);
 
       const [
@@ -153,6 +158,7 @@ export default function ERPPage() {
         productsJson, warehousesJson, stockMovementsJson, vendorsJson, purchaseOrdersJson,
         itAssetsJson, assetIssuancesJson,
         disseminatorsJson, disseminationTasksJson,
+        conversationsJson, commTemplatesJson, commContactsJson,
       ] = await Promise.all([
         dashboardRes.json(), contentsRes.json(), postsRes.json(),
         teamsRes.json(), accountsRes.json(), campaignsRes.json(),
@@ -168,6 +174,7 @@ export default function ERPPage() {
         vendorsRes.json(), purchaseOrdersRes.json(),
         itAssetsRes.json(), assetIssuancesRes.json(),
         disseminatorsRes.json(), disseminationTasksRes.json(),
+        conversationsRes.json(), commTemplatesRes.json(), commContactsRes.json(),
       ]);
 
       // Dashboard - map API response to store format
@@ -339,6 +346,18 @@ export default function ERPPage() {
       // Dissemination Tasks
       const disseminationTasksData = disseminationTasksJson?.tasks || disseminationTasksJson?.data || (Array.isArray(disseminationTasksJson) ? disseminationTasksJson : []);
       if (Array.isArray(disseminationTasksData)) setDisseminationTasks(disseminationTasksData as DisseminationTask[]);
+
+      // Conversations
+      const conversationsData = conversationsJson?.conversations || conversationsJson?.data || (Array.isArray(conversationsJson) ? conversationsJson : []);
+      if (Array.isArray(conversationsData)) setConversations(conversationsData as Conversation[]);
+
+      // Communication Templates
+      const commTemplatesData = commTemplatesJson?.templates || commTemplatesJson?.data || (Array.isArray(commTemplatesJson) ? commTemplatesJson : []);
+      if (Array.isArray(commTemplatesData)) setCommunicationTemplates(commTemplatesData as CommunicationTemplate[]);
+
+      // Communication Contacts
+      const commContactsData = commContactsJson?.contacts || commContactsJson?.data || (Array.isArray(commContactsJson) ? commContactsJson : []);
+      if (Array.isArray(commContactsData)) setCommunicationContacts(commContactsData as CommunicationContact[]);
 
       // Set current user
       setCurrentUser({
