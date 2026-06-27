@@ -1,0 +1,983 @@
+     1→     1→     1→"use client";
+     2→     2→     2→
+     3→     3→     3→import React from "react";
+     4→     4→     4→import { useERPStore, type ContentStage, type ActivityLog } from "@/lib/store";
+     5→     5→     5→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+     6→     6→     6→import { Badge } from "@/components/ui/badge";
+     7→     7→     7→import { Button } from "@/components/ui/button";
+     8→     8→     8→import { ScrollArea } from "@/components/ui/scroll-area";
+     9→     9→     9→import { Separator } from "@/components/ui/separator";
+    10→    10→    10→import { Skeleton } from "@/components/ui/skeleton";
+    11→    11→    11→import {
+    12→    12→    12→  BarChart,
+    13→    13→    13→  Bar,
+    14→    14→    14→  XAxis,
+    15→    15→    15→  YAxis,
+    16→    16→    16→  CartesianGrid,
+    17→    17→    17→  Tooltip,
+    18→    18→    18→  ResponsiveContainer,
+    19→    19→    19→  Cell,
+    20→    20→    20→  PieChart,
+    21→    21→    21→  Pie,
+    22→    22→    22→  Legend,
+    23→    23→    23→} from "recharts";
+    24→    24→    24→import { motion } from "framer-motion";
+    25→    25→    25→import {
+    26→    26→    26→  FileText,
+    27→    27→    27→  Send,
+    28→    28→    28→  Clock,
+    29→    29→    29→  Rocket,
+    30→    30→    30→  TrendingUp,
+    31→    31→    31→  TrendingDown,
+    32→    32→    32→  ArrowUpRight,
+    33→    33→    33→  ArrowDownRight,
+    34→    34→    34→  Activity,
+    35→    35→    35→  Plus,
+    36→    36→    36→  Edit3,
+    37→    37→    37→  Trash2,
+    38→    38→    38→  CheckCircle2,
+    39→    39→    39→  Eye,
+    40→    40→    40→  MessageSquare,
+    41→    41→    41→  UserPlus,
+    42→    42→    42→  CalendarCheck,
+    43→    43→    43→  Share2,
+    44→    44→    44→  Workflow,
+    45→    45→    45→  Briefcase,
+    46→    46→    46→  Users,
+    47→    47→    47→  BarChart3,
+    48→    48→    48→  ShieldCheck,
+    49→    49→    49→  DollarSign,
+    50→    50→    50→  Mail,
+    51→    51→    51→  Timer,
+    52→    52→    52→  ImagePlus,
+    53→    53→    53→  Receipt,
+    54→    54→    54→  ClipboardCheck,
+    55→    55→    55→  Zap,
+    56→    56→    56→} from "lucide-react";
+    57→    57→    57→
+    58→    58→    58→// ── Animation variants ──────────────────────────────────────────────
+    59→    59→    59→const containerVariants = {
+    60→    60→    60→  hidden: { opacity: 0 },
+    61→    61→    61→  visible: {
+    62→    62→    62→    opacity: 1,
+    63→    63→    63→    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+    64→    64→    64→  },
+    65→    65→    65→};
+    66→    66→    66→
+    67→    67→    67→const itemVariants = {
+    68→    68→    68→  hidden: { opacity: 0, y: 16, scale: 0.97 },
+    69→    69→    69→  visible: {
+    70→    70→    70→    opacity: 1,
+    71→    71→    71→    y: 0,
+    72→    72→    72→    scale: 1,
+    73→    73→    73→    transition: { type: "spring", stiffness: 300, damping: 24 },
+    74→    74→    74→  },
+    75→    75→    75→};
+    76→    76→    76→
+    77→    77→    77→// ── Color palette (emerald/teal) ────────────────────────────────────
+    78→    78→    78→const STAGE_COLORS: Record<string, string> = {
+    79→    79→    79→  idea: "#10b981",
+    80→    80→    80→  design: "#14b8a6",
+    81→    81→    81→  edit: "#06b6d4",
+    82→    82→    82→  review: "#f59e0b",
+    83→    83→    83→  approve: "#22c55e",
+    84→    84→    84→  disseminate: "#0d9488",
+    85→    85→    85→  archived: "#94a3b8",
+    86→    86→    86→};
+    87→    87→    87→
+    88→    88→    88→const STAGE_LABELS: Record<string, string> = {
+    89→    89→    89→  idea: "Idea",
+    90→    90→    90→  design: "Design",
+    91→    91→    91→  edit: "Edit",
+    92→    92→    92→  review: "Review",
+    93→    93→    93→  approve: "Approve",
+    94→    94→    94→  disseminate: "Disseminate",
+    95→    95→    95→  archived: "Archived",
+    96→    96→    96→};
+    97→    97→    97→
+    98→    98→    98→const PLATFORM_COLORS: Record<string, string> = {
+    99→    99→    99→  instagram: "#E4405F",
+   100→   100→   100→  facebook: "#1877F2",
+   101→   101→   101→  twitter: "#1DA1F2",
+   102→   102→   102→  linkedin: "#0A66C2",
+   103→   103→   103→  tiktok: "#000000",
+   104→   104→   104→  youtube: "#FF0000",
+   105→   105→   105→  pinterest: "#E60023",
+   106→   106→   106→  snapchat: "#FFFC00",
+   107→   107→   107→};
+   108→   108→   108→
+   109→   109→   109→// ── KPI card data builder ───────────────────────────────────────────
+   110→   110→   110→interface KPICardData {
+   111→   111→   111→  title: string;
+   112→   112→   112→  value: number | string;
+   113→   113→   113→  change?: number;
+   114→   114→   114→  changeLabel?: string;
+   115→   115→   115→  icon: React.ComponentType<{ className?: string }>;
+   116→   116→   116→  gradient: string;
+   117→   117→   117→  iconColor: string;
+   118→   118→   118→  badge?: string;
+   119→   119→   119→  badgeColor?: string;
+   120→   120→   120→}
+   121→   121→   121→
+   122→   122→   122→function buildKPICards(
+   123→   123→   123→  totalContent: number,
+   124→   124→   124→  postsThisMonth: number,
+   125→   125→   125→  scheduledPosts: number,
+   126→   126→   126→  activeCampaigns: number,
+   127→   127→   127→  pendingApprovals: number,
+   128→   128→   128→  totalRevenue: number,
+   129→   129→   129→  unreadInbox: number,
+   130→   130→   130→  timeTrackedThisWeek: number
+   131→   131→   131→): KPICardData[] {
+   132→   132→   132→  const formatRevenue = (val: number): string => {
+   133→   133→   133→    if (val >= 1000) return `$${(val / 1000).toFixed(1)}K`;
+   134→   134→   134→    return `$${val}`;
+   135→   135→   135→  };
+   136→   136→   136→
+   137→   137→   137→  return [
+   138→   138→   138→    {
+   139→   139→   139→      title: "Total Content",
+   140→   140→   140→      value: totalContent,
+   141→   141→   141→      change: 12.5,
+   142→   142→   142→      changeLabel: "vs last month",
+   143→   143→   143→      icon: FileText,
+   144→   144→   144→      gradient: "from-emerald-500 to-emerald-600",
+   145→   145→   145→      iconColor: "text-white",
+   146→   146→   146→    },
+   147→   147→   147→    {
+   148→   148→   148→      title: "Posts This Month",
+   149→   149→   149→      value: postsThisMonth,
+   150→   150→   150→      change: 8.2,
+   151→   151→   151→      changeLabel: "vs last month",
+   152→   152→   152→      icon: Send,
+   153→   153→   153→      gradient: "from-teal-500 to-teal-600",
+   154→   154→   154→      iconColor: "text-white",
+   155→   155→   155→    },
+   156→   156→   156→    {
+   157→   157→   157→      title: "Scheduled Posts",
+   158→   158→   158→      value: scheduledPosts,
+   159→   159→   159→      icon: Clock,
+   160→   160→   160→      gradient: "from-cyan-500 to-cyan-600",
+   161→   161→   161→      iconColor: "text-white",
+   162→   162→   162→      badge: "Upcoming",
+   163→   163→   163→      badgeColor: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
+   164→   164→   164→    },
+   165→   165→   165→    {
+   166→   166→   166→      title: "Active Campaigns",
+   167→   167→   167→      value: activeCampaigns,
+   168→   168→   168→      change: -2.1,
+   169→   169→   169→      changeLabel: "vs last month",
+   170→   170→   170→      icon: Rocket,
+   171→   171→   171→      gradient: "from-emerald-600 to-teal-600",
+   172→   172→   172→      iconColor: "text-white",
+   173→   173→   173→      badge: activeCampaigns > 0 ? "Live" : undefined,
+   174→   174→   174→      badgeColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+   175→   175→   175→    },
+   176→   176→   176→    {
+   177→   177→   177→      title: "Pending Approvals",
+   178→   178→   178→      value: pendingApprovals,
+   179→   179→   179→      icon: ShieldCheck,
+   180→   180→   180→      gradient: "from-amber-500 to-amber-600",
+   181→   181→   181→      iconColor: "text-white",
+   182→   182→   182→      badge: pendingApprovals > 0 ? "Action needed" : undefined,
+   183→   183→   183→      badgeColor: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+   184→   184→   184→    },
+   185→   185→   185→    {
+   186→   186→   186→      title: "Revenue",
+   187→   187→   187→      value: formatRevenue(totalRevenue),
+   188→   188→   188→      change: 15.3,
+   189→   189→   189→      changeLabel: "vs last month",
+   190→   190→   190→      icon: DollarSign,
+   191→   191→   191→      gradient: "from-emerald-500 to-emerald-700",
+   192→   192→   192→      iconColor: "text-white",
+   193→   193→   193→    },
+   194→   194→   194→    {
+   195→   195→   195→      title: "Unread Inbox",
+   196→   196→   196→      value: unreadInbox,
+   197→   197→   197→      icon: Mail,
+   198→   198→   198→      gradient: "from-rose-500 to-rose-600",
+   199→   199→   199→      iconColor: "text-white",
+   200→   200→   200→      badge: unreadInbox > 0 ? "Needs attention" : undefined,
+   201→   201→   201→      badgeColor: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
+   202→   202→   202→    },
+   203→   203→   203→    {
+   204→   204→   204→      title: "Time Tracked",
+   205→   205→   205→      value: `${timeTrackedThisWeek}h`,
+   206→   206→   206→      icon: Timer,
+   207→   207→   207→      gradient: "from-teal-500 to-cyan-600",
+   208→   208→   208→      iconColor: "text-white",
+   209→   209→   209→      badge: "This week",
+   210→   210→   210→      badgeColor: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+   211→   211→   211→    },
+   212→   212→   212→  ];
+   213→   213→   213→}
+   214→   214→   214→
+   215→   215→   215→// ── Activity icon helper ────────────────────────────────────────────
+   216→   216→   216→function getActivityIcon(action: string, entity?: string) {
+   217→   217→   217→  const lower = action.toLowerCase();
+   218→   218→   218→  const entityLower = (entity ?? "").toLowerCase();
+   219→   219→   219→
+   220→   220→   220→  // Approval-specific icons
+   221→   221→   221→  if (lower.includes("approve") || lower.includes("accept") || lower.includes("complete"))
+   222→   222→   222→    return { icon: CheckCircle2, color: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40" };
+   223→   223→   223→  if (lower.includes("reject") || lower.includes("deny"))
+   224→   224→   224→    return { icon: ShieldCheck, color: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40" };
+   225→   225→   225→  if (lower.includes("review"))
+   226→   226→   226→    return { icon: Eye, color: "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40" };
+   227→   227→   227→
+   228→   228→   228→  // Invoice-specific icons
+   229→   229→   229→  if (entityLower.includes("invoice") || lower.includes("invoice") || lower.includes("payment"))
+   230→   230→   230→    return { icon: Receipt, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40" };
+   231→   231→   231→
+   232→   232→   232→  if (lower.includes("create") || lower.includes("add") || lower.includes("new"))
+   233→   233→   233→    return { icon: Plus, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40" };
+   234→   234→   234→  if (lower.includes("edit") || lower.includes("update") || lower.includes("modify"))
+   235→   235→   235→    return { icon: Edit3, color: "text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/40" };
+   236→   236→   236→  if (lower.includes("delete") || lower.includes("remove"))
+   237→   237→   237→    return { icon: Trash2, color: "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40" };
+   238→   238→   238→  if (lower.includes("comment") || lower.includes("reply"))
+   239→   239→   239→    return { icon: MessageSquare, color: "text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/40" };
+   240→   240→   240→  if (lower.includes("assign") || lower.includes("member") || lower.includes("join"))
+   241→   241→   241→    return { icon: UserPlus, color: "text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/40" };
+   242→   242→   242→  if (lower.includes("schedule") || lower.includes("calendar"))
+   243→   243→   243→    return { icon: CalendarCheck, color: "text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/40" };
+   244→   244→   244→  if (lower.includes("publish") || lower.includes("share") || lower.includes("send"))
+   245→   245→   245→    return { icon: Share2, color: "text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/40" };
+   246→   246→   246→  return { icon: Activity, color: "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/40" };
+   247→   247→   247→}
+   248→   248→   248→
+   249→   249→   249→// ── Entity type badge helper ────────────────────────────────────────
+   250→   250→   250→function getEntityTypeBadge(entity: string | null | undefined): { label: string; color: string } | null {
+   251→   251→   251→  if (!entity) return null;
+   252→   252→   252→  const lower = entity.toLowerCase();
+   253→   253→   253→  if (lower.includes("content")) return { label: "Content", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" };
+   254→   254→   254→  if (lower.includes("post")) return { label: "Post", color: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" };
+   255→   255→   255→  if (lower.includes("campaign")) return { label: "Campaign", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300" };
+   256→   256→   256→  if (lower.includes("approval")) return { label: "Approval", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" };
+   257→   257→   257→  if (lower.includes("invoice") || lower.includes("payment")) return { label: "Invoice", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" };
+   258→   258→   258→  if (lower.includes("team")) return { label: "Team", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" };
+   259→   259→   259→  if (lower.includes("client")) return { label: "Client", color: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300" };
+   260→   260→   260→  if (lower.includes("asset")) return { label: "Asset", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" };
+   261→   261→   261→  return null;
+   262→   262→   262→}
+   263→   263→   263→
+   264→   264→   264→// ── Time formatting ─────────────────────────────────────────────────
+   265→   265→   265→function formatRelativeTime(dateStr: string): string {
+   266→   266→   266→  try {
+   267→   267→   267→    const date = new Date(dateStr);
+   268→   268→   268→    const now = new Date();
+   269→   269→   269→    const diffMs = now.getTime() - date.getTime();
+   270→   270→   270→    const diffMins = Math.floor(diffMs / 60000);
+   271→   271→   271→    const diffHours = Math.floor(diffMs / 3600000);
+   272→   272→   272→    const diffDays = Math.floor(diffMs / 86400000);
+   273→   273→   273→
+   274→   274→   274→    if (diffMins < 1) return "Just now";
+   275→   275→   275→    if (diffMins < 60) return `${diffMins}m ago`;
+   276→   276→   276→    if (diffHours < 24) return `${diffHours}h ago`;
+   277→   277→   277→    if (diffDays < 7) return `${diffDays}d ago`;
+   278→   278→   278→    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+   279→   279→   279→  } catch {
+   280→   280→   280→    return "";
+   281→   281→   281→  }
+   282→   282→   282→}
+   283→   283→   283→
+   284→   284→   284→// ── Custom Tooltip ──────────────────────────────────────────────────
+   285→   285→   285→function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; color: string }>; label?: string }) {
+   286→   286→   286→  if (!active || !payload?.length) return null;
+   287→   287→   287→  return (
+   288→   288→   288→    <div className="rounded-lg border border-border/50 bg-background px-3 py-2 shadow-xl text-xs">
+   289→   289→   289→      <p className="font-medium text-foreground mb-1">{label}</p>
+   290→   290→   290→      {payload.map((p, i) => (
+   291→   291→   291→        <div key={i} className="flex items-center gap-2">
+   292→   292→   292→          <div className="h-2 w-2 rounded-sm" style={{ backgroundColor: p.color }} />
+   293→   293→   293→          <span className="text-muted-foreground capitalize">{p.dataKey}:</span>
+   294→   294→   294→          <span className="font-mono font-medium text-foreground">{p.value}</span>
+   295→   295→   295→        </div>
+   296→   296→   296→      ))}
+   297→   297→   297→    </div>
+   298→   298→   298→  );
+   299→   299→   299→}
+   300→   300→   300→
+   301→   301→   301→// ── Custom Revenue Tooltip ──────────────────────────────────────────
+   302→   302→   302→function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; dataKey: string; color: string }>; label?: string }) {
+   303→   303→   303→  if (!active || !payload?.length) return null;
+   304→   304→   304→  return (
+   305→   305→   305→    <div className="rounded-lg border border-border/50 bg-background px-3 py-2 shadow-xl text-xs">
+   306→   306→   306→      <p className="font-medium text-foreground mb-1">{label}</p>
+   307→   307→   307→      {payload.map((p, i) => (
+   308→   308→   308→        <div key={i} className="flex items-center gap-2">
+   309→   309→   309→          <div className="h-2 w-2 rounded-sm" style={{ backgroundColor: p.color }} />
+   310→   310→   310→          <span className="text-muted-foreground capitalize">{p.dataKey}:</span>
+   311→   311→   311→          <span className="font-mono font-medium text-foreground">${(p.value / 1000).toFixed(1)}K</span>
+   312→   312→   312→        </div>
+   313→   313→   313→      ))}
+   314→   314→   314→    </div>
+   315→   315→   315→  );
+   316→   316→   316→}
+   317→   317→   317→
+   318→   318→   318→// ── KPI Card Component ──────────────────────────────────────────────
+   319→   319→   319→function KPICard({ data, index }: { data: KPICardData; index: number }) {
+   320→   320→   320→  const Icon = data.icon;
+   321→   321→   321→  return (
+   322→   322→   322→    <motion.div variants={itemVariants}>
+   323→   323→   323→      <Card className="relative overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 border-border/60">
+   324→   324→   324→        <CardContent className="p-5">
+   325→   325→   325→          <div className="flex items-start justify-between">
+   326→   326→   326→            <div className="flex-1 min-w-0">
+   327→   327→   327→              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+   328→   328→   328→                {data.title}
+   329→   329→   329→              </p>
+   330→   330→   330→              <div className="mt-2 flex items-baseline gap-2">
+   331→   331→   331→                <h3 className="text-2xl font-bold tracking-tight text-foreground">
+   332→   332→   332→                  {typeof data.value === "number" ? data.value.toLocaleString() : data.value}
+   333→   333→   333→                </h3>
+   334→   334→   334→                {data.badge && (
+   335→   335→   335→                  <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-md leading-none ${data.badgeColor}`}>
+   336→   336→   336→                    {data.badge}
+   337→   337→   337→                  </span>
+   338→   338→   338→                )}
+   339→   339→   339→              </div>
+   340→   340→   340→              {data.change !== undefined && (
+   341→   341→   341→                <div className="mt-1.5 flex items-center gap-1">
+   342→   342→   342→                  {data.change >= 0 ? (
+   343→   343→   343→                    <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+   344→   344→   344→                  ) : (
+   345→   345→   345→                    <ArrowDownRight className="h-3 w-3 text-rose-600 dark:text-rose-400" />
+   346→   346→   346→                  )}
+   347→   347→   347→                  <span className={`text-xs font-medium ${data.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+   348→   348→   348→                    {Math.abs(data.change)}%
+   349→   349→   349→                  </span>
+   350→   350→   350→                  {data.changeLabel && (
+   351→   351→   351→                    <span className="text-[10px] text-muted-foreground">{data.changeLabel}</span>
+   352→   352→   352→                  )}
+   353→   353→   353→                </div>
+   354→   354→   354→              )}
+   355→   355→   355→            </div>
+   356→   356→   356→            <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${data.gradient} flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0`}>
+   357→   357→   357→              <Icon className={`h-5 w-5 ${data.iconColor}`} />
+   358→   358→   358→            </div>
+   359→   359→   359→          </div>
+   360→   360→   360→        </CardContent>
+   361→   361→   361→        {/* Subtle decorative gradient overlay at bottom */}
+   362→   362→   362→        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+   363→   363→   363→      </Card>
+   364→   364→   364→    </motion.div>
+   365→   365→   365→  );
+   366→   366→   366→}
+   367→   367→   367→
+   368→   368→   368→// ── Team Productivity Bar ───────────────────────────────────────────
+   369→   369→   369→function TeamProductivityBar({ team, completed, pending }: { team: string; completed: number; pending: number }) {
+   370→   370→   370→  const total = completed + pending;
+   371→   371→   371→  const completedPct = total > 0 ? (completed / total) * 100 : 0;
+   372→   372→   372→  const pendingPct = total > 0 ? (pending / total) * 100 : 0;
+   373→   373→   373→
+   374→   374→   374→  return (
+   375→   375→   375→    <div className="space-y-1.5">
+   376→   376→   376→      <div className="flex items-center justify-between text-xs">
+   377→   377→   377→        <span className="font-medium text-foreground truncate">{team}</span>
+   378→   378→   378→        <span className="text-muted-foreground tabular-nums">
+   379→   379→   379→          {completed}<span className="text-muted-foreground/60">/{total}</span>
+   380→   380→   380→        </span>
+   381→   381→   381→      </div>
+   382→   382→   382→      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+   383→   383→   383→        <div
+   384→   384→   384→          className="bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500 rounded-l-full"
+   385→   385→   385→          style={{ width: `${completedPct}%` }}
+   386→   386→   386→        />
+   387→   387→   387→        <div
+   388→   388→   388→          className="bg-gradient-to-r from-amber-400 to-amber-300 dark:from-amber-500 dark:to-amber-400 transition-all duration-500"
+   389→   389→   389→          style={{ width: `${pendingPct}%` }}
+   390→   390→   390→        />
+   391→   391→   391→      </div>
+   392→   392→   392→    </div>
+   393→   393→   393→  );
+   394→   394→   394→}
+   395→   395→   395→
+   396→   396→   396→// ── Main Dashboard View ─────────────────────────────────────────────
+   397→   397→   397→export function DashboardView() {
+   398→   398→   398→  const { dashboard, isLoading, setShowCreateContent, setShowCreatePost } = useERPStore();
+   399→   399→   399→
+   400→   400→   400→  // Loading state
+   401→   401→   401→  if (isLoading || !dashboard) {
+   402→   402→   402→    return <DashboardSkeleton />;
+   403→   403→   403→  }
+   404→   404→   404→
+   405→   405→   405→  const kpiCards = buildKPICards(
+   406→   406→   406→    dashboard.totalContent,
+   407→   407→   407→    dashboard.postsThisMonth,
+   408→   408→   408→    dashboard.scheduledPosts,
+   409→   409→   409→    dashboard.activeCampaigns,
+   410→   410→   410→    dashboard?.pendingApprovals ?? 0,
+   411→   411→   411→    dashboard?.totalRevenue ?? 0,
+   412→   412→   412→    dashboard?.unreadInbox ?? 0,
+   413→   413→   413→    dashboard?.timeTrackedThisWeek ?? 0
+   414→   414→   414→  );
+   415→   415→   415→
+   416→   416→   416→  // Build pipeline chart data
+   417→   417→   417→  const pipelineData = (["idea", "design", "edit", "review", "approve", "disseminate"] as ContentStage[]).map(
+   418→   418→   418→    (stage) => ({
+   419→   419→   419→      stage: STAGE_LABELS[stage],
+   420→   420→   420→      count: dashboard.contentByStage[stage] || 0,
+   421→   421→   421→      color: STAGE_COLORS[stage],
+   422→   422→   422→    })
+   423→   423→   423→  );
+   424→   424→   424→
+   425→   425→   425→  // Build platform chart data
+   426→   426→   426→  const platformData = dashboard.platformBreakdown.map((p) => ({
+   427→   427→   427→    platform: p.platform.charAt(0).toUpperCase() + p.platform.slice(1),
+   428→   428→   428→    posts: p.posts,
+   429→   429→   429→    engagement: p.engagement,
+   430→   430→   430→    color: PLATFORM_COLORS[p.platform.toLowerCase()] || "#10b981",
+   431→   431→   431→  }));
+   432→   432→   432→
+   433→   433→   433→  // Build revenue chart data
+   434→   434→   434→  const revenueData = [
+   435→   435→   435→    {
+   436→   436→   436→      category: "Revenue",
+   437→   437→   437→      paid: dashboard?.paidRevenue ?? 0,
+   438→   438→   438→      outstanding: dashboard?.outstandingRevenue ?? 0,
+   439→   439→   439→    },
+   440→   440→   440→  ];
+   441→   441→   441→
+   442→   442→   442→  // Build approval status chart data (simulated distribution from pendingApprovals)
+   443→   443→   443→  const pendingCount = dashboard?.pendingApprovals ?? 0;
+   444→   444→   444→  const approvalData = [
+   445→   445→   445→    { name: "Pending", value: pendingCount, fill: "#f59e0b" },
+   446→   446→   446→    { name: "Approved", value: Math.max(1, Math.floor(pendingCount * 2.5)), fill: "#10b981" },
+   447→   447→   447→    { name: "Rejected", value: Math.max(0, Math.floor(pendingCount * 0.3)), fill: "#ef4444" },
+   448→   448→   448→  ];
+   449→   449→   449→
+   450→   450→   450→  // Activity items (last 15)
+   451→   451→   451→  const activityItems = dashboard.recentActivity.slice(0, 15);
+   452→   452→   452→
+   453→   453→   453→  // Team productivity
+   454→   454→   454→  const teamData = dashboard.teamProductivity;
+   455→   455→   455→
+   456→   456→   456→  // Quick actions
+   457→   457→   457→  const quickActions = [
+   458→   458→   458→    { label: "Create Content", icon: FileText, onClick: () => setShowCreateContent(true), color: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60" },
+   459→   459→   459→    { label: "Schedule Post", icon: CalendarCheck, onClick: () => setShowCreatePost(true), color: "bg-teal-100 text-teal-700 hover:bg-teal-200 dark:bg-teal-900/40 dark:text-teal-300 dark:hover:bg-teal-900/60" },
+   460→   460→   460→    { label: "Send Invoice", icon: Receipt, onClick: () => {}, color: "bg-cyan-100 text-cyan-700 hover:bg-cyan-200 dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-900/60" },
+   461→   461→   461→    { label: "Request Approval", icon: ClipboardCheck, onClick: () => {}, color: "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60" },
+   462→   462→   462→    { label: "Add Asset", icon: ImagePlus, onClick: () => {}, color: "bg-rose-100 text-rose-700 hover:bg-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/60" },
+   463→   463→   463→  ];
+   464→   464→   464→
+   465→   465→   465→  return (
+   466→   466→   466→    <motion.div
+   467→   467→   467→      className="p-4 lg:p-6 space-y-6"
+   468→   468→   468→      variants={containerVariants}
+   469→   469→   469→      initial="hidden"
+   470→   470→   470→      animate="visible"
+   471→   471→   471→    >
+   472→   472→   472→      {/* ── Section Header ── */}
+   473→   473→   473→      <motion.div variants={itemVariants} className="flex items-center justify-between">
+   474→   474→   474→        <div>
+   475→   475→   475→          <h2 className="text-xl font-bold tracking-tight text-foreground">
+   476→   476→   476→            Dashboard Overview
+   477→   477→   477→          </h2>
+   478→   478→   478→          <p className="text-sm text-muted-foreground mt-0.5">
+   479→   479→   479→            Real-time performance metrics for your agency
+   480→   480→   480→          </p>
+   481→   481→   481→        </div>
+   482→   482→   482→        <Badge variant="secondary" className="text-[10px] font-medium gap-1">
+   483→   483→   483→          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+   484→   484→   484→          Live
+   485→   485→   485→        </Badge>
+   486→   486→   486→      </motion.div>
+   487→   487→   487→
+   488→   488→   488→      {/* ── KPI Cards (2 rows of 4) ── */}
+   489→   489→   489→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   490→   490→   490→        {kpiCards.map((card, index) => (
+   491→   491→   491→          <KPICard key={card.title} data={card} index={index} />
+   492→   492→   492→        ))}
+   493→   493→   493→      </div>
+   494→   494→   494→
+   495→   495→   495→      {/* ── Quick Actions ── */}
+   496→   496→   496→      <motion.div variants={itemVariants}>
+   497→   497→   497→        <Card className="shadow-sm border-border/60">
+   498→   498→   498→          <CardContent className="p-4">
+   499→   499→   499→            <div className="flex items-center gap-2 mb-3">
+   500→   500→   500→              <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+   501→   501→   501→              <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
+   502→   502→   502→            </div>
+   503→   503→   503→            <div className="flex flex-wrap gap-2">
+   504→   504→   504→              {quickActions.map((action) => {
+   505→   505→   505→                const ActionIcon = action.icon;
+   506→   506→   506→                return (
+   507→   507→   507→                  <Button
+   508→   508→   508→                    key={action.label}
+   509→   509→   509→                    variant="ghost"
+   510→   510→   510→                    size="sm"
+   511→   511→   511→                    className={`h-9 gap-2 text-xs font-medium rounded-lg ${action.color} border-0`}
+   512→   512→   512→                    onClick={action.onClick}
+   513→   513→   513→                  >
+   514→   514→   514→                    <ActionIcon className="h-3.5 w-3.5" />
+   515→   515→   515→                    {action.label}
+   516→   516→   516→                  </Button>
+   517→   517→   517→                );
+   518→   518→   518→              })}
+   519→   519→   519→            </div>
+   520→   520→   520→          </CardContent>
+   521→   521→   521→        </Card>
+   522→   522→   522→      </motion.div>
+   523→   523→   523→
+   524→   524→   524→      {/* ── Charts Row 1 ── */}
+   525→   525→   525→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   526→   526→   526→        {/* Content Pipeline Distribution */}
+   527→   527→   527→        <motion.div variants={itemVariants}>
+   528→   528→   528→          <Card className="shadow-sm border-border/60 h-full">
+   529→   529→   529→            <CardHeader className="pb-2">
+   530→   530→   530→              <div className="flex items-center justify-between">
+   531→   531→   531→                <div>
+   532→   532→   532→                  <CardTitle className="text-sm font-semibold">Content Pipeline</CardTitle>
+   533→   533→   533→                  <CardDescription className="text-xs mt-0.5">
+   534→   534→   534→                    Distribution by stage
+   535→   535→   535→                  </CardDescription>
+   536→   536→   536→                </div>
+   537→   537→   537→                <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+   538→   538→   538→                  <Workflow className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+   539→   539→   539→                </div>
+   540→   540→   540→              </div>
+   541→   541→   541→            </CardHeader>
+   542→   542→   542→            <CardContent className="pt-0">
+   543→   543→   543→              <div className="h-[240px] w-full">
+   544→   544→   544→                <ResponsiveContainer width="100%" height="100%">
+   545→   545→   545→                  <BarChart data={pipelineData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+   546→   546→   546→                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} vertical={false} />
+   547→   547→   547→                    <XAxis
+   548→   548→   548→                      dataKey="stage"
+   549→   549→   549→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   550→   550→   550→                      axisLine={false}
+   551→   551→   551→                      tickLine={false}
+   552→   552→   552→                    />
+   553→   553→   553→                    <YAxis
+   554→   554→   554→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   555→   555→   555→                      axisLine={false}
+   556→   556→   556→                      tickLine={false}
+   557→   557→   557→                      allowDecimals={false}
+   558→   558→   558→                    />
+   559→   559→   559→                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }} />
+   560→   560→   560→                    <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={40}>
+   561→   561→   561→                      {pipelineData.map((entry, index) => (
+   562→   562→   562→                        <Cell key={`cell-${index}`} fill={entry.color} />
+   563→   563→   563→                      ))}
+   564→   564→   564→                    </Bar>
+   565→   565→   565→                  </BarChart>
+   566→   566→   566→                </ResponsiveContainer>
+   567→   567→   567→              </div>
+   568→   568→   568→            </CardContent>
+   569→   569→   569→          </Card>
+   570→   570→   570→        </motion.div>
+   571→   571→   571→
+   572→   572→   572→        {/* Platform Performance */}
+   573→   573→   573→        <motion.div variants={itemVariants}>
+   574→   574→   574→          <Card className="shadow-sm border-border/60 h-full">
+   575→   575→   575→            <CardHeader className="pb-2">
+   576→   576→   576→              <div className="flex items-center justify-between">
+   577→   577→   577→                <div>
+   578→   578→   578→                  <CardTitle className="text-sm font-semibold">Platform Performance</CardTitle>
+   579→   579→   579→                  <CardDescription className="text-xs mt-0.5">
+   580→   580→   580→                    Posts by platform
+   581→   581→   581→                  </CardDescription>
+   582→   582→   582→                </div>
+   583→   583→   583→                <div className="h-8 w-8 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+   584→   584→   584→                  <BarChart3 className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+   585→   585→   585→                </div>
+   586→   586→   586→              </div>
+   587→   587→   587→            </CardHeader>
+   588→   588→   588→            <CardContent className="pt-0">
+   589→   589→   589→              <div className="h-[240px] w-full">
+   590→   590→   590→                <ResponsiveContainer width="100%" height="100%">
+   591→   591→   591→                  <BarChart
+   592→   592→   592→                    data={platformData}
+   593→   593→   593→                    layout="vertical"
+   594→   594→   594→                    margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
+   595→   595→   595→                  >
+   596→   596→   596→                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} horizontal={false} />
+   597→   597→   597→                    <XAxis
+   598→   598→   598→                      type="number"
+   599→   599→   599→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   600→   600→   600→                      axisLine={false}
+   601→   601→   601→                      tickLine={false}
+   602→   602→   602→                      allowDecimals={false}
+   603→   603→   603→                    />
+   604→   604→   604→                    <YAxis
+   605→   605→   605→                      type="category"
+   606→   606→   606→                      dataKey="platform"
+   607→   607→   607→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   608→   608→   608→                      axisLine={false}
+   609→   609→   609→                      tickLine={false}
+   610→   610→   610→                      width={72}
+   611→   611→   611→                    />
+   612→   612→   612→                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }} />
+   613→   613→   613→                    <Bar dataKey="posts" radius={[0, 6, 6, 0]} maxBarSize={24}>
+   614→   614→   614→                      {platformData.map((entry, index) => (
+   615→   615→   615→                        <Cell key={`cell-${index}`} fill={entry.color} />
+   616→   616→   616→                      ))}
+   617→   617→   617→                    </Bar>
+   618→   618→   618→                  </BarChart>
+   619→   619→   619→                </ResponsiveContainer>
+   620→   620→   620→              </div>
+   621→   621→   621→            </CardContent>
+   622→   622→   622→          </Card>
+   623→   623→   623→        </motion.div>
+   624→   624→   624→      </div>
+   625→   625→   625→
+   626→   626→   626→      {/* ── Charts Row 2 (Revenue + Approval) ── */}
+   627→   627→   627→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   628→   628→   628→        {/* Revenue Overview */}
+   629→   629→   629→        <motion.div variants={itemVariants}>
+   630→   630→   630→          <Card className="shadow-sm border-border/60 h-full">
+   631→   631→   631→            <CardHeader className="pb-2">
+   632→   632→   632→              <div className="flex items-center justify-between">
+   633→   633→   633→                <div>
+   634→   634→   634→                  <CardTitle className="text-sm font-semibold">Revenue Overview</CardTitle>
+   635→   635→   635→                  <CardDescription className="text-xs mt-0.5">
+   636→   636→   636→                    Paid vs outstanding revenue
+   637→   637→   637→                  </CardDescription>
+   638→   638→   638→                </div>
+   639→   639→   639→                <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+   640→   640→   640→                  <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+   641→   641→   641→                </div>
+   642→   642→   642→              </div>
+   643→   643→   643→              <div className="flex items-center gap-3 mt-2 text-[10px]">
+   644→   644→   644→                <div className="flex items-center gap-1.5">
+   645→   645→   645→                  <div className="h-2 w-2 rounded-sm bg-emerald-500" />
+   646→   646→   646→                  <span className="text-muted-foreground">Paid</span>
+   647→   647→   647→                </div>
+   648→   648→   648→                <div className="flex items-center gap-1.5">
+   649→   649→   649→                  <div className="h-2 w-2 rounded-sm bg-amber-400" />
+   650→   650→   650→                  <span className="text-muted-foreground">Outstanding</span>
+   651→   651→   651→                </div>
+   652→   652→   652→              </div>
+   653→   653→   653→            </CardHeader>
+   654→   654→   654→            <CardContent className="pt-0">
+   655→   655→   655→              <div className="h-[240px] w-full">
+   656→   656→   656→                <ResponsiveContainer width="100%" height="100%">
+   657→   657→   657→                  <BarChart data={revenueData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+   658→   658→   658→                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} vertical={false} />
+   659→   659→   659→                    <XAxis
+   660→   660→   660→                      dataKey="category"
+   661→   661→   661→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   662→   662→   662→                      axisLine={false}
+   663→   663→   663→                      tickLine={false}
+   664→   664→   664→                    />
+   665→   665→   665→                    <YAxis
+   666→   666→   666→                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+   667→   667→   667→                      axisLine={false}
+   668→   668→   668→                      tickLine={false}
+   669→   669→   669→                      tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}K`}
+   670→   670→   670→                    />
+   671→   671→   671→                    <Tooltip content={<RevenueTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }} />
+   672→   672→   672→                    <Bar dataKey="paid" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={60} name="Paid" />
+   673→   673→   673→                    <Bar dataKey="outstanding" fill="#f59e0b" radius={[6, 6, 0, 0]} maxBarSize={60} name="Outstanding" />
+   674→   674→   674→                  </BarChart>
+   675→   675→   675→                </ResponsiveContainer>
+   676→   676→   676→              </div>
+   677→   677→   677→            </CardContent>
+   678→   678→   678→          </Card>
+   679→   679→   679→        </motion.div>
+   680→   680→   680→
+   681→   681→   681→        {/* Approval Status */}
+   682→   682→   682→        <motion.div variants={itemVariants}>
+   683→   683→   683→          <Card className="shadow-sm border-border/60 h-full">
+   684→   684→   684→            <CardHeader className="pb-2">
+   685→   685→   685→              <div className="flex items-center justify-between">
+   686→   686→   686→                <div>
+   687→   687→   687→                  <CardTitle className="text-sm font-semibold">Approval Status</CardTitle>
+   688→   688→   688→                  <CardDescription className="text-xs mt-0.5">
+   689→   689→   689→                    Pending / approved / rejected distribution
+   690→   690→   690→                  </CardDescription>
+   691→   691→   691→                </div>
+   692→   692→   692→                <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+   693→   693→   693→                  <ClipboardCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+   694→   694→   694→                </div>
+   695→   695→   695→              </div>
+   696→   696→   696→            </CardHeader>
+   697→   697→   697→            <CardContent className="pt-0">
+   698→   698→   698→              <div className="h-[240px] w-full flex items-center justify-center">
+   699→   699→   699→                <ResponsiveContainer width="100%" height="100%">
+   700→   700→   700→                  <PieChart>
+   701→   701→   701→                    <Pie
+   702→   702→   702→                      data={approvalData}
+   703→   703→   703→                      cx="50%"
+   704→   704→   704→                      cy="50%"
+   705→   705→   705→                      innerRadius={55}
+   706→   706→   706→                      outerRadius={85}
+   707→   707→   707→                      paddingAngle={4}
+   708→   708→   708→                      dataKey="value"
+   709→   709→   709→                      stroke="none"
+   710→   710→   710→                    >
+   711→   711→   711→                      {approvalData.map((entry, index) => (
+   712→   712→   712→                        <Cell key={`pie-cell-${index}`} fill={entry.fill} />
+   713→   713→   713→                      ))}
+   714→   714→   714→                    </Pie>
+   715→   715→   715→                    <Tooltip
+   716→   716→   716→                      content={({ active, payload }) => {
+   717→   717→   717→                        if (!active || !payload?.length) return null;
+   718→   718→   718→                        const data = payload[0];
+   719→   719→   719→                        return (
+   720→   720→   720→                          <div className="rounded-lg border border-border/50 bg-background px-3 py-2 shadow-xl text-xs">
+   721→   721→   721→                            <span className="text-muted-foreground">{data.name}:</span>
+   722→   722→   722→                            <span className="font-mono font-medium text-foreground ml-1">{data.value}</span>
+   723→   723→   723→                          </div>
+   724→   724→   724→                        );
+   725→   725→   725→                      }}
+   726→   726→   726→                    />
+   727→   727→   727→                    <Legend
+   728→   728→   728→                      verticalAlign="bottom"
+   729→   729→   729→                      iconType="circle"
+   730→   730→   730→                      iconSize={8}
+   731→   731→   731→                      formatter={(value: string) => (
+   732→   732→   732→                        <span className="text-xs text-muted-foreground">{value}</span>
+   733→   733→   733→                      )}
+   734→   734→   734→                    />
+   735→   735→   735→                  </PieChart>
+   736→   736→   736→                </ResponsiveContainer>
+   737→   737→   737→              </div>
+   738→   738→   738→            </CardContent>
+   739→   739→   739→          </Card>
+   740→   740→   740→        </motion.div>
+   741→   741→   741→      </div>
+   742→   742→   742→
+   743→   743→   743→      {/* ── Bottom Row ── */}
+   744→   744→   744→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   745→   745→   745→        {/* Team Productivity */}
+   746→   746→   746→        <motion.div variants={itemVariants}>
+   747→   747→   747→          <Card className="shadow-sm border-border/60 h-full">
+   748→   748→   748→            <CardHeader className="pb-2">
+   749→   749→   749→              <div className="flex items-center justify-between">
+   750→   750→   750→                <div>
+   751→   751→   751→                  <CardTitle className="text-sm font-semibold">Team Productivity</CardTitle>
+   752→   752→   752→                  <CardDescription className="text-xs mt-0.5">
+   753→   753→   753→                    Completed vs pending tasks
+   754→   754→   754→                  </CardDescription>
+   755→   755→   755→                </div>
+   756→   756→   756→                <div className="flex items-center gap-3 text-[10px]">
+   757→   757→   757→                  <div className="flex items-center gap-1.5">
+   758→   758→   758→                    <div className="h-2 w-2 rounded-sm bg-gradient-to-r from-emerald-500 to-emerald-400" />
+   759→   759→   759→                    <span className="text-muted-foreground">Done</span>
+   760→   760→   760→                  </div>
+   761→   761→   761→                  <div className="flex items-center gap-1.5">
+   762→   762→   762→                    <div className="h-2 w-2 rounded-sm bg-gradient-to-r from-amber-400 to-amber-300" />
+   763→   763→   763→                    <span className="text-muted-foreground">Pending</span>
+   764→   764→   764→                  </div>
+   765→   765→   765→                </div>
+   766→   766→   766→              </div>
+   767→   767→   767→            </CardHeader>
+   768→   768→   768→            <CardContent className="pt-2">
+   769→   769→   769→              {teamData.length === 0 ? (
+   770→   770→   770→                <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+   771→   771→   771→                  No team data available
+   772→   772→   772→                </div>
+   773→   773→   773→              ) : (
+   774→   774→   774→                <div className="space-y-4">
+   775→   775→   775→                  {teamData.map((t) => (
+   776→   776→   776→                    <TeamProductivityBar
+   777→   777→   777→                      key={t.team}
+   778→   778→   778→                      team={t.team}
+   779→   779→   779→                      completed={t.completed}
+   780→   780→   780→                      pending={t.pending}
+   781→   781→   781→                    />
+   782→   782→   782→                  ))}
+   783→   783→   783→                </div>
+   784→   784→   784→              )}
+   785→   785→   785→            </CardContent>
+   786→   786→   786→          </Card>
+   787→   787→   787→        </motion.div>
+   788→   788→   788→
+   789→   789→   789→        {/* Enhanced Activity Feed */}
+   790→   790→   790→        <motion.div variants={itemVariants}>
+   791→   791→   791→          <Card className="shadow-sm border-border/60 h-full">
+   792→   792→   792→            <CardHeader className="pb-2">
+   793→   793→   793→              <div className="flex items-center justify-between">
+   794→   794→   794→                <div>
+   795→   795→   795→                  <CardTitle className="text-sm font-semibold">Recent Activity</CardTitle>
+   796→   796→   796→                  <CardDescription className="text-xs mt-0.5">
+   797→   797→   797→                    Latest actions across the platform
+   798→   798→   798→                  </CardDescription>
+   799→   799→   799→                </div>
+   800→   800→   800→                <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+   801→   801→   801→                  <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+   802→   802→   802→                </div>
+   803→   803→   803→              </div>
+   804→   804→   804→            </CardHeader>
+   805→   805→   805→            <CardContent className="pt-0">
+   806→   806→   806→              {activityItems.length === 0 ? (
+   807→   807→   807→                <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+   808→   808→   808→                  No recent activity
+   809→   809→   809→                </div>
+   810→   810→   810→              ) : (
+   811→   811→   811→                <ScrollArea className="h-[280px] pr-3">
+   812→   812→   812→                  <div className="space-y-0.5">
+   813→   813→   813→                    {activityItems.map((item, idx) => {
+   814→   814→   814→                      const { icon: ActivityIcon, color: iconColorClasses } = getActivityIcon(item.action, item.entity);
+   815→   815→   815→                      const entityBadge = getEntityTypeBadge(item.entity);
+   816→   816→   816→                      return (
+   817→   817→   817→                        <motion.div
+   818→   818→   818→                          key={item.id}
+   819→   819→   819→                          initial={{ opacity: 0, x: -8 }}
+   820→   820→   820→                          animate={{ opacity: 1, x: 0 }}
+   821→   821→   821→                          transition={{ delay: idx * 0.03, duration: 0.2 }}
+   822→   822→   822→                          className="flex items-start gap-3 py-2.5 px-2 rounded-lg hover:bg-muted/50 transition-colors group"
+   823→   823→   823→                        >
+   824→   824→   824→                          <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${iconColorClasses}`}>
+   825→   825→   825→                            <ActivityIcon className="h-3.5 w-3.5" />
+   826→   826→   826→                          </div>
+   827→   827→   827→                          <div className="flex-1 min-w-0">
+   828→   828→   828→                            <p className="text-xs text-foreground leading-snug">
+   829→   829→   829→                              <span className="font-semibold">{item.actor?.name ?? "Unknown"}</span>
+   830→   830→   830→                              {" "}
+   831→   831→   831→                              <span className="text-muted-foreground">{item.action.toLowerCase()}</span>
+   832→   832→   832→                              {item.entity && (
+   833→   833→   833→                                <>
+   834→   834→   834→                                  {" "}
+   835→   835→   835→                                  <span className="font-medium text-foreground">{item.entity}</span>
+   836→   836→   836→                                </>
+   837→   837→   837→                              )}
+   838→   838→   838→                            </p>
+   839→   839→   839→                            <div className="flex items-center gap-2 mt-0.5">
+   840→   840→   840→                              {item.details && (
+   841→   841→   841→                                <p className="text-[10px] text-muted-foreground/70 truncate">
+   842→   842→   842→                                  {item.details}
+   843→   843→   843→                                </p>
+   844→   844→   844→                              )}
+   845→   845→   845→                              {entityBadge && (
+   846→   846→   846→                                <span className={`inline-flex items-center px-1.5 py-0 text-[9px] font-semibold rounded leading-tight shrink-0 ${entityBadge.color}`}>
+   847→   847→   847→                                  {entityBadge.label}
+   848→   848→   848→                                </span>
+   849→   849→   849→                              )}
+   850→   850→   850→                            </div>
+   851→   851→   851→                          </div>
+   852→   852→   852→                          <span className="text-[10px] text-muted-foreground/60 whitespace-nowrap shrink-0 pt-0.5">
+   853→   853→   853→                            {formatRelativeTime(item.createdAt)}
+   854→   854→   854→                          </span>
+   855→   855→   855→                        </motion.div>
+   856→   856→   856→                      );
+   857→   857→   857→                    })}
+   858→   858→   858→                  </div>
+   859→   859→   859→                </ScrollArea>
+   860→   860→   860→              )}
+   861→   861→   861→            </CardContent>
+   862→   862→   862→          </Card>
+   863→   863→   863→        </motion.div>
+   864→   864→   864→      </div>
+   865→   865→   865→    </motion.div>
+   866→   866→   866→  );
+   867→   867→   867→}
+   868→   868→   868→
+   869→   869→   869→// ── Loading Skeleton ────────────────────────────────────────────────
+   870→   870→   870→function DashboardSkeleton() {
+   871→   871→   871→  return (
+   872→   872→   872→    <div className="p-4 lg:p-6 space-y-6 animate-in fade-in duration-300">
+   873→   873→   873→      {/* Header skeleton */}
+   874→   874→   874→      <div className="flex items-center justify-between">
+   875→   875→   875→        <div className="space-y-2">
+   876→   876→   876→          <Skeleton className="h-6 w-44" />
+   877→   877→   877→          <Skeleton className="h-4 w-60" />
+   878→   878→   878→        </div>
+   879→   879→   879→      </div>
+   880→   880→   880→
+   881→   881→   881→      {/* KPI cards skeleton (8 cards = 2 rows of 4) */}
+   882→   882→   882→      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   883→   883→   883→        {Array.from({ length: 8 }).map((_, i) => (
+   884→   884→   884→          <Card key={i} className="shadow-sm border-border/60">
+   885→   885→   885→            <CardContent className="p-5">
+   886→   886→   886→              <div className="flex items-start justify-between">
+   887→   887→   887→                <div className="space-y-2 flex-1">
+   888→   888→   888→                  <Skeleton className="h-3 w-20" />
+   889→   889→   889→                  <Skeleton className="h-7 w-16" />
+   890→   890→   890→                  <Skeleton className="h-3 w-24" />
+   891→   891→   891→                </div>
+   892→   892→   892→                <Skeleton className="h-10 w-10 rounded-xl" />
+   893→   893→   893→              </div>
+   894→   894→   894→            </CardContent>
+   895→   895→   895→          </Card>
+   896→   896→   896→        ))}
+   897→   897→   897→      </div>
+   898→   898→   898→
+   899→   899→   899→      {/* Quick Actions skeleton */}
+   900→   900→   900→      <Card className="shadow-sm border-border/60">
+   901→   901→   901→        <CardContent className="p-4">
+   902→   902→   902→          <Skeleton className="h-4 w-28 mb-3" />
+   903→   903→   903→          <div className="flex flex-wrap gap-2">
+   904→   904→   904→            {Array.from({ length: 5 }).map((_, i) => (
+   905→   905→   905→              <Skeleton key={i} className="h-9 w-32 rounded-lg" />
+   906→   906→   906→            ))}
+   907→   907→   907→          </div>
+   908→   908→   908→        </CardContent>
+   909→   909→   909→      </Card>
+   910→   910→   910→
+   911→   911→   911→      {/* Charts row 1 skeleton */}
+   912→   912→   912→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   913→   913→   913→        {Array.from({ length: 2 }).map((_, i) => (
+   914→   914→   914→          <Card key={i} className="shadow-sm border-border/60">
+   915→   915→   915→            <CardHeader className="pb-2">
+   916→   916→   916→              <div className="flex items-center justify-between">
+   917→   917→   917→                <div className="space-y-1.5">
+   918→   918→   918→                  <Skeleton className="h-4 w-32" />
+   919→   919→   919→                  <Skeleton className="h-3 w-24" />
+   920→   920→   920→                </div>
+   921→   921→   921→                <Skeleton className="h-8 w-8 rounded-lg" />
+   922→   922→   922→              </div>
+   923→   923→   923→            </CardHeader>
+   924→   924→   924→            <CardContent className="pt-0">
+   925→   925→   925→              <Skeleton className="h-[240px] w-full rounded-lg" />
+   926→   926→   926→            </CardContent>
+   927→   927→   927→          </Card>
+   928→   928→   928→        ))}
+   929→   929→   929→      </div>
+   930→   930→   930→
+   931→   931→   931→      {/* Charts row 2 skeleton */}
+   932→   932→   932→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   933→   933→   933→        {Array.from({ length: 2 }).map((_, i) => (
+   934→   934→   934→          <Card key={i} className="shadow-sm border-border/60">
+   935→   935→   935→            <CardHeader className="pb-2">
+   936→   936→   936→              <div className="flex items-center justify-between">
+   937→   937→   937→                <div className="space-y-1.5">
+   938→   938→   938→                  <Skeleton className="h-4 w-32" />
+   939→   939→   939→                  <Skeleton className="h-3 w-24" />
+   940→   940→   940→                </div>
+   941→   941→   941→                <Skeleton className="h-8 w-8 rounded-lg" />
+   942→   942→   942→              </div>
+   943→   943→   943→            </CardHeader>
+   944→   944→   944→            <CardContent className="pt-0">
+   945→   945→   945→              <Skeleton className="h-[240px] w-full rounded-lg" />
+   946→   946→   946→            </CardContent>
+   947→   947→   947→          </Card>
+   948→   948→   948→        ))}
+   949→   949→   949→      </div>
+   950→   950→   950→
+   951→   951→   951→      {/* Bottom row skeleton */}
+   952→   952→   952→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   953→   953→   953→        {Array.from({ length: 2 }).map((_, i) => (
+   954→   954→   954→          <Card key={i} className="shadow-sm border-border/60">
+   955→   955→   955→            <CardHeader className="pb-2">
+   956→   956→   956→              <div className="flex items-center justify-between">
+   957→   957→   957→                <div className="space-y-1.5">
+   958→   958→   958→                  <Skeleton className="h-4 w-32" />
+   959→   959→   959→                  <Skeleton className="h-3 w-24" />
+   960→   960→   960→                </div>
+   961→   961→   961→                <Skeleton className="h-8 w-8 rounded-lg" />
+   962→   962→   962→              </div>
+   963→   963→   963→            </CardHeader>
+   964→   964→   964→            <CardContent className="pt-0">
+   965→   965→   965→              <div className="space-y-4">
+   966→   966→   966→                {Array.from({ length: 5 }).map((_, j) => (
+   967→   967→   967→                  <div key={j} className="space-y-2">
+   968→   968→   968→                    <div className="flex justify-between">
+   969→   969→   969→                      <Skeleton className="h-3 w-24" />
+   970→   970→   970→                      <Skeleton className="h-3 w-10" />
+   971→   971→   971→                    </div>
+   972→   972→   972→                    <Skeleton className="h-2.5 w-full rounded-full" />
+   973→   973→   973→                  </div>
+   974→   974→   974→                ))}
+   975→   975→   975→              </div>
+   976→   976→   976→            </CardContent>
+   977→   977→   977→          </Card>
+   978→   978→   978→        ))}
+   979→   979→   979→      </div>
+   980→   980→   980→    </div>
+   981→   981→   981→  );
+   982→   982→   982→}
+   983→   983→   983→

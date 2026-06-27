@@ -175,6 +175,27 @@ export async function GET() {
       where: { organizationId: org.id },
     })
 
+    // Platform breakdown - posts by platform
+    const postsByPlatform = await db.post.findMany({
+      where: { organizationId: org.id },
+      select: { platform: true, engagement: true },
+    })
+    const platformBreakdown = Object.entries(
+      postsByPlatform.reduce((acc, post) => {
+        if (!acc[post.platform]) acc[post.platform] = { posts: 0, engagement: 0 }
+        acc[post.platform].posts++
+        // Parse engagement JSON to get total engagement
+        if (post.engagement) {
+          try {
+            const eng = JSON.parse(post.engagement)
+            const total = Object.values(eng).reduce((sum: number, v: unknown) => sum + (typeof v === 'number' ? v : 0), 0)
+            acc[post.platform].engagement += total
+          } catch { /* ignore */ }
+        }
+        return acc
+      }, {} as Record<string, { posts: number; engagement: number }>)
+    ).map(([platform, data]) => ({ platform, posts: data.posts, engagement: data.engagement }))
+
     return NextResponse.json({
       contentByStage,
       contentByType,
@@ -205,6 +226,7 @@ export async function GET() {
       timeTrackedThisWeek,
       unreadInbox,
       assetCount,
+      platformBreakdown,
     })
   } catch (error) {
     console.error('Dashboard error:', error)
