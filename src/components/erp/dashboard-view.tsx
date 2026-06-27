@@ -376,7 +376,8 @@ function TeamProductivityBar({ team, completed, pending }: { team: string; compl
       {/* Mini sparkline-style indicator */}
       <div className="flex gap-[2px]">
         {Array.from({ length: 8 }).map((_, i) => {
-          const height = Math.random() * 12 + 4;
+          // Deterministic sine-wave pattern for decorative sparkline
+          const height = Math.round((Math.sin(i * 0.8 + completed * 0.3) * 0.5 + 0.5) * 12 + 4);
           const isCompleted = i < Math.round((completedPct / 100) * 8);
           return (
             <div
@@ -420,12 +421,38 @@ export function DashboardView() {
     (t) => t.status === "pending" || t.status === "in_progress"
   ).length;
 
+  // ── Compute real KPI change percentages from data ────────────────────
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const contentThisMonth = contents.filter((c) => new Date(c.createdAt) >= thisMonthStart).length;
+  const contentLastMonth = contents.filter((c) => {
+    const d = new Date(c.createdAt);
+    return d >= lastMonthStart && d < thisMonthStart;
+  }).length;
+  const contentChange = contentLastMonth > 0
+    ? Math.round(((contentThisMonth - contentLastMonth) / contentLastMonth) * 1000) / 10
+    : (contentThisMonth > 0 ? 100 : 0);
+
+  const postsThisMonthCalc = posts.filter((p) => {
+    const d = new Date(p.publishedAt || p.createdAt);
+    return d >= thisMonthStart;
+  }).length;
+  const postsLastMonth = posts.filter((p) => {
+    const d = new Date(p.publishedAt || p.createdAt);
+    return d >= lastMonthStart && d < thisMonthStart;
+  }).length;
+  const postsChange = postsLastMonth > 0
+    ? Math.round(((postsThisMonthCalc - postsLastMonth) / postsLastMonth) * 1000) / 10
+    : (postsThisMonthCalc > 0 ? 100 : 0);
+
   // Build KPI cards (work-related only, 6 cards)
   const kpiCards: KPICardData[] = [
     {
       title: "Total Content",
       value: dashboard.totalContent,
-      change: 12.5,
+      change: contentChange,
       changeLabel: "vs last month",
       icon: FileText,
       gradient: "from-emerald-500 to-emerald-600",
@@ -434,7 +461,7 @@ export function DashboardView() {
     {
       title: "Posts This Month",
       value: dashboard.postsThisMonth,
-      change: 8.2,
+      change: postsChange,
       changeLabel: "vs last month",
       icon: Send,
       gradient: "from-teal-500 to-teal-600",

@@ -10,8 +10,17 @@ export async function GET() {
     const existingCommContacts = existingOrg ? await db.communicationContact.count({ where: { organizationId: existingOrg.id } }) : 0
     const existingJournalEntries = existingOrg ? await db.journalEntry.count({ where: { organizationId: existingOrg.id } }) : 0
     
-    if (existingOrg && existingApprovals > 0 && existingDisseminators > 0 && existingCommContacts > 0 && existingJournalEntries > 0) {
+    // Check for missing module data
+    const existingInvoices = existingOrg ? await db.invoice.count({ where: { organizationId: existingOrg.id } }) : 0
+
+    if (existingOrg && existingApprovals > 0 && existingDisseminators > 0 && existingCommContacts > 0 && existingJournalEntries > 0 && existingInvoices > 0) {
       return NextResponse.json({ success: true, message: 'Database already seeded', skipped: true })
+    }
+
+    // If org has basic data and finance but missing modules, seed only the missing modules
+    if (existingOrg && existingJournalEntries > 0 && existingInvoices === 0) {
+      await seedMissingModules(existingOrg.id)
+      return NextResponse.json({ success: true, message: 'Missing module data seeded', skipped: false })
     }
     
     // If org exists and has approvals but no disseminators, create them
@@ -31,10 +40,7 @@ export async function GET() {
       return NextResponse.json({ success: true, message: 'Finance data seeded', skipped: false })
     }
 
-    // Full seed already complete
-    if (existingOrg && existingJournalEntries > 0) {
-      return NextResponse.json({ success: true, message: 'Database already seeded', skipped: true })
-    }
+
 
     // Clear existing data in correct order (respecting foreign keys)
     await db.journalEntryLine.deleteMany()
@@ -870,6 +876,9 @@ export async function GET() {
     // Seed finance data
     const financeResult = await seedFinance(org.id, sarah.id)
 
+    // Seed missing module data
+    await seedMissingModules(org.id)
+
     return NextResponse.json({
       success: true,
       message: 'Database seeded successfully',
@@ -886,13 +895,6 @@ export async function GET() {
         comments: 15,
         activities: 34,
         approvals: 5,
-        invoices: 4,
-        timeEntries: 12,
-        assets: 10,
-        notifications: 8,
-        inboxMessages: 10,
-        influencers: 5,
-        brandKits: 6,
         departments: departments.length,
         employees: employees.length,
         payrollRuns: 3,
@@ -2428,4 +2430,427 @@ async function seedFinance(orgId: string, userId: string) {
   })
 
   return { accounts: totalAccounts, taxRates: 5, journalEntries: 10 }
+}
+
+async function seedMissingModules(orgId: string) {
+  const now = Date.now()
+  const dayMs = 86400000
+
+  // Get existing users and clients
+  const users = await db.user.findMany({ where: { organizationId: orgId } })
+  const clients = await db.client.findMany({ where: { organizationId: orgId } })
+  const campaigns = await db.campaign.findMany({ where: { organizationId: orgId } })
+  const contents = await db.content.findMany({ where: { organizationId: orgId } })
+
+  if (users.length === 0 || clients.length === 0) {
+    console.error('No users or clients found - cannot seed missing modules')
+    return
+  }
+
+  const adminUser = users.find(u => u.role === 'admin') || users[0]
+  const member1 = users.find(u => u.role === 'lead') || users[1] || users[0]
+  const member2 = users.find(u => u.role === 'member') || users[2] || users[0]
+  const member3 = users.length > 3 ? users[3] : users[0]
+  const member4 = users.length > 4 ? users[4] : users[0]
+
+  const client1 = clients[0] // TechCorp
+  const client2 = clients.length > 1 ? clients[1] : clients[0] // FashionHub
+  const client3 = clients.length > 2 ? clients[2] : clients[0] // FoodVibe
+  const client4 = clients.length > 3 ? clients[3] : clients[0] // AutoDrive
+  const client5 = clients.length > 4 ? clients[4] : clients[0] // WellnessCo
+
+  const campaign1 = campaigns[0]
+  const campaign2 = campaigns.length > 1 ? campaigns[1] : campaigns[0]
+
+  // ============================================
+  // 1. Influencers (5)
+  // ============================================
+  const influencers = await Promise.all([
+    db.influencer.create({
+      data: {
+        name: 'StyleMaven',
+        username: '@stylemaven',
+        platform: 'instagram',
+        followers: 1250000,
+        engagementRate: 4.8,
+        niche: 'fashion,lifestyle,luxury',
+        email: 'collab@stylemaven.com',
+        phone: '+1-555-2001',
+        notes: 'Top-tier fashion influencer with strong engagement on Instagram. Great for luxury brand partnerships.',
+        status: 'active',
+        rate: 5000,
+        contractStart: new Date('2025-01-01'),
+        contractEnd: new Date('2025-12-31'),
+        organizationId: orgId,
+        clientId: client2.id,
+        campaignId: campaign2?.id || null,
+      },
+    }),
+    db.influencer.create({
+      data: {
+        name: 'TechGuru Dan',
+        username: '@techgurudan',
+        platform: 'youtube',
+        followers: 890000,
+        engagementRate: 3.5,
+        niche: 'technology,saas,enterprise',
+        email: 'dan@techguru.io',
+        phone: '+1-555-2002',
+        notes: 'YouTube tech reviewer with strong B2B audience. Excellent for product demos and reviews.',
+        status: 'active',
+        rate: 3500,
+        contractStart: new Date('2025-02-01'),
+        contractEnd: new Date('2025-08-31'),
+        organizationId: orgId,
+        clientId: client1.id,
+        campaignId: campaign1?.id || null,
+      },
+    }),
+    db.influencer.create({
+      data: {
+        name: 'FoodieExplorer',
+        username: '@foodieexplorer',
+        platform: 'tiktok',
+        followers: 2100000,
+        engagementRate: 6.2,
+        niche: 'food,cooking,lifestyle',
+        email: 'hello@foodieexplorer.com',
+        phone: '+1-555-2003',
+        notes: 'Viral food content creator on TikTok. Known for recipe videos and restaurant reviews.',
+        status: 'negotiating',
+        rate: 4500,
+        organizationId: orgId,
+        clientId: client3.id,
+      },
+    }),
+    db.influencer.create({
+      data: {
+        name: 'EcoDriver Sam',
+        username: '@ecodriver_sam',
+        platform: 'youtube',
+        followers: 450000,
+        engagementRate: 5.1,
+        niche: 'ev,automotive,sustainability',
+        email: 'sam@ecodriver.com',
+        phone: '+1-555-2004',
+        notes: 'EV enthusiast and sustainability advocate. Perfect for automotive green campaigns.',
+        status: 'contacted',
+        rate: 2500,
+        organizationId: orgId,
+        clientId: client4.id,
+      },
+    }),
+    db.influencer.create({
+      data: {
+        name: 'WellnessWithMia',
+        username: '@wellnesswithmia',
+        platform: 'instagram',
+        followers: 780000,
+        engagementRate: 4.2,
+        niche: 'wellness,fitness,mental-health',
+        email: 'mia@wellnesswithmia.com',
+        phone: '+1-555-2005',
+        notes: 'Wellness and mindfulness advocate. Strong community engagement on Instagram.',
+        status: 'prospect',
+        rate: 2000,
+        organizationId: orgId,
+        clientId: client5.id,
+      },
+    }),
+  ])
+
+  // ============================================
+  // 2. Invoices + InvoiceItems (5 invoices)
+  // ============================================
+  const invoiceData = [
+    { number: 'INV-2025-001', clientId: client1.id, campaignId: campaign1?.id || null, status: 'paid', subtotal: 15000, tax: 1237.50, total: 16237.50, dueDate: new Date(now - 20 * dayMs), paidAt: new Date(now - 15 * dayMs), notes: 'TechCorp Spring Launch Campaign - Phase 1', items: [
+      { description: 'Campaign Strategy & Planning', quantity: 1, rate: 5000, amount: 5000 },
+      { description: 'Social Media Content Creation (10 posts)', quantity: 10, rate: 500, amount: 5000 },
+      { description: 'Video Production (2 videos)', quantity: 2, rate: 2500, amount: 5000 },
+    ]},
+    { number: 'INV-2025-002', clientId: client2.id, campaignId: campaign2?.id || null, status: 'sent', subtotal: 8200, tax: 676.50, total: 8876.50, dueDate: new Date(now + 15 * dayMs), notes: 'FashionHub Summer Collection Campaign', items: [
+      { description: 'Instagram Carousel Design (5 sets)', quantity: 5, rate: 800, amount: 4000 },
+      { description: 'TikTok Video Production (3 reels)', quantity: 3, rate: 1200, amount: 3600 },
+      { description: 'Influencer Coordination Fee', quantity: 1, rate: 600, amount: 600 },
+    ]},
+    { number: 'INV-2025-003', clientId: client3.id, campaignId: null, status: 'draft', subtotal: 4500, tax: 371.25, total: 4871.25, dueDate: null, notes: 'FoodVibe Recipe Series - Initial Phase', items: [
+      { description: 'Recipe Card Design (6 cards)', quantity: 6, rate: 350, amount: 2100 },
+      { description: 'Food Photography Session', quantity: 1, rate: 1500, amount: 1500 },
+      { description: 'Social Media Copywriting', quantity: 1, rate: 900, amount: 900 },
+    ]},
+    { number: 'INV-2025-004', clientId: client4.id, campaignId: null, status: 'overdue', subtotal: 12000, tax: 990, total: 12990, dueDate: new Date(now - 10 * dayMs), notes: 'AutoDrive EV Campaign - overdue payment', items: [
+      { description: 'YouTube Video Production (EV Range Explainer)', quantity: 1, rate: 5000, amount: 5000 },
+      { description: 'Cross-platform Ad Creative (8 variants)', quantity: 8, rate: 500, amount: 4000 },
+      { description: 'Campaign Analytics & Reporting', quantity: 1, rate: 3000, amount: 3000 },
+    ]},
+    { number: 'INV-2025-005', clientId: client1.id, campaignId: campaign1?.id || null, status: 'paid', subtotal: 6800, tax: 561, total: 7361, dueDate: new Date(now - 45 * dayMs), paidAt: new Date(now - 40 * dayMs), notes: 'TechCorp Product Launch - Additional Content', items: [
+      { description: 'LinkedIn Article Writing (2 articles)', quantity: 2, rate: 1200, amount: 2400 },
+      { description: 'Infographic Design (3 graphics)', quantity: 3, rate: 800, amount: 2400 },
+      { description: 'Email Newsletter Design', quantity: 2, rate: 1000, amount: 2000 },
+    ]},
+  ]
+
+  for (const inv of invoiceData) {
+    const { items, ...invFields } = inv
+    await db.invoice.create({
+      data: {
+        ...invFields,
+        organizationId: orgId,
+        invoiceItems: {
+          create: items.map(item => ({
+            ...item,
+            organizationId: orgId,
+          })),
+        },
+      },
+    })
+  }
+
+  // ============================================
+  // 3. TimeEntries (5)
+  // ============================================
+  await Promise.all([
+    db.timeEntry.create({
+      data: { description: 'Campaign strategy meeting with TechCorp', hours: 3.5, billable: true, date: new Date(now - 5 * dayMs), userId: adminUser.id, clientId: client1.id, campaignId: campaign1?.id || null, contentId: contents[0]?.id || null, organizationId: orgId },
+    }),
+    db.timeEntry.create({
+      data: { description: 'FashionHub summer collection content review', hours: 2, billable: true, date: new Date(now - 3 * dayMs), userId: member1.id, clientId: client2.id, campaignId: campaign2?.id || null, contentId: contents[1]?.id || null, organizationId: orgId },
+    }),
+    db.timeEntry.create({
+      data: { description: 'Video editing - TechCorp product demo', hours: 6, billable: true, date: new Date(now - 2 * dayMs), userId: member2.id, clientId: client1.id, campaignId: campaign1?.id || null, contentId: contents[2]?.id || null, organizationId: orgId },
+    }),
+    db.timeEntry.create({
+      data: { description: 'Internal team planning session', hours: 1.5, billable: false, date: new Date(now - 1 * dayMs), userId: member3.id, clientId: null, campaignId: null, contentId: null, organizationId: orgId },
+    }),
+    db.timeEntry.create({
+      data: { description: 'FoodVibe recipe card design and review', hours: 4, billable: true, date: new Date(now - 0.5 * dayMs), userId: member4.id, clientId: client3.id, campaignId: null, contentId: contents[3]?.id || null, organizationId: orgId },
+    }),
+  ])
+
+  // ============================================
+  // 4. Assets - Media (6)
+  // ============================================
+  await Promise.all([
+    db.asset.create({
+      data: { name: 'TechCorp Product Hero Image', type: 'image', url: '/assets/techcorp-hero.jpg', thumbnailUrl: '/assets/thumbs/techcorp-hero.jpg', size: 2400000, mimeType: 'image/jpeg', tags: 'hero,product,techcorp', folder: '/clients/techcorp', metadata: JSON.stringify({ width: 1920, height: 1080, orientation: 'landscape' }), organizationId: orgId, uploadedById: adminUser.id, clientId: client1.id },
+    }),
+    db.asset.create({
+      data: { name: 'FashionHub Summer Lookbook', type: 'image', url: '/assets/fashionhub-lookbook.pdf', thumbnailUrl: '/assets/thumbs/fashionhub-lookbook.jpg', size: 15000000, mimeType: 'application/pdf', tags: 'lookbook,summer,fashionhub', folder: '/clients/fashionhub', metadata: JSON.stringify({ pages: 24, format: 'A4' }), organizationId: orgId, uploadedById: member1.id, clientId: client2.id },
+    }),
+    db.asset.create({
+      data: { name: 'AutoDrive EV Promo Video', type: 'video', url: '/assets/autodrive-ev-promo.mp4', thumbnailUrl: '/assets/thumbs/autodrive-ev-promo.jpg', size: 85000000, mimeType: 'video/mp4', tags: 'promo,video,ev,autodrive', folder: '/clients/autodrive', metadata: JSON.stringify({ duration: 180, width: 1920, height: 1080, fps: 30 }), organizationId: orgId, uploadedById: member2.id, clientId: client4.id },
+    }),
+    db.asset.create({
+      data: { name: 'Vortex Brand Guidelines 2025', type: 'brand-guide', url: '/assets/vortex-brand-guide.pdf', thumbnailUrl: null, size: 5200000, mimeType: 'application/pdf', tags: 'brand,guidelines,internal', folder: '/internal/brand', metadata: JSON.stringify({ pages: 32 }), organizationId: orgId, uploadedById: adminUser.id, clientId: null },
+    }),
+    db.asset.create({
+      data: { name: 'FoodVibe Recipe Template', type: 'template', url: '/assets/foodvibe-template.psd', thumbnailUrl: '/assets/thumbs/foodvibe-template.jpg', size: 3200000, mimeType: 'image/vnd.adobe.photoshop', tags: 'template,recipe,foodvibe', folder: '/clients/foodvibe/templates', metadata: JSON.stringify({ width: 1080, height: 1080, layers: 12 }), organizationId: orgId, uploadedById: member3.id, clientId: client3.id },
+    }),
+    db.asset.create({
+      data: { name: 'WellnessCo Meditation Audio', type: 'document', url: '/assets/wellnessco-meditation.mp3', thumbnailUrl: null, size: 12000000, mimeType: 'audio/mpeg', tags: 'audio,meditation,wellness', folder: '/clients/wellnessco', metadata: JSON.stringify({ duration: 300, bitrate: 320 }), organizationId: orgId, uploadedById: member4.id, clientId: client5.id },
+    }),
+  ])
+
+  // ============================================
+  // 5. BrandKits (3)
+  // ============================================
+  await Promise.all([
+    db.brandKit.create({
+      data: { name: 'TechCorp Primary Colors', type: 'color', value: JSON.stringify({ primary: '#1a56db', secondary: '#3b82f6', accent: '#60a5fa', dark: '#1e3a5f', light: '#dbeafe' }), clientId: client1.id, organizationId: orgId },
+    }),
+    db.brandKit.create({
+      data: { name: 'TechCorp Typography', type: 'font', value: JSON.stringify({ heading: 'Inter Bold', body: 'Inter Regular', mono: 'JetBrains Mono', sizes: { h1: 48, h2: 36, h3: 28, body: 16 } }), clientId: client1.id, organizationId: orgId },
+    }),
+    db.brandKit.create({
+      data: { name: 'FashionHub Brand Voice', type: 'voice', value: JSON.stringify({ tone: 'Aspirational yet approachable', personality: ['chic', 'confident', 'inclusive'], avoid: ['aggressive sales language', 'exclusionary terms'], tagline_style: 'Short & punchy' }), clientId: client2.id, organizationId: orgId },
+    }),
+  ])
+
+  // ============================================
+  // 6. Expenses (6)
+  // ============================================
+  await Promise.all([
+    db.expense.create({
+      data: { title: 'Adobe Creative Cloud Subscription', description: 'Monthly subscription for the design team - Photoshop, Illustrator, Premiere Pro', amount: 599.88, category: 'Software', date: new Date(now - 3 * dayMs), status: 'approved', receiptUrl: '/receipts/adobe-2025-03.pdf', submittedById: adminUser.id, approvedById: adminUser.id, approvedAt: new Date(now - 2 * dayMs), clientId: null, campaignId: null, organizationId: orgId },
+    }),
+    db.expense.create({
+      data: { title: 'FoodVibe Photoshoot - Studio Rental', description: 'Half-day studio rental for FoodVibe recipe card photoshoot', amount: 1200, category: 'Production', date: new Date(now - 5 * dayMs), status: 'approved', receiptUrl: '/receipts/studio-rental.pdf', submittedById: member3.id, approvedById: adminUser.id, approvedAt: new Date(now - 4 * dayMs), clientId: client3.id, campaignId: null, organizationId: orgId },
+    }),
+    db.expense.create({
+      data: { title: 'TechCorp Campaign - Paid Social Ads', description: 'LinkedIn and Twitter ad spend for TechCorp product launch campaign', amount: 3500, category: 'Advertising', date: new Date(now - 7 * dayMs), status: 'approved', receiptUrl: '/receipts/techcorp-ads.pdf', submittedById: member1.id, approvedById: adminUser.id, approvedAt: new Date(now - 6 * dayMs), clientId: client1.id, campaignId: campaign1?.id || null, organizationId: orgId },
+    }),
+    db.expense.create({
+      data: { title: 'Team Lunch - Campaign Kickoff', description: 'Team lunch for the FashionHub summer campaign kickoff meeting', amount: 285.50, category: 'Meals', date: new Date(now - 2 * dayMs), status: 'pending', receiptUrl: '/receipts/team-lunch.pdf', submittedById: member2.id, clientId: client2.id, campaignId: campaign2?.id || null, organizationId: orgId },
+    }),
+    db.expense.create({
+      data: { title: 'Stock Music License - Video Production', description: 'Annual stock music license for video content production', amount: 499, category: 'Software', date: new Date(now - 10 * dayMs), status: 'approved', receiptUrl: '/receipts/music-license.pdf', submittedById: member4.id, approvedById: adminUser.id, approvedAt: new Date(now - 9 * dayMs), clientId: null, campaignId: null, organizationId: orgId },
+    }),
+    db.expense.create({
+      data: { title: 'AutoDrive EV - Location Scout Travel', description: 'Travel expenses for EV video shoot location scouting', amount: 750, category: 'Travel', date: new Date(now - 1 * dayMs), status: 'rejected', receiptUrl: '/receipts/travel-ev.pdf', submittedById: member2.id, approvedById: adminUser.id, approvedAt: new Date(now - 0.5 * dayMs), clientId: client4.id, campaignId: null, organizationId: orgId },
+    }),
+  ])
+
+  // ============================================
+  // 7. Products + Warehouses + StockMovements
+  // ============================================
+  const products = await Promise.all([
+    db.product.create({
+      data: { name: 'Vortex Branded T-Shirt', sku: 'VOR-TSH-001', description: 'Company branded cotton t-shirt for events', category: 'Merchandise', unit: 'pcs', unitPrice: 25, costPrice: 12, reorderLevel: 50, tags: 'merch,clothing,branded', isActive: true, organizationId: orgId },
+    }),
+    db.product.create({
+      data: { name: 'Vortex Branded Notebook', sku: 'VOR-NBK-001', description: 'Premium hardcover notebook with Vortex branding', category: 'Merchandise', unit: 'pcs', unitPrice: 15, costPrice: 6, reorderLevel: 100, tags: 'merch,stationery,branded', isActive: true, organizationId: orgId },
+    }),
+    db.product.create({
+      data: { name: 'Vortex Sticker Pack', sku: 'VOR-STK-001', description: 'Pack of 20 branded stickers for events and promotions', category: 'Merchandise', unit: 'pack', unitPrice: 8, costPrice: 2, reorderLevel: 200, tags: 'merch,sticker,promotional', isActive: true, organizationId: orgId },
+    }),
+    db.product.create({
+      data: { name: 'Portable Power Bank', sku: 'VOR-PWR-001', description: '10000mAh power bank for client gifting', category: 'Gifts', unit: 'pcs', unitPrice: 35, costPrice: 18, reorderLevel: 30, tags: 'gift,electronics,client', isActive: true, organizationId: orgId },
+    }),
+    db.product.create({
+      data: { name: 'Vortex Coffee Mug', sku: 'VOR-MUG-001', description: 'Ceramic mug with Vortex logo for office and client gifts', category: 'Merchandise', unit: 'pcs', unitPrice: 12, costPrice: 5, reorderLevel: 80, tags: 'merch,kitchen,branded', isActive: true, organizationId: orgId },
+    }),
+  ])
+
+  const warehouses = await Promise.all([
+    db.warehouse.create({
+      data: { name: 'Main Office Storage', code: 'WH-MAIN', location: '123 Tech Ave, San Francisco, CA - Room B2', isDefault: true, isActive: true, organizationId: orgId },
+    }),
+    db.warehouse.create({
+      data: { name: 'Event Supply Locker', code: 'WH-EVENT', location: '456 Market Blvd, San Jose, CA - Unit 7', isDefault: false, isActive: true, organizationId: orgId },
+    }),
+  ])
+
+  // Create stock levels
+  for (const product of products) {
+    await db.stockLevel.create({
+      data: { productId: product.id, warehouseId: warehouses[0].id, quantity: Math.floor(Math.random() * 100) + 50, reservedQuantity: Math.floor(Math.random() * 10), organizationId: orgId },
+    })
+    await db.stockLevel.create({
+      data: { productId: product.id, warehouseId: warehouses[1].id, quantity: Math.floor(Math.random() * 50) + 20, reservedQuantity: Math.floor(Math.random() * 5), organizationId: orgId },
+    })
+  }
+
+  // Stock movements (5)
+  await Promise.all([
+    db.stockMovement.create({
+      data: { productId: products[0].id, warehouseId: warehouses[0].id, type: 'in', quantity: 100, reference: 'PO-2025-001', notes: 'Initial stock receipt from vendor', organizationId: orgId },
+    }),
+    db.stockMovement.create({
+      data: { productId: products[1].id, warehouseId: warehouses[0].id, type: 'in', quantity: 200, reference: 'PO-2025-002', notes: 'Restock notebooks for Q2 events', organizationId: orgId },
+    }),
+    db.stockMovement.create({
+      data: { productId: products[0].id, warehouseId: warehouses[1].id, type: 'transfer', quantity: 30, reference: 'TR-2025-001', notes: 'Transfer to event locker for TechCorp launch', organizationId: orgId },
+    }),
+    db.stockMovement.create({
+      data: { productId: products[3].id, warehouseId: warehouses[0].id, type: 'out', quantity: 15, reference: 'SO-2025-001', notes: 'Client gift for AutoDrive partnership', organizationId: orgId },
+    }),
+    db.stockMovement.create({
+      data: { productId: products[2].id, warehouseId: warehouses[1].id, type: 'out', quantity: 50, reference: 'SO-2025-002', notes: 'Event giveaway at FashionHub pop-up', organizationId: orgId },
+    }),
+  ])
+
+  // ============================================
+  // 8. Vendors (5)
+  // ============================================
+  const vendors = await Promise.all([
+    db.vendor.create({
+      data: { name: 'PrintMaster Inc.', email: 'orders@printmaster.com', phone: '+1-555-3001', address: '789 Industrial Pkwy, Oakland, CA', category: 'Printing', rating: 4.5, isActive: true, organizationId: orgId },
+    }),
+    db.vendor.create({
+      data: { name: 'MerchWorld Suppliers', email: 'sales@merchworld.com', phone: '+1-555-3002', address: '321 Commerce St, Los Angeles, CA', category: 'Merchandise', rating: 4.2, isActive: true, organizationId: orgId },
+    }),
+    db.vendor.create({
+      data: { name: 'CloudHost Solutions', email: 'support@cloudhost.io', phone: '+1-555-3003', address: '555 Data Center Dr, Seattle, WA', category: 'Technology', rating: 4.8, isActive: true, organizationId: orgId },
+    }),
+    db.vendor.create({
+      data: { name: 'PixelForge Studios', email: 'hello@pixelforge.co', phone: '+1-555-3004', address: '200 Creative Ave, Portland, OR', category: 'Production', rating: 4.0, isActive: true, organizationId: orgId },
+    }),
+    db.vendor.create({
+      data: { name: 'SwiftShip Logistics', email: 'logistics@swiftship.com', phone: '+1-555-3005', address: '888 Logistics Blvd, Reno, NV', category: 'Logistics', rating: 3.8, isActive: true, organizationId: orgId },
+    }),
+  ])
+
+  // ============================================
+  // 9. PurchaseOrders (3)
+  // ============================================
+  const po1 = await db.purchaseOrder.create({
+    data: { number: 'PO-2025-001', vendorId: vendors[1].id, status: 'received', items: JSON.stringify([{ productId: products[0].id, name: products[0].name, quantity: 100, unitPrice: 12, total: 1200 }]), subtotal: 1200, tax: 99, total: 1299, orderDate: new Date(now - 15 * dayMs), expectedDate: new Date(now - 8 * dayMs), notes: 'Branded t-shirts for Q2 events', organizationId: orgId },
+  })
+  await db.purchaseOrderItem.create({
+    data: { purchaseOrderId: po1.id, productId: products[0].id, quantity: 100, unitPrice: 12, total: 1200 },
+  })
+
+  const po2 = await db.purchaseOrder.create({
+    data: { number: 'PO-2025-002', vendorId: vendors[1].id, status: 'ordered', items: JSON.stringify([{ productId: products[1].id, name: products[1].name, quantity: 200, unitPrice: 6, total: 1200 }]), subtotal: 1200, tax: 99, total: 1299, orderDate: new Date(now - 3 * dayMs), expectedDate: new Date(now + 5 * dayMs), notes: 'Notebook restock for Q2', organizationId: orgId },
+  })
+  await db.purchaseOrderItem.create({
+    data: { purchaseOrderId: po2.id, productId: products[1].id, quantity: 200, unitPrice: 6, total: 1200 },
+  })
+
+  const po3 = await db.purchaseOrder.create({
+    data: { number: 'PO-2025-003', vendorId: vendors[0].id, status: 'draft', items: JSON.stringify([{ productId: products[4].id, name: products[4].name, quantity: 150, unitPrice: 5, total: 750 }]), subtotal: 750, tax: 61.88, total: 811.88, orderDate: new Date(now), expectedDate: null, notes: 'Coffee mugs for new office', organizationId: orgId },
+  })
+  await db.purchaseOrderItem.create({
+    data: { purchaseOrderId: po3.id, productId: products[4].id, quantity: 150, unitPrice: 5, total: 750 },
+  })
+
+  // ============================================
+  // 10. ITAssets + AssetIssuances
+  // ============================================
+  const itAssets = await Promise.all([
+    db.iTAsset.create({
+      data: { assetTag: 'IT-LAP-001', name: 'MacBook Pro 14" M3', category: 'laptop', brand: 'Apple', model: 'MacBook Pro 14 M3', serialNumber: 'APL-MBP14-00123', specifications: JSON.stringify({ ram: '18GB', storage: '512GB SSD', cpu: 'Apple M3', screen: '14 inch Liquid Retina XDR', color: 'Space Black' }), purchaseDate: new Date('2024-06-15'), purchaseCost: 1999, warrantyExpiry: new Date('2027-06-15'), vendor: 'Apple Store', invoiceNumber: 'INV-APL-2024-001', condition: 'good', status: 'issued', assignedToId: adminUser.id, location: 'Office A', notes: 'Primary work laptop for CEO', organizationId: orgId },
+    }),
+    db.iTAsset.create({
+      data: { assetTag: 'IT-LAP-002', name: 'MacBook Pro 16" M3 Pro', category: 'laptop', brand: 'Apple', model: 'MacBook Pro 16 M3 Pro', serialNumber: 'APL-MBP16-00456', specifications: JSON.stringify({ ram: '36GB', storage: '1TB SSD', cpu: 'Apple M3 Pro', screen: '16 inch Liquid Retina XDR', color: 'Space Black' }), purchaseDate: new Date('2024-08-01'), purchaseCost: 2799, warrantyExpiry: new Date('2027-08-01'), vendor: 'Apple Store', invoiceNumber: 'INV-APL-2024-002', condition: 'good', status: 'issued', assignedToId: member1.id, location: 'Office A', notes: 'Design team lead laptop', organizationId: orgId },
+    }),
+    db.iTAsset.create({
+      data: { assetTag: 'IT-MON-001', name: 'Dell UltraSharp 27" 4K Monitor', category: 'monitor', brand: 'Dell', model: 'U2723QE', serialNumber: 'DLL-U27-00789', specifications: JSON.stringify({ resolution: '3840x2160', panel: 'IPS Black', ports: 'USB-C, HDMI, DP', size: '27 inch' }), purchaseDate: new Date('2024-07-10'), purchaseCost: 619, warrantyExpiry: new Date('2027-07-10'), vendor: 'Dell Direct', invoiceNumber: 'INV-DLL-2024-003', condition: 'good', status: 'issued', assignedToId: member1.id, location: 'Office A', notes: 'External monitor for design work', organizationId: orgId },
+    }),
+    db.iTAsset.create({
+      data: { assetTag: 'IT-KEY-001', name: 'Logitech MX Keys S', category: 'keyboard', brand: 'Logitech', model: 'MX Keys S', serialNumber: 'LOG-MXK-01012', specifications: JSON.stringify({ layout: 'US QWERTY', connection: 'Bluetooth + USB', backlight: 'Smart illumination' }), purchaseDate: new Date('2024-09-01'), purchaseCost: 109, warrantyExpiry: new Date('2026-09-01'), vendor: 'Amazon', invoiceNumber: 'INV-AMZ-2024-010', condition: 'new', status: 'available', location: 'Store Room', notes: 'Spare keyboard in storage', organizationId: orgId },
+    }),
+    db.iTAsset.create({
+      data: { assetTag: 'IT-MSE-001', name: 'Logitech MX Master 3S', category: 'mouse', brand: 'Logitech', model: 'MX Master 3S', serialNumber: 'LOG-MXM-01345', specifications: JSON.stringify({ dpi: 8000, connection: 'Bluetooth + USB', features: 'MagSpeed scroll, USB-C charging' }), purchaseDate: new Date('2024-09-01'), purchaseCost: 99, warrantyExpiry: new Date('2026-09-01'), vendor: 'Amazon', invoiceNumber: 'INV-AMZ-2024-011', condition: 'good', status: 'issued', assignedToId: member2.id, location: 'Remote', notes: 'Wireless mouse for content lead', organizationId: orgId },
+    }),
+    db.iTAsset.create({
+      data: { assetTag: 'IT-HDP-001', name: 'Sony WH-1000XM5', category: 'headphone', brand: 'Sony', model: 'WH-1000XM5', serialNumber: 'SNY-WH5-01567', specifications: JSON.stringify({ type: 'Over-ear', features: 'ANC, 30hr battery, multipoint', color: 'Black' }), purchaseDate: new Date('2024-10-15'), purchaseCost: 349, warrantyExpiry: new Date('2026-10-15'), vendor: 'Best Buy', invoiceNumber: 'INV-BBY-2024-005', condition: 'good', status: 'available', location: 'Store Room', notes: 'Available for checkout - noise cancelling headphones', organizationId: orgId },
+    }),
+  ])
+
+  // Asset Issuances (3)
+  await Promise.all([
+    db.assetIssuance.create({
+      data: { assetId: itAssets[0].id, issuedToId: adminUser.id, issuedById: adminUser.id, issueDate: new Date('2024-06-16'), expectedReturnDate: null, actualReturnDate: null, returnCondition: null, issueCondition: 'new', purpose: 'Daily work - primary laptop', notes: 'Issued on hire date', status: 'issued', organizationId: orgId },
+    }),
+    db.assetIssuance.create({
+      data: { assetId: itAssets[1].id, issuedToId: member1.id, issuedById: adminUser.id, issueDate: new Date('2024-08-02'), expectedReturnDate: null, actualReturnDate: null, returnCondition: null, issueCondition: 'new', purpose: 'Design team lead - high performance laptop', notes: 'Upgraded from previous model', status: 'issued', organizationId: orgId },
+    }),
+    db.assetIssuance.create({
+      data: { assetId: itAssets[2].id, issuedToId: member1.id, issuedById: adminUser.id, issueDate: new Date('2024-07-11'), expectedReturnDate: null, actualReturnDate: null, returnCondition: null, issueCondition: 'new', purpose: 'External monitor for design work', notes: 'Paired with IT-LAP-002', status: 'issued', organizationId: orgId },
+    }),
+  ])
+
+  // ============================================
+  // 11. Notifications (5)
+  // ============================================
+  await Promise.all([
+    db.notification.create({
+      data: { title: 'New Approval Request', message: 'Marcus Williams requested approval for "TechCorp CEO Spotlight Interview"', type: 'approval', category: 'approval', isRead: false, actionUrl: '/approvals', userId: adminUser.id, organizationId: orgId },
+    }),
+    db.notification.create({
+      data: { title: 'Invoice Overdue', message: 'Invoice INV-2025-004 for AutoDrive is overdue by 10 days', type: 'warning', category: 'invoice', isRead: false, actionUrl: '/invoices', userId: adminUser.id, organizationId: orgId },
+    }),
+    db.notification.create({
+      data: { title: 'Content Published', message: 'Your post "TechCorp Feature Launch Thread" was published on Twitter', type: 'success', category: 'post', isRead: true, actionUrl: '/content', userId: member2.id, organizationId: orgId },
+    }),
+    db.notification.create({
+      data: { title: 'New Comment on Content', message: 'Sarah Chen commented on "FashionHub Summer Sale Announcement"', type: 'mention', category: 'content', isRead: false, actionUrl: '/content', userId: member3.id, organizationId: orgId },
+    }),
+    db.notification.create({
+      data: { title: 'System Update', message: 'VortexERP v2.5 has been deployed with new features. Check the changelog for details.', type: 'info', category: 'system', isRead: true, actionUrl: null, userId: adminUser.id, organizationId: orgId },
+    }),
+  ])
+
+  console.log('Seed missing modules completed successfully')
 }

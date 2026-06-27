@@ -1,0 +1,615 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo, useCallback } from "react"
+     4→import { useERPStore, type Vendor, type PurchaseOrder } from "@/lib/store"
+     5→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+     6→import { Button } from "@/components/ui/button"
+     7→import { Input } from "@/components/ui/input"
+     8→import { Badge } from "@/components/ui/badge"
+     9→import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+    10→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+    11→import { Label } from "@/components/ui/label"
+    12→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+    13→import { Textarea } from "@/components/ui/textarea"
+    14→import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+    15→import { ScrollArea } from "@/components/ui/scroll-area"
+    16→import { Separator } from "@/components/ui/separator"
+    17→import {
+    18→  Store, Search, Plus, Star, Phone, Mail, MapPin,
+    19→  ChevronRight, Pencil, Trash2, ShoppingCart, DollarSign,
+    20→  UserCheck, TrendingUp, Building2, AlertCircle
+    21→} from "lucide-react"
+    22→import { motion, AnimatePresence } from "framer-motion"
+    23→
+    24→const VENDOR_CATEGORIES = ["All", "Office Supplies", "Electronics", "Printing", "Software"]
+    25→
+    26→function StarRating({ rating, size = "sm" }: { rating: number; size?: "sm" | "md" }) {
+    27→  const starSize = size === "sm" ? "h-3 w-3" : "h-4 w-4"
+    28→  return (
+    29→    <div className="flex items-center gap-0.5">
+    30→      {[1, 2, 3, 4, 5].map(star => (
+    31→        <Star
+    32→          key={star}
+    33→          className={`${starSize} ${star <= Math.round(rating) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`}
+    34→        />
+    35→      ))}
+    36→      <span className="text-xs text-muted-foreground ml-1">{rating.toFixed(1)}</span>
+    37→    </div>
+    38→  )
+    39→}
+    40→
+    41→function CategoryBadge({ category }: { category: string | null }) {
+    42→  if (!category) return null
+    43→  const config: Record<string, string> = {
+    44→    "Office Supplies": "bg-emerald-50 text-emerald-700 border-emerald-200",
+    45→    "Electronics": "bg-teal-50 text-teal-700 border-teal-200",
+    46→    "Printing": "bg-amber-50 text-amber-700 border-amber-200",
+    47→    "Software": "bg-purple-50 text-purple-700 border-purple-200",
+    48→  }
+    49→  const cls = config[category] || "bg-slate-50 text-slate-700 border-slate-200"
+    50→  return <Badge variant="outline" className={`text-[10px] ${cls}`}>{category}</Badge>
+    51→}
+    52→
+    53→export function VendorsView() {
+    54→  const { vendors, purchaseOrders } = useERPStore()
+    55→  const [search, setSearch] = useState("")
+    56→  const [categoryFilter, setCategoryFilter] = useState("All")
+    57→  const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null)
+    58→  const [showAddVendor, setShowAddVendor] = useState(false)
+    59→  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null)
+    60→  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+    61→
+    62→  // Computed KPIs
+    63→  const totalVendors = vendors.length
+    64→  const activeVendors = vendors.filter(v => v.isActive).length
+    65→  const totalPOValue = vendors.reduce((sum, v) => {
+    66→    const vendorPOs = purchaseOrders.filter(po => po.vendorId === v.id)
+    67→    return sum + vendorPOs.reduce((s, po) => s + po.total, 0)
+    68→  }, 0)
+    69→  const avgRating = vendors.length > 0
+    70→    ? vendors.reduce((sum, v) => sum + v.rating, 0) / vendors.length
+    71→    : 0
+    72→
+    73→  // Filtered vendors
+    74→  const filteredVendors = useMemo(() => {
+    75→    let result = vendors
+    76→    if (categoryFilter !== "All") {
+    77→      result = result.filter(v => v.category === categoryFilter)
+    78→    }
+    79→    if (search.trim()) {
+    80→      const q = search.toLowerCase()
+    81→      result = result.filter(v =>
+    82→        v.name.toLowerCase().includes(q) ||
+    83→        v.email?.toLowerCase().includes(q)
+    84→      )
+    85→    }
+    86→    return result
+    87→  }, [vendors, categoryFilter, search])
+    88→
+    89→  // Vendor POs
+    90→  const vendorPOs = useMemo(() => {
+    91→    if (!selectedVendor) return []
+    92→    return purchaseOrders
+    93→      .filter(po => po.vendorId === selectedVendor.id)
+    94→      .sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())
+    95→  }, [selectedVendor, purchaseOrders])
+    96→
+    97→  const vendorTotalSpend = vendorPOs.reduce((sum, po) => sum + po.total, 0)
+    98→
+    99→  const handleAddVendor = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+   100→    e.preventDefault()
+   101→    const form = e.currentTarget
+   102→    const formData = new FormData(form)
+   103→    const body = {
+   104→      name: formData.get("name") as string,
+   105→      email: formData.get("email") as string || null,
+   106→      phone: formData.get("phone") as string || null,
+   107→      address: formData.get("address") as string || null,
+   108→      category: formData.get("category") as string || null,
+   109→    }
+   110→    try {
+   111→      const res = await fetch("/api/vendors", {
+   112→        method: "POST",
+   113→        headers: { "Content-Type": "application/json" },
+   114→        body: JSON.stringify(body),
+   115→      })
+   116→      if (res.ok) {
+   117→        const vRes = await fetch("/api/vendors")
+   118→        const vData = await vRes.json()
+   119→        const vArr = vData.data || (Array.isArray(vData) ? vData : [])
+   120→        useERPStore.getState().setVendors(vArr)
+   121→        setShowAddVendor(false)
+   122→      }
+   123→    } catch {
+   124→      // handle error silently
+   125→    }
+   126→  }, [])
+   127→
+   128→  const handleEditVendor = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
+   129→    e.preventDefault()
+   130→    if (!editingVendor) return
+   131→    const form = e.currentTarget
+   132→    const formData = new FormData(form)
+   133→    const body = {
+   134→      name: formData.get("name") as string,
+   135→      email: formData.get("email") as string || null,
+   136→      phone: formData.get("phone") as string || null,
+   137→      address: formData.get("address") as string || null,
+   138→      category: formData.get("category") as string || null,
+   139→    }
+   140→    try {
+   141→      const res = await fetch(`/api/vendors/${editingVendor.id}`, {
+   142→        method: "PUT",
+   143→        headers: { "Content-Type": "application/json" },
+   144→        body: JSON.stringify(body),
+   145→      })
+   146→      if (res.ok) {
+   147→        const vRes = await fetch("/api/vendors")
+   148→        const vData = await vRes.json()
+   149→        const vArr = vData.data || (Array.isArray(vData) ? vData : [])
+   150→        useERPStore.getState().setVendors(vArr)
+   151→        setEditingVendor(null)
+   152→        // Update detail if same vendor
+   153→        if (selectedVendor?.id === editingVendor.id) {
+   154→          const updated = vArr.find((v: Vendor) => v.id === editingVendor.id)
+   155→          if (updated) setSelectedVendor(updated)
+   156→        }
+   157→      }
+   158→    } catch {
+   159→      // handle error silently
+   160→    }
+   161→  }, [editingVendor, selectedVendor])
+   162→
+   163→  const handleDeleteVendor = useCallback(async (vendorId: string) => {
+   164→    try {
+   165→      const res = await fetch(`/api/vendors/${vendorId}`, {
+   166→        method: "PUT",
+   167→        headers: { "Content-Type": "application/json" },
+   168→        body: JSON.stringify({ isActive: false }),
+   169→      })
+   170→      if (res.ok) {
+   171→        const vRes = await fetch("/api/vendors")
+   172→        const vData = await vRes.json()
+   173→        const vArr = vData.data || (Array.isArray(vData) ? vData : [])
+   174→        useERPStore.getState().setVendors(vArr)
+   175→        setDeleteConfirm(null)
+   176→        if (selectedVendor?.id === vendorId) setSelectedVendor(null)
+   177→      }
+   178→    } catch {
+   179→      // handle error silently
+   180→    }
+   181→  }, [selectedVendor])
+   182→
+   183→  return (
+   184→    <div className="p-4 md:p-6 space-y-6">
+   185→      {/* Header */}
+   186→      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+   187→        <div>
+   188→          <h1 className="text-2xl font-bold tracking-tight">Vendors</h1>
+   189→          <p className="text-muted-foreground text-sm">Manage suppliers and vendor relationships</p>
+   190→        </div>
+   191→        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowAddVendor(true)}>
+   192→          <Plus className="h-4 w-4 mr-1.5" />
+   193→          Add Vendor
+   194→        </Button>
+   195→      </div>
+   196→
+   197→      {/* KPI Cards */}
+   198→      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+   199→        {[
+   200→          { label: "Total Vendors", value: totalVendors, icon: Store, color: "text-emerald-600", bg: "bg-emerald-50" },
+   201→          { label: "Active", value: activeVendors, icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50" },
+   202→          { label: "Total PO Value", value: `$${totalPOValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+   203→          { label: "Avg. Rating", value: avgRating.toFixed(1), icon: Star, color: "text-amber-600", bg: "bg-amber-50" },
+   204→        ].map((kpi) => (
+   205→          <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+   206→            <Card>
+   207→              <CardContent className="p-4">
+   208→                <div className="flex items-center justify-between">
+   209→                  <div>
+   210→                    <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
+   211→                    <p className="text-2xl font-bold mt-1">{kpi.value}</p>
+   212→                  </div>
+   213→                  <div className={`h-10 w-10 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+   214→                    <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
+   215→                  </div>
+   216→                </div>
+   217→              </CardContent>
+   218→            </Card>
+   219→          </motion.div>
+   220→        ))}
+   221→      </div>
+   222→
+   223→      {/* Filters */}
+   224→      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+   225→        <Tabs value={categoryFilter} onValueChange={setCategoryFilter}>
+   226→          <TabsList className="h-9">
+   227→            {VENDOR_CATEGORIES.map(cat => (
+   228→              <TabsTrigger key={cat} value={cat} className="text-xs px-3">{cat}</TabsTrigger>
+   229→            ))}
+   230→          </TabsList>
+   231→        </Tabs>
+   232→        <div className="relative ml-auto">
+   233→          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   234→          <Input
+   235→            placeholder="Search vendors..."
+   236→            value={search}
+   237→            onChange={e => setSearch(e.target.value)}
+   238→            className="pl-8 h-9 w-56"
+   239→          />
+   240→        </div>
+   241→      </div>
+   242→
+   243→      {/* Vendor Grid */}
+   244→      {filteredVendors.length === 0 ? (
+   245→        <Card>
+   246→          <CardContent className="py-16 flex flex-col items-center gap-3">
+   247→            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+   248→              <AlertCircle className="h-6 w-6 text-muted-foreground" />
+   249→            </div>
+   250→            <p className="text-muted-foreground font-medium">No vendors found</p>
+   251→            <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
+   252→          </CardContent>
+   253→        </Card>
+   254→      ) : (
+   255→        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+   256→          <AnimatePresence mode="popLayout">
+   257→            {filteredVendors.map((vendor, idx) => (
+   258→              <VendorCard
+   259→                key={vendor.id}
+   260→                vendor={vendor}
+   261→                poCount={purchaseOrders.filter(po => po.vendorId === vendor.id).length}
+   262→                onClick={() => setSelectedVendor(vendor)}
+   263→                onEdit={() => setEditingVendor(vendor)}
+   264→                onDelete={() => setDeleteConfirm(vendor.id)}
+   265→                index={idx}
+   266→              />
+   267→            ))}
+   268→          </AnimatePresence>
+   269→        </div>
+   270→      )}
+   271→
+   272→      {/* Vendor Detail Sheet */}
+   273→      <Sheet open={!!selectedVendor} onOpenChange={(open) => !open && setSelectedVendor(null)}>
+   274→        <SheetContent className="w-full sm:max-w-lg">
+   275→          {selectedVendor && (
+   276→            <>
+   277→              <SheetHeader>
+   278→                <SheetTitle className="text-lg flex items-center gap-2">
+   279→                  {selectedVendor.name}
+   280→                  {!selectedVendor.isActive && (
+   281→                    <Badge variant="outline" className="text-[10px] text-red-600 border-red-200">Inactive</Badge>
+   282→                  )}
+   283→                </SheetTitle>
+   284→              </SheetHeader>
+   285→              <ScrollArea className="h-[calc(100vh-100px)] mt-4">
+   286→                <div className="space-y-6 pr-4">
+   287→                  {/* Basic Info */}
+   288→                  <div className="space-y-3">
+   289→                    <div className="flex items-center gap-2">
+   290→                      <CategoryBadge category={selectedVendor.category} />
+   291→                      <StarRating rating={selectedVendor.rating} size="md" />
+   292→                    </div>
+   293→
+   294→                    <div className="space-y-2">
+   295→                      {selectedVendor.email && (
+   296→                        <div className="flex items-center gap-2 text-sm">
+   297→                          <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+   298→                          <a href={`mailto:${selectedVendor.email}`} className="text-emerald-700 hover:underline">
+   299→                            {selectedVendor.email}
+   300→                          </a>
+   301→                        </div>
+   302→                      )}
+   303→                      {selectedVendor.phone && (
+   304→                        <div className="flex items-center gap-2 text-sm">
+   305→                          <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+   306→                          <span>{selectedVendor.phone}</span>
+   307→                        </div>
+   308→                      )}
+   309→                      {selectedVendor.address && (
+   310→                        <div className="flex items-start gap-2 text-sm">
+   311→                          <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+   312→                          <span>{selectedVendor.address}</span>
+   313→                        </div>
+   314→                      )}
+   315→                    </div>
+   316→                  </div>
+   317→
+   318→                  <Separator />
+   319→
+   320→                  {/* Stats */}
+   321→                  <div className="grid grid-cols-2 gap-3">
+   322→                    <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+   323→                      <p className="text-xs text-emerald-700 font-medium">Total Spend</p>
+   324→                      <p className="text-lg font-bold text-emerald-800">${vendorTotalSpend.toLocaleString()}</p>
+   325→                    </div>
+   326→                    <div className="bg-teal-50 rounded-lg p-3 border border-teal-200">
+   327→                      <p className="text-xs text-teal-700 font-medium">Purchase Orders</p>
+   328→                      <p className="text-lg font-bold text-teal-800">{vendorPOs.length}</p>
+   329→                    </div>
+   330→                  </div>
+   331→
+   332→                  <Separator />
+   333→
+   334→                  {/* Recent POs */}
+   335→                  <div>
+   336→                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+   337→                      <ShoppingCart className="h-4 w-4 text-emerald-600" />
+   338→                      Recent Purchase Orders
+   339→                    </h3>
+   340→                    {vendorPOs.length > 0 ? (
+   341→                      <div className="space-y-2">
+   342→                        {vendorPOs.slice(0, 8).map(po => (
+   343→                          <div key={po.id} className="flex items-center justify-between p-2.5 rounded-lg border bg-card">
+   344→                            <div>
+   345→                              <p className="text-sm font-medium">{po.number}</p>
+   346→                              <p className="text-xs text-muted-foreground">
+   347→                                {new Date(po.orderDate).toLocaleDateString()} · {po.poItems?.length || 0} items
+   348→                              </p>
+   349→                            </div>
+   350→                            <div className="text-right">
+   351→                              <p className="text-sm font-semibold">${po.total.toLocaleString()}</p>
+   352→                              <Badge
+   353→                                variant="outline"
+   354→                                className={`text-[10px] ${
+   355→                                  po.status === "received" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+   356→                                  po.status === "sent" ? "bg-amber-50 text-amber-700 border-amber-200" :
+   357→                                  po.status === "cancelled" ? "bg-red-50 text-red-600 border-red-200" :
+   358→                                  "bg-slate-50 text-slate-700 border-slate-200"
+   359→                                }`}
+   360→                              >
+   361→                                {po.status}
+   362→                              </Badge>
+   363→                            </div>
+   364→                          </div>
+   365→                        ))}
+   366→                      </div>
+   367→                    ) : (
+   368→                      <p className="text-sm text-muted-foreground">No purchase orders yet</p>
+   369→                    )}
+   370→                  </div>
+   371→
+   372→                  {/* Actions */}
+   373→                  <div className="flex items-center gap-2 pt-2">
+   374→                    <Button
+   375→                      variant="outline"
+   376→                      size="sm"
+   377→                      onClick={() => {
+   378→                        setEditingVendor(selectedVendor)
+   379→                        setSelectedVendor(null)
+   380→                      }}
+   381→                    >
+   382→                      <Pencil className="h-3.5 w-3.5 mr-1" />
+   383→                      Edit
+   384→                    </Button>
+   385→                    <Button
+   386→                      variant="outline"
+   387→                      size="sm"
+   388→                      className="text-red-600 border-red-200 hover:bg-red-50"
+   389→                      onClick={() => {
+   390→                        setDeleteConfirm(selectedVendor.id)
+   391→                        setSelectedVendor(null)
+   392→                      }}
+   393→                    >
+   394→                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+   395→                      Deactivate
+   396→                    </Button>
+   397→                  </div>
+   398→                </div>
+   399→              </ScrollArea>
+   400→            </>
+   401→          )}
+   402→        </SheetContent>
+   403→      </Sheet>
+   404→
+   405→      {/* Add Vendor Dialog */}
+   406→      <Dialog open={showAddVendor} onOpenChange={setShowAddVendor}>
+   407→        <DialogContent className="sm:max-w-md">
+   408→          <DialogHeader>
+   409→            <DialogTitle>Add New Vendor</DialogTitle>
+   410→          </DialogHeader>
+   411→          <form onSubmit={handleAddVendor} className="space-y-4">
+   412→            <div className="space-y-2">
+   413→              <Label htmlFor="add-name">Vendor Name</Label>
+   414→              <Input id="add-name" name="name" required placeholder="e.g. Office Depot" />
+   415→            </div>
+   416→            <div className="grid grid-cols-2 gap-3">
+   417→              <div className="space-y-2">
+   418→                <Label htmlFor="add-email">Email</Label>
+   419→                <Input id="add-email" name="email" type="email" placeholder="vendor@example.com" />
+   420→              </div>
+   421→              <div className="space-y-2">
+   422→                <Label htmlFor="add-phone">Phone</Label>
+   423→                <Input id="add-phone" name="phone" placeholder="+1 555-0100" />
+   424→              </div>
+   425→            </div>
+   426→            <div className="space-y-2">
+   427→              <Label htmlFor="add-address">Address</Label>
+   428→              <Textarea id="add-address" name="address" placeholder="Full address..." rows={2} />
+   429→            </div>
+   430→            <div className="space-y-2">
+   431→              <Label htmlFor="add-category">Category</Label>
+   432→              <Select name="category" defaultValue="Office Supplies">
+   433→                <SelectTrigger><SelectValue /></SelectTrigger>
+   434→                <SelectContent>
+   435→                  {VENDOR_CATEGORIES.filter(c => c !== "All").map(c => (
+   436→                    <SelectItem key={c} value={c}>{c}</SelectItem>
+   437→                  ))}
+   438→                </SelectContent>
+   439→              </Select>
+   440→            </div>
+   441→            <DialogFooter>
+   442→              <Button type="button" variant="outline" onClick={() => setShowAddVendor(false)}>Cancel</Button>
+   443→              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+   444→                <Plus className="h-4 w-4 mr-1" />
+   445→                Add Vendor
+   446→              </Button>
+   447→            </DialogFooter>
+   448→          </form>
+   449→        </DialogContent>
+   450→      </Dialog>
+   451→
+   452→      {/* Edit Vendor Dialog */}
+   453→      <Dialog open={!!editingVendor} onOpenChange={(open) => !open && setEditingVendor(null)}>
+   454→        <DialogContent className="sm:max-w-md">
+   455→          <DialogHeader>
+   456→            <DialogTitle>Edit Vendor</DialogTitle>
+   457→          </DialogHeader>
+   458→          {editingVendor && (
+   459→            <form onSubmit={handleEditVendor} className="space-y-4">
+   460→              <div className="space-y-2">
+   461→                <Label htmlFor="edit-name">Vendor Name</Label>
+   462→                <Input id="edit-name" name="name" required defaultValue={editingVendor.name} />
+   463→              </div>
+   464→              <div className="grid grid-cols-2 gap-3">
+   465→                <div className="space-y-2">
+   466→                  <Label htmlFor="edit-email">Email</Label>
+   467→                  <Input id="edit-email" name="email" type="email" defaultValue={editingVendor.email || ""} />
+   468→                </div>
+   469→                <div className="space-y-2">
+   470→                  <Label htmlFor="edit-phone">Phone</Label>
+   471→                  <Input id="edit-phone" name="phone" defaultValue={editingVendor.phone || ""} />
+   472→                </div>
+   473→              </div>
+   474→              <div className="space-y-2">
+   475→                <Label htmlFor="edit-address">Address</Label>
+   476→                <Textarea id="edit-address" name="address" defaultValue={editingVendor.address || ""} rows={2} />
+   477→              </div>
+   478→              <div className="space-y-2">
+   479→                <Label htmlFor="edit-category">Category</Label>
+   480→                <Select name="category" defaultValue={editingVendor.category || "Office Supplies"}>
+   481→                  <SelectTrigger><SelectValue /></SelectTrigger>
+   482→                  <SelectContent>
+   483→                    {VENDOR_CATEGORIES.filter(c => c !== "All").map(c => (
+   484→                      <SelectItem key={c} value={c}>{c}</SelectItem>
+   485→                    ))}
+   486→                  </SelectContent>
+   487→                </Select>
+   488→              </div>
+   489→              <DialogFooter>
+   490→                <Button type="button" variant="outline" onClick={() => setEditingVendor(null)}>Cancel</Button>
+   491→                <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+   492→                  <Pencil className="h-4 w-4 mr-1" />
+   493→                  Save Changes
+   494→                </Button>
+   495→              </DialogFooter>
+   496→            </form>
+   497→          )}
+   498→        </DialogContent>
+   499→      </Dialog>
+   500→
+   501→      {/* Delete Confirmation Dialog */}
+   502→      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+   503→        <DialogContent className="sm:max-w-sm">
+   504→          <DialogHeader>
+   505→            <DialogTitle>Deactivate Vendor</DialogTitle>
+   506→          </DialogHeader>
+   507→          <p className="text-sm text-muted-foreground">
+   508→            Are you sure you want to deactivate this vendor? They will be marked as inactive but their data will be preserved.
+   509→          </p>
+   510→          <DialogFooter>
+   511→            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+   512→            <Button
+   513→              variant="destructive"
+   514→              onClick={() => deleteConfirm && handleDeleteVendor(deleteConfirm)}
+   515→            >
+   516→              <Trash2 className="h-4 w-4 mr-1" />
+   517→              Deactivate
+   518→            </Button>
+   519→          </DialogFooter>
+   520→        </DialogContent>
+   521→      </Dialog>
+   522→    </div>
+   523→  )
+   524→}
+   525→
+   526→/* Sub-components */
+   527→
+   528→function VendorCard({
+   529→  vendor,
+   530→  poCount,
+   531→  onClick,
+   532→  onEdit,
+   533→  onDelete,
+   534→  index,
+   535→}: {
+   536→  vendor: Vendor
+   537→  poCount: number
+   538→  onClick: () => void
+   539→  onEdit: () => void
+   540→  onDelete: () => void
+   541→  index: number
+   542→}) {
+   543→  return (
+   544→    <motion.div
+   545→      initial={{ opacity: 0, y: 12 }}
+   546→      animate={{ opacity: 1, y: 0 }}
+   547→      exit={{ opacity: 0, scale: 0.95 }}
+   548→      transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.3) }}
+   549→    >
+   550→      <Card
+   551→        className="cursor-pointer hover:shadow-md transition-all hover:border-emerald-200 group"
+   552→        onClick={onClick}
+   553→      >
+   554→        <CardContent className="p-4 space-y-3">
+   555→          {/* Header */}
+   556→          <div className="flex items-start justify-between">
+   557→            <div className="flex items-start gap-3 min-w-0 flex-1">
+   558→              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+   559→                {vendor.name.substring(0, 2).toUpperCase()}
+   560→              </div>
+   561→              <div className="min-w-0">
+   562→                <p className="font-semibold text-sm truncate group-hover:text-emerald-700 transition-colors">
+   563→                  {vendor.name}
+   564→                </p>
+   565→                <div className="flex items-center gap-1.5 mt-0.5">
+   566→                  <CategoryBadge category={vendor.category} />
+   567→                  {!vendor.isActive && (
+   568→                    <Badge variant="outline" className="text-[10px] text-red-600 border-red-200">Inactive</Badge>
+   569→                  )}
+   570→                </div>
+   571→              </div>
+   572→            </div>
+   573→            <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1 shrink-0" />
+   574→          </div>
+   575→
+   576→          {/* Contact */}
+   577→          <div className="space-y-1">
+   578→            {vendor.email && (
+   579→              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   580→                <Mail className="h-3 w-3 shrink-0" />
+   581→                <span className="truncate">{vendor.email}</span>
+   582→              </div>
+   583→            )}
+   584→            {vendor.phone && (
+   585→              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+   586→                <Phone className="h-3 w-3 shrink-0" />
+   587→                <span>{vendor.phone}</span>
+   588→              </div>
+   589→            )}
+   590→          </div>
+   591→
+   592→          {/* Rating & Stats */}
+   593→          <div className="flex items-center justify-between pt-2 border-t">
+   594→            <StarRating rating={vendor.rating} />
+   595→            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+   596→              <ShoppingCart className="h-3 w-3" />
+   597→              <span>{poCount} order{poCount !== 1 ? "s" : ""}</span>
+   598→            </div>
+   599→          </div>
+   600→
+   601→          {/* Actions (visible on hover) */}
+   602→          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+   603→            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onEdit}>
+   604→              <Pencil className="h-3 w-3 mr-1" /> Edit
+   605→            </Button>
+   606→            <Button variant="ghost" size="sm" className="h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50" onClick={onDelete}>
+   607→              <Trash2 className="h-3 w-3 mr-1" /> Remove
+   608→            </Button>
+   609→          </div>
+   610→        </CardContent>
+   611→      </Card>
+   612→    </motion.div>
+   613→  )
+   614→}
+   615→

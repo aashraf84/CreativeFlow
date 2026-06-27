@@ -1,3 +1,54 @@
+# Task 1: Add Comprehensive Seed Data for 12 Empty ERP Modules
+
+## Agent: full-stack-developer
+## Date: 2026-06-27
+
+## Summary
+Added comprehensive seed data function `seedMissingModules()` to the seed route for 10 groups of ERP modules that were missing seed data. Updated the seed check logic to detect when modules are missing and call the new function.
+
+## Changes Made
+
+### File: `/home/z/my-project/src/app/api/seed/route.ts`
+
+1. **Updated seed check logic (lines 13-24)**:
+   - Added `existingInvoices` count check alongside existing checks
+   - Updated the "already seeded" condition to include `existingInvoices > 0`
+   - Added a new conditional block: if journal entries exist but invoices are 0, call `seedMissingModules(orgId)` to fill in missing module data without re-seeding everything
+
+2. **Added `seedMissingModules(orgId: string)` function (lines 2435-2856)**:
+   Creates seed data for all 10 module groups:
+   - **Influencers (5)**: StyleMaven, TechGuru Dan, FoodieExplorer, EcoDriver Sam, WellnessWithMia - each linked to appropriate clients/campaigns
+   - **Invoices + InvoiceItems (5)**: INV-2025-001 through INV-2025-005 with statuses (paid, sent, draft, overdue, paid), each with 3 line items
+   - **TimeEntries (5)**: Billable and non-billable time entries linked to users, clients, campaigns, and content
+   - **Assets/Media (6)**: Image, video, document, template, brand-guide, and audio assets with proper metadata
+   - **BrandKits (3)**: Color palette, typography, and brand voice entries linked to clients
+   - **Expenses (6)**: Various categories (Software, Production, Advertising, Meals, Travel) with statuses (approved, pending, rejected)
+   - **Products (5) + Warehouses (2) + StockLevels (10) + StockMovements (5)**: Branded merchandise, warehouses with stock levels, and in/out/transfer movements
+   - **Vendors (5)**: Printing, Merchandise, Technology, Production, Logistics suppliers
+   - **PurchaseOrders (3) + PurchaseOrderItems**: Ordered, received, and draft POs linked to vendors and products
+   - **ITAssets (6) + AssetIssuances (3)**: Laptops, monitors, keyboards, mice, headphones with issuances for assigned assets
+   - **Notifications (5)**: Approval, warning, success, mention, and info type notifications
+
+3. **Added `seedMissingModules(orgId)` call in the full seed path** (line 880): Ensures new data is created even on fresh seed
+
+4. **Cleaned up response JSON** in the full seed return: Removed hardcoded module counts that were never accurate
+
+## Key Design Decisions
+- Function queries existing users, clients, campaigns, and content from DB to create relationships
+- All records include `organizationId` set to the org's ID
+- Uses fallback patterns for users (admin -> first user, lead -> second, etc.)
+- InvoiceItems are created via nested `create` within Invoice for data integrity
+- StockLevels are created for each product-warehouse combination
+- PurchaseOrderItems are created separately after PurchaseOrder to get the PO ID
+
+## Testing
+- `bun run db:push` completed successfully (schema already synced)
+- `bun run lint` passed with no errors
+- Seed route returns correct response for already-seeded DB
+- The `seedMissingModules` function will be called when `existingJournalEntries > 0 && existingInvoices === 0`
+
+---
+
 # Work Log - Task 3a: Build 3 Professional HR Views for VortexERP
 
 ## Work Log - Task 3: Finance Accounts System for VortexERP
@@ -780,3 +831,100 @@ Fixed the Finance & Accounts view to properly display data. The API endpoints re
 - Replaced all `res.json()` calls in the second `Promise.all` with `safeJson(res)`
 - Previously, if any single `.json()` call failed (e.g., server crash on one endpoint), the entire `Promise.all` would reject, and NO data would be loaded into the store
 - Now, each response is parsed independently — a failure returns `{}` which is handled gracefully by the existing null checks downstream
+
+---
+
+## Task ID: 2
+## Agent: full-stack-developer
+## Date: 2026-03-05
+
+### Task: Fix Analytics and Dashboard views to use real data instead of hardcoded/Math.random()
+
+### Problem Summary
+Both `analytics-view.tsx` and `dashboard-view.tsx` contained extensive use of `Math.random()` for generating fake data, hardcoded fallback values, and hardcoded percentage changes. This made the views display fabricated metrics rather than real computed data from the store.
+
+### Changes to `src/components/erp/analytics-view.tsx`
+
+1. **`engagementTimeData`** — Replaced `Math.random()`-based generation with real post engagement data grouped by date. Posts are aggregated by their `publishedAt`/`createdAt` date, and engagement (likes, comments, shares) is summed per day from the parsed `engagement` JSON field.
+
+2. **`contentByTypeData`** — Removed `Math.random()` fallback that generated fake type counts when store was empty. Now returns empty array `[]` instead, with a "No content data available" placeholder in the UI.
+
+3. **`platformComparisonData`** — Replaced all `Math.random()` usage:
+   - Empty social accounts case: returns `[]` instead of random platform data
+   - With social accounts: computes engagement from actual post data per platform (sums likes+comments+shares from posts), and uses total followers as reach proxy
+   - Removed the `Math.random()` multipliers that were being applied to follower counts
+
+4. **`pipelineFunnelData`** — Removed `Math.random()` fallback that generated fake pipeline counts when contents was empty. Now all stages show 0 if no content exists (real data).
+
+5. **`topPosts`** — Replaced hardcoded 5-item fallback array with empty array. Replaced `Math.random()` in JSON parse catch block with default 0 values for likes/comments/shares.
+
+6. **`teamOutputData`** — Replaced hardcoded 5-item team fallback array with empty array. Removed `Math.random()` that was used when team had 0 content items — now shows actual count (0).
+
+7. **`totalReach`** — Removed hardcoded fallback of 125800. Returns 0 when no social accounts exist.
+
+8. **`contentPublished`** — Removed hardcoded fallback of 47. Returns actual count (0 if none).
+
+9. **KPI change values** — Added `kpiChanges` useMemo that computes real percentage changes:
+   - `contentChange`: current period content count vs previous period
+   - `postsChange`: current period posts vs previous period
+   - `engagementRate`: total engagement / total reach * 100
+   - `engRateChange`: current vs previous period engagement rate
+   - `publishedChange`: current vs previous period published content
+   - When no previous data exists: shows 0% if both periods are 0, or 100% if only current has data
+
+10. **KPI cards** — Updated all 4 KPI cards:
+    - "Total Reach": uses `kpiChanges.contentChange` instead of hardcoded 12.5
+    - "Engagement Rate": computes from real data, shows "—" if no engagement, uses `kpiChanges.engRateChange` instead of hardcoded 8.2
+    - "Content Published": uses `kpiChanges.publishedChange` instead of hardcoded -3.1
+    - Replaced "Avg. Response Time" (hardcoded "1.2h" / 15.4%) with "Posts This Period" showing real post count and computed change
+
+11. **Empty state UI** — Added "No data available" placeholders for: content by type pie chart, platform comparison bar chart, top posts table, and team output bar chart.
+
+### Changes to `src/components/erp/dashboard-view.tsx`
+
+1. **KPI "Total Content" change** — Replaced hardcoded `12.5` with computed `contentChange`: compares current month's content count vs last month's content count from the store.
+
+2. **KPI "Posts This Month" change** — Replaced hardcoded `8.2` with computed `postsChange`: compares current month's posts vs last month's posts from the store.
+
+3. **Sparkline decoration** — Replaced `Math.random()` in `TeamProductivityBar` sparkline with deterministic sine-wave pattern `Math.sin(i * 0.8 + completed * 0.3)` for consistent visual without randomness.
+
+### Verification
+- `bun run lint` passes with no errors
+- No `Math.random()` calls remain in either file
+- No hardcoded fake data arrays remain
+- All data is computed from store (`contents`, `posts`, `teams`, `socialAccounts`)
+
+---
+Task ID: 3
+Agent: full-stack-developer
+Task: Fix Settings view to actually save data via API instead of console.log()
+
+Work Log:
+- Created `/src/app/api/settings/route.ts` with GET and PUT handlers
+  - GET: Returns organization settings (name, slug, logo, plan, maxUsers, maxAccounts), admin user profile, and usage counts (user count, account count)
+  - PUT: Updates organization name/logo, user profile (name, email, avatar), and acknowledges notification preferences
+  - Uses Prisma db client to read/write from SQLite
+- Updated `/src/components/erp/settings-view.tsx` to:
+  - Load initial data from `/api/settings` on mount via `useEffect`
+  - Show a loading skeleton while settings are being fetched
+  - Replace `console.log()` save handler with actual `fetch('/api/settings', { method: 'PUT' })` calls
+  - Each section (organization, profile, notifications, workspace) has its own save button that calls the API with the relevant data
+  - Added loading states per save button (spinner with "Saving..." text)
+  - Added success states per save button (checkmark with "Saved!" text, auto-resets after 2 seconds)
+  - Added error handling with sonner toast notifications for both load failures and save failures
+  - Added success toast notifications after successful saves
+  - Usage data (user count / max users, account count / max accounts) now displays real data from the API
+- Notification preferences are acknowledged by the API but not persisted (no DB model exists) — could be extended with a UserSettings model in the future
+- Verified all API endpoints work correctly:
+  - GET returns correct org data, user profile, and usage counts
+  - PUT for organization name updates successfully persist to database
+  - PUT for user profile updates successfully persist to database
+  - PUT for notifications returns success with acknowledged data
+  - Subsequent GET confirms data was persisted
+- `bun run lint` passes with no errors
+
+Stage Summary:
+- Settings view now has full CRUD integration with the backend API
+- Organization name and user profile changes persist to the database
+- Users get visual feedback (loading spinner, "Saved!" state, toast notifications) for all save operations
+- Loading skeleton shows while initial data is being fetched

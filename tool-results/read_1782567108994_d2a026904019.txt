@@ -1,0 +1,716 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo, useCallback } from "react"
+     4→import { useERPStore, type Expense } from "@/lib/store"
+     5→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+     6→import { Button } from "@/components/ui/button"
+     7→import { Badge } from "@/components/ui/badge"
+     8→import { Input } from "@/components/ui/input"
+     9→import { Label } from "@/components/ui/label"
+    10→import { Textarea } from "@/components/ui/textarea"
+    11→import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+    12→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+    13→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+    14→import { ScrollArea } from "@/components/ui/scroll-area"
+    15→import {
+    16→  DropdownMenu,
+    17→  DropdownMenuContent,
+    18→  DropdownMenuItem,
+    19→  DropdownMenuTrigger,
+    20→} from "@/components/ui/dropdown-menu"
+    21→import {
+    22→  ChartContainer,
+    23→  ChartTooltip,
+    24→  ChartTooltipContent,
+    25→  ChartLegend,
+    26→  ChartLegendContent,
+    27→  type ChartConfig,
+    28→} from "@/components/ui/chart"
+    29→import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer } from "recharts"
+    30→import { motion, AnimatePresence } from "framer-motion"
+    31→import {
+    32→  Receipt,
+    33→  DollarSign,
+    34→  Clock,
+    35→  CheckCircle2,
+    36→  XCircle,
+    37→  Plus,
+    38→  Search,
+    39→  Filter,
+    40→  MoreHorizontal,
+    41→  Paperclip,
+    42→  TrendingUp,
+    43→  ChevronDown,
+    44→  Wallet,
+    45→  FileText,
+    46→  ArrowUpRight,
+    47→  ArrowDownRight,
+    48→  Plane,
+    49→  Monitor,
+    50→  ShoppingBag,
+    51→  UtensilsCrossed,
+    52→  Building2,
+    53→  Megaphone,
+    54→} from "lucide-react"
+    55→import { format, parseISO } from "date-fns"
+    56→
+    57→// ── Animation variants ──────────────────────────────────────────────
+    58→const containerVariants = {
+    59→  hidden: { opacity: 0 },
+    60→  visible: {
+    61→    opacity: 1,
+    62→    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+    63→  },
+    64→}
+    65→
+    66→const itemVariants = {
+    67→  hidden: { opacity: 0, y: 12, scale: 0.97 },
+    68→  visible: {
+    69→    opacity: 1,
+    70→    y: 0,
+    71→    scale: 1,
+    72→    transition: { type: "spring", stiffness: 300, damping: 24 },
+    73→  },
+    74→}
+    75→
+    76→// ── Status config ───────────────────────────────────────────────────
+    77→const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
+    78→  pending: { label: "Pending", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", icon: Clock },
+    79→  approved: { label: "Approved", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: CheckCircle2 },
+    80→  rejected: { label: "Rejected", color: "text-red-700", bg: "bg-red-50 border-red-200", icon: XCircle },
+    81→  reimbursed: { label: "Reimbursed", color: "text-teal-700", bg: "bg-teal-50 border-teal-200", icon: Wallet },
+    82→}
+    83→
+    84→// ── Category config ─────────────────────────────────────────────────
+    85→const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
+    86→  travel: { label: "Travel", color: "text-orange-700", bg: "bg-orange-50 border-orange-200", icon: Plane },
+    87→  office: { label: "Office", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: Building2 },
+    88→  software: { label: "Software", color: "text-teal-700", bg: "bg-teal-50 border-teal-200", icon: Monitor },
+    89→  marketing: { label: "Marketing", color: "text-pink-700", bg: "bg-pink-50 border-pink-200", icon: Megaphone },
+    90→  equipment: { label: "Equipment", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", icon: ShoppingBag },
+    91→  food: { label: "Food", color: "text-rose-700", bg: "bg-rose-50 border-rose-200", icon: UtensilsCrossed },
+    92→}
+    93→
+    94→const CATEGORIES = ["All", "Travel", "Office", "Software", "Marketing", "Equipment", "Food"]
+    95→const STATUS_TABS = ["All", "Pending", "Approved", "Rejected", "Reimbursed"]
+    96→
+    97→// ── Chart configs ───────────────────────────────────────────────────
+    98→const barChartConfig: ChartConfig = {
+    99→  amount: { label: "Expenses", color: "#10b981" },
+   100→}
+   101→
+   102→const DONUT_COLORS = ["#10b981", "#14b8a6", "#f59e0b", "#ec4899", "#f97316", "#e11d48"]
+   103→
+   104→const donutChartConfig: ChartConfig = {
+   105→  travel: { label: "Travel", color: "#f97316" },
+   106→  office: { label: "Office", color: "#10b981" },
+   107→  software: { label: "Software", color: "#14b8a6" },
+   108→  marketing: { label: "Marketing", color: "#ec4899" },
+   109→  equipment: { label: "Equipment", color: "#f59e0b" },
+   110→  food: { label: "Food", color: "#e11d48" },
+   111→}
+   112→
+   113→// ── Helpers ─────────────────────────────────────────────────────────
+   114→function formatCurrency(amount: number) {
+   115→  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount)
+   116→}
+   117→
+   118→function getCategoryKey(category: string): string {
+   119→  return category.toLowerCase()
+   120→}
+   121→
+   122→export function ExpensesView() {
+   123→  const { expenses, setExpenses, currentUser } = useERPStore()
+   124→  const [statusFilter, setStatusFilter] = useState("All")
+   125→  const [categoryFilter, setCategoryFilter] = useState("All")
+   126→  const [searchQuery, setSearchQuery] = useState("")
+   127→  const [showSubmitDialog, setShowSubmitDialog] = useState(false)
+   128→  const [submitting, setSubmitting] = useState(false)
+   129→  const [actionLoading, setActionLoading] = useState<string | null>(null)
+   130→
+   131→  // Form state
+   132→  const [formTitle, setFormTitle] = useState("")
+   133→  const [formAmount, setFormAmount] = useState("")
+   134→  const [formCategory, setFormCategory] = useState("")
+   135→  const [formDate, setFormDate] = useState("")
+   136→  const [formDescription, setFormDescription] = useState("")
+   137→  const [formReceiptUrl, setFormReceiptUrl] = useState("")
+   138→
+   139→  // ── KPIs ──────────────────────────────────────────────────────────
+   140→  const kpis = useMemo(() => {
+   141→    const total = expenses.reduce((sum, e) => sum + e.amount, 0)
+   142→    const pending = expenses.filter(e => e.status === "pending")
+   143→    const approved = expenses.filter(e => e.status === "approved")
+   144→    const rejected = expenses.filter(e => e.status === "rejected")
+   145→    return {
+   146→      total,
+   147→      pendingCount: pending.length,
+   148→      pendingAmount: pending.reduce((sum, e) => sum + e.amount, 0),
+   149→      approvedCount: approved.length,
+   150→      rejectedCount: rejected.length,
+   151→    }
+   152→  }, [expenses])
+   153→
+   154→  // ── Monthly expense trend ─────────────────────────────────────────
+   155→  const monthlyTrend = useMemo(() => {
+   156→    const map = new Map<string, number>()
+   157→    expenses.forEach(e => {
+   158→      const month = e.date ? format(new Date(e.date), "MMM yyyy") : "Unknown"
+   159→      map.set(month, (map.get(month) || 0) + e.amount)
+   160→    })
+   161→    return Array.from(map.entries())
+   162→      .map(([month, amount]) => ({ month, amount: Math.round(amount * 100) / 100 }))
+   163→      .slice(0, 12)
+   164→  }, [expenses])
+   165→
+   166→  // ── Category breakdown ────────────────────────────────────────────
+   167→  const categoryBreakdown = useMemo(() => {
+   168→    const map = new Map<string, number>()
+   169→    expenses.forEach(e => {
+   170→      const key = getCategoryKey(e.category)
+   171→      map.set(key, (map.get(key) || 0) + e.amount)
+   172→    })
+   173→    return Array.from(map.entries()).map(([category, value]) => ({
+   174→      category,
+   175→      value: Math.round(value * 100) / 100,
+   176→      label: CATEGORY_CONFIG[category]?.label || category,
+   177→    }))
+   178→  }, [expenses])
+   179→
+   180→  // ── Filtered expenses ─────────────────────────────────────────────
+   181→  const filteredExpenses = useMemo(() => {
+   182→    return expenses.filter(e => {
+   183→      if (statusFilter !== "All" && e.status !== statusFilter.toLowerCase()) return false
+   184→      if (categoryFilter !== "All" && getCategoryKey(e.category) !== categoryFilter.toLowerCase()) return false
+   185→      if (searchQuery && !e.title.toLowerCase().includes(searchQuery.toLowerCase())) return false
+   186→      return true
+   187→    })
+   188→  }, [expenses, statusFilter, categoryFilter, searchQuery])
+   189→
+   190→  // ── Submit expense ────────────────────────────────────────────────
+   191→  const handleSubmit = useCallback(async () => {
+   192→    if (!formTitle || !formAmount || !formCategory) return
+   193→    setSubmitting(true)
+   194→    try {
+   195→      const res = await fetch("/api/expenses", {
+   196→        method: "POST",
+   197→        headers: { "Content-Type": "application/json" },
+   198→        body: JSON.stringify({
+   199→          title: formTitle,
+   200→          amount: parseFloat(formAmount),
+   201→          category: formCategory,
+   202→          date: formDate || new Date().toISOString(),
+   203→          description: formDescription || null,
+   204→          receiptUrl: formReceiptUrl || null,
+   205→          submittedById: currentUser?.id || "user-admin",
+   206→          status: "pending",
+   207→        }),
+   208→      })
+   209→      if (res.ok) {
+   210→        const newExpense = await res.json()
+   211→        setExpenses([newExpense, ...expenses])
+   212→        setShowSubmitDialog(false)
+   213→        resetForm()
+   214→      }
+   215→    } catch (err) {
+   216→      console.error("Failed to submit expense:", err)
+   217→    } finally {
+   218→      setSubmitting(false)
+   219→    }
+   220→  }, [formTitle, formAmount, formCategory, formDate, formDescription, formReceiptUrl, currentUser, expenses, setExpenses])
+   221→
+   222→  // ── Approve/Reject ────────────────────────────────────────────────
+   223→  const handleStatusChange = useCallback(async (id: string, status: "approved" | "rejected") => {
+   224→    setActionLoading(id)
+   225→    try {
+   226→      const res = await fetch(`/api/expenses/${id}`, {
+   227→        method: "PUT",
+   228→        headers: { "Content-Type": "application/json" },
+   229→        body: JSON.stringify({ status, approvedById: currentUser?.id || "user-admin", approvedAt: new Date().toISOString() }),
+   230→      })
+   231→      if (res.ok) {
+   232→        const updated = await res.json()
+   233→        setExpenses(expenses.map(e => e.id === id ? { ...e, ...updated } : e))
+   234→      }
+   235→    } catch (err) {
+   236→      console.error("Failed to update expense:", err)
+   237→    } finally {
+   238→      setActionLoading(null)
+   239→    }
+   240→  }, [currentUser, expenses, setExpenses])
+   241→
+   242→  const resetForm = () => {
+   243→    setFormTitle("")
+   244→    setFormAmount("")
+   245→    setFormCategory("")
+   246→    setFormDate("")
+   247→    setFormDescription("")
+   248→    setFormReceiptUrl("")
+   249→  }
+   250→
+   251→  // ── Render category badge ─────────────────────────────────────────
+   252→  const renderCategoryBadge = (category: string) => {
+   253→    const key = getCategoryKey(category)
+   254→    const config = CATEGORY_CONFIG[key]
+   255→    if (!config) return <Badge variant="outline" className="text-xs">{category}</Badge>
+   256→    const Icon = config.icon
+   257→    return (
+   258→      <Badge variant="outline" className={`gap-1 text-xs ${config.bg} ${config.color} border-current/20`}>
+   259→        <Icon className="h-3 w-3" />
+   260→        {config.label}
+   261→      </Badge>
+   262→    )
+   263→  }
+   264→
+   265→  // ── Render status badge ───────────────────────────────────────────
+   266→  const renderStatusBadge = (status: string) => {
+   267→    const config = STATUS_CONFIG[status]
+   268→    if (!config) return <Badge variant="outline" className="text-xs">{status}</Badge>
+   269→    const Icon = config.icon
+   270→    return (
+   271→      <Badge variant="outline" className={`gap-1 text-xs ${config.bg} ${config.color} border-current/20`}>
+   272→        <Icon className="h-3 w-3" />
+   273→        {config.label}
+   274→      </Badge>
+   275→    )
+   276→  }
+   277→
+   278→  return (
+   279→    <div className="p-4 md:p-6 space-y-6">
+   280→      {/* ── Header ────────────────────────────────────────────────── */}
+   281→      <motion.div
+   282→        initial={{ opacity: 0, y: -10 }}
+   283→        animate={{ opacity: 1, y: 0 }}
+   284→        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+   285→      >
+   286→        <div>
+   287→          <h1 className="text-2xl font-bold tracking-tight">Expense Management</h1>
+   288→          <p className="text-muted-foreground text-sm">Track, submit, and approve company expenses</p>
+   289→        </div>
+   290→        <Button
+   291→          onClick={() => setShowSubmitDialog(true)}
+   292→          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shrink-0"
+   293→        >
+   294→          <Plus className="h-4 w-4" />
+   295→          Submit Expense
+   296→        </Button>
+   297→      </motion.div>
+   298→
+   299→      {/* ── KPI Cards ─────────────────────────────────────────────── */}
+   300→      <motion.div
+   301→        variants={containerVariants}
+   302→        initial="hidden"
+   303→        animate="visible"
+   304→        className="grid gap-4 grid-cols-2 lg:grid-cols-4"
+   305→      >
+   306→        <motion.div variants={itemVariants}>
+   307→          <Card className="border-l-4 border-l-emerald-500">
+   308→            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+   309→              <CardTitle className="text-sm font-medium text-muted-foreground">Total Expenses</CardTitle>
+   310→              <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+   311→                <DollarSign className="h-4 w-4 text-emerald-600" />
+   312→              </div>
+   313→            </CardHeader>
+   314→            <CardContent>
+   315→              <div className="text-2xl font-bold">{formatCurrency(kpis.total)}</div>
+   316→              <p className="text-xs text-muted-foreground mt-1">{expenses.length} expense records</p>
+   317→            </CardContent>
+   318→          </Card>
+   319→        </motion.div>
+   320→
+   321→        <motion.div variants={itemVariants}>
+   322→          <Card className="border-l-4 border-l-amber-500">
+   323→            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+   324→              <CardTitle className="text-sm font-medium text-muted-foreground">Pending Approval</CardTitle>
+   325→              <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center">
+   326→                <Clock className="h-4 w-4 text-amber-600" />
+   327→              </div>
+   328→            </CardHeader>
+   329→            <CardContent>
+   330→              <div className="text-2xl font-bold">{kpis.pendingCount}</div>
+   331→              <p className="text-xs text-muted-foreground mt-1">{formatCurrency(kpis.pendingAmount)} pending</p>
+   332→            </CardContent>
+   333→          </Card>
+   334→        </motion.div>
+   335→
+   336→        <motion.div variants={itemVariants}>
+   337→          <Card className="border-l-4 border-l-teal-500">
+   338→            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+   339→              <CardTitle className="text-sm font-medium text-muted-foreground">Approved</CardTitle>
+   340→              <div className="h-8 w-8 rounded-lg bg-teal-50 flex items-center justify-center">
+   341→                <CheckCircle2 className="h-4 w-4 text-teal-600" />
+   342→              </div>
+   343→            </CardHeader>
+   344→            <CardContent>
+   345→              <div className="text-2xl font-bold">{kpis.approvedCount}</div>
+   346→              <p className="text-xs text-muted-foreground mt-1">Ready for reimbursement</p>
+   347→            </CardContent>
+   348→          </Card>
+   349→        </motion.div>
+   350→
+   351→        <motion.div variants={itemVariants}>
+   352→          <Card className="border-l-4 border-l-red-500">
+   353→            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+   354→              <CardTitle className="text-sm font-medium text-muted-foreground">Rejected</CardTitle>
+   355→              <div className="h-8 w-8 rounded-lg bg-red-50 flex items-center justify-center">
+   356→                <XCircle className="h-4 w-4 text-red-600" />
+   357→              </div>
+   358→            </CardHeader>
+   359→            <CardContent>
+   360→              <div className="text-2xl font-bold">{kpis.rejectedCount}</div>
+   361→              <p className="text-xs text-muted-foreground mt-1">Needs revision</p>
+   362→            </CardContent>
+   363→          </Card>
+   364→        </motion.div>
+   365→      </motion.div>
+   366→
+   367→      {/* ── Charts Row ────────────────────────────────────────────── */}
+   368→      <motion.div
+   369→        initial={{ opacity: 0, y: 10 }}
+   370→        animate={{ opacity: 1, y: 0 }}
+   371→        transition={{ delay: 0.2 }}
+   372→        className="grid gap-4 md:grid-cols-2"
+   373→      >
+   374→        {/* Expense Trend */}
+   375→        <Card>
+   376→          <CardHeader className="pb-2">
+   377→            <CardTitle className="text-base flex items-center gap-2">
+   378→              <TrendingUp className="h-4 w-4 text-emerald-600" />
+   379→              Monthly Expense Trend
+   380→            </CardTitle>
+   381→          </CardHeader>
+   382→          <CardContent>
+   383→            {monthlyTrend.length === 0 ? (
+   384→              <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+   385→                No expense data to display
+   386→              </div>
+   387→            ) : (
+   388→              <ChartContainer config={barChartConfig} className="h-[200px] w-full">
+   389→                <BarChart data={monthlyTrend} margin={{ top: 5, right: 10, left: 10, bottom: 0 }}>
+   390→                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+   391→                  <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} />
+   392→                  <YAxis tickLine={false} axisLine={false} fontSize={11} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+   393→                  <ChartTooltip content={<ChartTooltipContent />} />
+   394→                  <Bar dataKey="amount" fill="var(--color-amount)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+   395→                </BarChart>
+   396→              </ChartContainer>
+   397→            )}
+   398→          </CardContent>
+   399→        </Card>
+   400→
+   401→        {/* Category Breakdown Donut */}
+   402→        <Card>
+   403→          <CardHeader className="pb-2">
+   404→            <CardTitle className="text-base flex items-center gap-2">
+   405→              <Receipt className="h-4 w-4 text-teal-600" />
+   406→              Category Breakdown
+   407→            </CardTitle>
+   408→          </CardHeader>
+   409→          <CardContent>
+   410→            {categoryBreakdown.length === 0 ? (
+   411→              <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+   412→                No category data to display
+   413→              </div>
+   414→            ) : (
+   415→              <div className="flex items-center gap-4">
+   416→                <ChartContainer config={donutChartConfig} className="h-[200px] w-[200px]">
+   417→                  <PieChart>
+   418→                    <ChartTooltip content={<ChartTooltipContent nameKey="category" />} />
+   419→                    <Pie
+   420→                      data={categoryBreakdown}
+   421→                      dataKey="value"
+   422→                      nameKey="category"
+   423→                      cx="50%"
+   424→                      cy="50%"
+   425→                      innerRadius={50}
+   426→                      outerRadius={80}
+   427→                      strokeWidth={2}
+   428→                      stroke="var(--color-background)"
+   429→                    >
+   430→                      {categoryBreakdown.map((_, index) => (
+   431→                        <Cell key={`cell-${index}`} fill={DONUT_COLORS[index % DONUT_COLORS.length]} />
+   432→                      ))}
+   433→                    </Pie>
+   434→                  </PieChart>
+   435→                </ChartContainer>
+   436→                <div className="flex-1 space-y-2">
+   437→                  {categoryBreakdown.map((item, index) => (
+   438→                    <div key={item.category} className="flex items-center justify-between text-sm">
+   439→                      <div className="flex items-center gap-2">
+   440→                        <div
+   441→                          className="h-2.5 w-2.5 rounded-sm shrink-0"
+   442→                          style={{ backgroundColor: DONUT_COLORS[index % DONUT_COLORS.length] }}
+   443→                        />
+   444→                        <span className="text-muted-foreground">{item.label}</span>
+   445→                      </div>
+   446→                      <span className="font-medium">{formatCurrency(item.value)}</span>
+   447→                    </div>
+   448→                  ))}
+   449→                </div>
+   450→              </div>
+   451→            )}
+   452→          </CardContent>
+   453→        </Card>
+   454→      </motion.div>
+   455→
+   456→      {/* ── Filters & Tabs ────────────────────────────────────────── */}
+   457→      <motion.div
+   458→        initial={{ opacity: 0, y: 10 }}
+   459→        animate={{ opacity: 1, y: 0 }}
+   460→        transition={{ delay: 0.3 }}
+   461→      >
+   462→        <Card>
+   463→          <CardHeader className="pb-3">
+   464→            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+   465→              <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+   466→                <TabsList className="h-8">
+   467→                  {STATUS_TABS.map(tab => (
+   468→                    <TabsTrigger key={tab} value={tab} className="text-xs px-3 h-7">
+   469→                      {tab}
+   470→                    </TabsTrigger>
+   471→                  ))}
+   472→                </TabsList>
+   473→              </Tabs>
+   474→              <div className="flex items-center gap-2">
+   475→                <div className="relative">
+   476→                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+   477→                  <Input
+   478→                    placeholder="Search expenses..."
+   479→                    className="pl-8 h-8 w-[200px] text-sm"
+   480→                    value={searchQuery}
+   481→                    onChange={e => setSearchQuery(e.target.value)}
+   482→                  />
+   483→                </div>
+   484→                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+   485→                  <SelectTrigger className="h-8 w-[140px] text-sm">
+   486→                    <Filter className="h-3.5 w-3.5 mr-1" />
+   487→                    <SelectValue />
+   488→                  </SelectTrigger>
+   489→                  <SelectContent>
+   490→                    {CATEGORIES.map(cat => (
+   491→                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+   492→                    ))}
+   493→                  </SelectContent>
+   494→                </Select>
+   495→              </div>
+   496→            </div>
+   497→          </CardHeader>
+   498→          <CardContent>
+   499→            {filteredExpenses.length === 0 ? (
+   500→              <div className="flex flex-col items-center justify-center py-16 text-center">
+   501→                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+   502→                  <Receipt className="h-8 w-8 text-muted-foreground" />
+   503→                </div>
+   504→                <h3 className="font-semibold text-lg">No expenses found</h3>
+   505→                <p className="text-muted-foreground text-sm mt-1 max-w-sm">
+   506→                  {searchQuery || statusFilter !== "All" || categoryFilter !== "All"
+   507→                    ? "Try adjusting your filters or search terms"
+   508→                    : "Submit your first expense to get started"}
+   509→                </p>
+   510→                {!searchQuery && statusFilter === "All" && categoryFilter === "All" && (
+   511→                  <Button
+   512→                    onClick={() => setShowSubmitDialog(true)}
+   513→                    className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+   514→                  >
+   515→                    <Plus className="h-4 w-4" />
+   516→                    Submit Expense
+   517→                  </Button>
+   518→                )}
+   519→              </div>
+   520→            ) : (
+   521→              <ScrollArea className="max-h-[500px]">
+   522→                <div className="space-y-2">
+   523→                  <AnimatePresence>
+   524→                    {filteredExpenses.map((expense, index) => (
+   525→                      <motion.div
+   526→                        key={expense.id}
+   527→                        initial={{ opacity: 0, y: 8 }}
+   528→                        animate={{ opacity: 1, y: 0 }}
+   529→                        exit={{ opacity: 0, y: -8 }}
+   530→                        transition={{ delay: index * 0.03 }}
+   531→                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors group"
+   532→                      >
+   533→                        <div className="flex items-start gap-3 flex-1 min-w-0">
+   534→                          <div className="h-9 w-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
+   535→                            {React.createElement(
+   536→                              CATEGORY_CONFIG[getCategoryKey(expense.category)]?.icon || FileText,
+   537→                              { className: "h-4 w-4 text-emerald-600" }
+   538→                            )}
+   539→                          </div>
+   540→                          <div className="flex-1 min-w-0">
+   541→                            <div className="flex items-center gap-2 flex-wrap">
+   542→                              <p className="font-medium text-sm truncate">{expense.title}</p>
+   543→                              {expense.receiptUrl && (
+   544→                                <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />
+   545→                              )}
+   546→                            </div>
+   547→                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+   548→                              {renderCategoryBadge(expense.category)}
+   549→                              <span className="text-xs text-muted-foreground">
+   550→                                {expense.date ? format(new Date(expense.date), "MMM d, yyyy") : "No date"}
+   551→                              </span>
+   552→                              <span className="text-xs text-muted-foreground">·</span>
+   553→                              <span className="text-xs text-muted-foreground">
+   554→                                {expense.submittedBy?.name || "Unknown"}
+   555→                              </span>
+   556→                            </div>
+   557→                          </div>
+   558→                        </div>
+   559→
+   560→                        <div className="flex items-center gap-3 sm:gap-4">
+   561→                          <div className="text-right sm:min-w-[100px]">
+   562→                            <p className="font-semibold text-sm">{formatCurrency(expense.amount)}</p>
+   563→                          </div>
+   564→                          {renderStatusBadge(expense.status)}
+   565→
+   566→                          {expense.status === "pending" && (
+   567→                            <div className="flex items-center gap-1">
+   568→                              <Button
+   569→                                size="sm"
+   570→                                variant="outline"
+   571→                                className="h-7 px-2 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+   572→                                disabled={actionLoading === expense.id}
+   573→                                onClick={() => handleStatusChange(expense.id, "approved")}
+   574→                              >
+   575→                                <CheckCircle2 className="h-3 w-3 mr-1" />
+   576→                                Approve
+   577→                              </Button>
+   578→                              <Button
+   579→                                size="sm"
+   580→                                variant="outline"
+   581→                                className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+   582→                                disabled={actionLoading === expense.id}
+   583→                                onClick={() => handleStatusChange(expense.id, "rejected")}
+   584→                              >
+   585→                                <XCircle className="h-3 w-3 mr-1" />
+   586→                                Reject
+   587→                              </Button>
+   588→                            </div>
+   589→                          )}
+   590→
+   591→                          <DropdownMenu>
+   592→                            <DropdownMenuTrigger asChild>
+   593→                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+   594→                                <MoreHorizontal className="h-4 w-4" />
+   595→                              </Button>
+   596→                            </DropdownMenuTrigger>
+   597→                            <DropdownMenuContent align="end">
+   598→                              <DropdownMenuItem className="text-xs">View Details</DropdownMenuItem>
+   599→                              {expense.receiptUrl && (
+   600→                                <DropdownMenuItem className="text-xs">View Receipt</DropdownMenuItem>
+   601→                              )}
+   602→                            </DropdownMenuContent>
+   603→                          </DropdownMenu>
+   604→                        </div>
+   605→                      </motion.div>
+   606→                    ))}
+   607→                  </AnimatePresence>
+   608→                </div>
+   609→              </ScrollArea>
+   610→            )}
+   611→          </CardContent>
+   612→        </Card>
+   613→      </motion.div>
+   614→
+   615→      {/* ── Submit Expense Dialog ─────────────────────────────────── */}
+   616→      <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+   617→        <DialogContent className="sm:max-w-[480px]">
+   618→          <DialogHeader>
+   619→            <DialogTitle className="flex items-center gap-2">
+   620→              <Receipt className="h-5 w-5 text-emerald-600" />
+   621→              Submit Expense
+   622→            </DialogTitle>
+   623→            <DialogDescription>Fill in the details to submit a new expense for approval.</DialogDescription>
+   624→          </DialogHeader>
+   625→          <div className="space-y-4 py-2">
+   626→            <div className="space-y-2">
+   627→              <Label htmlFor="exp-title">Title *</Label>
+   628→              <Input
+   629→                id="exp-title"
+   630→                placeholder="e.g. Flight to NYC conference"
+   631→                value={formTitle}
+   632→                onChange={e => setFormTitle(e.target.value)}
+   633→              />
+   634→            </div>
+   635→            <div className="grid grid-cols-2 gap-4">
+   636→              <div className="space-y-2">
+   637→                <Label htmlFor="exp-amount">Amount *</Label>
+   638→                <div className="relative">
+   639→                  <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+   640→                  <Input
+   641→                    id="exp-amount"
+   642→                    type="number"
+   643→                    step="0.01"
+   644→                    placeholder="0.00"
+   645→                    className="pl-8"
+   646→                    value={formAmount}
+   647→                    onChange={e => setFormAmount(e.target.value)}
+   648→                  />
+   649→                </div>
+   650→              </div>
+   651→              <div className="space-y-2">
+   652→                <Label htmlFor="exp-category">Category *</Label>
+   653→                <Select value={formCategory} onValueChange={setFormCategory}>
+   654→                  <SelectTrigger id="exp-category">
+   655→                    <SelectValue placeholder="Select category" />
+   656→                  </SelectTrigger>
+   657→                  <SelectContent>
+   658→                    {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
+   659→                      <SelectItem key={key} value={key}>
+   660→                        <span className="flex items-center gap-2">
+   661→                          {React.createElement(cfg.icon, { className: "h-3.5 w-3.5" })}
+   662→                          {cfg.label}
+   663→                        </span>
+   664→                      </SelectItem>
+   665→                    ))}
+   666→                  </SelectContent>
+   667→                </Select>
+   668→              </div>
+   669→            </div>
+   670→            <div className="space-y-2">
+   671→              <Label htmlFor="exp-date">Date</Label>
+   672→              <Input
+   673→                id="exp-date"
+   674→                type="date"
+   675→                value={formDate}
+   676→                onChange={e => setFormDate(e.target.value)}
+   677→              />
+   678→            </div>
+   679→            <div className="space-y-2">
+   680→              <Label htmlFor="exp-desc">Description</Label>
+   681→              <Textarea
+   682→                id="exp-desc"
+   683→                placeholder="Add details about this expense..."
+   684→                rows={3}
+   685→                value={formDescription}
+   686→                onChange={e => setFormDescription(e.target.value)}
+   687→              />
+   688→            </div>
+   689→            <div className="space-y-2">
+   690→              <Label htmlFor="exp-receipt">Receipt URL</Label>
+   691→              <Input
+   692→                id="exp-receipt"
+   693→                placeholder="https://..."
+   694→                value={formReceiptUrl}
+   695→                onChange={e => setFormReceiptUrl(e.target.value)}
+   696→              />
+   697→            </div>
+   698→          </div>
+   699→          <DialogFooter>
+   700→            <Button variant="outline" onClick={() => setShowSubmitDialog(false)}>
+   701→              Cancel
+   702→            </Button>
+   703→            <Button
+   704→              onClick={handleSubmit}
+   705→              disabled={!formTitle || !formAmount || !formCategory || submitting}
+   706→              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+   707→            >
+   708→              {submitting ? "Submitting..." : "Submit Expense"}
+   709→            </Button>
+   710→          </DialogFooter>
+   711→        </DialogContent>
+   712→      </Dialog>
+   713→    </div>
+   714→  )
+   715→}
+   716→

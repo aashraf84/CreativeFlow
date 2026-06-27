@@ -1,0 +1,202 @@
+   300→    // ============================================
+   301→    // 9. Automation Rules
+   302→    // ============================================
+   303→    const automations = await Promise.all([
+   304→      db.automationRule.create({ data: { name: 'Auto-assign to Design Team', description: 'When content moves to design stage, automatically assign to the Design team lead', trigger: 'stage_change', conditions: JSON.stringify({ fromStage: 'idea', toStage: 'design' }), actions: JSON.stringify({ assignToTeam: 'design', notifyTeamLead: true }), isActive: true, organizationId: org.id } }),
+   305→      db.automationRule.create({ data: { name: 'Content Review Reminder', description: 'Send a reminder when content has been in review stage for more than 48 hours', trigger: 'scheduled_time', conditions: JSON.stringify({ stage: 'review', hoursInStage: 48 }), actions: JSON.stringify({ sendReminder: true, escalateTo: 'admin' }), isActive: true, organizationId: org.id } }),
+   306→      db.automationRule.create({ data: { name: 'Auto-archive Completed Campaigns', description: 'Move all content to archive when a campaign status changes to completed', trigger: 'stage_change', conditions: JSON.stringify({ campaignStatus: 'completed' }), actions: JSON.stringify({ moveContentToArchive: true }), isActive: true, organizationId: org.id } }),
+   307→      db.automationRule.create({ data: { name: 'High Engagement Alert', description: 'Notify the team when a published post gets more than 1000 likes in the first hour', trigger: 'engagement_threshold', conditions: JSON.stringify({ metric: 'likes', threshold: 1000, timeWindow: '1h' }), actions: JSON.stringify({ notifyTeam: true, boostPost: true }), isActive: true, organizationId: org.id } }),
+   308→      db.automationRule.create({ data: { name: 'New Content Welcome Message', description: 'Send a welcome message to the content creator when new content is created', trigger: 'content_created', conditions: JSON.stringify({ contentType: ['post', 'video', 'graphic'] }), actions: JSON.stringify({ sendMessage: true, assignDefaultTeam: true }), isActive: false, organizationId: org.id } }),
+   309→    ])
+   310→
+   311→    // ============================================
+   312→    // 10. Comments
+   313→    // ============================================
+   314→    await Promise.all([
+   315→      db.comment.create({ data: { text: 'Great concept! Let\'s make sure we highlight the AI-powered features prominently.', contentId: contentItems[0].id, userId: sarah.id } }),
+   316→      db.comment.create({ data: { text: 'I agree. Should we also include a demo snippet in the intro?', contentId: contentItems[0].id, userId: marcus.id } }),
+   317→      db.comment.create({ data: { text: 'The color palette needs to match TechCorp\'s brand guidelines. Please use the updated brand kit.', contentId: contentItems[4].id, userId: sarah.id } }),
+   318→      db.comment.create({ data: { text: 'Updated the colors. Can you review the new version?', contentId: contentItems[4].id, userId: jake.id } }),
+   319→      db.comment.create({ data: { text: 'This is urgent - the client wants it by Friday. Can we prioritize?', contentId: contentItems[7].id, userId: marcus.id } }),
+   320→      db.comment.create({ data: { text: 'Already on it. I\'ll have the first draft by tomorrow morning.', contentId: contentItems[7].id, userId: luna.id } }),
+   321→      db.comment.create({ data: { text: 'The video needs better transitions between sections. Also, the audio levels are inconsistent.', contentId: contentItems[8].id, userId: marcus.id } }),
+   322→      db.comment.create({ data: { text: 'Good catch! I\'ll fix the transitions and normalize the audio.', contentId: contentItems[8].id, userId: david.id } }),
+   323→      db.comment.create({ data: { text: 'Client approved the draft copy. Ready for final review.', contentId: contentItems[10].id, userId: priya.id } }),
+   324→      db.comment.create({ data: { text: 'Looks great! Minor edits on slide 3 - the font size is too small.', contentId: contentItems[10].id, userId: sarah.id } }),
+   325→      db.comment.create({ data: { text: 'Need to get influencer approval before we publish this.', contentId: contentItems[11].id, userId: priya.id } }),
+   326→      db.comment.create({ data: { text: 'Influencer approved! We\'re good to go.', contentId: contentItems[11].id, userId: emma.id } }),
+   327→      db.comment.create({ data: { text: 'The sale copy needs more urgency. Add countdown language.', contentId: contentItems[15].id, userId: sarah.id } }),
+   328→      db.comment.create({ data: { text: 'Updated with "Limited time only" and "Ends Sunday" messaging.', contentId: contentItems[15].id, userId: emma.id } }),
+   329→      db.comment.create({ data: { text: 'Please schedule this for Monday 9AM EST.', contentId: contentItems[16].id, userId: alex.id } }),
+   330→    ])
+   331→
+   332→    // ============================================
+   333→    // 11. Activity Log
+   334→    // ============================================
+   335→    await Promise.all([
+   336→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[0].id, details: JSON.stringify({ title: 'TechCorp CEO Spotlight Interview', stage: 'idea' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 2 * dayMs) } }),
+   337→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[1].id, details: JSON.stringify({ title: 'FashionHub Summer Lookbook Reel', stage: 'idea' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 2 * dayMs) } }),
+   338→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[4].id, details: JSON.stringify({ title: 'TechCorp Product Feature Infographic', fromStage: 'idea', toStage: 'design' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.9 * dayMs) } }),
+   339→      db.activityLog.create({ data: { action: 'assigned', entity: 'content', entityId: contentItems[4].id, details: JSON.stringify({ title: 'TechCorp Product Feature Infographic', assignee: 'Jake Morrison' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.9 * dayMs) } }),
+   340→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[7].id, details: JSON.stringify({ title: 'AutoDrive EV Comparison Chart', fromStage: 'idea', toStage: 'design' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.8 * dayMs) } }),
+   341→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[8].id, details: JSON.stringify({ title: 'TechCorp Platform Demo Video', stage: 'edit' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.7 * dayMs) } }),
+   342→      db.activityLog.create({ data: { action: 'commented', entity: 'content', entityId: contentItems[0].id, details: JSON.stringify({ title: 'TechCorp CEO Spotlight Interview', comment: 'Great concept!' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 1.5 * dayMs) } }),
+   343→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[10].id, details: JSON.stringify({ title: 'TechCorp Case Study Carousel', fromStage: 'edit', toStage: 'review' }), organizationId: org.id, actorId: priya.id, createdAt: new Date(now.getTime() - 1.4 * dayMs) } }),
+   344→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[11].id, details: JSON.stringify({ title: 'FashionHub Influencer Collaboration Post', fromStage: 'edit', toStage: 'review' }), organizationId: org.id, actorId: emma.id, createdAt: new Date(now.getTime() - 1.3 * dayMs) } }),
+   345→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[0].id, details: JSON.stringify({ platform: 'instagram', account: '@techcorp' }), organizationId: org.id, actorId: alex.id, createdAt: new Date(now.getTime() - 7 * dayMs) } }),
+   346→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[1].id, details: JSON.stringify({ platform: 'instagram', account: '@fashionhub' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 5 * dayMs) } }),
+   347→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[2].id, details: JSON.stringify({ platform: 'linkedin', account: 'TechCorp' }), organizationId: org.id, actorId: alex.id, createdAt: new Date(now.getTime() - 3 * dayMs) } }),
+   348→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[3].id, details: JSON.stringify({ platform: 'tiktok', account: '@fashionhub' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 4 * dayMs) } }),
+   349→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[13].id, details: JSON.stringify({ title: 'TechCorp LinkedIn Thought Leadership Article', fromStage: 'review', toStage: 'approve' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 1.2 * dayMs) } }),
+   350→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[14].id, details: JSON.stringify({ title: 'FashionHub Summer Sale Announcement', fromStage: 'review', toStage: 'approve' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 1.1 * dayMs) } }),
+   351→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[16].id, details: JSON.stringify({ title: 'TechCorp Feature Launch Thread', fromStage: 'approve', toStage: 'disseminate' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 1 * dayMs) } }),
+   352→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[17].id, details: JSON.stringify({ title: 'FashionHub Style Guide TikTok', fromStage: 'approve', toStage: 'disseminate' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 0.9 * dayMs) } }),
+   353→      db.activityLog.create({ data: { action: 'created', entity: 'campaign', entityId: foodvibeCampaign.id, details: JSON.stringify({ name: 'FoodVibe Taste Stories', status: 'draft' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 3 * dayMs) } }),
+   354→      db.activityLog.create({ data: { action: 'updated', entity: 'campaign', entityId: techcorpCampaign.id, details: JSON.stringify({ name: 'TechCorp Spring Launch 2025', field: 'budget', value: 45000 }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 2.5 * dayMs) } }),
+   355→      db.activityLog.create({ data: { action: 'created', entity: 'account', entityId: socialAccounts[0].id, details: JSON.stringify({ platform: 'instagram', username: '@techcorp' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 30 * dayMs) } }),
+   356→      db.activityLog.create({ data: { action: 'created', entity: 'account', entityId: socialAccounts[1].id, details: JSON.stringify({ platform: 'instagram', username: '@fashionhub' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 30 * dayMs) } }),
+   357→      db.activityLog.create({ data: { action: 'assigned', entity: 'content', entityId: contentItems[5].id, details: JSON.stringify({ title: 'FashionHub Brand Story Carousel', assignee: 'Alex Nakamura' }), organizationId: org.id, actorId: jake.id, createdAt: new Date(now.getTime() - 1.6 * dayMs) } }),
+   358→      db.activityLog.create({ data: { action: 'commented', entity: 'content', entityId: contentItems[7].id, details: JSON.stringify({ title: 'AutoDrive EV Comparison Chart', comment: 'This is urgent!' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.5 * dayMs) } }),
+   359→      db.activityLog.create({ data: { action: 'commented', entity: 'content', entityId: contentItems[8].id, details: JSON.stringify({ title: 'TechCorp Platform Demo Video', comment: 'Needs better transitions' }), organizationId: org.id, actorId: marcus.id, createdAt: new Date(now.getTime() - 1.4 * dayMs) } }),
+   360→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[18].id, details: JSON.stringify({ title: 'AutoDrive EV Range Explainer Video', fromStage: 'approve', toStage: 'disseminate' }), organizationId: org.id, actorId: sarah.id, createdAt: new Date(now.getTime() - 0.8 * dayMs) } }),
+   361→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[15].id, details: JSON.stringify({ title: 'FashionHub Summer Sale Announcement', fromStage: 'design', toStage: 'approve' }), organizationId: org.id, actorId: jake.id, createdAt: new Date(now.getTime() - 0.7 * dayMs) } }),
+   362→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[2].id, details: JSON.stringify({ title: 'FoodVibe Recipe Card Series', stage: 'idea' }), organizationId: org.id, actorId: priya.id, createdAt: new Date(now.getTime() - 0.6 * dayMs) } }),
+   363→      db.activityLog.create({ data: { action: 'created', entity: 'content', entityId: contentItems[3].id, details: JSON.stringify({ title: 'AutoDrive Community Poll Series', stage: 'idea' }), organizationId: org.id, actorId: emma.id, createdAt: new Date(now.getTime() - 0.5 * dayMs) } }),
+   364→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[6].id, details: JSON.stringify({ title: 'WellnessCo Mindfulness Tips Graphic Set', fromStage: 'idea', toStage: 'design' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 0.4 * dayMs) } }),
+   365→      db.activityLog.create({ data: { action: 'updated', entity: 'content', entityId: contentItems[12].id, details: JSON.stringify({ title: 'AutoDrive Test Drive Story Series', field: 'priority', value: 'medium' }), organizationId: org.id, actorId: david.id, createdAt: new Date(now.getTime() - 0.3 * dayMs) } }),
+   366→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[4].id, details: JSON.stringify({ platform: 'facebook', account: 'TechCorp Inc.' }), organizationId: org.id, actorId: alex.id, createdAt: new Date(now.getTime() - 35 * dayMs) } }),
+   367→      db.activityLog.create({ data: { action: 'published', entity: 'post', entityId: posts[5].id, details: JSON.stringify({ platform: 'twitter', account: '@autodrive_ev' }), organizationId: org.id, actorId: luna.id, createdAt: new Date(now.getTime() - 6 * dayMs) } }),
+   368→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[19].id, details: JSON.stringify({ title: 'AutoDrive Holiday Campaign Banner', fromStage: 'disseminate', toStage: 'archived' }), organizationId: org.id, actorId: emma.id, createdAt: new Date(now.getTime() - 30 * dayMs) } }),
+   369→      db.activityLog.create({ data: { action: 'moved', entity: 'content', entityId: contentItems[20].id, details: JSON.stringify({ title: 'TechCorp Year-in-Review Video', fromStage: 'disseminate', toStage: 'archived' }), organizationId: org.id, actorId: emma.id, createdAt: new Date(now.getTime() - 55 * dayMs) } }),
+   370→    ])
+   371→
+   372→    // ============================================
+   373→    // HR: Departments
+   374→    // ============================================
+   375→    const departments = await Promise.all([
+   376→      db.department.create({ data: { name: 'Engineering', description: 'Software development and technical operations', color: '#10b981', headId: marcus.id, organizationId: org.id } }),
+   377→      db.department.create({ data: { name: 'Marketing', description: 'Brand strategy, campaigns, and content creation', color: '#f59e0b', headId: priya.id, organizationId: org.id } }),
+   378→      db.department.create({ data: { name: 'Design', description: 'Visual design, UX/UI, and creative assets', color: '#ec4899', headId: jake.id, organizationId: org.id } }),
+   379→      db.department.create({ data: { name: 'Human Resources', description: 'People operations, recruitment, and culture', color: '#8b5cf6', headId: luna.id, organizationId: org.id } }),
+   380→      db.department.create({ data: { name: 'Finance', description: 'Financial planning, accounting, and payroll', color: '#06b6d4', headId: david.id, organizationId: org.id } }),
+   381→      db.department.create({ data: { name: 'Operations', description: 'Business operations and process optimization', color: '#f97316', headId: emma.id, organizationId: org.id } }),
+   382→    ])
+   383→
+   384→    const [engDept, mktDept, designDept, hrDept, finDept, opsDept] = departments
+   385→
+   386→    // ============================================
+   387→    // HR: Employees
+   388→    // ============================================
+   389→    const employees = await Promise.all([
+   390→      db.employee.create({ data: { employeeId: 'EMP-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@vortexdigital.com', phone: '+1-555-0101', position: 'CEO', departmentId: engDept.id, hireDate: new Date('2021-01-15'), status: 'active', employmentType: 'full-time', salary: 185000, salaryCurrency: 'USD', bankAccount: '****4521', taxId: 'SSN-***-**-1234', emergencyContact: 'James Chen +1-555-0102', address: '123 Tech Ave, San Francisco, CA', userId: sarah.id, organizationId: org.id } }),
+   391→      db.employee.create({ data: { employeeId: 'EMP-002', firstName: 'Marcus', lastName: 'Williams', email: 'marcus.williams@vortexdigital.com', phone: '+1-555-0103', position: 'VP of Engineering', departmentId: engDept.id, hireDate: new Date('2021-03-01'), status: 'active', employmentType: 'full-time', salary: 165000, salaryCurrency: 'USD', bankAccount: '****7832', taxId: 'SSN-***-**-5678', emergencyContact: 'Lisa Williams +1-555-0104', address: '456 Code St, San Francisco, CA', userId: marcus.id, organizationId: org.id } }),
+   392→      db.employee.create({ data: { employeeId: 'EMP-003', firstName: 'Priya', lastName: 'Sharma', email: 'priya.sharma@vortexdigital.com', phone: '+1-555-0105', position: 'Marketing Director', departmentId: mktDept.id, hireDate: new Date('2021-06-15'), status: 'active', employmentType: 'full-time', salary: 145000, salaryCurrency: 'USD', bankAccount: '****3291', taxId: 'SSN-***-**-9012', emergencyContact: 'Raj Sharma +1-555-0106', address: '789 Market Blvd, San Jose, CA', userId: priya.id, organizationId: org.id } }),
+   393→      db.employee.create({ data: { employeeId: 'EMP-004', firstName: 'Jake', lastName: 'Morrison', email: 'jake.morrison@vortexdigital.com', phone: '+1-555-0107', position: 'Creative Director', departmentId: designDept.id, hireDate: new Date('2021-09-01'), status: 'active', employmentType: 'full-time', salary: 135000, salaryCurrency: 'USD', bankAccount: '****6543', taxId: 'SSN-***-**-3456', emergencyContact: 'Amy Morrison +1-555-0108', address: '321 Design Ln, Oakland, CA', userId: jake.id, organizationId: org.id } }),
+   394→      db.employee.create({ data: { employeeId: 'EMP-005', firstName: 'Luna', lastName: 'Rodriguez', email: 'luna.rodriguez@vortexdigital.com', phone: '+1-555-0109', position: 'HR Manager', departmentId: hrDept.id, hireDate: new Date('2022-01-10'), status: 'active', employmentType: 'full-time', salary: 115000, salaryCurrency: 'USD', bankAccount: '****8765', taxId: 'SSN-***-**-7890', emergencyContact: 'Carlos Rodriguez +1-555-0110', address: '654 People Dr, San Francisco, CA', userId: luna.id, organizationId: org.id } }),
+   395→      db.employee.create({ data: { employeeId: 'EMP-006', firstName: 'David', lastName: 'Kim', email: 'david.kim@vortexdigital.com', phone: '+1-555-0111', position: 'Finance Director', departmentId: finDept.id, hireDate: new Date('2022-03-15'), status: 'active', employmentType: 'full-time', salary: 140000, salaryCurrency: 'USD', bankAccount: '****2345', taxId: 'SSN-***-**-2345', emergencyContact: 'Suki Kim +1-555-0112', address: '987 Finance Way, Palo Alto, CA', userId: david.id, organizationId: org.id } }),
+   396→      db.employee.create({ data: { employeeId: 'EMP-007', firstName: 'Emma', lastName: 'Thompson', email: 'emma.thompson@vortexdigital.com', phone: '+1-555-0113', position: 'Operations Manager', departmentId: opsDept.id, hireDate: new Date('2022-06-01'), status: 'active', employmentType: 'full-time', salary: 120000, salaryCurrency: 'USD', bankAccount: '****5678', taxId: 'SSN-***-**-6789', emergencyContact: 'Tom Thompson +1-555-0114', address: '147 Ops Circle, Mountain View, CA', userId: emma.id, organizationId: org.id } }),
+   397→      db.employee.create({ data: { employeeId: 'EMP-008', firstName: 'Alex', lastName: 'Nakamura', email: 'alex.nakamura@vortexdigital.com', phone: '+1-555-0115', position: 'Senior Developer', departmentId: engDept.id, hireDate: new Date('2022-09-15'), status: 'on_leave', employmentType: 'full-time', salary: 130000, salaryCurrency: 'USD', bankAccount: '****9012', taxId: 'SSN-***-**-0123', emergencyContact: 'Yuki Nakamura +1-555-0116', address: '258 Dev Road, San Francisco, CA', userId: alex.id, organizationId: org.id } }),
+   398→      db.employee.create({ data: { employeeId: 'EMP-009', firstName: 'Mia', lastName: 'Chang', email: 'mia.chang@vortexdigital.com', phone: '+1-555-0117', position: 'Content Strategist', departmentId: mktDept.id, hireDate: new Date('2023-01-20'), status: 'active', employmentType: 'full-time', salary: 95000, salaryCurrency: 'USD', bankAccount: '****3456', taxId: 'SSN-***-**-4567', emergencyContact: 'Wei Chang +1-555-0118', address: '369 Content Ave, San Jose, CA', organizationId: org.id } }),
+   399→      db.employee.create({ data: { employeeId: 'EMP-010', firstName: 'Ryan', lastName: 'O\'Brien', email: 'ryan.obrien@vortexdigital.com', phone: '+1-555-0119', position: 'UX Designer', departmentId: designDept.id, hireDate: new Date('2023-04-01'), status: 'probation', employmentType: 'full-time', salary: 90000, salaryCurrency: 'USD', bankAccount: '****7890', taxId: 'SSN-***-**-8901', emergencyContact: 'Kate O\'Brien +1-555-0120', address: '481 Design Blvd, Oakland, CA', organizationId: org.id } }),
+   400→      db.employee.create({ data: { employeeId: 'EMP-011', firstName: 'Sophie', lastName: 'Martinez', email: 'sophie.martinez@vortexdigital.com', phone: '+1-555-0121', position: 'Junior Developer', departmentId: engDept.id, hireDate: new Date('2024-01-15'), status: 'probation', employmentType: 'full-time', salary: 78000, salaryCurrency: 'USD', bankAccount: '****1357', taxId: 'SSN-***-**-2468', emergencyContact: 'Pablo Martinez +1-555-0122', address: '592 Code Way, San Francisco, CA', organizationId: org.id } }),
+   401→      db.employee.create({ data: { employeeId: 'EMP-012', firstName: 'James', lastName: 'Wilson', email: 'james.wilson@vortexdigital.com', phone: '+1-555-0123', position: 'Accountant', departmentId: finDept.id, hireDate: new Date('2022-11-01'), status: 'active', employmentType: 'full-time', salary: 85000, salaryCurrency: 'USD', bankAccount: '****2468', taxId: 'SSN-***-**-1357', emergencyContact: 'Mary Wilson +1-555-0124', address: '703 Ledger St, Palo Alto, CA', organizationId: org.id } }),
+   402→      db.employee.create({ data: { employeeId: 'EMP-013', firstName: 'Olivia', lastName: 'Patel', email: 'olivia.patel@vortexdigital.com', phone: '+1-555-0125', position: 'Social Media Manager', departmentId: mktDept.id, hireDate: new Date('2023-07-01'), status: 'active', employmentType: 'part-time', salary: 65000, salaryCurrency: 'USD', bankAccount: '****3579', taxId: 'SSN-***-**-4680', emergencyContact: 'Ravi Patel +1-555-0126', address: '814 Social Ave, San Jose, CA', organizationId: org.id } }),
+   403→      db.employee.create({ data: { employeeId: 'EMP-014', firstName: 'Nathan', lastName: 'Brooks', email: 'nathan.brooks@vortexdigital.com', phone: '+1-555-0127', position: 'Backend Developer', departmentId: engDept.id, hireDate: new Date('2021-05-20'), status: 'terminated', employmentType: 'full-time', salary: 125000, salaryCurrency: 'USD', bankAccount: '****4680', taxId: 'SSN-***-**-5791', emergencyContact: 'Diana Brooks +1-555-0128', address: '925 Server Ln, San Francisco, CA', organizationId: org.id } }),
+   404→    ])
+   405→
+   406→    const [empSarah, empMarcus, empPriya, empJake, empLuna, empDavid, empEmma, empAlex, empMia, empRyan, empSophie, empJames, empOlivia, empNathan] = employees
+   407→
+   408→    // ============================================
+   409→    // HR: Leave Requests
+   410→    // ============================================
+   411→    await Promise.all([
+   412→      db.leaveRequest.create({ data: { employeeId: empAlex.id, type: 'vacation', startDate: new Date(now.getTime() - 3 * dayMs), endDate: new Date(now.getTime() + 4 * dayMs), days: 7, reason: 'Family vacation to Japan', status: 'approved', approvedById: empMarcus.id, approvedAt: new Date(now.getTime() - 10 * dayMs), organizationId: org.id } }),
+   413→      db.leaveRequest.create({ data: { employeeId: empMia.id, type: 'sick', startDate: new Date(now.getTime() - 1 * dayMs), endDate: new Date(now.getTime() + 1 * dayMs), days: 3, reason: 'Flu recovery', status: 'pending', organizationId: org.id } }),
+   414→      db.leaveRequest.create({ data: { employeeId: empEmma.id, type: 'personal', startDate: new Date(now.getTime() + 5 * dayMs), endDate: new Date(now.getTime() + 6 * dayMs), days: 2, reason: 'Moving to new apartment', status: 'pending', organizationId: org.id } }),
+   415→      db.leaveRequest.create({ data: { employeeId: empRyan.id, type: 'vacation', startDate: new Date(now.getTime() + 14 * dayMs), endDate: new Date(now.getTime() + 21 * dayMs), days: 7, reason: 'Honeymoon trip', status: 'pending', organizationId: org.id } }),
+   416→      db.leaveRequest.create({ data: { employeeId: empSarah.id, type: 'personal', startDate: new Date(now.getTime() - 15 * dayMs), endDate: new Date(now.getTime() - 14 * dayMs), days: 1, reason: 'Doctor appointment', status: 'approved', approvedById: empMarcus.id, approvedAt: new Date(now.getTime() - 20 * dayMs), organizationId: org.id } }),
+   417→      db.leaveRequest.create({ data: { employeeId: empJames.id, type: 'sick', startDate: new Date(now.getTime() - 7 * dayMs), endDate: new Date(now.getTime() - 5 * dayMs), days: 3, reason: 'Migraine', status: 'approved', approvedById: empDavid.id, approvedAt: new Date(now.getTime() - 8 * dayMs), organizationId: org.id } }),
+   418→      db.leaveRequest.create({ data: { employeeId: empOlivia.id, type: 'vacation', startDate: new Date(now.getTime() + 10 * dayMs), endDate: new Date(now.getTime() + 17 * dayMs), days: 7, reason: 'Visit family in India', status: 'rejected', approvedById: empLuna.id, approvedAt: new Date(now.getTime() - 3 * dayMs), comment: 'Too many team members on leave during this period', organizationId: org.id } }),
+   419→      db.leaveRequest.create({ data: { employeeId: empSophie.id, type: 'personal', startDate: new Date(now.getTime() + 3 * dayMs), endDate: new Date(now.getTime() + 3 * dayMs), days: 1, reason: 'Bank appointment', status: 'pending', organizationId: org.id } }),
+   420→    ])
+   421→
+   422→    // ============================================
+   423→    // HR: Payroll Runs & Items
+   424→    // ============================================
+   425→    const payrollRun1 = await db.payrollRun.create({
+   426→      data: {
+   427→        period: '2025-01', status: 'completed', runDate: new Date('2025-01-31'), totalGross: 142800, totalDeductions: 42840, totalNet: 99960,
+   428→        organizationId: org.id,
+   429→        items: {
+   430→          create: [
+   431→            { employeeId: empSarah.id, baseSalary: 15417, overtime: 0, bonuses: 2000, deductions: 2500, tax: 4375, netPay: 10542, organizationId: org.id },
+   432→            { employeeId: empMarcus.id, baseSalary: 13750, overtime: 500, bonuses: 0, deductions: 2200, tax: 3900, netPay: 8150, organizationId: org.id },
+   433→            { employeeId: empPriya.id, baseSalary: 12083, overtime: 0, bonuses: 1500, deductions: 1900, tax: 3437, netPay: 8246, organizationId: org.id },
+   434→            { employeeId: empJake.id, baseSalary: 11250, overtime: 300, bonuses: 0, deductions: 1800, tax: 3188, netPay: 6562, organizationId: org.id },
+   435→            { employeeId: empLuna.id, baseSalary: 9583, overtime: 0, bonuses: 1000, deductions: 1500, tax: 2725, netPay: 6358, organizationId: org.id },
+   436→            { employeeId: empDavid.id, baseSalary: 11667, overtime: 0, bonuses: 0, deductions: 1850, tax: 3325, netPay: 6492, organizationId: org.id },
+   437→            { employeeId: empEmma.id, baseSalary: 10000, overtime: 200, bonuses: 500, deductions: 1600, tax: 2850, netPay: 6250, organizationId: org.id },
+   438→            { employeeId: empAlex.id, baseSalary: 10833, overtime: 0, bonuses: 0, deductions: 1733, tax: 3108, netPay: 5992, organizationId: org.id },
+   439→            { employeeId: empMia.id, baseSalary: 7917, overtime: 150, bonuses: 0, deductions: 1267, tax: 2275, netPay: 4525, organizationId: org.id },
+   440→            { employeeId: empJames.id, baseSalary: 7083, overtime: 0, bonuses: 300, deductions: 1133, tax: 2033, netPay: 4217, organizationId: org.id },
+   441→          ],
+   442→        },
+   443→      },
+   444→    })
+   445→
+   446→    const payrollRun2 = await db.payrollRun.create({
+   447→      data: {
+   448→        period: '2025-02', status: 'completed', runDate: new Date('2025-02-28'), totalGross: 148500, totalDeductions: 44550, totalNet: 103950,
+   449→        organizationId: org.id,
+   450→        items: {
+   451→          create: [
+   452→            { employeeId: empSarah.id, baseSalary: 15417, overtime: 0, bonuses: 3000, deductions: 2600, tax: 4708, netPay: 11109, organizationId: org.id },
+   453→            { employeeId: empMarcus.id, baseSalary: 13750, overtime: 750, bonuses: 0, deductions: 2300, tax: 4050, netPay: 8150, organizationId: org.id },
+   454→            { employeeId: empPriya.id, baseSalary: 12083, overtime: 0, bonuses: 2000, deductions: 2000, tax: 3625, netPay: 8458, organizationId: org.id },
+   455→            { employeeId: empJake.id, baseSalary: 11250, overtime: 500, bonuses: 1000, deductions: 1900, tax: 3438, netPay: 7412, organizationId: org.id },
+   456→            { employeeId: empLuna.id, baseSalary: 9583, overtime: 0, bonuses: 500, deductions: 1550, tax: 2775, netPay: 5758, organizationId: org.id },
+   457→            { employeeId: empDavid.id, baseSalary: 11667, overtime: 250, bonuses: 0, deductions: 1900, tax: 3417, netPay: 6600, organizationId: org.id },
+   458→            { employeeId: empEmma.id, baseSalary: 10000, overtime: 400, bonuses: 500, deductions: 1650, tax: 2925, netPay: 6325, organizationId: org.id },
+   459→            { employeeId: empAlex.id, baseSalary: 10833, overtime: 0, bonuses: 0, deductions: 1733, tax: 3108, netPay: 5992, organizationId: org.id },
+   460→            { employeeId: empMia.id, baseSalary: 7917, overtime: 300, bonuses: 500, deductions: 1267, tax: 2425, netPay: 5025, organizationId: org.id },
+   461→            { employeeId: empSophie.id, baseSalary: 6500, overtime: 0, bonuses: 0, deductions: 1040, tax: 1870, netPay: 3590, organizationId: org.id },
+   462→            { employeeId: empJames.id, baseSalary: 7083, overtime: 100, bonuses: 0, deductions: 1133, tax: 2083, netPay: 3967, organizationId: org.id },
+   463→            { employeeId: empOlivia.id, baseSalary: 5417, overtime: 0, bonuses: 200, deductions: 867, tax: 1567, netPay: 3183, organizationId: org.id },
+   464→          ],
+   465→        },
+   466→      },
+   467→    })
+   468→
+   469→    const payrollRun3 = await db.payrollRun.create({
+   470→      data: {
+   471→        period: '2025-03', status: 'draft', runDate: new Date(now.getTime()), totalGross: 152000, totalDeductions: 45600, totalNet: 106400,
+   472→        organizationId: org.id,
+   473→        items: {
+   474→          create: [
+   475→            { employeeId: empSarah.id, baseSalary: 15417, overtime: 0, bonuses: 0, deductions: 2467, tax: 4429, netPay: 8521, organizationId: org.id },
+   476→            { employeeId: empMarcus.id, baseSalary: 13750, overtime: 300, bonuses: 1000, deductions: 2200, tax: 3975, netPay: 8875, organizationId: org.id },
+   477→            { employeeId: empPriya.id, baseSalary: 12083, overtime: 0, bonuses: 0, deductions: 1933, tax: 3488, netPay: 6662, organizationId: org.id },
+   478→            { employeeId: empJake.id, baseSalary: 11250, overtime: 200, bonuses: 0, deductions: 1800, tax: 3255, netPay: 6395, organizationId: org.id },
+   479→            { employeeId: empLuna.id, baseSalary: 9583, overtime: 0, bonuses: 500, deductions: 1533, tax: 2769, netPay: 5781, organizationId: org.id },
+   480→            { employeeId: empDavid.id, baseSalary: 11667, overtime: 0, bonuses: 0, deductions: 1867, tax: 3367, netPay: 6433, organizationId: org.id },
+   481→            { employeeId: empEmma.id, baseSalary: 10000, overtime: 0, bonuses: 800, deductions: 1600, tax: 2900, netPay: 6300, organizationId: org.id },
+   482→            { employeeId: empAlex.id, baseSalary: 10833, overtime: 0, bonuses: 0, deductions: 1733, tax: 3108, netPay: 5992, organizationId: org.id },
+   483→            { employeeId: empMia.id, baseSalary: 7917, overtime: 0, bonuses: 300, deductions: 1267, tax: 2300, netPay: 4650, organizationId: org.id },
+   484→            { employeeId: empRyan.id, baseSalary: 7500, overtime: 0, bonuses: 0, deductions: 1200, tax: 2175, netPay: 4125, organizationId: org.id },
+   485→            { employeeId: empSophie.id, baseSalary: 6500, overtime: 100, bonuses: 0, deductions: 1040, tax: 1895, netPay: 3665, organizationId: org.id },
+   486→            { employeeId: empJames.id, baseSalary: 7083, overtime: 0, bonuses: 200, deductions: 1133, tax: 2067, netPay: 4083, organizationId: org.id },
+   487→            { employeeId: empOlivia.id, baseSalary: 5417, overtime: 0, bonuses: 0, deductions: 867, tax: 1566, netPay: 2984, organizationId: org.id },
+   488→          ],
+   489→        },
+   490→      },
+   491→    })
+   492→
+   493→    void payrollRun1; void payrollRun2; void payrollRun3
+   494→
+   495→    // ============================================
+   496→    // HR: Job Postings
+   497→    // ============================================
+   498→    await Promise.all([
+   499→      db.jobPosting.create({ data: { title: 'Senior Frontend Developer', departmentId: engDept.id, type: 'full-time', location: 'San Francisco, CA', salary_min: 130000, salary_max: 170000, description: 'We are looking for an experienced frontend developer to join our engineering team. You will build cutting-edge web applications using React, TypeScript, and Next.js.', requirements: '5+ years of React/TypeScript experience|Strong understanding of modern CSS and design systems|Experience with Next.js and server-side rendering|Excellent communication skills', status: 'open', postedDate: new Date(now.getTime() - 14 * dayMs), applicants: 23, organizationId: org.id } }),
+
+[showing lines 300-499 of 2432; use offset=500 with limit to continue reading]

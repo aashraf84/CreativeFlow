@@ -1,0 +1,2002 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo, useCallback, useEffect, useRef } from "react"
+     4→import { useERPStore, type Influencer, type Platform } from "@/lib/store"
+     5→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+     6→import { Button } from "@/components/ui/button"
+     7→import { Badge } from "@/components/ui/badge"
+     8→import { Input } from "@/components/ui/input"
+     9→import { Label } from "@/components/ui/label"
+    10→import { Textarea } from "@/components/ui/textarea"
+    11→import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+    12→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+    13→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+    14→import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+    15→import { Progress } from "@/components/ui/progress"
+    16→import { ScrollArea } from "@/components/ui/scroll-area"
+    17→import { Separator } from "@/components/ui/separator"
+    18→import { Checkbox } from "@/components/ui/checkbox"
+    19→import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+    20→import {
+    21→  DropdownMenu,
+    22→  DropdownMenuContent,
+    23→  DropdownMenuItem,
+    24→  DropdownMenuSeparator,
+    25→  DropdownMenuTrigger,
+    26→} from "@/components/ui/dropdown-menu"
+    27→import { motion, AnimatePresence } from "framer-motion"
+    28→import {
+    29→  Search,
+    30→  Plus,
+    31→  Mail,
+    32→  Phone,
+    33→  MoreVertical,
+    34→  Grid3X3,
+    35→  List,
+    36→  Table2,
+    37→  Users,
+    38→  TrendingUp,
+    39→  Eye,
+    40→  UserCheck,
+    41→  ChevronRight,
+    42→  Calendar,
+    43→  DollarSign,
+    44→  Target,
+    45→  Edit3,
+    46→  Trash2,
+    47→  CheckCircle2,
+    48→  Clock,
+    49→  Send,
+    50→  Handshake,
+    51→  XCircle,
+    52→  Sparkles,
+    53→  BarChart3,
+    54→  UserPlus,
+    55→  Activity,
+    56→  ArrowUpDown,
+    57→  ArrowUp,
+    58→  ArrowDown,
+    59→  X,
+    60→  Filter,
+    61→  ChevronDown,
+    62→  AlertTriangle,
+    63→  Instagram,
+    64→  Twitter,
+    65→  Linkedin,
+    66→  Youtube,
+    67→  Facebook,
+    68→  Briefcase,
+    69→  GitCompareArrows,
+    70→  Funnel,
+    71→  UsersRound,
+    72→  CircleDot,
+    73→  Zap,
+    74→  Crown,
+    75→  Star,
+    76→  ExternalLink,
+    77→  Minus,
+    78→  PlusCircle,
+    79→  RotateCcw,
+    80→} from "lucide-react"
+    81→import { format } from "date-fns"
+    82→import { useToast } from "@/hooks/use-toast"
+    83→import { cn } from "@/lib/utils"
+    84→
+    85→// ─── Helpers ─────────────────────────────────────────────────────────────────
+    86→
+    87→function formatFollowers(n: number): string {
+    88→  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M"
+    89→  if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K"
+    90→  return n.toString()
+    91→}
+    92→
+    93→function getInitials(name: string): string {
+    94→  return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
+    95→}
+    96→
+    97→function formatCurrency(n: number | null): string {
+    98→  if (n === null || n === undefined) return "—"
+    99→  return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+   100→}
+   101→
+   102→// ─── Platform / Status configs ───────────────────────────────────────────────
+   103→
+   104→const platformConfig: Record<string, { icon: React.ElementType; color: string; bg: string }> = {
+   105→  instagram: { icon: Instagram, color: "text-pink-600", bg: "bg-pink-50" },
+   106→  facebook: { icon: Facebook, color: "text-blue-600", bg: "bg-blue-50" },
+   107→  twitter: { icon: Twitter, color: "text-sky-500", bg: "bg-sky-50" },
+   108→  linkedin: { icon: Linkedin, color: "text-sky-700", bg: "bg-sky-50" },
+   109→  tiktok: { icon: CircleDot, color: "text-gray-900", bg: "bg-gray-50" },
+   110→  youtube: { icon: Youtube, color: "text-red-600", bg: "bg-red-50" },
+   111→  pinterest: { icon: Star, color: "text-red-500", bg: "bg-red-50" },
+   112→  snapchat: { icon: Zap, color: "text-yellow-500", bg: "bg-yellow-50" },
+   113→}
+   114→
+   115→const statusConfig: Record<string, { label: string; color: string; bg: string; dotColor: string; icon: React.ElementType }> = {
+   116→  prospect: { label: "Prospect", color: "text-gray-700", bg: "bg-gray-100", dotColor: "bg-gray-400", icon: Eye },
+   117→  contacted: { label: "Contacted", color: "text-sky-700", bg: "bg-sky-100", dotColor: "bg-sky-400", icon: Send },
+   118→  negotiating: { label: "Negotiating", color: "text-amber-700", bg: "bg-amber-100", dotColor: "bg-amber-400", icon: Handshake },
+   119→  active: { label: "Active", color: "text-emerald-700", bg: "bg-emerald-100", dotColor: "bg-emerald-400", icon: UserCheck },
+   120→  completed: { label: "Completed", color: "text-teal-700", bg: "bg-teal-100", dotColor: "bg-teal-400", icon: CheckCircle2 },
+   121→  declined: { label: "Declined", color: "text-red-700", bg: "bg-red-100", dotColor: "bg-red-400", icon: XCircle },
+   122→}
+   123→
+   124→const pipelineStages = ["prospect", "contacted", "negotiating", "active", "completed"] as const
+   125→
+   126→const followerTiers = [
+   127→  { key: "nano", label: "Nano", min: 1000, max: 10000, desc: "1K–10K", color: "bg-emerald-200" },
+   128→  { key: "micro", label: "Micro", min: 10000, max: 100000, desc: "10K–100K", color: "bg-emerald-300" },
+   129→  { key: "midTier", label: "Mid-Tier", min: 100000, max: 500000, desc: "100K–500K", color: "bg-emerald-400" },
+   130→  { key: "macro", label: "Macro", min: 500000, max: 1000000, desc: "500K–1M", color: "bg-emerald-500" },
+   131→  { key: "mega", label: "Mega", min: 1000000, max: Infinity, desc: "1M+", color: "bg-emerald-600" },
+   132→]
+   133→
+   134→type ViewMode = "grid" | "list" | "table"
+   135→type SortField = "name" | "followers" | "engagement" | "rate" | "createdAt" | "contractEnd"
+   136→type SortOrder = "asc" | "desc"
+   137→
+   138→// Helper: format username with @ prefix (avoid double @@)
+   139→function formatUsername(username: string): string {
+   140→  return username.startsWith("@") ? username : `@${username}`
+   141→}
+   142→
+   143→interface AnalyticsData {
+   144→  overview: { totalInfluencers: number; activeCollaborations: number; avgEngagement: number; totalReach: number; avgRate: number }
+   145→  byPlatform: { platform: string; count: number; avgEngagement: number; avgRate: number }[]
+   146→  topPerformers: Influencer[]
+   147→  byNiche: { niche: string; count: number }[]
+   148→  contractExpiring: Influencer[]
+   149→  statusDistribution: { status: string; count: number }[]
+   150→  followerTiers: Record<string, { label: string; count: number }>
+   151→}
+   152→
+   153→// ─── Component ───────────────────────────────────────────────────────────────
+   154→
+   155→export function InfluencersView() {
+   156→  const { influencers, clients, campaigns, setInfluencers } = useERPStore()
+   157→  const { toast } = useToast()
+   158→
+   159→  // ── Tab state ──
+   160→  const [activeTab, setActiveTab] = useState("overview")
+   161→
+   162→  // ── Analytics ──
+   163→  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+   164→  const [analyticsLoading, setAnalyticsLoading] = useState(true)
+   165→
+   166→  // ── Search ──
+   167→  const [search, setSearch] = useState("")
+   168→  const [debouncedSearch, setDebouncedSearch] = useState("")
+   169→  const [showSuggestions, setShowSuggestions] = useState(false)
+   170→  const searchRef = useRef<HTMLDivElement>(null)
+   171→  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+   172→
+   173→  // ── Filters ──
+   174→  const [filtersOpen, setFiltersOpen] = useState(true)
+   175→  const [platformFilter, setPlatformFilter] = useState<string>("all")
+   176→  const [statusFilter, setStatusFilter] = useState<string>("all")
+   177→  const [nicheFilter, setNicheFilter] = useState<string>("all")
+   178→  const [clientFilter, setClientFilter] = useState<string>("all")
+   179→  const [campaignFilter, setCampaignFilter] = useState<string>("all")
+   180→  const [minFollowers, setMinFollowers] = useState("")
+   181→  const [maxFollowers, setMaxFollowers] = useState("")
+   182→  const [minEngagement, setMinEngagement] = useState("")
+   183→  const [maxEngagement, setMaxEngagement] = useState("")
+   184→  const [minRate, setMinRate] = useState("")
+   185→  const [maxRate, setMaxRate] = useState("")
+   186→
+   187→  // ── Sort ──
+   188→  const [sortField, setSortField] = useState<SortField>("createdAt")
+   189→  const [sortOrder, setSortOrder] = useState<SortOrder>("desc")
+   190→
+   191→  // ── View mode ──
+   192→  const [viewMode, setViewMode] = useState<ViewMode>("grid")
+   193→
+   194→  // ── Detail panel ──
+   195→  const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null)
+   196→
+   197→  // ── Table selection ──
+   198→  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+   199→
+   200→  // ── Compare tab ──
+   201→  const [compareIds, setCompareIds] = useState<string[]>([])
+   202→
+   203→  // ── Create / Edit dialog ──
+   204→  const [showCreateDialog, setShowCreateDialog] = useState(false)
+   205→  const [editInfluencer, setEditInfluencer] = useState<Influencer | null>(null)
+   206→  const [formData, setFormData] = useState({
+   207→    name: "", username: "", platform: "instagram" as Platform, followers: 0,
+   208→    engagementRate: 0, niche: "", email: "", phone: "", notes: "",
+   209→    status: "prospect", rate: null as number | null,
+   210→    contractStart: "", contractEnd: "", clientId: "", campaignId: "",
+   211→  })
+   212→
+   213→  // ── Delete confirm ──
+   214→  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+   215→
+   216→  // ── Bulk status dialog ──
+   217→  const [bulkStatusDialog, setBulkStatusDialog] = useState(false)
+   218→  const [bulkNewStatus, setBulkNewStatus] = useState("")
+   219→
+   220→  // ── Ctrl+K shortcut ──
+   221→  useEffect(() => {
+   222→    const handler = (e: KeyboardEvent) => {
+   223→      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+   224→        e.preventDefault()
+   225→        setActiveTab("directory")
+   226→        setTimeout(() => {
+   227→          const el = document.getElementById("influencer-search-input")
+   228→          el?.focus()
+   229→        }, 100)
+   230→      }
+   231→    }
+   232→    window.addEventListener("keydown", handler)
+   233→    return () => window.removeEventListener("keydown", handler)
+   234→  }, [])
+   235→
+   236→  // ── Click outside suggestions ──
+   237→  useEffect(() => {
+   238→    const handler = (e: MouseEvent) => {
+   239→      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+   240→        setShowSuggestions(false)
+   241→      }
+   242→    }
+   243→    document.addEventListener("mousedown", handler)
+   244→    return () => document.removeEventListener("mousedown", handler)
+   245→  }, [])
+   246→
+   247→  // ── Debounced search ──
+   248→  useEffect(() => {
+   249→    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+   250→    debounceTimer.current = setTimeout(() => setDebouncedSearch(search), 300)
+   251→    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current) }
+   252→  }, [search])
+   253→
+   254→  // ── Fetch analytics ──
+   255→  useEffect(() => {
+   256→    const fetchAnalytics = async () => {
+   257→      setAnalyticsLoading(true)
+   258→      try {
+   259→        const res = await fetch("/api/influencers/analytics")
+   260→        if (res.ok) {
+   261→          const data = await res.json()
+   262→          setAnalytics(data)
+   263→        } else {
+   264→          // Fallback: compute from store data
+   265→          setAnalytics(computeAnalyticsFallback(influencers))
+   266→        }
+   267→      } catch {
+   268→        setAnalytics(computeAnalyticsFallback(influencers))
+   269→      } finally {
+   270→        setAnalyticsLoading(false)
+   271→      }
+   272→    }
+   273→    fetchAnalytics()
+   274→  }, [influencers])
+   275→
+   276→  // ── Computed: unique niches ──
+   277→  const uniqueNiches = useMemo(() => {
+   278→    const set = new Set<string>()
+   279→    influencers.forEach(i => {
+   280→      if (i.niche) i.niche.split(",").forEach(n => { const t = n.trim(); if (t) set.add(t) })
+   281→    })
+   282→    return Array.from(set).sort()
+   283→  }, [influencers])
+   284→
+   285→  // ── Active filter count ──
+   286→  const activeFilterCount = useMemo(() => {
+   287→    let count = 0
+   288→    if (platformFilter !== "all") count++
+   289→    if (statusFilter !== "all") count++
+   290→    if (nicheFilter !== "all") count++
+   291→    if (clientFilter !== "all") count++
+   292→    if (campaignFilter !== "all") count++
+   293→    if (minFollowers) count++
+   294→    if (maxFollowers) count++
+   295→    if (minEngagement) count++
+   296→    if (maxEngagement) count++
+   297→    if (minRate) count++
+   298→    if (maxRate) count++
+   299→    return count
+   300→  }, [platformFilter, statusFilter, nicheFilter, clientFilter, campaignFilter, minFollowers, maxFollowers, minEngagement, maxEngagement, minRate, maxRate])
+   301→
+   302→  // ── Filtered & sorted influencers ──
+   303→  const filteredInfluencers = useMemo(() => {
+   304→    let result = [...influencers]
+   305→
+   306→    // Search
+   307→    if (debouncedSearch) {
+   308→      const q = debouncedSearch.toLowerCase()
+   309→      result = result.filter(i =>
+   310→        i.name.toLowerCase().includes(q) ||
+   311→        i.username.toLowerCase().includes(q) ||
+   312→        (i.niche && i.niche.toLowerCase().includes(q)) ||
+   313→        (i.email && i.email.toLowerCase().includes(q)) ||
+   314→        (i.notes && i.notes.toLowerCase().includes(q))
+   315→      )
+   316→    }
+   317→
+   318→    // Platform
+   319→    if (platformFilter !== "all") result = result.filter(i => i.platform === platformFilter)
+   320→    // Status
+   321→    if (statusFilter !== "all") result = result.filter(i => i.status === statusFilter)
+   322→    // Niche
+   323→    if (nicheFilter !== "all") result = result.filter(i => i.niche && i.niche.includes(nicheFilter))
+   324→    // Client
+   325→    if (clientFilter !== "all") result = result.filter(i => i.clientId === clientFilter)
+   326→    // Campaign
+   327→    if (campaignFilter !== "all") result = result.filter(i => i.campaignId === campaignFilter)
+   328→    // Followers range
+   329→    if (minFollowers) result = result.filter(i => i.followers >= parseInt(minFollowers))
+   330→    if (maxFollowers) result = result.filter(i => i.followers <= parseInt(maxFollowers))
+   331→    // Engagement range
+   332→    if (minEngagement) result = result.filter(i => i.engagementRate >= parseFloat(minEngagement))
+   333→    if (maxEngagement) result = result.filter(i => i.engagementRate <= parseFloat(maxEngagement))
+   334→    // Rate range
+   335→    if (minRate) result = result.filter(i => i.rate !== null && i.rate >= parseFloat(minRate))
+   336→    if (maxRate) result = result.filter(i => i.rate !== null && i.rate <= parseFloat(maxRate))
+   337→
+   338→    // Sort
+   339→    result.sort((a, b) => {
+   340→      let cmp = 0
+   341→      switch (sortField) {
+   342→        case "name": cmp = a.name.localeCompare(b.name); break
+   343→        case "followers": cmp = a.followers - b.followers; break
+   344→        case "engagement": cmp = a.engagementRate - b.engagementRate; break
+   345→        case "rate": cmp = (a.rate || 0) - (b.rate || 0); break
+   346→        case "contractEnd":
+   347→          const aEnd = a.contractEnd ? new Date(a.contractEnd).getTime() : Infinity
+   348→          const bEnd = b.contractEnd ? new Date(b.contractEnd).getTime() : Infinity
+   349→          cmp = aEnd - bEnd; break
+   350→        default: cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+   351→      }
+   352→      return sortOrder === "asc" ? cmp : -cmp
+   353→    })
+   354→
+   355→    return result
+   356→  }, [influencers, debouncedSearch, platformFilter, statusFilter, nicheFilter, clientFilter, campaignFilter, minFollowers, maxFollowers, minEngagement, maxEngagement, minRate, maxRate, sortField, sortOrder])
+   357→
+   358→  // ── Search suggestions ──
+   359→  const suggestions = useMemo(() => {
+   360→    if (!search || search.length < 2) return []
+   361→    const q = search.toLowerCase()
+   362→    return influencers
+   363→      .filter(i => i.name.toLowerCase().includes(q) || i.username.toLowerCase().includes(q))
+   364→      .slice(0, 6)
+   365→  }, [search, influencers])
+   366→
+   367→  // ── Platform counts ──
+   368→  const platformCounts = useMemo(() => {
+   369→    const m: Record<string, number> = {}
+   370→    influencers.forEach(i => { m[i.platform] = (m[i.platform] || 0) + 1 })
+   371→    return m
+   372→  }, [influencers])
+   373→
+   374→  // ── Status counts ──
+   375→  const statusCounts = useMemo(() => {
+   376→    const m: Record<string, number> = {}
+   377→    influencers.forEach(i => { m[i.status] = (m[i.status] || 0) + 1 })
+   378→    return m
+   379→  }, [influencers])
+   380→
+   381→  // ── Handlers ──
+   382→  const clearAllFilters = useCallback(() => {
+   383→    setPlatformFilter("all")
+   384→    setStatusFilter("all")
+   385→    setNicheFilter("all")
+   386→    setClientFilter("all")
+   387→    setCampaignFilter("all")
+   388→    setMinFollowers("")
+   389→    setMaxFollowers("")
+   390→    setMinEngagement("")
+   391→    setMaxEngagement("")
+   392→    setMinRate("")
+   393→    setMaxRate("")
+   394→    setSearch("")
+   395→  }, [])
+   396→
+   397→  const handleCreateInfluencer = useCallback(async () => {
+   398→    try {
+   399→      const res = await fetch("/api/influencers", {
+   400→        method: "POST",
+   401→        headers: { "Content-Type": "application/json" },
+   402→        body: JSON.stringify({
+   403→          ...formData,
+   404→          followers: Number(formData.followers),
+   405→          engagementRate: Number(formData.engagementRate),
+   406→          rate: formData.rate ? Number(formData.rate) : null,
+   407→          clientId: formData.clientId || null,
+   408→          campaignId: formData.campaignId || null,
+   409→        }),
+   410→      })
+   411→      if (res.ok) {
+   412→        const data = await res.json()
+   413→        setInfluencers([...influencers, data.influencer])
+   414→        setShowCreateDialog(false)
+   415→        resetFormData()
+   416→        toast({ title: "Influencer created", description: `${data.influencer.name} has been added.` })
+   417→      }
+   418→    } catch {
+   419→      toast({ title: "Error", description: "Failed to create influencer", variant: "destructive" })
+   420→    }
+   421→  }, [formData, influencers, setInfluencers, toast])
+   422→
+   423→  const handleUpdateInfluencer = useCallback(async (id: string, updates: Record<string, unknown>) => {
+   424→    try {
+   425→      const res = await fetch(`/api/influencers/${id}`, {
+   426→        method: "PUT",
+   427→        headers: { "Content-Type": "application/json" },
+   428→        body: JSON.stringify(updates),
+   429→      })
+   430→      if (res.ok) {
+   431→        const data = await res.json()
+   432→        setInfluencers(influencers.map(i => i.id === id ? data.influencer : i))
+   433→        if (selectedInfluencer?.id === id) setSelectedInfluencer(data.influencer)
+   434→        toast({ title: "Updated", description: "Influencer updated successfully." })
+   435→      }
+   436→    } catch {
+   437→      toast({ title: "Error", description: "Failed to update influencer", variant: "destructive" })
+   438→    }
+   439→  }, [influencers, setInfluencers, selectedInfluencer, toast])
+   440→
+   441→  const handleDeleteInfluencer = useCallback(async (id: string) => {
+   442→    try {
+   443→      const res = await fetch(`/api/influencers/${id}`, { method: "DELETE" })
+   444→      if (res.ok) {
+   445→        setInfluencers(influencers.filter(i => i.id !== id))
+   446→        setSelectedInfluencer(null)
+   447→        setDeleteConfirm(null)
+   448→        setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n })
+   449→        toast({ title: "Deleted", description: "Influencer removed." })
+   450→      }
+   451→    } catch {
+   452→      toast({ title: "Error", description: "Failed to delete influencer", variant: "destructive" })
+   453→    }
+   454→  }, [influencers, setInfluencers, toast])
+   455→
+   456→  const handleBulkStatusChange = useCallback(async () => {
+   457→    const ids = Array.from(selectedIds)
+   458→    for (const id of ids) {
+   459→      await handleUpdateInfluencer(id, { status: bulkNewStatus })
+   460→    }
+   461→    setSelectedIds(new Set())
+   462→    setBulkStatusDialog(false)
+   463→    setBulkNewStatus("")
+   464→  }, [selectedIds, bulkNewStatus, handleUpdateInfluencer])
+   465→
+   466→  const handleBulkDelete = useCallback(async () => {
+   467→    const ids = Array.from(selectedIds)
+   468→    for (const id of ids) {
+   469→      await fetch(`/api/influencers/${id}`, { method: "DELETE" })
+   470→    }
+   471→    setInfluencers(influencers.filter(i => !selectedIds.has(i.id)))
+   472→    setSelectedIds(new Set())
+   473→    toast({ title: "Deleted", description: `${ids.length} influencers removed.` })
+   474→  }, [selectedIds, influencers, setInfluencers, toast])
+   475→
+   476→  const resetFormData = useCallback(() => {
+   477→    setFormData({
+   478→      name: "", username: "", platform: "instagram", followers: 0,
+   479→      engagementRate: 0, niche: "", email: "", phone: "", notes: "",
+   480→      status: "prospect", rate: null, contractStart: "", contractEnd: "",
+   481→      clientId: "", campaignId: "",
+   482→    })
+   483→    setEditInfluencer(null)
+   484→  }, [])
+   485→
+   486→  const openEditDialog = useCallback((inf: Influencer) => {
+   487→    setEditInfluencer(inf)
+   488→    setFormData({
+   489→      name: inf.name, username: inf.username, platform: inf.platform as Platform,
+   490→      followers: inf.followers, engagementRate: inf.engagementRate,
+   491→      niche: inf.niche || "", email: inf.email || "", phone: inf.phone || "",
+   492→      notes: inf.notes || "", status: inf.status, rate: inf.rate,
+   493→      contractStart: inf.contractStart ? inf.contractStart.split("T")[0] : "",
+   494→      contractEnd: inf.contractEnd ? inf.contractEnd.split("T")[0] : "",
+   495→      clientId: inf.clientId || "", campaignId: inf.campaignId || "",
+   496→    })
+   497→    setShowCreateDialog(true)
+   498→  }, [])
+   499→
+   500→  const handleSaveEdit = useCallback(async () => {
+   501→    if (!editInfluencer) return
+   502→    await handleUpdateInfluencer(editInfluencer.id, {
+   503→      name: formData.name, username: formData.username, platform: formData.platform,
+   504→      followers: Number(formData.followers), engagementRate: Number(formData.engagementRate),
+   505→      niche: formData.niche || null, email: formData.email || null, phone: formData.phone || null,
+   506→      notes: formData.notes || null, status: formData.status, rate: formData.rate ? Number(formData.rate) : null,
+   507→      contractStart: formData.contractStart || null, contractEnd: formData.contractEnd || null,
+   508→      clientId: formData.clientId || null, campaignId: formData.campaignId || null,
+   509→    })
+   510→    setShowCreateDialog(false)
+   511→    resetFormData()
+   512→  }, [editInfluencer, formData, handleUpdateInfluencer, resetFormData])
+   513→
+   514→  const toggleSort = useCallback((field: SortField) => {
+   515→    if (sortField === field) {
+   516→      setSortOrder(prev => prev === "asc" ? "desc" : "asc")
+   517→    } else {
+   518→      setSortField(field)
+   519→      setSortOrder("desc")
+   520→    }
+   521→  }, [sortField])
+   522→
+   523→  const toggleSelect = useCallback((id: string) => {
+   524→    setSelectedIds(prev => {
+   525→      const n = new Set(prev)
+   526→      if (n.has(id)) n.delete(id); else n.add(id)
+   527→      return n
+   528→    })
+   529→  }, [])
+   530→
+   531→  const toggleSelectAll = useCallback(() => {
+   532→    if (selectedIds.size === filteredInfluencers.length) {
+   533→      setSelectedIds(new Set())
+   534→    } else {
+   535→      setSelectedIds(new Set(filteredInfluencers.map(i => i.id)))
+   536→    }
+   537→  }, [selectedIds.size, filteredInfluencers])
+   538→
+   539→  const toggleCompare = useCallback((id: string) => {
+   540→    setCompareIds(prev => {
+   541→      if (prev.includes(id)) return prev.filter(x => x !== id)
+   542→      if (prev.length >= 4) {
+   543→        toast({ title: "Max 4", description: "You can compare up to 4 influencers at a time." })
+   544→        return prev
+   545→      }
+   546→      return [...prev, id]
+   547→    })
+   548→  }, [toast])
+   549→
+   550→  const setFollowerPreset = useCallback((preset: string) => {
+   551→    switch (preset) {
+   552→      case "nano": setMinFollowers("1000"); setMaxFollowers("10000"); break
+   553→      case "micro": setMinFollowers("10000"); setMaxFollowers("100000"); break
+   554→      case "midTier": setMinFollowers("100000"); setMaxFollowers("500000"); break
+   555→      case "macro": setMinFollowers("500000"); setMaxFollowers("1000000"); break
+   556→      case "mega": setMinFollowers("1000000"); setMaxFollowers(""); break
+   557→      default: setMinFollowers(""); setMaxFollowers("")
+   558→    }
+   559→  }, [])
+   560→
+   561→  const setEngagementPreset = useCallback((preset: string) => {
+   562→    switch (preset) {
+   563→      case "low": setMinEngagement(""); setMaxEngagement("2"); break
+   564→      case "medium": setMinEngagement("2"); setMaxEngagement("5"); break
+   565→      case "high": setMinEngagement("5"); setMaxEngagement(""); break
+   566→      default: setMinEngagement(""); setMaxEngagement("")
+   567→    }
+   568→  }, [])
+   569→
+   570→  // ── Fallback analytics computation ──
+   571→  function computeAnalyticsFallback(infs: Influencer[]): AnalyticsData {
+   572→    const total = infs.length
+   573→    const active = infs.filter(i => i.status === "active").length
+   574→    const avgEng = total > 0 ? infs.reduce((s, i) => s + i.engagementRate, 0) / total : 0
+   575→    const totalReach = infs.reduce((s, i) => s + i.followers, 0)
+   576→    const rates = infs.filter(i => i.rate !== null)
+   577→    const avgRate = rates.length > 0 ? rates.reduce((s, i) => s + (i.rate || 0), 0) / rates.length : 0
+   578→
+   579→    const tiers: Record<string, { label: string; count: number }> = {
+   580→      nano: { label: "Nano", count: 0 },
+   581→      micro: { label: "Micro", count: 0 },
+   582→      midTier: { label: "Mid-Tier", count: 0 },
+   583→      macro: { label: "Macro", count: 0 },
+   584→      mega: { label: "Mega", count: 0 },
+   585→    }
+   586→    infs.forEach(i => {
+   587→      if (i.followers >= 1000000) tiers.mega.count++
+   588→      else if (i.followers >= 500000) tiers.macro.count++
+   589→      else if (i.followers >= 100000) tiers.midTier.count++
+   590→      else if (i.followers >= 10000) tiers.micro.count++
+   591→      else tiers.nano.count++
+   592→    })
+   593→
+   594→    const platMap = new Map<string, { count: number; totalEng: number; totalRate: number; rateCount: number }>()
+   595→    infs.forEach(i => {
+   596→      const e = platMap.get(i.platform) || { count: 0, totalEng: 0, totalRate: 0, rateCount: 0 }
+   597→      e.count++; e.totalEng += i.engagementRate
+   598→      if (i.rate) { e.totalRate += i.rate; e.rateCount++ }
+   599→      platMap.set(i.platform, e)
+   600→    })
+   601→
+   602→    const nicheMap = new Map<string, number>()
+   603→    infs.forEach(i => { if (i.niche) i.niche.split(",").forEach(n => { const t = n.trim(); if (t) nicheMap.set(t, (nicheMap.get(t) || 0) + 1) }) })
+   604→
+   605→    const statusMap = new Map<string, number>()
+   606→    infs.forEach(i => { statusMap.set(i.status, (statusMap.get(i.status) || 0) + 1) })
+   607→
+   608→    const now = new Date()
+   609→    const thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+   610→    const expiring = infs.filter(i => i.contractEnd && new Date(i.contractEnd) >= now && new Date(i.contractEnd) <= thirtyDays)
+   611→
+   612→    return {
+   613→      overview: { totalInfluencers: total, activeCollaborations: active, avgEngagement: Math.round(avgEng * 100) / 100, totalReach, avgRate: Math.round(avgRate * 100) / 100 },
+   614→      byPlatform: Array.from(platMap.entries()).map(([p, d]) => ({ platform: p, count: d.count, avgEngagement: d.count > 0 ? d.totalEng / d.count : 0, avgRate: d.rateCount > 0 ? d.totalRate / d.rateCount : 0 })),
+   615→      topPerformers: [...infs].sort((a, b) => b.engagementRate - a.engagementRate).slice(0, 5),
+   616→      byNiche: Array.from(nicheMap.entries()).map(([niche, count]) => ({ niche, count })).sort((a, b) => b.count - a.count),
+   617→      contractExpiring: expiring,
+   618→      statusDistribution: Array.from(statusMap.entries()).map(([status, count]) => ({ status, count })),
+   619→      followerTiers: tiers,
+   620→    }
+   621→  }
+   622→
+   623→  // ─── RENDER ────────────────────────────────────────────────────────────────
+   624→
+   625→  return (
+   626→    <div className="h-full flex flex-col">
+   627→      {/* Header */}
+   628→      <div className="flex items-center justify-between px-6 py-4 border-b bg-white">
+   629→        <div className="flex items-center gap-3">
+   630→          <div className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center">
+   631→            <Users className="h-5 w-5 text-emerald-600" />
+   632→          </div>
+   633→          <div>
+   634→            <h1 className="text-xl font-bold text-gray-900">Influencer CRM</h1>
+   635→            <p className="text-xs text-muted-foreground">{influencers.length} influencers tracked</p>
+   636→          </div>
+   637→        </div>
+   638→        <Button
+   639→          onClick={() => { resetFormData(); setShowCreateDialog(true) }}
+   640→          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+   641→        >
+   642→          <UserPlus className="h-4 w-4" /> Add Influencer
+   643→        </Button>
+   644→      </div>
+   645→
+   646→      {/* Tabs */}
+   647→      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+   648→        <div className="px-6 pt-3 border-b bg-white">
+   649→          <TabsList className="bg-muted/50">
+   650→            <TabsTrigger value="overview" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+   651→              <BarChart3 className="h-3.5 w-3.5" /> Overview
+   652→            </TabsTrigger>
+   653→            <TabsTrigger value="directory" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+   654→              <Users className="h-3.5 w-3.5" /> Directory
+   655→            </TabsTrigger>
+   656→            <TabsTrigger value="pipeline" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+   657→              <Funnel className="h-3.5 w-3.5" /> Pipeline
+   658→            </TabsTrigger>
+   659→            <TabsTrigger value="compare" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
+   660→              <GitCompareArrows className="h-3.5 w-3.5" /> Compare
+   661→              {compareIds.length > 0 && (
+   662→                <Badge className="h-4 min-w-[1rem] px-1 text-[10px] bg-emerald-600 text-white">{compareIds.length}</Badge>
+   663→              )}
+   664→            </TabsTrigger>
+   665→          </TabsList>
+   666→        </div>
+   667→
+   668→        {/* ════════════════════════════════════════════════════════════════════
+   669→            TAB 1: OVERVIEW
+   670→        ════════════════════════════════════════════════════════════════════ */}
+   671→        <TabsContent value="overview" className="flex-1 overflow-y-auto p-6 space-y-6 m-0">
+   672→          {analyticsLoading ? (
+   673→            <div className="flex items-center justify-center h-64">
+   674→              <div className="h-8 w-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+   675→            </div>
+   676→          ) : analytics ? (
+   677→            <>
+   678→              {/* KPI Cards */}
+   679→              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+   680→                {[
+   681→                  { label: "Total Influencers", value: analytics.overview.totalInfluencers, icon: Users, color: "text-emerald-600", bg: "bg-emerald-50" },
+   682→                  { label: "Active Collabs", value: analytics.overview.activeCollaborations, icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50" },
+   683→                  { label: "Avg Engagement", value: `${analytics.overview.avgEngagement}%`, icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50" },
+   684→                  { label: "Total Reach", value: formatFollowers(analytics.overview.totalReach), icon: Eye, color: "text-sky-600", bg: "bg-sky-50" },
+   685→                  { label: "Avg Rate/Post", value: formatCurrency(analytics.overview.avgRate), icon: DollarSign, color: "text-rose-600", bg: "bg-rose-50" },
+   686→                ].map((kpi, idx) => (
+   687→                  <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}>
+   688→                    <Card className="border-0 shadow-sm">
+   689→                      <CardContent className="p-4">
+   690→                        <div className="flex items-center gap-3">
+   691→                          <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", kpi.bg)}>
+   692→                            <kpi.icon className={cn("h-4 w-4", kpi.color)} />
+   693→                          </div>
+   694→                          <div>
+   695→                            <p className="text-xs text-muted-foreground">{kpi.label}</p>
+   696→                            <p className="text-lg font-bold">{kpi.value}</p>
+   697→                          </div>
+   698→                        </div>
+   699→                      </CardContent>
+   700→                    </Card>
+   701→                  </motion.div>
+   702→                ))}
+   703→              </div>
+   704→
+   705→              {/* Follower Tiers & Platform Breakdown */}
+   706→              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   707→                {/* Follower Tiers */}
+   708→                <Card className="border-0 shadow-sm">
+   709→                  <CardHeader className="pb-3">
+   710→                    <CardTitle className="text-sm font-semibold">Follower Tier Distribution</CardTitle>
+   711→                  </CardHeader>
+   712→                  <CardContent className="space-y-3">
+   713→                    {followerTiers.map(tier => {
+   714→                      const count = analytics.followerTiers[tier.key]?.count || 0
+   715→                      const pct = analytics.overview.totalInfluencers > 0 ? Math.round((count / analytics.overview.totalInfluencers) * 100) : 0
+   716→                      return (
+   717→                        <div key={tier.key} className="flex items-center gap-3">
+   718→                          <div className="w-20 text-xs font-medium text-muted-foreground">{tier.label}</div>
+   719→                          <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+   720→                            <motion.div
+   721→                              className={cn("h-full rounded-full", tier.color)}
+   722→                              initial={{ width: 0 }}
+   723→                              animate={{ width: `${pct}%` }}
+   724→                              transition={{ duration: 0.6, delay: 0.1 }}
+   725→                            />
+   726→                          </div>
+   727→                          <div className="w-16 text-right text-xs">
+   728→                            <span className="font-semibold">{count}</span>
+   729→                            <span className="text-muted-foreground ml-1">({pct}%)</span>
+   730→                          </div>
+   731→                        </div>
+   732→                      )
+   733→                    })}
+   734→                  </CardContent>
+   735→                </Card>
+   736→
+   737→                {/* Platform Breakdown */}
+   738→                <Card className="border-0 shadow-sm">
+   739→                  <CardHeader className="pb-3">
+   740→                    <CardTitle className="text-sm font-semibold">Platform Breakdown</CardTitle>
+   741→                  </CardHeader>
+   742→                  <CardContent>
+   743→                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+   744→                      {analytics.byPlatform.map(p => {
+   745→                        const cfg = platformConfig[p.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+   746→                        return (
+   747→                          <div key={p.platform} className="rounded-lg border p-3 hover:shadow-md transition-shadow">
+   748→                            <div className="flex items-center gap-2 mb-2">
+   749→                              <div className={cn("h-7 w-7 rounded-md flex items-center justify-center", cfg.bg)}>
+   750→                                <cfg.icon className={cn("h-3.5 w-3.5", cfg.color)} />
+   751→                              </div>
+   752→                              <span className="text-xs font-medium capitalize">{p.platform}</span>
+   753→                            </div>
+   754→                            <div className="text-lg font-bold">{p.count}</div>
+   755→                            <div className="flex items-center gap-2 mt-1">
+   756→                              <span className="text-[10px] text-muted-foreground">Eng: {p.avgEngagement.toFixed(1)}%</span>
+   757→                              <span className="text-[10px] text-muted-foreground">Rate: {formatCurrency(p.avgRate)}</span>
+   758→                            </div>
+   759→                          </div>
+   760→                        )
+   761→                      })}
+   762→                    </div>
+   763→                  </CardContent>
+   764→                </Card>
+   765→              </div>
+   766→
+   767→              {/* Top Performers & Niche Distribution */}
+   768→              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   769→                {/* Top Performers */}
+   770→                <Card className="border-0 shadow-sm">
+   771→                  <CardHeader className="pb-3">
+   772→                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+   773→                      <Crown className="h-4 w-4 text-amber-500" /> Top Performers
+   774→                    </CardTitle>
+   775→                  </CardHeader>
+   776→                  <CardContent className="space-y-3">
+   777→                    {analytics.topPerformers.map((inf, idx) => {
+   778→                      const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+   779→                      return (
+   780→                        <div key={inf.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer" onClick={() => { setSelectedInfluencer(inf); setActiveTab("directory") }}>
+   781→                          <span className="w-5 text-xs font-bold text-muted-foreground text-center">{idx + 1}</span>
+   782→                          <Avatar className="h-8 w-8">
+   783→                            <AvatarFallback className={cn("text-xs", cfg.bg, cfg.color)}>{getInitials(inf.name)}</AvatarFallback>
+   784→                          </Avatar>
+   785→                          <div className="flex-1 min-w-0">
+   786→                            <p className="text-sm font-medium truncate">{inf.name}</p>
+   787→                            <p className="text-xs text-muted-foreground">{formatUsername(inf.username)}</p>
+   788→                          </div>
+   789→                          <Badge variant="outline" className="text-emerald-700 border-emerald-200 bg-emerald-50">
+   790→                            {inf.engagementRate.toFixed(1)}%
+   791→                          </Badge>
+   792→                        </div>
+   793→                      )
+   794→                    })}
+   795→                  </CardContent>
+   796→                </Card>
+   797→
+   798→                {/* Niche Distribution */}
+   799→                <Card className="border-0 shadow-sm">
+   800→                  <CardHeader className="pb-3">
+   801→                    <CardTitle className="text-sm font-semibold">Niche Distribution</CardTitle>
+   802→                  </CardHeader>
+   803→                  <CardContent className="space-y-2 max-h-72 overflow-y-auto">
+   804→                    {analytics.byNiche.slice(0, 10).map(item => {
+   805→                      const maxCount = analytics.byNiche[0]?.count || 1
+   806→                      const pct = Math.round((item.count / maxCount) * 100)
+   807→                      return (
+   808→                        <div key={item.niche} className="flex items-center gap-3">
+   809→                          <span className="w-24 text-xs truncate font-medium">{item.niche}</span>
+   810→                          <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+   811→                            <div className="h-full bg-emerald-400 rounded" style={{ width: `${pct}%` }} />
+   812→                          </div>
+   813→                          <span className="text-xs font-semibold w-6 text-right">{item.count}</span>
+   814→                        </div>
+   815→                      )
+   816→                    })}
+   817→                    {analytics.byNiche.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No niche data</p>}
+   818→                  </CardContent>
+   819→                </Card>
+   820→              </div>
+   821→
+   822→              {/* Contract Expiring */}
+   823→              {analytics.contractExpiring.length > 0 && (
+   824→                <Card className="border-0 shadow-sm border-l-4 border-l-amber-400">
+   825→                  <CardHeader className="pb-3">
+   826→                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+   827→                      <AlertTriangle className="h-4 w-4 text-amber-500" /> Contracts Expiring Soon
+   828→                    </CardTitle>
+   829→                    <CardDescription className="text-xs">Within the next 30 days</CardDescription>
+   830→                  </CardHeader>
+   831→                  <CardContent>
+   832→                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+   833→                      {analytics.contractExpiring.map(inf => (
+   834→                        <div key={inf.id} className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 cursor-pointer hover:shadow-md transition-shadow" onClick={() => { setSelectedInfluencer(inf); setActiveTab("directory") }}>
+   835→                          <div className="flex items-center gap-2 mb-1">
+   836→                            <span className="text-sm font-medium">{inf.name}</span>
+   837→                            <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300">{statusConfig[inf.status]?.label || inf.status}</Badge>
+   838→                          </div>
+   839→                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+   840→                            <Calendar className="h-3 w-3" />
+   841→                            Ends {inf.contractEnd ? format(new Date(inf.contractEnd), "MMM d, yyyy") : "N/A"}
+   842→                          </div>
+   843→                          {inf.client && <div className="text-xs text-muted-foreground mt-1">Client: {inf.client.name}</div>}
+   844→                        </div>
+   845→                      ))}
+   846→                    </div>
+   847→                  </CardContent>
+   848→                </Card>
+   849→              )}
+   850→            </>
+   851→          ) : null}
+   852→        </TabsContent>
+   853→
+   854→        {/* ════════════════════════════════════════════════════════════════════
+   855→            TAB 2: DIRECTORY
+   856→        ════════════════════════════════════════════════════════════════════ */}
+   857→        <TabsContent value="directory" className="flex-1 overflow-hidden flex m-0">
+   858→          <div className="flex-1 flex flex-col overflow-hidden">
+   859→            {/* Search Bar */}
+   860→            <div className="px-6 pt-4 pb-2 bg-white">
+   861→              <div ref={searchRef} className="relative">
+   862→                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   863→                <Input
+   864→                  id="influencer-search-input"
+   865→                  placeholder="Search by name, username, niche, email..."
+   866→                  value={search}
+   867→                  onChange={e => { setSearch(e.target.value); setShowSuggestions(true) }}
+   868→                  onFocus={() => setShowSuggestions(true)}
+   869→                  className="pl-10 pr-20 h-10"
+   870→                />
+   871→                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+   872→                  {search && (
+   873→                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => { setSearch(""); setShowSuggestions(false) }}>
+   874→                      <X className="h-3 w-3" />
+   875→                    </Button>
+   876→                  )}
+   877→                  <kbd className="hidden sm:inline-flex pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+   878→                    ⌘K
+   879→                  </kbd>
+   880→                </div>
+   881→                {/* Search suggestions */}
+   882→                <AnimatePresence>
+   883→                  {showSuggestions && suggestions.length > 0 && (
+   884→                    <motion.div
+   885→                      initial={{ opacity: 0, y: -4 }}
+   886→                      animate={{ opacity: 1, y: 0 }}
+   887→                      exit={{ opacity: 0, y: -4 }}
+   888→                      className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg overflow-hidden"
+   889→                    >
+   890→                      {suggestions.map(s => (
+   891→                        <button
+   892→                          key={s.id}
+   893→                          className="w-full px-4 py-2 text-left text-sm hover:bg-muted/50 flex items-center gap-2"
+   894→                          onClick={() => { setSearch(s.name); setShowSuggestions(false); setSelectedInfluencer(s) }}
+   895→                        >
+   896→                          <Search className="h-3 w-3 text-muted-foreground" />
+   897→                          <span className="font-medium">{s.name}</span>
+   898→                          <span className="text-muted-foreground">{formatUsername(s.username)}</span>
+   899→                        </button>
+   900→                      ))}
+   901→                    </motion.div>
+   902→                  )}
+   903→                </AnimatePresence>
+   904→              </div>
+   905→            </div>
+   906→
+   907→            {/* Filter Panel */}
+   908→            <div className="px-6 pb-2 bg-white">
+   909→              <button
+   910→                className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground py-1"
+   911→                onClick={() => setFiltersOpen(!filtersOpen)}
+   912→              >
+   913→                <Filter className="h-3.5 w-3.5" />
+   914→                Filters
+   915→                {activeFilterCount > 0 && (
+   916→                  <Badge className="h-4 min-w-[1.25rem] px-1 text-[10px] bg-emerald-600 text-white">{activeFilterCount}</Badge>
+   917→                )}
+   918→                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", filtersOpen && "rotate-180")} />
+   919→              </button>
+   920→              <AnimatePresence>
+   921→                {filtersOpen && (
+   922→                  <motion.div
+   923→                    initial={{ height: 0, opacity: 0 }}
+   924→                    animate={{ height: "auto", opacity: 1 }}
+   925→                    exit={{ height: 0, opacity: 0 }}
+   926→                    transition={{ duration: 0.2 }}
+   927→                    className="overflow-hidden"
+   928→                  >
+   929→                    <div className="py-3 space-y-4">
+   930→                      {/* Platform pills */}
+   931→                      <div>
+   932→                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Platform</Label>
+   933→                        <div className="flex flex-wrap gap-1.5">
+   934→                          <Button size="sm" variant={platformFilter === "all" ? "default" : "outline"} className={cn("h-7 text-xs", platformFilter === "all" && "bg-emerald-600 hover:bg-emerald-700")} onClick={() => setPlatformFilter("all")}>All</Button>
+   935→                          {Object.entries(platformConfig).map(([key, cfg]) => (
+   936→                            <Button key={key} size="sm" variant={platformFilter === key ? "default" : "outline"} className={cn("h-7 text-xs gap-1", platformFilter === key && "bg-emerald-600 hover:bg-emerald-700")} onClick={() => setPlatformFilter(key)}>
+   937→                              <cfg.icon className="h-3 w-3" />
+   938→                              {key}
+   939→                              <span className="text-[10px] opacity-70">{platformCounts[key] || 0}</span>
+   940→                            </Button>
+   941→                          ))}
+   942→                        </div>
+   943→                      </div>
+   944→
+   945→                      {/* Status pills */}
+   946→                      <div>
+   947→                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Status</Label>
+   948→                        <div className="flex flex-wrap gap-1.5">
+   949→                          <Button size="sm" variant={statusFilter === "all" ? "default" : "outline"} className={cn("h-7 text-xs", statusFilter === "all" && "bg-emerald-600 hover:bg-emerald-700")} onClick={() => setStatusFilter("all")}>All</Button>
+   950→                          {Object.entries(statusConfig).map(([key, cfg]) => (
+   951→                            <Button key={key} size="sm" variant={statusFilter === key ? "default" : "outline"} className={cn("h-7 text-xs gap-1", statusFilter === key && "bg-emerald-600 hover:bg-emerald-700")} onClick={() => setStatusFilter(key)}>
+   952→                              <cfg.icon className="h-3 w-3" />
+   953→                              {cfg.label}
+   954→                              <span className="text-[10px] opacity-70">{statusCounts[key] || 0}</span>
+   955→                            </Button>
+   956→                          ))}
+   957→                        </div>
+   958→                      </div>
+   959→
+   960→                      {/* Range filters */}
+   961→                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   962→                        {/* Follower Range */}
+   963→                        <div>
+   964→                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Follower Range</Label>
+   965→                          <div className="flex gap-1.5 items-center mb-1.5">
+   966→                            <Input placeholder="Min" value={minFollowers} onChange={e => setMinFollowers(e.target.value)} className="h-7 text-xs" />
+   967→                            <span className="text-xs text-muted-foreground">–</span>
+   968→                            <Input placeholder="Max" value={maxFollowers} onChange={e => setMaxFollowers(e.target.value)} className="h-7 text-xs" />
+   969→                          </div>
+   970→                          <div className="flex gap-1">
+   971→                            {followerTiers.slice(0, 4).map(t => (
+   972→                              <Button key={t.key} variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={() => setFollowerPreset(t.key)}>{t.label}</Button>
+   973→                            ))}
+   974→                          </div>
+   975→                        </div>
+   976→                        {/* Engagement Range */}
+   977→                        <div>
+   978→                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Engagement %</Label>
+   979→                          <div className="flex gap-1.5 items-center mb-1.5">
+   980→                            <Input placeholder="Min" value={minEngagement} onChange={e => setMinEngagement(e.target.value)} className="h-7 text-xs" />
+   981→                            <span className="text-xs text-muted-foreground">–</span>
+   982→                            <Input placeholder="Max" value={maxEngagement} onChange={e => setMaxEngagement(e.target.value)} className="h-7 text-xs" />
+   983→                          </div>
+   984→                          <div className="flex gap-1">
+   985→                            <Button variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={() => setEngagementPreset("low")}>Low &lt;2%</Button>
+   986→                            <Button variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={() => setEngagementPreset("medium")}>Med 2-5%</Button>
+   987→                            <Button variant="outline" size="sm" className="h-5 text-[10px] px-1.5" onClick={() => setEngagementPreset("high")}>High &gt;5%</Button>
+   988→                          </div>
+   989→                        </div>
+   990→                        {/* Rate Range */}
+   991→                        <div>
+   992→                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Rate Range</Label>
+   993→                          <div className="flex gap-1.5 items-center">
+   994→                            <Input placeholder="Min" value={minRate} onChange={e => setMinRate(e.target.value)} className="h-7 text-xs" />
+   995→                            <span className="text-xs text-muted-foreground">–</span>
+   996→                            <Input placeholder="Max" value={maxRate} onChange={e => setMaxRate(e.target.value)} className="h-7 text-xs" />
+   997→                          </div>
+   998→                        </div>
+   999→                      </div>
+  1000→
+  1001→                      {/* Dropdown filters */}
+  1002→                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  1003→                        <div>
+  1004→                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Niche</Label>
+  1005→                          <Select value={nicheFilter} onValueChange={setNicheFilter}>
+  1006→                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All Niches" /></SelectTrigger>
+  1007→                            <SelectContent>
+  1008→                              <SelectItem value="all">All Niches</SelectItem>
+  1009→                              {uniqueNiches.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+  1010→                            </SelectContent>
+  1011→                          </Select>
+  1012→                        </div>
+  1013→                        <div>
+  1014→                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Client</Label>
+  1015→                          <Select value={clientFilter} onValueChange={setClientFilter}>
+  1016→                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All Clients" /></SelectTrigger>
+  1017→                            <SelectContent>
+  1018→                              <SelectItem value="all">All Clients</SelectItem>
+  1019→                              {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+  1020→                            </SelectContent>
+  1021→                          </Select>
+  1022→                        </div>
+  1023→                        <div>
+  1024→                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Campaign</Label>
+  1025→                          <Select value={campaignFilter} onValueChange={setCampaignFilter}>
+  1026→                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="All Campaigns" /></SelectTrigger>
+  1027→                            <SelectContent>
+  1028→                              <SelectItem value="all">All Campaigns</SelectItem>
+  1029→                              {campaigns.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+  1030→                            </SelectContent>
+  1031→                          </Select>
+  1032→                        </div>
+  1033→                      </div>
+  1034→
+  1035→                      {/* Clear All */}
+  1036→                      {activeFilterCount > 0 && (
+  1037→                        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-1" onClick={clearAllFilters}>
+  1038→                          <RotateCcw className="h-3 w-3" /> Clear All Filters ({activeFilterCount})
+  1039→                        </Button>
+  1040→                      )}
+  1041→                    </div>
+  1042→                  </motion.div>
+  1043→                )}
+  1044→              </AnimatePresence>
+  1045→            </div>
+  1046→
+  1047→            {/* Sort & View Controls */}
+  1048→            <div className="px-6 py-2 border-b bg-white flex items-center justify-between gap-4 flex-wrap">
+  1049→              <div className="flex items-center gap-2">
+  1050→                <Label className="text-xs text-muted-foreground">Sort:</Label>
+  1051→                <Select value={sortField} onValueChange={v => setSortField(v as SortField)}>
+  1052→                  <SelectTrigger className="h-7 w-32 text-xs"><SelectValue /></SelectTrigger>
+  1053→                  <SelectContent>
+  1054→                    <SelectItem value="name">Name</SelectItem>
+  1055→                    <SelectItem value="followers">Followers</SelectItem>
+  1056→                    <SelectItem value="engagement">Engagement</SelectItem>
+  1057→                    <SelectItem value="rate">Rate</SelectItem>
+  1058→                    <SelectItem value="createdAt">Date Added</SelectItem>
+  1059→                    <SelectItem value="contractEnd">Contract End</SelectItem>
+  1060→                  </SelectContent>
+  1061→                </Select>
+  1062→                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}>
+  1063→                  {sortOrder === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+  1064→                </Button>
+  1065→                <span className="text-xs text-muted-foreground">{filteredInfluencers.length} results</span>
+  1066→              </div>
+  1067→              <div className="flex items-center gap-1">
+  1068→                <Button variant={viewMode === "grid" ? "default" : "ghost"} size="sm" className={cn("h-7 w-7 p-0", viewMode === "grid" && "bg-emerald-600 hover:bg-emerald-700")} onClick={() => setViewMode("grid")}>
+  1069→                  <Grid3X3 className="h-3.5 w-3.5" />
+  1070→                </Button>
+  1071→                <Button variant={viewMode === "list" ? "default" : "ghost"} size="sm" className={cn("h-7 w-7 p-0", viewMode === "list" && "bg-emerald-600 hover:bg-emerald-700")} onClick={() => setViewMode("list")}>
+  1072→                  <List className="h-3.5 w-3.5" />
+  1073→                </Button>
+  1074→                <Button variant={viewMode === "table" ? "default" : "ghost"} size="sm" className={cn("h-7 w-7 p-0", viewMode === "table" && "bg-emerald-600 hover:bg-emerald-700")} onClick={() => setViewMode("table")}>
+  1075→                  <Table2 className="h-3.5 w-3.5" />
+  1076→                </Button>
+  1077→              </div>
+  1078→            </div>
+  1079→
+  1080→            {/* Content */}
+  1081→            <div className="flex-1 overflow-y-auto p-6">
+  1082→              {filteredInfluencers.length === 0 ? (
+  1083→                <div className="flex flex-col items-center justify-center h-64 gap-4">
+  1084→                  <Users className="h-12 w-12 text-muted-foreground/30" />
+  1085→                  <div className="text-center">
+  1086→                    <p className="text-sm font-medium text-muted-foreground">No influencers found</p>
+  1087→                    <p className="text-xs text-muted-foreground mt-1">Try adjusting your filters or search terms</p>
+  1088→                  </div>
+  1089→                  {activeFilterCount > 0 && (
+  1090→                    <Button variant="outline" size="sm" onClick={clearAllFilters}>Clear Filters</Button>
+  1091→                  )}
+  1092→                </div>
+  1093→              ) : viewMode === "grid" ? (
+  1094→                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  1095→                  {filteredInfluencers.map(inf => (
+  1096→                    <InfluencerCard
+  1097→                      key={inf.id}
+  1098→                      influencer={inf}
+  1099→                      onSelect={() => setSelectedInfluencer(inf)}
+  1100→                      onEdit={() => openEditDialog(inf)}
+  1101→                      onDelete={() => setDeleteConfirm(inf.id)}
+  1102→                      onUpdateStatus={s => handleUpdateInfluencer(inf.id, { status: s })}
+  1103→                      onCompare={() => toggleCompare(inf.id)}
+  1104→                      isCompared={compareIds.includes(inf.id)}
+  1105→                    />
+  1106→                  ))}
+  1107→                </div>
+  1108→              ) : viewMode === "list" ? (
+  1109→                <div className="space-y-2">
+  1110→                  {filteredInfluencers.map(inf => (
+  1111→                    <InfluencerListItem
+  1112→                      key={inf.id}
+  1113→                      influencer={inf}
+  1114→                      onSelect={() => setSelectedInfluencer(inf)}
+  1115→                      onEdit={() => openEditDialog(inf)}
+  1116→                      onDelete={() => setDeleteConfirm(inf.id)}
+  1117→                      onUpdateStatus={s => handleUpdateInfluencer(inf.id, { status: s })}
+  1118→                      onCompare={() => toggleCompare(inf.id)}
+  1119→                      isCompared={compareIds.includes(inf.id)}
+  1120→                    />
+  1121→                  ))}
+  1122→                </div>
+  1123→              ) : (
+  1124→                /* Table View */
+  1125→                <div>
+  1126→                  {/* Bulk actions */}
+  1127→                  {selectedIds.size > 0 && (
+  1128→                    <div className="mb-3 flex items-center gap-2 p-2 bg-emerald-50 rounded-lg border border-emerald-200">
+  1129→                      <span className="text-xs font-medium text-emerald-700">{selectedIds.size} selected</span>
+  1130→                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setBulkStatusDialog(true)}>Change Status</Button>
+  1131→                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleBulkDelete}>Delete</Button>
+  1132→                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>Cancel</Button>
+  1133→                    </div>
+  1134→                  )}
+  1135→                  <div className="rounded-lg border overflow-hidden">
+  1136→                    <div className="overflow-x-auto">
+  1137→                      <table className="w-full text-xs">
+  1138→                        <thead className="bg-muted/50">
+  1139→                          <tr>
+  1140→                            <th className="p-2 text-left w-8">
+  1141→                              <Checkbox checked={selectedIds.size === filteredInfluencers.length && filteredInfluencers.length > 0} onCheckedChange={toggleSelectAll} />
+  1142→                            </th>
+  1143→                            {[
+  1144→                              { key: "name", label: "Name" },
+  1145→                              { key: "platform", label: "Platform" },
+  1146→                              { key: "followers", label: "Followers" },
+  1147→                              { key: "engagement", label: "Engagement" },
+  1148→                              { key: "rate", label: "Rate" },
+  1149→                              { key: "status", label: "Status" },
+  1150→                              { key: "niche", label: "Niche" },
+  1151→                              { key: "client", label: "Client" },
+  1152→                            ].map(col => (
+  1153→                              <th key={col.key} className="p-2 text-left font-medium text-muted-foreground cursor-pointer hover:text-foreground" onClick={() => { if (["name", "followers", "engagement", "rate"].includes(col.key)) toggleSort(col.key as SortField) }}>
+  1154→                                <span className="flex items-center gap-1">
+  1155→                                  {col.label}
+  1156→                                  {sortField === col.key && (sortOrder === "asc" ? <ArrowUp className="h-2.5 w-2.5" /> : <ArrowDown className="h-2.5 w-2.5" />)}
+  1157→                                </span>
+  1158→                              </th>
+  1159→                            ))}
+  1160→                            <th className="p-2 text-right font-medium text-muted-foreground">Actions</th>
+  1161→                          </tr>
+  1162→                        </thead>
+  1163→                        <tbody>
+  1164→                          {filteredInfluencers.map(inf => {
+  1165→                            const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+  1166→                            const stCfg = statusConfig[inf.status] || statusConfig.prospect
+  1167→                            return (
+  1168→                              <tr key={inf.id} className={cn("border-t hover:bg-muted/30 cursor-pointer", selectedIds.has(inf.id) && "bg-emerald-50/50")} onClick={() => setSelectedInfluencer(inf)}>
+  1169→                                <td className="p-2" onClick={e => e.stopPropagation()}>
+  1170→                                  <Checkbox checked={selectedIds.has(inf.id)} onCheckedChange={() => toggleSelect(inf.id)} />
+  1171→                                </td>
+  1172→                                <td className="p-2">
+  1173→                                  <div className="flex items-center gap-2">
+  1174→                                    <Avatar className="h-6 w-6">
+  1175→                                      <AvatarFallback className={cn("text-[10px]", cfg.bg, cfg.color)}>{getInitials(inf.name)}</AvatarFallback>
+  1176→                                    </Avatar>
+  1177→                                    <div>
+  1178→                                      <div className="font-medium">{inf.name}</div>
+  1179→                                      <div className="text-muted-foreground">{formatUsername(inf.username)}</div>
+  1180→                                    </div>
+  1181→                                  </div>
+  1182→                                </td>
+  1183→                                <td className="p-2 capitalize">{inf.platform}</td>
+  1184→                                <td className="p-2">{formatFollowers(inf.followers)}</td>
+  1185→                                <td className="p-2">{inf.engagementRate.toFixed(1)}%</td>
+  1186→                                <td className="p-2">{formatCurrency(inf.rate)}</td>
+  1187→                                <td className="p-2"><Badge variant="outline" className={cn("text-[10px]", stCfg.bg, stCfg.color)}>{stCfg.label}</Badge></td>
+  1188→                                <td className="p-2 max-w-[100px] truncate">{inf.niche || "—"}</td>
+  1189→                                <td className="p-2">{inf.client?.name || "—"}</td>
+  1190→                                <td className="p-2 text-right" onClick={e => e.stopPropagation()}>
+  1191→                                  <DropdownMenu>
+  1192→                                    <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-6 w-6 p-0"><MoreVertical className="h-3 w-3" /></Button></DropdownMenuTrigger>
+  1193→                                    <DropdownMenuContent align="end">
+  1194→                                      <DropdownMenuItem onClick={() => setSelectedInfluencer(inf)}><Eye className="h-3 w-3 mr-2" /> View</DropdownMenuItem>
+  1195→                                      <DropdownMenuItem onClick={() => openEditDialog(inf)}><Edit3 className="h-3 w-3 mr-2" /> Edit</DropdownMenuItem>
+  1196→                                      <DropdownMenuItem onClick={() => toggleCompare(inf.id)}><GitCompareArrows className="h-3 w-3 mr-2" /> {compareIds.includes(inf.id) ? "Remove from Compare" : "Add to Compare"}</DropdownMenuItem>
+  1197→                                      <DropdownMenuSeparator />
+  1198→                                      <DropdownMenuItem className="text-red-600" onClick={() => setDeleteConfirm(inf.id)}><Trash2 className="h-3 w-3 mr-2" /> Delete</DropdownMenuItem>
+  1199→                                    </DropdownMenuContent>
+  1200→                                  </DropdownMenu>
+  1201→                                </td>
+  1202→                              </tr>
+  1203→                            )
+  1204→                          })}
+  1205→                        </tbody>
+  1206→                      </table>
+  1207→                    </div>
+  1208→                  </div>
+  1209→                </div>
+  1210→              )}
+  1211→            </div>
+  1212→          </div>
+  1213→
+  1214→          {/* Detail Panel (Sheet) */}
+  1215→          <Sheet open={!!selectedInfluencer} onOpenChange={open => { if (!open) setSelectedInfluencer(null) }}>
+  1216→            <SheetContent className="w-full sm:w-[480px] p-0 overflow-y-auto">
+  1217→              {selectedInfluencer && (
+  1218→                <InfluencerDetailPanel
+  1219→                  influencer={selectedInfluencer}
+  1220→                  onClose={() => setSelectedInfluencer(null)}
+  1221→                  onEdit={() => openEditDialog(selectedInfluencer)}
+  1222→                  onDelete={() => { setDeleteConfirm(selectedInfluencer.id); setSelectedInfluencer(null) }}
+  1223→                  onUpdateStatus={s => handleUpdateInfluencer(selectedInfluencer.id, { status: s })}
+  1224→                  onUpdateNotes={n => handleUpdateInfluencer(selectedInfluencer.id, { notes: n })}
+  1225→                />
+  1226→              )}
+  1227→            </SheetContent>
+  1228→          </Sheet>
+  1229→        </TabsContent>
+  1230→
+  1231→        {/* ════════════════════════════════════════════════════════════════════
+  1232→            TAB 3: PIPELINE
+  1233→        ════════════════════════════════════════════════════════════════════ */}
+  1234→        <TabsContent value="pipeline" className="flex-1 overflow-y-auto p-6 space-y-6 m-0">
+  1235→          {/* Funnel Header */}
+  1236→          <div className="flex items-center gap-4 flex-wrap">
+  1237→            {pipelineStages.map((stage, idx) => {
+  1238→              const cfg = statusConfig[stage]
+  1239→              const count = influencers.filter(i => i.status === stage).length
+  1240→              const total = influencers.length
+  1241→              const pct = total > 0 ? Math.round((count / total) * 100) : 0
+  1242→              return (
+  1243→                <React.Fragment key={stage}>
+  1244→                  <button
+  1245→                    className={cn(
+  1246→                      "flex flex-col items-center gap-1 px-4 py-3 rounded-lg border-2 transition-all min-w-[100px]",
+  1247→                      statusFilter === stage ? "border-emerald-500 bg-emerald-50" : "border-transparent bg-muted/50 hover:bg-muted"
+  1248→                    )}
+  1249→                    onClick={() => setStatusFilter(statusFilter === stage ? "all" : stage)}
+  1250→                  >
+  1251→                    <cfg.icon className={cn("h-5 w-5", cfg.color)} />
+  1252→                    <span className="text-xs font-medium">{cfg.label}</span>
+  1253→                    <span className="text-lg font-bold">{count}</span>
+  1254→                    <span className="text-[10px] text-muted-foreground">{pct}%</span>
+  1255→                  </button>
+  1256→                  {idx < pipelineStages.length - 1 && (
+  1257→                    <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+  1258→                  )}
+  1259→                </React.Fragment>
+  1260→              )
+  1261→            })}
+  1262→          </div>
+  1263→
+  1264→          {/* Conversion rates */}
+  1265→          <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground">
+  1266→            {pipelineStages.slice(0, -1).map((stage, idx) => {
+  1267→              const currentCount = influencers.filter(i => i.status === stage).length
+  1268→              const nextStage = pipelineStages[idx + 1]
+  1269→              const nextCount = influencers.filter(i => i.status === nextStage).length
+  1270→              const convRate = currentCount > 0 ? Math.round((nextCount / currentCount) * 100) : 0
+  1271→              return (
+  1272→                <span key={stage} className="flex items-center gap-1">
+  1273→                  {statusConfig[stage].label} → {statusConfig[nextStage].label}: <span className="font-semibold text-foreground">{convRate}%</span>
+  1274→                </span>
+  1275→              )
+  1276→            })}
+  1277→            {influencers.filter(i => i.status === "declined").length > 0 && (
+  1278→              <span className="flex items-center gap-1 ml-auto text-red-600">
+  1279→                <XCircle className="h-3 w-3" /> Declined: {influencers.filter(i => i.status === "declined").length}
+  1280→              </span>
+  1281→            )}
+  1282→          </div>
+  1283→
+  1284→          <Separator />
+  1285→
+  1286→          {/* Pipeline Cards */}
+  1287→          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+  1288→            {pipelineStages.map(stage => {
+  1289→              const cfg = statusConfig[stage]
+  1290→              const stageInfluencers = influencers.filter(i => i.status === stage)
+  1291→              const displayInfluencers = statusFilter !== "all" && statusFilter !== stage ? [] : stageInfluencers
+  1292→              return (
+  1293→                <div key={stage} className="space-y-3">
+  1294→                  <div className="flex items-center gap-2">
+  1295→                    <div className={cn("h-2 w-2 rounded-full", cfg.dotColor)} />
+  1296→                    <span className="text-sm font-semibold">{cfg.label}</span>
+  1297→                    <Badge variant="outline" className="text-[10px]">{stageInfluencers.length}</Badge>
+  1298→                  </div>
+  1299→                  <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+  1300→                    {displayInfluencers.map(inf => {
+  1301→                      const pCfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+  1302→                      return (
+  1303→                        <Card key={inf.id} className="border shadow-none">
+  1304→                          <CardContent className="p-3">
+  1305→                            <div className="flex items-center gap-2 mb-2">
+  1306→                              <Avatar className="h-7 w-7">
+  1307→                                <AvatarFallback className={cn("text-[10px]", pCfg.bg, pCfg.color)}>{getInitials(inf.name)}</AvatarFallback>
+  1308→                              </Avatar>
+  1309→                              <div className="min-w-0 flex-1">
+  1310→                                <p className="text-xs font-medium truncate">{inf.name}</p>
+  1311→                                <p className="text-[10px] text-muted-foreground">{formatUsername(inf.username)}</p>
+  1312→                              </div>
+  1313→                            </div>
+  1314→                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-2">
+  1315→                              <span>{formatFollowers(inf.followers)}</span>
+  1316→                              <span>·</span>
+  1317→                              <span>{inf.engagementRate.toFixed(1)}%</span>
+  1318→                              {inf.rate && <><span>·</span><span>{formatCurrency(inf.rate)}</span></>}
+  1319→                            </div>
+  1320→                            {/* Move buttons */}
+  1321→                            <div className="flex gap-1">
+  1322→                              {stage !== "prospect" && (
+  1323→                                <Button size="sm" variant="outline" className="h-5 text-[10px] px-1.5" onClick={() => handleUpdateInfluencer(inf.id, { status: pipelineStages[pipelineStages.indexOf(stage) - 1] })}>
+  1324→                                  ← Back
+  1325→                                </Button>
+  1326→                              )}
+  1327→                              {stage !== "completed" && (
+  1328→                                <Button size="sm" variant="outline" className="h-5 text-[10px] px-1.5" onClick={() => handleUpdateInfluencer(inf.id, { status: pipelineStages[pipelineStages.indexOf(stage) + 1] })}>
+  1329→                                  Next →
+  1330→                                </Button>
+  1331→                              )}
+  1332→                              {stage !== "declined" && (
+  1333→                                <Button size="sm" variant="ghost" className="h-5 text-[10px] px-1.5 text-red-500 hover:text-red-700" onClick={() => handleUpdateInfluencer(inf.id, { status: "declined" })}>
+  1334→                                  Decline
+  1335→                                </Button>
+  1336→                              )}
+  1337→                            </div>
+  1338→                          </CardContent>
+  1339→                        </Card>
+  1340→                      )
+  1341→                    })}
+  1342→                    {displayInfluencers.length === 0 && (
+  1343→                      <p className="text-xs text-muted-foreground text-center py-4">No influencers</p>
+  1344→                    )}
+  1345→                  </div>
+  1346→                </div>
+  1347→              )
+  1348→            })}
+  1349→          </div>
+  1350→        </TabsContent>
+  1351→
+  1352→        {/* ════════════════════════════════════════════════════════════════════
+  1353→            TAB 4: COMPARE
+  1354→        ════════════════════════════════════════════════════════════════════ */}
+  1355→        <TabsContent value="compare" className="flex-1 overflow-y-auto p-6 space-y-6 m-0">
+  1356→          <div className="flex items-center justify-between">
+  1357→            <div>
+  1358→              <h2 className="text-lg font-semibold">Influencer Comparison</h2>
+  1359→              <p className="text-xs text-muted-foreground">Select up to 4 influencers to compare side by side</p>
+  1360→            </div>
+  1361→            {compareIds.length > 0 && (
+  1362→              <Button variant="outline" size="sm" onClick={() => setCompareIds([])}>Clear Comparison</Button>
+  1363→            )}
+  1364→          </div>
+  1365→
+  1366→          {/* Influencer selector */}
+  1367→          <div className="flex flex-wrap gap-2">
+  1368→            {compareIds.map(id => {
+  1369→              const inf = influencers.find(i => i.id === id)
+  1370→              if (!inf) return null
+  1371→              return (
+  1372→                <Badge key={id} variant="secondary" className="gap-1 py-1 px-2">
+  1373→                  {inf.name}
+  1374→                  <button className="hover:text-red-500" onClick={() => toggleCompare(id)}><X className="h-3 w-3" /></button>
+  1375→                </Badge>
+  1376→              )
+  1377→            })}
+  1378→            {compareIds.length < 4 && (
+  1379→              <Select onValueChange={v => { if (!compareIds.includes(v)) toggleCompare(v) }}>
+  1380→                <SelectTrigger className="h-7 w-40 text-xs"><SelectValue placeholder="+ Add influencer" /></SelectTrigger>
+  1381→                <SelectContent>
+  1382→                  {influencers.filter(i => !compareIds.includes(i.id)).map(i => (
+  1383→                    <SelectItem key={i.id} value={i.id}>{i.name} ({formatUsername(i.username)})</SelectItem>
+  1384→                  ))}
+  1385→                </SelectContent>
+  1386→              </Select>
+  1387→            )}
+  1388→          </div>
+  1389→
+  1390→          {/* Comparison Table */}
+  1391→          {compareIds.length >= 2 ? (
+  1392→            <Card className="border-0 shadow-sm overflow-hidden">
+  1393→              <div className="overflow-x-auto">
+  1394→                <table className="w-full text-sm">
+  1395→                  <thead className="bg-muted/50">
+  1396→                    <tr>
+  1397→                      <th className="p-3 text-left font-medium text-muted-foreground w-36">Metric</th>
+  1398→                      {compareIds.map(id => {
+  1399→                        const inf = influencers.find(i => i.id === id)
+  1400→                        if (!inf) return null
+  1401→                        const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+  1402→                        return (
+  1403→                          <th key={id} className="p-3 text-center">
+  1404→                            <div className="flex flex-col items-center gap-1">
+  1405→                              <Avatar className="h-10 w-10">
+  1406→                                <AvatarFallback className={cn("text-xs", cfg.bg, cfg.color)}>{getInitials(inf.name)}</AvatarFallback>
+  1407→                              </Avatar>
+  1408→                              <span className="font-medium">{inf.name}</span>
+  1409→                              <span className="text-xs text-muted-foreground">{formatUsername(inf.username)}</span>
+  1410→                            </div>
+  1411→                          </th>
+  1412→                        )
+  1413→                      })}
+  1414→                    </tr>
+  1415→                  </thead>
+  1416→                  <tbody>
+  1417→                    {(() => {
+  1418→                      const comparedInfs = compareIds.map(id => influencers.find(i => i.id === id)).filter(Boolean) as Influencer[]
+  1419→                      const maxFollowers = Math.max(...comparedInfs.map(i => i.followers))
+  1420→                      const maxEngagement = Math.max(...comparedInfs.map(i => i.engagementRate))
+  1421→                      const maxRate = Math.max(...comparedInfs.map(i => i.rate || 0))
+  1422→
+  1423→                      const rows: { label: string; icon: React.ElementType; values: { display: string; barPct: number }[] }[] = [
+  1424→                        {
+  1425→                          label: "Platform", icon: CircleDot,
+  1426→                          values: comparedInfs.map(i => ({ display: i.platform.charAt(0).toUpperCase() + i.platform.slice(1), barPct: 0 }))
+  1427→                        },
+  1428→                        {
+  1429→                          label: "Followers", icon: Users,
+  1430→                          values: comparedInfs.map(i => ({ display: formatFollowers(i.followers), barPct: maxFollowers > 0 ? (i.followers / maxFollowers) * 100 : 0 }))
+  1431→                        },
+  1432→                        {
+  1433→                          label: "Engagement Rate", icon: TrendingUp,
+  1434→                          values: comparedInfs.map(i => ({ display: `${i.engagementRate.toFixed(1)}%`, barPct: maxEngagement > 0 ? (i.engagementRate / maxEngagement) * 100 : 0 }))
+  1435→                        },
+  1436→                        {
+  1437→                          label: "Rate per Post", icon: DollarSign,
+  1438→                          values: comparedInfs.map(i => ({ display: formatCurrency(i.rate), barPct: maxRate > 0 ? ((i.rate || 0) / maxRate) * 100 : 0 }))
+  1439→                        },
+  1440→                        {
+  1441→                          label: "Niche", icon: Target,
+  1442→                          values: comparedInfs.map(i => ({ display: i.niche || "—", barPct: 0 }))
+  1443→                        },
+  1444→                        {
+  1445→                          label: "Status", icon: Activity,
+  1446→                          values: comparedInfs.map(i => ({ display: statusConfig[i.status]?.label || i.status, barPct: 0 }))
+  1447→                        },
+  1448→                        {
+  1449→                          label: "Client", icon: Briefcase,
+  1450→                          values: comparedInfs.map(i => ({ display: i.client?.name || "—", barPct: 0 }))
+  1451→                        },
+  1452→                        {
+  1453→                          label: "Contract", icon: Calendar,
+  1454→                          values: comparedInfs.map(i => ({
+  1455→                            display: i.contractStart && i.contractEnd
+  1456→                              ? `${format(new Date(i.contractStart), "MMM d")} – ${format(new Date(i.contractEnd), "MMM d, yyyy")}`
+  1457→                              : "—",
+  1458→                            barPct: 0
+  1459→                          }))
+  1460→                        },
+  1461→                        {
+  1462→                          label: "Cost per 1K Followers", icon: DollarSign,
+  1463→                          values: comparedInfs.map(i => {
+  1464→                            const cpk = i.rate && i.followers > 0 ? (i.rate / i.followers * 1000) : 0
+  1465→                            const maxCpk = Math.max(...comparedInfs.map(ci => ci.rate && ci.followers > 0 ? ci.rate / ci.followers * 1000 : 0))
+  1466→                            return { display: cpk > 0 ? `$${cpk.toFixed(2)}` : "—", barPct: maxCpk > 0 ? (cpk / maxCpk) * 100 : 0 }
+  1467→                          })
+  1468→                        },
+  1469→                        {
+  1470→                          label: "Engagement Score", icon: Sparkles,
+  1471→                          values: comparedInfs.map(i => {
+  1472→                            const score = i.followers * i.engagementRate / 100
+  1473→                            const maxScore = Math.max(...comparedInfs.map(ci => ci.followers * ci.engagementRate / 100))
+  1474→                            return { display: formatFollowers(Math.round(score)), barPct: maxScore > 0 ? (score / maxScore) * 100 : 0 }
+  1475→                          })
+  1476→                        },
+  1477→                      ]
+  1478→
+  1479→                      return rows.map(row => (
+  1480→                        <tr key={row.label} className="border-t">
+  1481→                          <td className="p-3 font-medium text-muted-foreground">
+  1482→                            <div className="flex items-center gap-2">
+  1483→                              <row.icon className="h-3.5 w-3.5" />
+  1484→                              {row.label}
+  1485→                            </div>
+  1486→                          </td>
+  1487→                          {row.values.map((val, idx) => (
+  1488→                            <td key={idx} className="p-3 text-center">
+  1489→                              <div className="font-medium">{val.display}</div>
+  1490→                              {val.barPct > 0 && (
+  1491→                                <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden max-w-[120px] mx-auto">
+  1492→                                  <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${val.barPct}%` }} />
+  1493→                                </div>
+  1494→                              )}
+  1495→                            </td>
+  1496→                          ))}
+  1497→                        </tr>
+  1498→                      ))
+  1499→                    })()}
+  1500→                  </tbody>
+  1501→                </table>
+  1502→              </div>
+  1503→            </Card>
+  1504→          ) : (
+  1505→            <div className="flex flex-col items-center justify-center h-64 gap-4">
+  1506→              <GitCompareArrows className="h-12 w-12 text-muted-foreground/30" />
+  1507→              <div className="text-center">
+  1508→                <p className="text-sm font-medium text-muted-foreground">Select at least 2 influencers to compare</p>
+  1509→                <p className="text-xs text-muted-foreground mt-1">Use the Directory tab to find and add influencers</p>
+  1510→              </div>
+  1511→              <Button variant="outline" size="sm" onClick={() => setActiveTab("directory")}>Go to Directory</Button>
+  1512→            </div>
+  1513→          )}
+  1514→        </TabsContent>
+  1515→      </Tabs>
+  1516→
+  1517→      {/* ─── Create / Edit Dialog ──────────────────────────────────────────── */}
+  1518→      <Dialog open={showCreateDialog} onOpenChange={open => { if (!open) { setShowCreateDialog(false); resetFormData() } }}>
+  1519→        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+  1520→          <DialogHeader>
+  1521→            <DialogTitle>{editInfluencer ? "Edit Influencer" : "Add Influencer"}</DialogTitle>
+  1522→            <DialogDescription>{editInfluencer ? "Update influencer details" : "Add a new influencer to track"}</DialogDescription>
+  1523→          </DialogHeader>
+  1524→          <div className="grid gap-4 py-4">
+  1525→            <div className="grid grid-cols-2 gap-4">
+  1526→              <div className="space-y-2">
+  1527→                <Label className="text-xs">Name *</Label>
+  1528→                <Input value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="h-8 text-sm" />
+  1529→              </div>
+  1530→              <div className="space-y-2">
+  1531→                <Label className="text-xs">Username *</Label>
+  1532→                <Input value={formData.username} onChange={e => setFormData(p => ({ ...p, username: e.target.value }))} className="h-8 text-sm" />
+  1533→              </div>
+  1534→            </div>
+  1535→            <div className="grid grid-cols-2 gap-4">
+  1536→              <div className="space-y-2">
+  1537→                <Label className="text-xs">Platform</Label>
+  1538→                <Select value={formData.platform} onValueChange={v => setFormData(p => ({ ...p, platform: v as Platform }))}>
+  1539→                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+  1540→                  <SelectContent>
+  1541→                    {Object.keys(platformConfig).map(p => <SelectItem key={p} value={p} className="capitalize">{p}</SelectItem>)}
+  1542→                  </SelectContent>
+  1543→                </Select>
+  1544→              </div>
+  1545→              <div className="space-y-2">
+  1546→                <Label className="text-xs">Status</Label>
+  1547→                <Select value={formData.status} onValueChange={v => setFormData(p => ({ ...p, status: v }))}>
+  1548→                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+  1549→                  <SelectContent>
+  1550→                    {Object.entries(statusConfig).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+  1551→                  </SelectContent>
+  1552→                </Select>
+  1553→              </div>
+  1554→            </div>
+  1555→            <div className="grid grid-cols-3 gap-4">
+  1556→              <div className="space-y-2">
+  1557→                <Label className="text-xs">Followers</Label>
+  1558→                <Input type="number" value={formData.followers} onChange={e => setFormData(p => ({ ...p, followers: parseInt(e.target.value) || 0 }))} className="h-8 text-sm" />
+  1559→              </div>
+  1560→              <div className="space-y-2">
+  1561→                <Label className="text-xs">Engagement %</Label>
+  1562→                <Input type="number" step="0.1" value={formData.engagementRate} onChange={e => setFormData(p => ({ ...p, engagementRate: parseFloat(e.target.value) || 0 }))} className="h-8 text-sm" />
+  1563→              </div>
+  1564→              <div className="space-y-2">
+  1565→                <Label className="text-xs">Rate/Post</Label>
+  1566→                <Input type="number" value={formData.rate || ""} onChange={e => setFormData(p => ({ ...p, rate: e.target.value ? parseFloat(e.target.value) : null }))} className="h-8 text-sm" />
+  1567→              </div>
+  1568→            </div>
+  1569→            <div className="space-y-2">
+  1570→              <Label className="text-xs">Niche</Label>
+  1571→              <Input value={formData.niche} onChange={e => setFormData(p => ({ ...p, niche: e.target.value }))} placeholder="e.g. Fashion, Beauty, Tech" className="h-8 text-sm" />
+  1572→            </div>
+  1573→            <div className="grid grid-cols-2 gap-4">
+  1574→              <div className="space-y-2">
+  1575→                <Label className="text-xs">Email</Label>
+  1576→                <Input value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} className="h-8 text-sm" />
+  1577→              </div>
+  1578→              <div className="space-y-2">
+  1579→                <Label className="text-xs">Phone</Label>
+  1580→                <Input value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} className="h-8 text-sm" />
+  1581→              </div>
+  1582→            </div>
+  1583→            <div className="grid grid-cols-2 gap-4">
+  1584→              <div className="space-y-2">
+  1585→                <Label className="text-xs">Contract Start</Label>
+  1586→                <Input type="date" value={formData.contractStart} onChange={e => setFormData(p => ({ ...p, contractStart: e.target.value }))} className="h-8 text-sm" />
+  1587→              </div>
+  1588→              <div className="space-y-2">
+  1589→                <Label className="text-xs">Contract End</Label>
+  1590→                <Input type="date" value={formData.contractEnd} onChange={e => setFormData(p => ({ ...p, contractEnd: e.target.value }))} className="h-8 text-sm" />
+  1591→              </div>
+  1592→            </div>
+  1593→            <div className="grid grid-cols-2 gap-4">
+  1594→              <div className="space-y-2">
+  1595→                <Label className="text-xs">Client</Label>
+  1596→                <Select value={formData.clientId || "none"} onValueChange={v => setFormData(p => ({ ...p, clientId: v === "none" ? "" : v }))}>
+  1597→                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select client" /></SelectTrigger>
+  1598→                  <SelectContent>
+  1599→                    <SelectItem value="none">None</SelectItem>
+  1600→                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+  1601→                  </SelectContent>
+  1602→                </Select>
+  1603→              </div>
+  1604→              <div className="space-y-2">
+  1605→                <Label className="text-xs">Campaign</Label>
+  1606→                <Select value={formData.campaignId || "none"} onValueChange={v => setFormData(p => ({ ...p, campaignId: v === "none" ? "" : v }))}>
+  1607→                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select campaign" /></SelectTrigger>
+  1608→                  <SelectContent>
+  1609→                    <SelectItem value="none">None</SelectItem>
+  1610→                    {campaigns.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+  1611→                  </SelectContent>
+  1612→                </Select>
+  1613→              </div>
+  1614→            </div>
+  1615→            <div className="space-y-2">
+  1616→              <Label className="text-xs">Notes</Label>
+  1617→              <Textarea value={formData.notes} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={3} className="text-sm" />
+  1618→            </div>
+  1619→          </div>
+  1620→          <DialogFooter>
+  1621→            <Button variant="outline" onClick={() => { setShowCreateDialog(false); resetFormData() }}>Cancel</Button>
+  1622→            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={editInfluencer ? handleSaveEdit : handleCreateInfluencer} disabled={!formData.name || !formData.username}>
+  1623→              {editInfluencer ? "Save Changes" : "Add Influencer"}
+  1624→            </Button>
+  1625→          </DialogFooter>
+  1626→        </DialogContent>
+  1627→      </Dialog>
+  1628→
+  1629→      {/* ─── Delete Confirmation ────────────────────────────────────────────── */}
+  1630→      <Dialog open={!!deleteConfirm} onOpenChange={open => { if (!open) setDeleteConfirm(null) }}>
+  1631→        <DialogContent className="max-w-sm">
+  1632→          <DialogHeader>
+  1633→            <DialogTitle>Delete Influencer</DialogTitle>
+  1634→            <DialogDescription>Are you sure? This action cannot be undone.</DialogDescription>
+  1635→          </DialogHeader>
+  1636→          <DialogFooter>
+  1637→            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+  1638→            <Button variant="destructive" onClick={() => deleteConfirm && handleDeleteInfluencer(deleteConfirm)}>Delete</Button>
+  1639→          </DialogFooter>
+  1640→        </DialogContent>
+  1641→      </Dialog>
+  1642→
+  1643→      {/* ─── Bulk Status Dialog ────────────────────────────────────────────── */}
+  1644→      <Dialog open={bulkStatusDialog} onOpenChange={setBulkStatusDialog}>
+  1645→        <DialogContent className="max-w-sm">
+  1646→          <DialogHeader>
+  1647→            <DialogTitle>Change Status</DialogTitle>
+  1648→            <DialogDescription>Update status for {selectedIds.size} selected influencers</DialogDescription>
+  1649→          </DialogHeader>
+  1650→          <Select value={bulkNewStatus} onValueChange={setBulkNewStatus}>
+  1651→            <SelectTrigger className="h-9"><SelectValue placeholder="Select new status" /></SelectTrigger>
+  1652→            <SelectContent>
+  1653→              {Object.entries(statusConfig).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+  1654→            </SelectContent>
+  1655→          </Select>
+  1656→          <DialogFooter>
+  1657→            <Button variant="outline" onClick={() => setBulkStatusDialog(false)}>Cancel</Button>
+  1658→            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleBulkStatusChange} disabled={!bulkNewStatus}>Apply</Button>
+  1659→          </DialogFooter>
+  1660→        </DialogContent>
+  1661→      </Dialog>
+  1662→    </div>
+  1663→  )
+  1664→}
+  1665→
+  1666→// ─── Sub-Components ──────────────────────────────────────────────────────────
+  1667→
+  1668→function InfluencerCard({
+  1669→  influencer,
+  1670→  onSelect,
+  1671→  onEdit,
+  1672→  onDelete,
+  1673→  onUpdateStatus,
+  1674→  onCompare,
+  1675→  isCompared,
+  1676→}: {
+  1677→  influencer: Influencer
+  1678→  onSelect: () => void
+  1679→  onEdit: () => void
+  1680→  onDelete: () => void
+  1681→  onUpdateStatus: (status: string) => void
+  1682→  onCompare: () => void
+  1683→  isCompared: boolean
+  1684→}) {
+  1685→  const cfg = platformConfig[influencer.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+  1686→  const stCfg = statusConfig[influencer.status] || statusConfig.prospect
+  1687→
+  1688→  return (
+  1689→    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.15 }}>
+  1690→      <Card className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer group" onClick={onSelect}>
+  1691→        <CardContent className="p-4">
+  1692→          <div className="flex items-start justify-between mb-3">
+  1693→            <div className="flex items-center gap-2.5">
+  1694→              <Avatar className="h-10 w-10">
+  1695→                <AvatarFallback className={cn("text-xs", cfg.bg, cfg.color)}>{getInitials(influencer.name)}</AvatarFallback>
+  1696→              </Avatar>
+  1697→              <div className="min-w-0">
+  1698→                <p className="text-sm font-semibold truncate">{influencer.name}</p>
+  1699→                <p className="text-xs text-muted-foreground">{formatUsername(influencer.username)}</p>
+  1700→              </div>
+  1701→            </div>
+  1702→            <DropdownMenu>
+  1703→              <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+  1704→                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"><MoreVertical className="h-3.5 w-3.5" /></Button>
+  1705→              </DropdownMenuTrigger>
+  1706→              <DropdownMenuContent align="end">
+  1707→                <DropdownMenuItem onClick={e => { e.stopPropagation(); onEdit() }}><Edit3 className="h-3 w-3 mr-2" /> Edit</DropdownMenuItem>
+  1708→                <DropdownMenuItem onClick={e => { e.stopPropagation(); onCompare() }}>
+  1709→                  <GitCompareArrows className="h-3 w-3 mr-2" /> {isCompared ? "Remove from Compare" : "Add to Compare"}
+  1710→                </DropdownMenuItem>
+  1711→                <DropdownMenuSeparator />
+  1712→                <DropdownMenuItem className="text-red-600" onClick={e => { e.stopPropagation(); onDelete() }}><Trash2 className="h-3 w-3 mr-2" /> Delete</DropdownMenuItem>
+  1713→              </DropdownMenuContent>
+  1714→            </DropdownMenu>
+  1715→          </div>
+  1716→
+  1717→          {/* Badges */}
+  1718→          <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+  1719→            <Badge variant="outline" className={cn("text-[10px] gap-1", cfg.bg, cfg.color, "border-0")}>
+  1720→              <cfg.icon className="h-2.5 w-2.5" /> {influencer.platform}
+  1721→            </Badge>
+  1722→            <Badge variant="outline" className={cn("text-[10px]", stCfg.bg, stCfg.color)}>{stCfg.label}</Badge>
+  1723→          </div>
+  1724→
+  1725→          {/* Stats */}
+  1726→          <div className="grid grid-cols-3 gap-2 mb-3">
+  1727→            <div>
+  1728→              <p className="text-[10px] text-muted-foreground">Followers</p>
+  1729→              <p className="text-sm font-bold">{formatFollowers(influencer.followers)}</p>
+  1730→            </div>
+  1731→            <div>
+  1732→              <p className="text-[10px] text-muted-foreground">Engagement</p>
+  1733→              <p className="text-sm font-bold">{influencer.engagementRate.toFixed(1)}%</p>
+  1734→            </div>
+  1735→            <div>
+  1736→              <p className="text-[10px] text-muted-foreground">Rate</p>
+  1737→              <p className="text-sm font-bold">{formatCurrency(influencer.rate)}</p>
+  1738→            </div>
+  1739→          </div>
+  1740→
+  1741→          {/* Engagement bar */}
+  1742→          <div className="mb-3">
+  1743→            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+  1744→              <div className={cn("h-full rounded-full", influencer.engagementRate > 5 ? "bg-emerald-500" : influencer.engagementRate > 2 ? "bg-amber-400" : "bg-gray-300")} style={{ width: `${Math.min(influencer.engagementRate * 10, 100)}%` }} />
+  1745→            </div>
+  1746→          </div>
+  1747→
+  1748→          {/* Niche & Client */}
+  1749→          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+  1750→            {influencer.niche && <Badge variant="outline" className="text-[10px]">{influencer.niche.split(",")[0]}</Badge>}
+  1751→            {influencer.client && <span className="truncate">{influencer.client.name}</span>}
+  1752→          </div>
+  1753→
+  1754→          {/* Quick actions */}
+  1755→          <div className="flex items-center gap-1 mt-3 pt-3 border-t">
+  1756→            {influencer.email && (
+  1757→              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={e => { e.stopPropagation(); window.open(`mailto:${influencer.email}`) }}>
+  1758→                <Mail className="h-3 w-3" />
+  1759→              </Button>
+  1760→            )}
+  1761→            <Select onValueChange={s => { onUpdateStatus(s) }} onClick={e => e.stopPropagation()}>
+  1762→              <SelectTrigger className="h-6 text-[10px] w-auto border-0 shadow-none p-0 px-1.5"><SelectValue placeholder="Status" /></SelectTrigger>
+  1763→              <SelectContent>
+  1764→                {Object.entries(statusConfig).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+  1765→              </SelectContent>
+  1766→            </Select>
+  1767→            <Button variant="ghost" size="sm" className={cn("h-6 px-1.5 text-[10px] ml-auto", isCompared && "text-emerald-600")} onClick={e => { e.stopPropagation(); onCompare() }}>
+  1768→              <GitCompareArrows className="h-3 w-3 mr-1" /> {isCompared ? "Added" : "Compare"}
+  1769→            </Button>
+  1770→          </div>
+  1771→        </CardContent>
+  1772→      </Card>
+  1773→    </motion.div>
+  1774→  )
+  1775→}
+  1776→
+  1777→function InfluencerListItem({
+  1778→  influencer,
+  1779→  onSelect,
+  1780→  onEdit,
+  1781→  onDelete,
+  1782→  onUpdateStatus,
+  1783→  onCompare,
+  1784→  isCompared,
+  1785→}: {
+  1786→  influencer: Influencer
+  1787→  onSelect: () => void
+  1788→  onEdit: () => void
+  1789→  onDelete: () => void
+  1790→  onUpdateStatus: (status: string) => void
+  1791→  onCompare: () => void
+  1792→  isCompared: boolean
+  1793→}) {
+  1794→  const cfg = platformConfig[influencer.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+  1795→  const stCfg = statusConfig[influencer.status] || statusConfig.prospect
+  1796→
+  1797→  return (
+  1798→    <div className="flex items-center gap-4 p-3 rounded-lg border bg-white hover:shadow-sm transition-shadow cursor-pointer" onClick={onSelect}>
+  1799→      <Avatar className="h-10 w-10">
+  1800→        <AvatarFallback className={cn("text-xs", cfg.bg, cfg.color)}>{getInitials(influencer.name)}</AvatarFallback>
+  1801→      </Avatar>
+  1802→      <div className="flex-1 min-w-0">
+  1803→        <div className="flex items-center gap-2">
+  1804→          <span className="text-sm font-medium truncate">{influencer.name}</span>
+  1805→          <Badge variant="outline" className={cn("text-[10px]", stCfg.bg, stCfg.color)}>{stCfg.label}</Badge>
+  1806→          <Badge variant="outline" className={cn("text-[10px] gap-0.5", cfg.bg, cfg.color, "border-0")}>
+  1807→            <cfg.icon className="h-2.5 w-2.5" /> {influencer.platform}
+  1808→          </Badge>
+  1809→        </div>
+  1810→        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+  1811→          <span>{formatUsername(influencer.username)}</span>
+  1812→          <span>{formatFollowers(influencer.followers)} followers</span>
+  1813→          <span>{influencer.engagementRate.toFixed(1)}% eng</span>
+  1814→          {influencer.rate && <span>{formatCurrency(influencer.rate)}/post</span>}
+  1815→          {influencer.niche && <span className="truncate">{influencer.niche.split(",")[0]}</span>}
+  1816→        </div>
+  1817→      </div>
+  1818→      <div className="flex items-center gap-1 flex-shrink-0">
+  1819→        <Button variant="ghost" size="sm" className={cn("h-7 text-xs", isCompared && "text-emerald-600")} onClick={e => { e.stopPropagation(); onCompare() }}>
+  1820→          <GitCompareArrows className="h-3 w-3" />
+  1821→        </Button>
+  1822→        <DropdownMenu>
+  1823→          <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+  1824→            <Button variant="ghost" size="sm" className="h-7 w-7 p-0"><MoreVertical className="h-3.5 w-3.5" /></Button>
+  1825→          </DropdownMenuTrigger>
+  1826→          <DropdownMenuContent align="end">
+  1827→            <DropdownMenuItem onClick={onEdit}><Edit3 className="h-3 w-3 mr-2" /> Edit</DropdownMenuItem>
+  1828→            <DropdownMenuItem onClick={() => onUpdateStatus("active")}><UserCheck className="h-3 w-3 mr-2" /> Set Active</DropdownMenuItem>
+  1829→            <DropdownMenuSeparator />
+  1830→            <DropdownMenuItem className="text-red-600" onClick={onDelete}><Trash2 className="h-3 w-3 mr-2" /> Delete</DropdownMenuItem>
+  1831→          </DropdownMenuContent>
+  1832→        </DropdownMenu>
+  1833→      </div>
+  1834→    </div>
+  1835→  )
+  1836→}
+  1837→
+  1838→function InfluencerDetailPanel({
+  1839→  influencer,
+  1840→  onClose,
+  1841→  onEdit,
+  1842→  onDelete,
+  1843→  onUpdateStatus,
+  1844→  onUpdateNotes,
+  1845→}: {
+  1846→  influencer: Influencer
+  1847→  onClose: () => void
+  1848→  onEdit: () => void
+  1849→  onDelete: () => void
+  1850→  onUpdateStatus: (status: string) => void
+  1851→  onUpdateNotes: (notes: string) => void
+  1852→}) {
+  1853→  const [editingNotes, setEditingNotes] = useState(false)
+  1854→  const [draftNotes, setDraftNotes] = useState("")
+  1855→  const displayNotes = editingNotes ? draftNotes : (influencer.notes || "")
+  1856→  const startEditing = useCallback(() => {
+  1857→    setDraftNotes(influencer.notes || "")
+  1858→    setEditingNotes(true)
+  1859→  }, [influencer.notes])
+  1860→  const saveNotes = useCallback(() => {
+  1861→    onUpdateNotes(draftNotes)
+  1862→    setEditingNotes(false)
+  1863→  }, [draftNotes, onUpdateNotes])
+  1864→  const cfg = platformConfig[influencer.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+  1865→  const stCfg = statusConfig[influencer.status] || statusConfig.prospect
+  1866→
+  1867→  // Status timeline
+  1868→  const currentIdx = pipelineStages.indexOf(influencer.status as typeof pipelineStages[number])
+  1869→  const isDeclined = influencer.status === "declined"
+  1870→
+  1871→  return (
+  1872→    <div className="p-6 space-y-6">
+  1873→      {/* Header */}
+  1874→      <div className="flex items-start justify-between">
+  1875→        <div className="flex items-center gap-3">
+  1876→          <Avatar className="h-14 w-14">
+  1877→            <AvatarFallback className={cn("text-lg", cfg.bg, cfg.color)}>{getInitials(influencer.name)}</AvatarFallback>
+  1878→          </Avatar>
+  1879→          <div>
+  1880→            <h2 className="text-lg font-bold">{influencer.name}</h2>
+  1881→            <p className="text-sm text-muted-foreground">{formatUsername(influencer.username)}</p>
+  1882→            <div className="flex items-center gap-2 mt-1">
+  1883→              <Badge variant="outline" className={cn("text-xs gap-1", cfg.bg, cfg.color, "border-0")}>
+  1884→                <cfg.icon className="h-3 w-3" /> {influencer.platform}
+  1885→              </Badge>
+  1886→              <Badge variant="outline" className={cn("text-xs", stCfg.bg, stCfg.color)}>{stCfg.label}</Badge>
+  1887→            </div>
+  1888→          </div>
+  1889→        </div>
+  1890→        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}><X className="h-4 w-4" /></Button>
+  1891→      </div>
+  1892→
+  1893→      {/* Stats Grid */}
+  1894→      <div className="grid grid-cols-2 gap-3">
+  1895→        {[
+  1896→          { label: "Followers", value: formatFollowers(influencer.followers), icon: Users },
+  1897→          { label: "Engagement", value: `${influencer.engagementRate.toFixed(1)}%`, icon: TrendingUp },
+  1898→          { label: "Rate/Post", value: formatCurrency(influencer.rate), icon: DollarSign },
+  1899→          { label: "Niche", value: influencer.niche || "—", icon: Target },
+  1900→        ].map(stat => (
+  1901→          <div key={stat.label} className="rounded-lg border p-3">
+  1902→            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+  1903→              <stat.icon className="h-3 w-3" /> {stat.label}
+  1904→            </div>
+  1905→            <p className="text-sm font-bold">{stat.value}</p>
+  1906→          </div>
+  1907→        ))}
+  1908→      </div>
+  1909→
+  1910→      {/* Engagement visualization */}
+  1911→      <div>
+  1912→        <div className="flex items-center justify-between text-xs mb-1">
+  1913→          <span className="text-muted-foreground">Engagement Rate</span>
+  1914→          <span className="font-semibold">{influencer.engagementRate.toFixed(1)}%</span>
+  1915→        </div>
+  1916→        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+  1917→          <div className={cn("h-full rounded-full", influencer.engagementRate > 5 ? "bg-emerald-500" : influencer.engagementRate > 2 ? "bg-amber-400" : "bg-gray-300")} style={{ width: `${Math.min(influencer.engagementRate * 10, 100)}%` }} />
+  1918→        </div>
+  1919→      </div>
+  1920→
+  1921→      {/* Status Timeline */}
+  1922→      {!isDeclined && (
+  1923→        <div>
+  1924→          <p className="text-xs font-medium text-muted-foreground mb-3">Status Timeline</p>
+  1925→          <div className="flex items-center gap-0">
+  1926→            {pipelineStages.map((stage, idx) => {
+  1927→              const sCfg = statusConfig[stage]
+  1928→              const isCompleted = idx <= currentIdx
+  1929→              const isCurrent = idx === currentIdx
+  1930→              return (
+  1931→                <React.Fragment key={stage}>
+  1932→                  <div className="flex flex-col items-center gap-1">
+  1933→                    <div className={cn(
+  1934→                      "h-7 w-7 rounded-full flex items-center justify-center border-2",
+  1935→                      isCompleted ? "bg-emerald-500 border-emerald-500" : "bg-white border-gray-200"
+  1936→                    )}>
+  1937→                      {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5 text-white" /> : <span className="h-2 w-2 rounded-full bg-gray-200" />}
+  1938→                    </div>
+  1939→                    <span className={cn("text-[10px]", isCurrent ? "font-semibold text-emerald-700" : "text-muted-foreground")}>{sCfg.label}</span>
+  1940→                  </div>
+  1941→                  {idx < pipelineStages.length - 1 && (
+  1942→                    <div className={cn("flex-1 h-0.5 mb-4", idx < currentIdx ? "bg-emerald-400" : "bg-gray-200")} />
+  1943→                  )}
+  1944→                </React.Fragment>
+  1945→              )
+  1946→            })}
+  1947→          </div>
+  1948→        </div>
+  1949→      )}
+  1950→
+  1951→      {isDeclined && (
+  1952→        <div className="rounded-lg border border-red-200 bg-red-50 p-3 flex items-center gap-2">
+  1953→          <XCircle className="h-4 w-4 text-red-500" />
+  1954→          <span className="text-xs font-medium text-red-700">This influencer has declined</span>
+  1955→        </div>
+  1956→      )}
+  1957→
+  1958→      <Separator />
+  1959→
+  1960→      {/* Contact Info */}
+  1961→      <div>
+  1962→        <p className="text-xs font-medium text-muted-foreground mb-2">Contact</p>
+  1963→        <div className="space-y-2">
+  1964→          {influencer.email && (
+  1965→            <div className="flex items-center gap-2 text-sm">
+  1966→              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+  1967→              <a href={`mailto:${influencer.email}`} className="text-emerald-600 hover:underline">{influencer.email}</a>
+  1968→            </div>
+  1969→          )}
+  1970→          {influencer.phone && (
+  1971→            <div className="flex items-center gap-2 text-sm">
+  1972→              <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+  1973→              <span>{influencer.phone}</span>
+  1974→            </div>
+  1975→          )}
+  1976→          {!influencer.email && !influencer.phone && <p className="text-xs text-muted-foreground">No contact info</p>}
+  1977→        </div>
+  1978→      </div>
+  1979→
+  1980→      {/* Contract Info */}
+  1981→      <div>
+  1982→        <p className="text-xs font-medium text-muted-foreground mb-2">Contract</p>
+  1983→        <div className="rounded-lg border p-3 space-y-1.5">
+  1984→          <div className="flex justify-between text-xs">
+  1985→            <span className="text-muted-foreground">Rate</span>
+  1986→            <span className="font-medium">{formatCurrency(influencer.rate)}</span>
+  1987→          </div>
+  1988→          <div className="flex justify-between text-xs">
+  1989→            <span className="text-muted-foreground">Start</span>
+  1990→            <span className="font-medium">{influencer.contractStart ? format(new Date(influencer.contractStart), "MMM d, yyyy") : "—"}</span>
+  1991→          </div>
+  1992→          <div className="flex justify-between text-xs">
+  1993→            <span className="text-muted-foreground">End</span>
+  1994→            <span className="font-medium">{influencer.contractEnd ? format(new Date(influencer.contractEnd), "MMM d, yyyy") : "—"}</span>
+  1995→          </div>
+  1996→        </div>
+  1997→      </div>
+  1998→
+  1999→      {/* Client / Campaign */}
+  2000→      <div>
+
+[showing lines 1-2000 of 2065; use offset=2001 with limit to continue reading]

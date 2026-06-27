@@ -1,0 +1,779 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo, useCallback } from "react"
+     4→import { useERPStore, type Approval } from "@/lib/store"
+     5→import { Card, CardContent } from "@/components/ui/card"
+     6→import { Badge } from "@/components/ui/badge"
+     7→import { Button } from "@/components/ui/button"
+     8→import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+     9→import { Textarea } from "@/components/ui/textarea"
+    10→import { ScrollArea } from "@/components/ui/scroll-area"
+    11→import { Separator } from "@/components/ui/separator"
+    12→import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+    13→import { motion, AnimatePresence } from "framer-motion"
+    14→import {
+    15→  ShieldCheck,
+    16→  CheckCircle2,
+    17→  XCircle,
+    18→  Clock,
+    19→  FileText,
+    20→  Send,
+    21→  ArrowLeft,
+    22→  Search,
+    23→  ThumbsUp,
+    24→  ThumbsDown,
+    25→  RotateCcw,
+    26→  Instagram,
+    27→  Facebook,
+    28→  Twitter,
+    29→  Linkedin,
+    30→  Rocket,
+    31→  DollarSign,
+    32→  PenLine,
+    33→} from "lucide-react"
+    34→import { cn } from "@/lib/utils"
+    35→import { formatDistanceToNow, differenceInHours, format } from "date-fns"
+    36→
+    37→// ── Approval Type Configuration ─────────────────────────────────────────
+    38→const TYPE_CONFIG: Record<string, {
+    39→  label: string
+    40→  icon: React.ComponentType<{ className?: string }>
+    41→  color: string
+    42→  bgColor: string
+    43→}> = {
+    44→  content_review: { label: "Content Review", icon: FileText, color: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-100 dark:bg-emerald-900/40" },
+    45→  post_publish: { label: "Post Publish", icon: Send, color: "text-teal-600 dark:text-teal-400", bgColor: "bg-teal-100 dark:bg-teal-900/40" },
+    46→  campaign_launch: { label: "Campaign Launch", icon: Rocket, color: "text-cyan-600 dark:text-cyan-400", bgColor: "bg-cyan-100 dark:bg-cyan-900/40" },
+    47→  budget_approval: { label: "Budget Approval", icon: DollarSign, color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-100 dark:bg-amber-900/40" },
+    48→}
+    49→
+    50→// ── Status Configuration ────────────────────────────────────────────────
+    51→const STATUS_CONFIG: Record<string, {
+    52→  label: string
+    53→  icon: React.ComponentType<{ className?: string }>
+    54→  color: string
+    55→  badgeColor: string
+    56→  dotColor: string
+    57→}> = {
+    58→  pending: { label: "Pending", icon: Clock, color: "text-amber-600 dark:text-amber-400", badgeColor: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800", dotColor: "bg-amber-500" },
+    59→  approved: { label: "Approved", icon: CheckCircle2, color: "text-emerald-600 dark:text-emerald-400", badgeColor: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800", dotColor: "bg-emerald-500" },
+    60→  rejected: { label: "Rejected", icon: XCircle, color: "text-rose-600 dark:text-rose-400", badgeColor: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 border-rose-200 dark:border-rose-800", dotColor: "bg-rose-500" },
+    61→  changes_requested: { label: "Changes Requested", icon: RotateCcw, color: "text-cyan-600 dark:text-cyan-400", badgeColor: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800", dotColor: "bg-cyan-500" },
+    62→}
+    63→
+    64→// ── Platform Icons ──────────────────────────────────────────────────────
+    65→const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+    66→  instagram: Instagram,
+    67→  facebook: Facebook,
+    68→  twitter: Twitter,
+    69→  linkedin: Linkedin,
+    70→}
+    71→
+    72→// ── Animation Variants ──────────────────────────────────────────────────
+    73→const containerVariants = {
+    74→  hidden: { opacity: 0 },
+    75→  visible: {
+    76→    opacity: 1,
+    77→    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+    78→  },
+    79→}
+    80→
+    81→const itemVariants = {
+    82→  hidden: { opacity: 0, y: 16, scale: 0.97 },
+    83→  visible: {
+    84→    opacity: 1,
+    85→    y: 0,
+    86→    scale: 1,
+    87→    transition: { type: "spring", stiffness: 300, damping: 24 },
+    88→  },
+    89→}
+    90→
+    91→const cardVariants = {
+    92→  hidden: { opacity: 0, y: 12 },
+    93→  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 26 } },
+    94→  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.15 } },
+    95→}
+    96→
+    97→const detailVariants = {
+    98→  hidden: { opacity: 0, x: 20 },
+    99→  visible: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 28 } },
+   100→  exit: { opacity: 0, x: 20, transition: { duration: 0.15 } },
+   101→}
+   102→
+   103→// ── Filter Options ──────────────────────────────────────────────────────
+   104→const STATUS_FILTERS = [
+   105→  { key: "all", label: "All" },
+   106→  { key: "pending", label: "Pending" },
+   107→  { key: "approved", label: "Approved" },
+   108→  { key: "rejected", label: "Rejected" },
+   109→  { key: "changes_requested", label: "Changes Requested" },
+   110→]
+   111→
+   112→// ── Helper Functions ────────────────────────────────────────────────────
+   113→function getInitials(name: string): string {
+   114→  return name.split(" ").filter(Boolean).map(n => n[0]).join("").toUpperCase().slice(0, 2) || "?"
+   115→}
+   116→
+   117→function getRelativeTime(dateStr: string): string {
+   118→  try {
+   119→    return formatDistanceToNow(new Date(dateStr), { addSuffix: true })
+   120→  } catch {
+   121→    return "Unknown"
+   122→  }
+   123→}
+   124→
+   125→function getFormattedDate(dateStr: string): string {
+   126→  try {
+   127→    return format(new Date(dateStr), "MMM d, yyyy 'at' h:mm a")
+   128→  } catch {
+   129→    return "Unknown"
+   130→  }
+   131→}
+   132→
+   133→function getAvgReviewTime(approvals: Approval[]): string {
+   134→  const reviewed = approvals.filter(a => a.reviewedAt && a.createdAt)
+   135→  if (reviewed.length === 0) return "N/A"
+   136→  const totalHours = reviewed.reduce((sum, a) => {
+   137→    return sum + differenceInHours(new Date(a.reviewedAt!), new Date(a.createdAt))
+   138→  }, 0)
+   139→  const avg = totalHours / reviewed.length
+   140→  if (avg < 1) return "< 1h"
+   141→  if (avg < 24) return `${Math.round(avg)}h`
+   142→  return `${(avg / 24).toFixed(1)}d`
+   143→}
+   144→
+   145→// ── Main Component ──────────────────────────────────────────────────────
+   146→export function ApprovalsView() {
+   147→  const { approvals, setApprovals, currentUser } = useERPStore()
+   148→  const [statusFilter, setStatusFilter] = useState("all")
+   149→  const [searchQuery, setSearchQuery] = useState("")
+   150→  const [selectedApprovalId, setSelectedApprovalId] = useState<string | null>(null)
+   151→  const [showMobileDetail, setShowMobileDetail] = useState(false)
+   152→  const [actionMode, setActionMode] = useState<"none" | "approve" | "reject" | "changes">("none")
+   153→  const [comment, setComment] = useState("")
+   154→  const [isSubmitting, setIsSubmitting] = useState(false)
+   155→
+   156→  // Computed
+   157→  const stats = useMemo(() => {
+   158→    const pending = approvals.filter(a => a.status === "pending").length
+   159→    const today = new Date()
+   160→    const approvedToday = approvals.filter(a => {
+   161→      if (a.status !== "approved" || !a.reviewedAt) return false
+   162→      return new Date(a.reviewedAt).toDateString() === today.toDateString()
+   163→    }).length
+   164→    const rejected = approvals.filter(a => a.status === "rejected").length
+   165→    const totalReviewed = approvals.filter(a => a.status === "approved" || a.status === "rejected").length
+   166→    const rejectionRate = totalReviewed > 0 ? Math.round((rejected / totalReviewed) * 100) : 0
+   167→    const avgTime = getAvgReviewTime(approvals)
+   168→    return { pending, approvedToday, rejectionRate, avgTime }
+   169→  }, [approvals])
+   170→
+   171→  const filteredApprovals = useMemo(() => {
+   172→    return approvals.filter(a => {
+   173→      if (statusFilter !== "all" && a.status !== statusFilter) return false
+   174→      if (searchQuery) {
+   175→        const q = searchQuery.toLowerCase()
+   176→        return (
+   177→          (a.content?.title || "").toLowerCase().includes(q) ||
+   178→          (a.post?.content || "").toLowerCase().includes(q) ||
+   179→          a.type.toLowerCase().includes(q) ||
+   180→          a.requestedBy.name.toLowerCase().includes(q) ||
+   181→          (a.comment || "").toLowerCase().includes(q)
+   182→        )
+   183→      }
+   184→      return true
+   185→    })
+   186→  }, [approvals, statusFilter, searchQuery])
+   187→
+   188→  const selectedApproval = useMemo(() => {
+   189→    return approvals.find(a => a.id === selectedApprovalId) || null
+   190→  }, [approvals, selectedApprovalId])
+   191→
+   192→  // Actions
+   193→  const handleApprovalAction = useCallback(async (approvalId: string, status: string, commentText?: string) => {
+   194→    setIsSubmitting(true)
+   195→    try {
+   196→      const res = await fetch(`/api/approvals/${approvalId}`, {
+   197→        method: "PUT",
+   198→        headers: { "Content-Type": "application/json" },
+   199→        body: JSON.stringify({
+   200→          status,
+   201→          comment: commentText || null,
+   202→          reviewedById: currentUser?.id || "user-admin",
+   203→        }),
+   204→      })
+   205→      if (res.ok) {
+   206→        const data = await res.json()
+   207→        setApprovals(
+   208→          approvals.map(a => a.id === approvalId ? { ...a, ...data.approval, status, comment: commentText || a.comment, reviewedById: currentUser?.id || "user-admin", reviewedAt: new Date().toISOString() } : a)
+   209→        )
+   210→        setActionMode("none")
+   211→        setComment("")
+   212→      }
+   213→    } catch (err) {
+   214→      console.error("Failed to update approval:", err)
+   215→    } finally {
+   216→      setIsSubmitting(false)
+   217→    }
+   218→  }, [approvals, setApprovals, currentUser])
+   219→
+   220→  const handleApprovalSelect = useCallback((approval: Approval) => {
+   221→    setSelectedApprovalId(approval.id)
+   222→    setShowMobileDetail(true)
+   223→    setActionMode("none")
+   224→    setComment("")
+   225→  }, [])
+   226→
+   227→  // ── Render ──────────────────────────────────────────────────────────
+   228→  return (
+   229→    <div className="h-full flex flex-col">
+   230→      {/* Header */}
+   231→      <div className="px-6 pt-6 pb-4">
+   232→        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+   233→          <div className="flex items-center gap-3 mb-1">
+   234→            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+   235→              <ShieldCheck className="h-5 w-5 text-white" />
+   236→            </div>
+   237→            <div>
+   238→              <h1 className="text-xl font-bold tracking-tight">Approvals</h1>
+   239→              <p className="text-sm text-muted-foreground">Review and manage content & post approvals</p>
+   240→            </div>
+   241→          </div>
+   242→        </motion.div>
+   243→
+   244→        {/* Stats Row */}
+   245→        <motion.div
+   246→          className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5"
+   247→          variants={containerVariants}
+   248→          initial="hidden"
+   249→          animate="visible"
+   250→        >
+   251→          {[
+   252→            { label: "Pending", value: stats.pending, icon: Clock, color: "from-amber-500 to-amber-600", bg: "bg-amber-50 dark:bg-amber-950/30" },
+   253→            { label: "Approved Today", value: stats.approvedToday, icon: CheckCircle2, color: "from-emerald-500 to-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/30" },
+   254→            { label: "Rejection Rate", value: `${stats.rejectionRate}%`, icon: XCircle, color: "from-rose-500 to-rose-600", bg: "bg-rose-50 dark:bg-rose-950/30" },
+   255→            { label: "Avg Review Time", value: stats.avgTime, icon: Clock, color: "from-teal-500 to-teal-600", bg: "bg-teal-50 dark:bg-teal-950/30" },
+   256→          ].map((stat) => (
+   257→            <motion.div key={stat.label} variants={itemVariants}>
+   258→              <Card className={cn("border-0 shadow-sm hover:shadow-md transition-shadow", stat.bg)}>
+   259→                <CardContent className="p-3.5">
+   260→                  <div className="flex items-center justify-between">
+   261→                    <div>
+   262→                      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{stat.label}</p>
+   263→                      <p className="text-2xl font-bold mt-0.5">{stat.value}</p>
+   264→                    </div>
+   265→                    <div className={cn("h-9 w-9 rounded-lg bg-gradient-to-br flex items-center justify-center shadow-sm", stat.color)}>
+   266→                      <stat.icon className="h-4.5 w-4.5 text-white" />
+   267→                    </div>
+   268→                  </div>
+   269→                </CardContent>
+   270→              </Card>
+   271→            </motion.div>
+   272→          ))}
+   273→        </motion.div>
+   274→      </div>
+   275→
+   276→      {/* Main Content */}
+   277→      <div className="flex-1 flex min-h-0 px-6 pb-6 gap-4">
+   278→        {/* Left: Approval List */}
+   279→        <div className={cn(
+   280→          "flex flex-col min-h-0 transition-all duration-300",
+   281→          selectedApproval ? "w-full lg:w-1/2 xl:w-3/5" : "w-full"
+   282→        )}>
+   283→          {/* Filters */}
+   284→          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-3">
+   285→            <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 flex-shrink-0">
+   286→              {STATUS_FILTERS.map(sf => {
+   287→                const count = sf.key === "all" ? approvals.length : approvals.filter(a => a.status === sf.key).length
+   288→                const isActive = statusFilter === sf.key
+   289→                const statusCfg = STATUS_CONFIG[sf.key]
+   290→                return (
+   291→                  <button
+   292→                    key={sf.key}
+   293→                    onClick={() => setStatusFilter(sf.key)}
+   294→                    className={cn(
+   295→                      "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
+   296→                      isActive
+   297→                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm"
+   298→                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+   299→                    )}
+   300→                  >
+   301→                    {statusCfg && <statusCfg.icon className="h-3.5 w-3.5" />}
+   302→                    {sf.label}
+   303→                    <span className="text-[10px] opacity-60">{count}</span>
+   304→                  </button>
+   305→                )
+   306→              })}
+   307→            </div>
+   308→
+   309→            <div className="relative flex-1 w-full sm:w-auto sm:flex-initial">
+   310→              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+   311→              <input
+   312→                type="text"
+   313→                placeholder="Search approvals..."
+   314→                value={searchQuery}
+   315→                onChange={(e) => setSearchQuery(e.target.value)}
+   316→                className="w-full h-8 pl-8 pr-3 text-sm rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 transition-all"
+   317→              />
+   318→            </div>
+   319→          </div>
+   320→
+   321→          {/* Approval Cards */}
+   322→          <Card className="flex-1 min-h-0 border-0 shadow-sm">
+   323→            <ScrollArea className="h-full">
+   324→              {filteredApprovals.length === 0 ? (
+   325→                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+   326→                  <div className="h-14 w-14 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+   327→                    <ShieldCheck className="h-7 w-7 text-muted-foreground/50" />
+   328→                  </div>
+   329→                  <p className="text-sm font-medium">No approvals found</p>
+   330→                  <p className="text-xs mt-1 text-muted-foreground/70">Try adjusting your filters</p>
+   331→                </div>
+   332→              ) : (
+   333→                <div className="p-3 space-y-3">
+   334→                  <AnimatePresence>
+   335→                    {filteredApprovals.map((approval, index) => (
+   336→                      <ApprovalCard
+   337→                        key={approval.id}
+   338→                        approval={approval}
+   339→                        isSelected={selectedApprovalId === approval.id}
+   340→                        onSelect={handleApprovalSelect}
+   341→                        onAction={handleApprovalAction}
+   342→                        index={index}
+   343→                      />
+   344→                    ))}
+   345→                  </AnimatePresence>
+   346→                </div>
+   347→              )}
+   348→            </ScrollArea>
+   349→          </Card>
+   350→        </div>
+   351→
+   352→        {/* Right: Detail Panel */}
+   353→        <AnimatePresence>
+   354→          {selectedApproval && (
+   355→            <motion.div
+   356→              className={cn(
+   357→                "w-full lg:w-1/2 xl:w-2/5 flex-shrink-0",
+   358→                showMobileDetail ? "block" : "hidden lg:block"
+   359→              )}
+   360→              variants={detailVariants}
+   361→              initial="hidden"
+   362→              animate="visible"
+   363→              exit="exit"
+   364→            >
+   365→              <Card className="h-full border-0 shadow-sm flex flex-col">
+   366→                {/* Panel Header */}
+   367→                <div className="p-4 border-b border-border/50">
+   368→                  <div className="flex items-center justify-between mb-3">
+   369→                    <Button
+   370→                      variant="ghost"
+   371→                      size="sm"
+   372→                      className="lg:hidden -ml-2"
+   373→                      onClick={() => { setShowMobileDetail(false); setSelectedApprovalId(null) }}
+   374→                    >
+   375→                      <ArrowLeft className="h-4 w-4 mr-1" />
+   376→                      Back
+   377→                    </Button>
+   378→                    <Badge className={cn("text-[11px] ml-auto", STATUS_CONFIG[selectedApproval.status]?.badgeColor)} variant="outline">
+   379→                      {(() => {
+   380→                        const StatusIcon = STATUS_CONFIG[selectedApproval.status]?.icon
+   381→                        return StatusIcon ? <StatusIcon className="h-3 w-3 mr-1" /> : null
+   382→                      })()}
+   383→                      {STATUS_CONFIG[selectedApproval.status]?.label || selectedApproval.status}
+   384→                    </Badge>
+   385→                  </div>
+   386→
+   387→                  {/* Type */}
+   388→                  <div className="flex items-center gap-2">
+   389→                    {(() => {
+   390→                      const tConfig = TYPE_CONFIG[selectedApproval.type]
+   391→                      const TIcon = tConfig?.icon || FileText
+   392→                      return (
+   393→                        <>
+   394→                          <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", tConfig?.bgColor || "bg-muted")}>
+   395→                            <TIcon className={cn("h-4 w-4", tConfig?.color || "text-muted-foreground")} />
+   396→                          </div>
+   397→                          <div>
+   398→                            <p className="font-semibold text-sm">{tConfig?.label || selectedApproval.type}</p>
+   399→                            <p className="text-[11px] text-muted-foreground">
+   400→                              Requested {getRelativeTime(selectedApproval.createdAt)}
+   401→                            </p>
+   402→                          </div>
+   403→                        </>
+   404→                      )
+   405→                    })()}
+   406→                  </div>
+   407→                </div>
+   408→
+   409→                {/* Content */}
+   410→                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+   411→                  {/* Content/Post Preview */}
+   412→                  {selectedApproval.content && (
+   413→                    <div className="rounded-xl bg-muted/40 p-4">
+   414→                      <div className="flex items-center gap-2 mb-2">
+   415→                        <PenLine className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+   416→                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Content</span>
+   417→                      </div>
+   418→                      <p className="font-medium text-sm">{selectedApproval.content.title}</p>
+   419→                      <div className="flex items-center gap-2 mt-2">
+   420→                        <Badge variant="secondary" className="text-[10px] capitalize">{selectedApproval.content.type}</Badge>
+   421→                        <Badge variant="outline" className="text-[10px] capitalize">{selectedApproval.content.stage}</Badge>
+   422→                      </div>
+   423→                    </div>
+   424→                  )}
+   425→
+   426→                  {selectedApproval.post && (
+   427→                    <div className="rounded-xl bg-muted/40 p-4">
+   428→                      <div className="flex items-center gap-2 mb-2">
+   429→                        <Send className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+   430→                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Post</span>
+   431→                      </div>
+   432→                      <p className="text-sm leading-relaxed">{selectedApproval.post.content}</p>
+   433→                      <div className="flex items-center gap-2 mt-2">
+   434→                        {(() => {
+   435→                          const PIcon = PLATFORM_ICONS[selectedApproval.post.platform]
+   436→                          return PIcon ? (
+   437→                            <Badge variant="secondary" className="text-[10px]">
+   438→                              <PIcon className="h-3 w-3 mr-1" />
+   439→                              {selectedApproval.post.platform}
+   440→                            </Badge>
+   441→                          ) : (
+   442→                            <Badge variant="secondary" className="text-[10px] capitalize">{selectedApproval.post.platform}</Badge>
+   443→                          )
+   444→                        })()}
+   445→                        <Badge variant="outline" className="text-[10px] capitalize">{selectedApproval.post.status}</Badge>
+   446→                      </div>
+   447→                    </div>
+   448→                  )}
+   449→
+   450→                  {/* Approval Timeline */}
+   451→                  <div>
+   452→                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Timeline</p>
+   453→                    <div className="space-y-0">
+   454→                      {/* Requested */}
+   455→                      <div className="flex gap-3">
+   456→                        <div className="flex flex-col items-center">
+   457→                          <div className="h-7 w-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+   458→                            <FileText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+   459→                          </div>
+   460→                          <div className="w-px h-full bg-border my-1" />
+   461→                        </div>
+   462→                        <div className="pb-4">
+   463→                          <p className="text-sm font-medium">Approval Requested</p>
+   464→                          <div className="flex items-center gap-2 mt-1">
+   465→                            <Avatar className="h-5 w-5">
+   466→                              {selectedApproval.requestedBy.avatar && <AvatarImage src={selectedApproval.requestedBy.avatar} />}
+   467→                              <AvatarFallback className="text-[8px]">{getInitials(selectedApproval.requestedBy.name)}</AvatarFallback>
+   468→                            </Avatar>
+   469→                            <span className="text-xs text-muted-foreground">{selectedApproval.requestedBy.name}</span>
+   470→                            <span className="text-[11px] text-muted-foreground">• {getFormattedDate(selectedApproval.createdAt)}</span>
+   471→                          </div>
+   472→                        </div>
+   473→                      </div>
+   474→
+   475→                      {/* Reviewed */}
+   476→                      {selectedApproval.reviewedAt && selectedApproval.reviewedBy && (
+   477→                        <div className="flex gap-3">
+   478→                          <div className="flex flex-col items-center">
+   479→                            <div className={cn(
+   480→                              "h-7 w-7 rounded-full flex items-center justify-center",
+   481→                              selectedApproval.status === "approved" && "bg-emerald-100 dark:bg-emerald-900/40",
+   482→                              selectedApproval.status === "rejected" && "bg-rose-100 dark:bg-rose-900/40",
+   483→                              selectedApproval.status === "changes_requested" && "bg-cyan-100 dark:bg-cyan-900/40",
+   484→                            )}>
+   485→                              {selectedApproval.status === "approved" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+   486→                              {selectedApproval.status === "rejected" && <XCircle className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />}
+   487→                              {selectedApproval.status === "changes_requested" && <RotateCcw className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />}
+   488→                            </div>
+   489→                          </div>
+   490→                          <div>
+   491→                            <p className="text-sm font-medium">
+   492→                              {selectedApproval.status === "approved" && "Approved"}
+   493→                              {selectedApproval.status === "rejected" && "Rejected"}
+   494→                              {selectedApproval.status === "changes_requested" && "Changes Requested"}
+   495→                            </p>
+   496→                            <div className="flex items-center gap-2 mt-1">
+   497→                              <Avatar className="h-5 w-5">
+   498→                                {selectedApproval.reviewedBy.avatar && <AvatarImage src={selectedApproval.reviewedBy.avatar} />}
+   499→                                <AvatarFallback className="text-[8px]">{getInitials(selectedApproval.reviewedBy.name)}</AvatarFallback>
+   500→                              </Avatar>
+   501→                              <span className="text-xs text-muted-foreground">{selectedApproval.reviewedBy.name}</span>
+   502→                              <span className="text-[11px] text-muted-foreground">• {getFormattedDate(selectedApproval.reviewedAt)}</span>
+   503→                            </div>
+   504→                            {selectedApproval.comment && (
+   505→                              <div className="mt-2 rounded-lg bg-muted/50 p-3">
+   506→                                <p className="text-sm text-muted-foreground">{selectedApproval.comment}</p>
+   507→                              </div>
+   508→                            )}
+   509→                          </div>
+   510→                        </div>
+   511→                      )}
+   512→
+   513→                      {/* Pending indicator */}
+   514→                      {selectedApproval.status === "pending" && (
+   515→                        <div className="flex gap-3">
+   516→                          <div className="flex flex-col items-center">
+   517→                            <div className="h-7 w-7 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center animate-pulse">
+   518→                              <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+   519→                            </div>
+   520→                          </div>
+   521→                          <div>
+   522→                            <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Awaiting Review</p>
+   523→                            <p className="text-xs text-muted-foreground mt-1">
+   524→                              {differenceInHours(new Date(), new Date(selectedApproval.createdAt))}h since request
+   525→                            </p>
+   526→                          </div>
+   527→                        </div>
+   528→                      )}
+   529→                    </div>
+   530→                  </div>
+   531→                </div>
+   532→
+   533→                {/* Actions */}
+   534→                {selectedApproval.status === "pending" && (
+   535→                  <div className="p-4 border-t border-border/50">
+   536→                    {actionMode === "none" ? (
+   537→                      <div className="flex items-center gap-2">
+   538→                        <Button
+   539→                          className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-sm shadow-emerald-500/20"
+   540→                          onClick={() => handleApprovalAction(selectedApproval.id, "approved")}
+   541→                          disabled={isSubmitting}
+   542→                        >
+   543→                          <ThumbsUp className="h-4 w-4 mr-1.5" />
+   544→                          Approve
+   545→                        </Button>
+   546→                        <Button
+   547→                          variant="outline"
+   548→                          className="flex-1 border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950/30"
+   549→                          onClick={() => setActionMode("reject")}
+   550→                        >
+   551→                          <ThumbsDown className="h-4 w-4 mr-1.5" />
+   552→                          Reject
+   553→                        </Button>
+   554→                        <Button
+   555→                          variant="outline"
+   556→                          className="flex-1 border-cyan-200 text-cyan-600 hover:bg-cyan-50 dark:border-cyan-800 dark:text-cyan-400 dark:hover:bg-cyan-950/30"
+   557→                          onClick={() => setActionMode("changes")}
+   558→                        >
+   559→                          <RotateCcw className="h-4 w-4 mr-1.5" />
+   560→                          Changes
+   561→                        </Button>
+   562→                      </div>
+   563→                    ) : (
+   564→                      <motion.div
+   565→                        initial={{ opacity: 0, y: 8 }}
+   566→                        animate={{ opacity: 1, y: 0 }}
+   567→                        exit={{ opacity: 0, y: 8 }}
+   568→                        className="space-y-3"
+   569→                      >
+   570→                        <p className="text-sm font-medium">
+   571→                          {actionMode === "reject" ? "Reject with reason:" : "Request changes with feedback:"}
+   572→                        </p>
+   573→                        <Textarea
+   574→                          placeholder={actionMode === "reject" ? "Provide rejection reason..." : "Describe required changes..."}
+   575→                          value={comment}
+   576→                          onChange={(e) => setComment(e.target.value)}
+   577→                          className="min-h-[80px] resize-none text-sm"
+   578→                          autoFocus
+   579→                        />
+   580→                        <div className="flex items-center gap-2 justify-end">
+   581→                          <Button
+   582→                            variant="ghost"
+   583→                            size="sm"
+   584→                            onClick={() => { setActionMode("none"); setComment("") }}
+   585→                          >
+   586→                            Cancel
+   587→                          </Button>
+   588→                          <Button
+   589→                            size="sm"
+   590→                            className={cn(
+   591→                              actionMode === "reject"
+   592→                                ? "bg-rose-500 hover:bg-rose-600 text-white"
+   593→                                : "bg-cyan-500 hover:bg-cyan-600 text-white"
+   594→                            )}
+   595→                            onClick={() => handleApprovalAction(
+   596→                              selectedApproval.id,
+   597→                              actionMode === "reject" ? "rejected" : "changes_requested",
+   598→                              comment
+   599→                            )}
+   600→                            disabled={isSubmitting}
+   601→                          >
+   602→                            {isSubmitting ? "Submitting..." : actionMode === "reject" ? "Reject" : "Request Changes"}
+   603→                          </Button>
+   604→                        </div>
+   605→                      </motion.div>
+   606→                    )}
+   607→                  </div>
+   608→                )}
+   609→
+   610→                {/* Already reviewed indicator */}
+   611→                {selectedApproval.status !== "pending" && (
+   612→                  <div className="p-4 border-t border-border/50">
+   613→                    <div className={cn(
+   614→                      "flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium",
+   615→                      selectedApproval.status === "approved" && "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400",
+   616→                      selectedApproval.status === "rejected" && "bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400",
+   617→                      selectedApproval.status === "changes_requested" && "bg-cyan-50 text-cyan-600 dark:bg-cyan-950/30 dark:text-cyan-400",
+   618→                    )}>
+   619→                      {selectedApproval.status === "approved" && <CheckCircle2 className="h-4 w-4" />}
+   620→                      {selectedApproval.status === "rejected" && <XCircle className="h-4 w-4" />}
+   621→                      {selectedApproval.status === "changes_requested" && <RotateCcw className="h-4 w-4" />}
+   622→                      {STATUS_CONFIG[selectedApproval.status]?.label}
+   623→                      {selectedApproval.reviewedBy && ` by ${selectedApproval.reviewedBy.name}`}
+   624→                    </div>
+   625→                  </div>
+   626→                )}
+   627→              </Card>
+   628→            </motion.div>
+   629→          )}
+   630→        </AnimatePresence>
+   631→      </div>
+   632→    </div>
+   633→  )
+   634→}
+   635→
+   636→// ── Approval Card Component ─────────────────────────────────────────────
+   637→function ApprovalCard({
+   638→  approval,
+   639→  isSelected,
+   640→  onSelect,
+   641→  onAction,
+   642→  index,
+   643→}: {
+   644→  approval: Approval
+   645→  isSelected: boolean
+   646→  onSelect: (approval: Approval) => void
+   647→  onAction: (id: string, status: string, comment?: string) => void
+   648→  index: number
+   649→}) {
+   650→  const typeConfig = TYPE_CONFIG[approval.type]
+   651→  const statusConfig = STATUS_CONFIG[approval.status]
+   652→  const TIcon = typeConfig?.icon || FileText
+   653→
+   654→  return (
+   655→    <motion.div
+   656→      variants={cardVariants}
+   657→      initial="hidden"
+   658→      animate="visible"
+   659→      exit="exit"
+   660→      transition={{ delay: index * 0.03 }}
+   661→    >
+   662→      <Card
+   663→        className={cn(
+   664→          "cursor-pointer transition-all duration-150 hover:shadow-md",
+   665→          isSelected
+   666→            ? "ring-2 ring-emerald-500/30 border-emerald-500/30 shadow-md"
+   667→            : "border-border/50 hover:border-border",
+   668→          approval.status === "pending" && !isSelected && "border-l-4 border-l-amber-400",
+   669→        )}
+   670→        onClick={() => onSelect(approval)}
+   671→      >
+   672→        <CardContent className="p-4">
+   673→          {/* Top Row: Type & Status */}
+   674→          <div className="flex items-center justify-between mb-3">
+   675→            <div className="flex items-center gap-2">
+   676→              <div className={cn("h-7 w-7 rounded-md flex items-center justify-center", typeConfig?.bgColor || "bg-muted")}>
+   677→                <TIcon className={cn("h-3.5 w-3.5", typeConfig?.color || "text-muted-foreground")} />
+   678→              </div>
+   679→              <span className="text-sm font-semibold">{typeConfig?.label || approval.type}</span>
+   680→            </div>
+   681→            <Badge className={cn("text-[11px]", statusConfig?.badgeColor)} variant="outline">
+   682→              {(() => {
+   683→                const StatusIcon = statusConfig?.icon
+   684→                return StatusIcon ? <StatusIcon className="h-3 w-3 mr-1" /> : null
+   685→              })()}
+   686→              {statusConfig?.label || approval.status}
+   687→            </Badge>
+   688→          </div>
+   689→
+   690→          {/* Content/Post Preview */}
+   691→          {approval.content && (
+   692→            <div className="rounded-lg bg-muted/40 p-3 mb-3">
+   693→              <p className="text-sm font-medium truncate">{approval.content.title}</p>
+   694→              <div className="flex items-center gap-1.5 mt-1.5">
+   695→                <Badge variant="secondary" className="text-[10px] capitalize">{approval.content.type}</Badge>
+   696→                <Badge variant="outline" className="text-[10px] capitalize">{approval.content.stage}</Badge>
+   697→              </div>
+   698→            </div>
+   699→          )}
+   700→
+   701→          {approval.post && (
+   702→            <div className="rounded-lg bg-muted/40 p-3 mb-3">
+   703→              <p className="text-sm text-muted-foreground line-clamp-2">{approval.post.content}</p>
+   704→              <div className="flex items-center gap-1.5 mt-1.5">
+   705→                <Badge variant="secondary" className="text-[10px] capitalize">{approval.post.platform}</Badge>
+   706→                <Badge variant="outline" className="text-[10px] capitalize">{approval.post.status}</Badge>
+   707→              </div>
+   708→            </div>
+   709→          )}
+   710→
+   711→          {/* Requested By */}
+   712→          <div className="flex items-center justify-between">
+   713→            <div className="flex items-center gap-2">
+   714→              <Avatar className="h-6 w-6">
+   715→                {approval.requestedBy.avatar && <AvatarImage src={approval.requestedBy.avatar} />}
+   716→                <AvatarFallback className="text-[9px]">{getInitials(approval.requestedBy.name)}</AvatarFallback>
+   717→              </Avatar>
+   718→              <div>
+   719→                <span className="text-xs text-muted-foreground">by </span>
+   720→                <span className="text-xs font-medium">{approval.requestedBy.name}</span>
+   721→              </div>
+   722→              <span className="text-[11px] text-muted-foreground">• {getRelativeTime(approval.createdAt)}</span>
+   723→            </div>
+   724→
+   725→            {/* Quick Actions for Pending */}
+   726→            {approval.status === "pending" && (
+   727→              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+   728→                <Tooltip>
+   729→                  <TooltipTrigger asChild>
+   730→                    <button
+   731→                      onClick={() => onAction(approval.id, "approved")}
+   732→                      className="h-7 w-7 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center justify-center transition-colors"
+   733→                    >
+   734→                      <ThumbsUp className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+   735→                    </button>
+   736→                  </TooltipTrigger>
+   737→                  <TooltipContent>Quick Approve</TooltipContent>
+   738→                </Tooltip>
+   739→                <Tooltip>
+   740→                  <TooltipTrigger asChild>
+   741→                    <button
+   742→                      onClick={() => onAction(approval.id, "rejected")}
+   743→                      className="h-7 w-7 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center justify-center transition-colors"
+   744→                    >
+   745→                      <ThumbsDown className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+   746→                    </button>
+   747→                  </TooltipTrigger>
+   748→                  <TooltipContent>Quick Reject</TooltipContent>
+   749→                </Tooltip>
+   750→              </div>
+   751→            )}
+   752→          </div>
+   753→
+   754→          {/* Reviewed By (if exists) */}
+   755→          {approval.reviewedBy && approval.reviewedAt && (
+   756→            <div className="mt-2 pt-2 border-t border-border/30">
+   757→              <div className="flex items-center gap-2">
+   758→                <Avatar className="h-5 w-5">
+   759→                  {approval.reviewedBy.avatar && <AvatarImage src={approval.reviewedBy.avatar} />}
+   760→                  <AvatarFallback className="text-[8px]">{getInitials(approval.reviewedBy.name)}</AvatarFallback>
+   761→                </Avatar>
+   762→                <span className="text-[11px] text-muted-foreground">
+   763→                  Reviewed by <span className="font-medium">{approval.reviewedBy.name}</span>
+   764→                </span>
+   765→                <span className="text-[11px] text-muted-foreground">• {getRelativeTime(approval.reviewedAt)}</span>
+   766→              </div>
+   767→              {approval.comment && (
+   768→                <div className="mt-1.5 pl-7">
+   769→                  <p className="text-xs text-muted-foreground italic line-clamp-2">&quot;{approval.comment}&quot;</p>
+   770→                </div>
+   771→              )}
+   772→            </div>
+   773→          )}
+   774→        </CardContent>
+   775→      </Card>
+   776→    </motion.div>
+   777→  )
+   778→}
+   779→

@@ -1,0 +1,1556 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo, useCallback } from "react"
+     4→import { useERPStore, type ITAsset, type AssetIssuance, type User } from "@/lib/store"
+     5→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+     6→import { Button } from "@/components/ui/button"
+     7→import { Input } from "@/components/ui/input"
+     8→import { Badge } from "@/components/ui/badge"
+     9→import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+    10→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+    11→import { Label } from "@/components/ui/label"
+    12→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+    13→import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+    14→import { ScrollArea } from "@/components/ui/scroll-area"
+    15→import { Separator } from "@/components/ui/separator"
+    16→import { Textarea } from "@/components/ui/textarea"
+    17→import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+    18→import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+    19→import {
+    20→  Laptop, Monitor, Keyboard, Mouse, Headphones, Usb, Camera, Cable,
+    21→  Tablet, Smartphone, Printer, Wifi, Package, Search, Plus, LayoutGrid,
+    22→  List, ArrowRightLeft, RotateCcw, Wrench, Eye, ChevronRight,
+    23→  DollarSign, AlertTriangle, CheckCircle2, Clock, Shield, Tag,
+    24→  Calendar, Building2, FileText, User as UserIcon, Hash,
+    25→  CircleDot, ArrowLeftRight, X, MoreHorizontal, Pencil, Trash2,
+    26→  TrendingDown, Activity, Timer, AlertCircle, CircleCheck, CircleX,
+    27→  CirclePause, Circle,
+    28→} from "lucide-react"
+    29→import { motion, AnimatePresence } from "framer-motion"
+    30→
+    31→// ── Animation variants ──────────────────────────────────────────────
+    32→const containerVariants = {
+    33→  hidden: { opacity: 0 },
+    34→  visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.1 } },
+    35→}
+    36→
+    37→const itemVariants = {
+    38→  hidden: { opacity: 0, y: 12, scale: 0.97 },
+    39→  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } },
+    40→}
+    41→
+    42→// ── Constants ────────────────────────────────────────────────────────
+    43→const CATEGORIES = ["All", "Laptop", "Desktop", "Monitor", "Keyboard", "Mouse", "Headphone", "USB/Storage", "Other"] as const
+    44→const CATEGORY_MAP: Record<string, string> = {
+    45→  Laptop: "laptop", Desktop: "desktop", Monitor: "monitor", Keyboard: "keyboard",
+    46→  Mouse: "mouse", Headphone: "headphone", "USB/Storage": "usb", Other: "other",
+    47→}
+    48→const STATUS_FILTERS = ["All", "Available", "Issued", "Maintenance", "Retired"] as const
+    49→const STATUS_MAP: Record<string, string> = {
+    50→  All: "all", Available: "available", Issued: "issued", Maintenance: "maintenance", Retired: "retired",
+    51→}
+    52→
+    53→// ── Category icon mapping ────────────────────────────────────────────
+    54→const CATEGORY_ICONS: Record<string, React.ElementType> = {
+    55→  laptop: Laptop, desktop: Monitor, monitor: Monitor, keyboard: Keyboard,
+    56→  mouse: Mouse, headphone: Headphones, usb: Usb, webcam: Camera,
+    57→  dock: Cable, tablet: Tablet, phone: Smartphone, printer: Printer,
+    58→  router: Wifi, other: Package,
+    59→}
+    60→
+    61→const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string; icon: string }> = {
+    62→  laptop: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", icon: "bg-emerald-100 text-emerald-600" },
+    63→  desktop: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200", icon: "bg-slate-100 text-slate-600" },
+    64→  monitor: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200", icon: "bg-cyan-100 text-cyan-600" },
+    65→  keyboard: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200", icon: "bg-violet-100 text-violet-600" },
+    66→  mouse: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", icon: "bg-amber-100 text-amber-600" },
+    67→  headphone: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200", icon: "bg-rose-100 text-rose-600" },
+    68→  usb: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200", icon: "bg-teal-100 text-teal-600" },
+    69→  other: { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200", icon: "bg-gray-100 text-gray-600" },
+    70→}
+    71→
+    72→const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
+    73→  available: { label: "Available", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", dot: "bg-emerald-500" },
+    74→  issued: { label: "Issued", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", dot: "bg-amber-500" },
+    75→  maintenance: { label: "Maintenance", color: "text-cyan-700", bg: "bg-cyan-50 border-cyan-200", dot: "bg-cyan-500" },
+    76→  retired: { label: "Retired", color: "text-slate-700", bg: "bg-slate-50 border-slate-200", dot: "bg-slate-500" },
+    77→  lost: { label: "Lost", color: "text-rose-700", bg: "bg-rose-50 border-rose-200", dot: "bg-rose-500" },
+    78→}
+    79→
+    80→const CONDITION_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
+    81→  new: { label: "New", color: "text-emerald-700", dot: "bg-emerald-500" },
+    82→  good: { label: "Good", color: "text-teal-700", dot: "bg-teal-500" },
+    83→  fair: { label: "Fair", color: "text-amber-700", dot: "bg-amber-500" },
+    84→  damaged: { label: "Damaged", color: "text-red-700", dot: "bg-red-500" },
+    85→  retired: { label: "Retired", color: "text-slate-700", dot: "bg-slate-400" },
+    86→}
+    87→
+    88→const ISSUANCE_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+    89→  issued: { label: "Issued", color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
+    90→  returned: { label: "Returned", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
+    91→  overdue: { label: "Overdue", color: "text-rose-700", bg: "bg-rose-50 border-rose-200" },
+    92→  lost: { label: "Lost", color: "text-slate-700", bg: "bg-slate-50 border-slate-200" },
+    93→}
+    94→
+    95→// ── Helpers ──────────────────────────────────────────────────────────
+    96→function formatCurrency(amount: number | null) {
+    97→  if (amount == null) return "—"
+    98→  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(amount)
+    99→}
+   100→
+   101→function formatDate(dateStr: string | null) {
+   102→  if (!dateStr) return "—"
+   103→  return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+   104→}
+   105→
+   106→function getInitials(name: string) {
+   107→  return name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+   108→}
+   109→
+   110→function isWarrantyExpiringSoon(expiry: string | null, days = 30): boolean {
+   111→  if (!expiry) return false
+   112→  const exp = new Date(expiry)
+   113→  const now = new Date()
+   114→  const diff = exp.getTime() - now.getTime()
+   115→  const daysLeft = diff / (1000 * 60 * 60 * 24)
+   116→  return daysLeft > 0 && daysLeft <= days
+   117→}
+   118→
+   119→function isWarrantyExpired(expiry: string | null): boolean {
+   120→  if (!expiry) return false
+   121→  return new Date(expiry) < new Date()
+   122→}
+   123→
+   124→function getWarrantyDaysLeft(expiry: string | null): number | null {
+   125→  if (!expiry) return null
+   126→  const diff = new Date(expiry).getTime() - Date.now()
+   127→  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+   128→}
+   129→
+   130→function isIssuanceOverdue(issuance: AssetIssuance): boolean {
+   131→  if (issuance.status !== "issued" || !issuance.expectedReturnDate) return false
+   132→  return new Date(issuance.expectedReturnDate) < new Date()
+   133→}
+   134→
+   135→function getEffectiveIssuanceStatus(issuance: AssetIssuance): string {
+   136→  if (issuance.status === "returned") return "returned"
+   137→  if (issuance.status === "lost") return "lost"
+   138→  if (isIssuanceOverdue(issuance)) return "overdue"
+   139→  return "issued"
+   140→}
+   141→
+   142→function getCategoryColor(category: string) {
+   143→  return CATEGORY_COLORS[category] || CATEGORY_COLORS.other
+   144→}
+   145→
+   146→function getCategoryIcon(category: string): React.ElementType {
+   147→  return CATEGORY_ICONS[category] || Package
+   148→}
+   149→
+   150→function parseSpecifications(spec: string | null): Record<string, string> | null {
+   151→  if (!spec) return null
+   152→  try {
+   153→    const parsed = JSON.parse(spec)
+   154→    if (typeof parsed === "object" && parsed !== null) return parsed as Record<string, string>
+   155→    return null
+   156→  } catch {
+   157→    return null
+   158→  }
+   159→}
+   160→
+   161→function generateAssetTag(category: string, existingAssets: ITAsset[]): string {
+   162→  const prefixMap: Record<string, string> = {
+   163→    laptop: "IT-LAP", desktop: "IT-DST", monitor: "IT-MON", keyboard: "IT-KEY",
+   164→    mouse: "IT-MOU", headphone: "IT-HDP", usb: "IT-USB", webcam: "IT-WBC",
+   165→    dock: "IT-DCK", tablet: "IT-TAB", phone: "IT-PHN", printer: "IT-PRT",
+   166→    router: "IT-RTR", other: "IT-OTH",
+   167→  }
+   168→  const prefix = prefixMap[category] || "IT-OTH"
+   169→  const existing = existingAssets.filter(a => a.assetTag.startsWith(prefix))
+   170→  const nextNum = existing.length + 1
+   171→  return `${prefix}-${String(nextNum).padStart(3, "0")}`
+   172→}
+   173→
+   174→// ── Sub-components ───────────────────────────────────────────────────
+   175→
+   176→function KPICard({ icon: Icon, label, value, sub, colorClass }: {
+   177→  icon: React.ElementType; label: string; value: string | number; sub?: string; colorClass: string
+   178→}) {
+   179→  return (
+   180→    <motion.div variants={itemVariants}>
+   181→      <Card className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
+   182→        <CardContent className="p-4">
+   183→          <div className="flex items-start justify-between">
+   184→            <div className="space-y-1">
+   185→              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+   186→              <p className="text-2xl font-bold tracking-tight">{value}</p>
+   187→              {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+   188→            </div>
+   189→            <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${colorClass}`}>
+   190→              <Icon className="h-4.5 w-4.5" />
+   191→            </div>
+   192→          </div>
+   193→        </CardContent>
+   194→      </Card>
+   195→    </motion.div>
+   196→  )
+   197→}
+   198→
+   199→function StatusBadge({ status }: { status: string }) {
+   200→  const config = STATUS_CONFIG[status] || STATUS_CONFIG.available
+   201→  return (
+   202→    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${config.bg} ${config.color}`}>
+   203→      <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+   204→      {config.label}
+   205→    </span>
+   206→  )
+   207→}
+   208→
+   209→function ConditionDots({ condition }: { condition: string }) {
+   210→  const config = CONDITION_CONFIG[condition] || CONDITION_CONFIG.fair
+   211→  return (
+   212→    <TooltipProvider>
+   213→      <Tooltip>
+   214→        <TooltipTrigger asChild>
+   215→          <span className={`inline-flex items-center gap-1 text-xs ${config.color}`}>
+   216→            <span className={`h-2 w-2 rounded-full ${config.dot}`} />
+   217→            {config.label}
+   218→          </span>
+   219→        </TooltipTrigger>
+   220→        <TooltipContent>Condition: {config.label}</TooltipContent>
+   221→      </Tooltip>
+   222→    </TooltipProvider>
+   223→  )
+   224→}
+   225→
+   226→function WarrantyIndicator({ expiry }: { expiry: string | null }) {
+   227→  if (!expiry) return <span className="text-xs text-muted-foreground">No warranty</span>
+   228→  const daysLeft = getWarrantyDaysLeft(expiry)
+   229→  if (daysLeft === null) return <span className="text-xs text-muted-foreground">No warranty</span>
+   230→  if (daysLeft < 0) return (
+   231→    <span className="inline-flex items-center gap-1 text-xs text-rose-600 font-medium">
+   232→      <AlertTriangle className="h-3 w-3" /> Expired
+   233→    </span>
+   234→  )
+   235→  if (daysLeft <= 30) return (
+   236→    <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium">
+   237→      <AlertTriangle className="h-3 w-3" /> {daysLeft}d left
+   238→    </span>
+   239→  )
+   240→  return (
+   241→    <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+   242→      <Shield className="h-3 w-3" /> {daysLeft}d left
+   243→    </span>
+   244→  )
+   245→}
+   246→
+   247→// ── Add Asset Dialog ─────────────────────────────────────────────────
+   248→function AddAssetDialog({ open, onOpenChange, users }: {
+   249→  open: boolean; onOpenChange: (v: boolean) => void; users: User[]
+   250→}) {
+   251→  const { itAssets, setItAssets } = useERPStore()
+   252→  const [loading, setLoading] = useState(false)
+   253→  const [category, setCategory] = useState("laptop")
+   254→  const [specType, setSpecType] = useState<"json" | "fields">("fields")
+   255→  const [specJson, setSpecJson] = useState("")
+   256→  const [specRam, setSpecRam] = useState("")
+   257→  const [specStorage, setSpecStorage] = useState("")
+   258→  const [specCpu, setSpecCpu] = useState("")
+   259→
+   260→  const autoTag = useMemo(() => generateAssetTag(category, itAssets), [category, itAssets])
+   261→
+   262→  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+   263→    e.preventDefault()
+   264→    setLoading(true)
+   265→    const form = new FormData(e.currentTarget)
+   266→
+   267→    let specifications: string | null = null
+   268→    if (specType === "json" && specJson.trim()) {
+   269→      specifications = specJson.trim()
+   270→    } else if (specType === "fields") {
+   271→      const specObj: Record<string, string> = {}
+   272→      if (specRam) specObj["RAM"] = specRam
+   273→      if (specStorage) specObj["Storage"] = specStorage
+   274→      if (specCpu) specObj["CPU"] = specCpu
+   275→      if (Object.keys(specObj).length > 0) specifications = JSON.stringify(specObj)
+   276→    }
+   277→
+   278→    try {
+   279→      const res = await fetch("/api/it-assets", {
+   280→        method: "POST",
+   281→        headers: { "Content-Type": "application/json" },
+   282→        body: JSON.stringify({
+   283→          assetTag: form.get("assetTag") || autoTag,
+   284→          name: form.get("name"),
+   285→          category,
+   286→          brand: form.get("brand") || null,
+   287→          model: form.get("model") || null,
+   288→          serialNumber: form.get("serialNumber") || null,
+   289→          specifications,
+   290→          purchaseDate: form.get("purchaseDate") || null,
+   291→          purchaseCost: form.get("purchaseCost") ? Number(form.get("purchaseCost")) : null,
+   292→          warrantyExpiry: form.get("warrantyExpiry") || null,
+   293→          vendor: form.get("vendor") || null,
+   294→          invoiceNumber: form.get("invoiceNumber") || null,
+   295→          condition: form.get("condition") || "new",
+   296→          status: "available",
+   297→          location: form.get("location") || null,
+   298→          notes: form.get("notes") || null,
+   299→        }),
+   300→      })
+   301→      if (res.ok) {
+   302→        const asset = await res.json()
+   303→        setItAssets([...itAssets, asset])
+   304→        onOpenChange(false)
+   305→      }
+   306→    } catch {
+   307→      // silent
+   308→    } finally {
+   309→      setLoading(false)
+   310→    }
+   311→  }
+   312→
+   313→  return (
+   314→    <Dialog open={open} onOpenChange={onOpenChange}>
+   315→      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+   316→        <DialogHeader>
+   317→          <DialogTitle className="flex items-center gap-2">
+   318→            <Plus className="h-5 w-5 text-emerald-600" /> Add New IT Asset
+   319→          </DialogTitle>
+   320→        </DialogHeader>
+   321→        <form onSubmit={handleSubmit} className="space-y-4">
+   322→          {/* Row 1: Asset Tag & Name */}
+   323→          <div className="grid grid-cols-2 gap-4">
+   324→            <div className="space-y-1.5">
+   325→              <Label className="text-xs font-medium">Asset Tag</Label>
+   326→              <Input name="assetTag" defaultValue={autoTag} className="h-9" />
+   327→            </div>
+   328→            <div className="space-y-1.5">
+   329→              <Label className="text-xs font-medium">Name *</Label>
+   330→              <Input name="name" required placeholder="Asset name" className="h-9" />
+   331→            </div>
+   332→          </div>
+   333→          {/* Row 2: Category, Brand, Model */}
+   334→          <div className="grid grid-cols-3 gap-4">
+   335→            <div className="space-y-1.5">
+   336→              <Label className="text-xs font-medium">Category *</Label>
+   337→              <Select value={category} onValueChange={setCategory}>
+   338→                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+   339→                <SelectContent>
+   340→                  <SelectItem value="laptop">Laptop</SelectItem>
+   341→                  <SelectItem value="desktop">Desktop</SelectItem>
+   342→                  <SelectItem value="monitor">Monitor</SelectItem>
+   343→                  <SelectItem value="keyboard">Keyboard</SelectItem>
+   344→                  <SelectItem value="mouse">Mouse</SelectItem>
+   345→                  <SelectItem value="headphone">Headphone</SelectItem>
+   346→                  <SelectItem value="usb">USB / Storage</SelectItem>
+   347→                  <SelectItem value="other">Other</SelectItem>
+   348→                </SelectContent>
+   349→              </Select>
+   350→            </div>
+   351→            <div className="space-y-1.5">
+   352→              <Label className="text-xs font-medium">Brand</Label>
+   353→              <Input name="brand" placeholder="e.g. Dell" className="h-9" />
+   354→            </div>
+   355→            <div className="space-y-1.5">
+   356→              <Label className="text-xs font-medium">Model</Label>
+   357→              <Input name="model" placeholder="e.g. Latitude 5540" className="h-9" />
+   358→            </div>
+   359→          </div>
+   360→          {/* Row 3: Serial Number, Condition */}
+   361→          <div className="grid grid-cols-2 gap-4">
+   362→            <div className="space-y-1.5">
+   363→              <Label className="text-xs font-medium">Serial Number</Label>
+   364→              <Input name="serialNumber" placeholder="SN..." className="h-9" />
+   365→            </div>
+   366→            <div className="space-y-1.5">
+   367→              <Label className="text-xs font-medium">Condition</Label>
+   368→              <Select name="condition" defaultValue="new">
+   369→                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+   370→                <SelectContent>
+   371→                  <SelectItem value="new">New</SelectItem>
+   372→                  <SelectItem value="good">Good</SelectItem>
+   373→                  <SelectItem value="fair">Fair</SelectItem>
+   374→                  <SelectItem value="damaged">Damaged</SelectItem>
+   375→                </SelectContent>
+   376→              </Select>
+   377→            </div>
+   378→          </div>
+   379→          {/* Specifications */}
+   380→          <div className="space-y-2">
+   381→            <div className="flex items-center gap-2">
+   382→              <Label className="text-xs font-medium">Specifications</Label>
+   383→              <div className="flex gap-1">
+   384→                <Button type="button" size="sm" variant={specType === "fields" ? "default" : "outline"} className="h-6 text-xs px-2" onClick={() => setSpecType("fields")}>Fields</Button>
+   385→                <Button type="button" size="sm" variant={specType === "json" ? "default" : "outline"} className="h-6 text-xs px-2" onClick={() => setSpecType("json")}>JSON</Button>
+   386→              </div>
+   387→            </div>
+   388→            {specType === "fields" ? (
+   389→              <div className="grid grid-cols-3 gap-3">
+   390→                <div className="space-y-1">
+   391→                  <Label className="text-[10px] text-muted-foreground">RAM</Label>
+   392→                  <Input value={specRam} onChange={e => setSpecRam(e.target.value)} placeholder="16 GB" className="h-8 text-sm" />
+   393→                </div>
+   394→                <div className="space-y-1">
+   395→                  <Label className="text-[10px] text-muted-foreground">Storage</Label>
+   396→                  <Input value={specStorage} onChange={e => setSpecStorage(e.target.value)} placeholder="512 GB SSD" className="h-8 text-sm" />
+   397→                </div>
+   398→                <div className="space-y-1">
+   399→                  <Label className="text-[10px] text-muted-foreground">CPU</Label>
+   400→                  <Input value={specCpu} onChange={e => setSpecCpu(e.target.value)} placeholder="i7-13700H" className="h-8 text-sm" />
+   401→                </div>
+   402→              </div>
+   403→            ) : (
+   404→              <Textarea value={specJson} onChange={e => setSpecJson(e.target.value)} placeholder='{"RAM":"16GB","Storage":"512GB SSD"}' className="h-20 text-sm font-mono" />
+   405→            )}
+   406→          </div>
+   407→          <Separator />
+   408→          {/* Purchase Info */}
+   409→          <div className="grid grid-cols-2 gap-4">
+   410→            <div className="space-y-1.5">
+   411→              <Label className="text-xs font-medium">Purchase Date</Label>
+   412→              <Input name="purchaseDate" type="date" className="h-9" />
+   413→            </div>
+   414→            <div className="space-y-1.5">
+   415→              <Label className="text-xs font-medium">Purchase Cost</Label>
+   416→              <Input name="purchaseCost" type="number" step="0.01" placeholder="0.00" className="h-9" />
+   417→            </div>
+   418→          </div>
+   419→          <div className="grid grid-cols-3 gap-4">
+   420→            <div className="space-y-1.5">
+   421→              <Label className="text-xs font-medium">Vendor</Label>
+   422→              <Input name="vendor" placeholder="Vendor name" className="h-9" />
+   423→            </div>
+   424→            <div className="space-y-1.5">
+   425→              <Label className="text-xs font-medium">Invoice #</Label>
+   426→              <Input name="invoiceNumber" placeholder="INV-001" className="h-9" />
+   427→            </div>
+   428→            <div className="space-y-1.5">
+   429→              <Label className="text-xs font-medium">Warranty Expiry</Label>
+   430→              <Input name="warrantyExpiry" type="date" className="h-9" />
+   431→            </div>
+   432→          </div>
+   433→          <div className="grid grid-cols-2 gap-4">
+   434→            <div className="space-y-1.5">
+   435→              <Label className="text-xs font-medium">Location</Label>
+   436→              <Input name="location" placeholder="Office / Room" className="h-9" />
+   437→            </div>
+   438→            <div className="space-y-1.5">
+   439→              <Label className="text-xs font-medium">Notes</Label>
+   440→              <Input name="notes" placeholder="Additional notes" className="h-9" />
+   441→            </div>
+   442→          </div>
+   443→          <DialogFooter className="pt-2">
+   444→            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-9">Cancel</Button>
+   445→            <Button type="submit" disabled={loading} className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white">
+   446→              {loading ? "Adding..." : "Add Asset"}
+   447→            </Button>
+   448→          </DialogFooter>
+   449→        </form>
+   450→      </DialogContent>
+   451→    </Dialog>
+   452→  )
+   453→}
+   454→
+   455→// ── Issue Asset Dialog ───────────────────────────────────────────────
+   456→function IssueAssetDialog({ asset, open, onOpenChange, users }: {
+   457→  asset: ITAsset; open: boolean; onOpenChange: (v: boolean) => void; users: User[]
+   458→}) {
+   459→  const { itAssets, setItAssets, currentUser } = useERPStore()
+   460→  const [loading, setLoading] = useState(false)
+   461→  const [issuedToId, setIssuedToId] = useState("")
+   462→  const [purpose, setPurpose] = useState("")
+   463→  const [expectedReturn, setExpectedReturn] = useState("")
+   464→  const [notes, setNotes] = useState("")
+   465→
+   466→  const handleIssue = async () => {
+   467→    if (!issuedToId) return
+   468→    setLoading(true)
+   469→    try {
+   470→      const res = await fetch(`/api/it-assets/${asset.id}/issue`, {
+   471→        method: "POST",
+   472→        headers: { "Content-Type": "application/json" },
+   473→        body: JSON.stringify({
+   474→          issuedToId,
+   475→          issuedById: currentUser?.id || "user-admin",
+   476→          purpose: purpose || null,
+   477→          expectedReturnDate: expectedReturn || null,
+   478→          notes: notes || null,
+   479→        }),
+   480→      })
+   481→      if (res.ok) {
+   482→        const issuance = await res.json()
+   483→        // Refresh the assets list
+   484→        const assetsRes = await fetch("/api/it-assets")
+   485→        const assetsJson = await assetsRes.json()
+   486→        const assetsData = assetsJson?.data || []
+   487→        setItAssets(assetsData as ITAsset[])
+   488→        onOpenChange(false)
+   489→        setIssuedToId("")
+   490→        setPurpose("")
+   491→        setExpectedReturn("")
+   492→        setNotes("")
+   493→      } else {
+   494→        const err = await res.json()
+   495→        alert(err.error || "Failed to issue asset")
+   496→      }
+   497→    } catch {
+   498→      // silent
+   499→    } finally {
+   500→      setLoading(false)
+   501→    }
+   502→  }
+   503→
+   504→  return (
+   505→    <Dialog open={open} onOpenChange={onOpenChange}>
+   506→      <DialogContent className="max-w-md">
+   507→        <DialogHeader>
+   508→          <DialogTitle className="flex items-center gap-2">
+   509→            <ArrowRightLeft className="h-5 w-5 text-amber-600" /> Issue Asset
+   510→          </DialogTitle>
+   511→        </DialogHeader>
+   512→        <div className="space-y-4">
+   513→          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+   514→            {React.createElement(getCategoryIcon(asset.category), { className: "h-5 w-5 text-emerald-600" })}
+   515→            <div>
+   516→              <p className="text-sm font-medium">{asset.name}</p>
+   517→              <p className="text-xs text-muted-foreground">{asset.assetTag}</p>
+   518→            </div>
+   519→          </div>
+   520→          <div className="space-y-1.5">
+   521→            <Label className="text-xs font-medium">Issue To *</Label>
+   522→            <Select value={issuedToId} onValueChange={setIssuedToId}>
+   523→              <SelectTrigger className="h-9"><SelectValue placeholder="Select user..." /></SelectTrigger>
+   524→              <SelectContent>
+   525→                {users.map(u => (
+   526→                  <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+   527→                ))}
+   528→              </SelectContent>
+   529→            </Select>
+   530→          </div>
+   531→          <div className="space-y-1.5">
+   532→            <Label className="text-xs font-medium">Purpose</Label>
+   533→            <Input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="Daily work / Project / Travel..." className="h-9" />
+   534→          </div>
+   535→          <div className="space-y-1.5">
+   536→            <Label className="text-xs font-medium">Expected Return Date</Label>
+   537→            <Input type="date" value={expectedReturn} onChange={e => setExpectedReturn(e.target.value)} className="h-9" />
+   538→          </div>
+   539→          <div className="space-y-1.5">
+   540→            <Label className="text-xs font-medium">Issue Condition</Label>
+   541→            <div className="h-9 px-3 rounded-md border bg-muted/30 flex items-center text-sm text-muted-foreground">
+   542→              Current: {CONDITION_CONFIG[asset.condition]?.label || asset.condition}
+   543→            </div>
+   544→          </div>
+   545→          <div className="space-y-1.5">
+   546→            <Label className="text-xs font-medium">Notes</Label>
+   547→            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Additional notes..." className="h-20 text-sm" />
+   548→          </div>
+   549→        </div>
+   550→        <DialogFooter className="pt-2">
+   551→          <Button variant="outline" onClick={() => onOpenChange(false)} className="h-9">Cancel</Button>
+   552→          <Button onClick={handleIssue} disabled={loading || !issuedToId} className="h-9 bg-amber-600 hover:bg-amber-700 text-white">
+   553→            {loading ? "Issuing..." : "Issue Asset"}
+   554→          </Button>
+   555→        </DialogFooter>
+   556→      </DialogContent>
+   557→    </Dialog>
+   558→  )
+   559→}
+   560→
+   561→// ── Return Asset Dialog ──────────────────────────────────────────────
+   562→function ReturnAssetDialog({ asset, open, onOpenChange }: {
+   563→  asset: ITAsset; open: boolean; onOpenChange: (v: boolean) => void
+   564→}) {
+   565→  const { setItAssets } = useERPStore()
+   566→  const [loading, setLoading] = useState(false)
+   567→  const [returnCondition, setReturnCondition] = useState("good")
+   568→  const [notes, setNotes] = useState("")
+   569→
+   570→  const handleReturn = async () => {
+   571→    setLoading(true)
+   572→    try {
+   573→      const res = await fetch(`/api/it-assets/${asset.id}/return`, {
+   574→        method: "POST",
+   575→        headers: { "Content-Type": "application/json" },
+   576→        body: JSON.stringify({ returnCondition, notes: notes || null }),
+   577→      })
+   578→      if (res.ok) {
+   579→        // Refresh assets
+   580→        const assetsRes = await fetch("/api/it-assets")
+   581→        const assetsJson = await assetsRes.json()
+   582→        const assetsData = assetsJson?.data || []
+   583→        setItAssets(assetsData as ITAsset[])
+   584→        onOpenChange(false)
+   585→        setReturnCondition("good")
+   586→        setNotes("")
+   587→      } else {
+   588→        const err = await res.json()
+   589→        alert(err.error || "Failed to return asset")
+   590→      }
+   591→    } catch {
+   592→      // silent
+   593→    } finally {
+   594→      setLoading(false)
+   595→    }
+   596→  }
+   597→
+   598→  return (
+   599→    <Dialog open={open} onOpenChange={onOpenChange}>
+   600→      <DialogContent className="max-w-md">
+   601→        <DialogHeader>
+   602→          <DialogTitle className="flex items-center gap-2">
+   603→            <RotateCcw className="h-5 w-5 text-emerald-600" /> Return Asset
+   604→          </DialogTitle>
+   605→        </DialogHeader>
+   606→        <div className="space-y-4">
+   607→          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+   608→            {React.createElement(getCategoryIcon(asset.category), { className: "h-5 w-5 text-emerald-600" })}
+   609→            <div>
+   610→              <p className="text-sm font-medium">{asset.name}</p>
+   611→              <p className="text-xs text-muted-foreground">{asset.assetTag}</p>
+   612→            </div>
+   613→          </div>
+   614→          {asset.assignedTo && (
+   615→            <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200">
+   616→              <UserIcon className="h-4 w-4 text-amber-600" />
+   617→              <span className="text-sm">Currently issued to <strong>{asset.assignedTo.name}</strong></span>
+   618→            </div>
+   619→          )}
+   620→          <div className="space-y-1.5">
+   621→            <Label className="text-xs font-medium">Return Condition *</Label>
+   622→            <Select value={returnCondition} onValueChange={setReturnCondition}>
+   623→              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+   624→              <SelectContent>
+   625→                <SelectItem value="new">New</SelectItem>
+   626→                <SelectItem value="good">Good</SelectItem>
+   627→                <SelectItem value="fair">Fair</SelectItem>
+   628→                <SelectItem value="damaged">Damaged</SelectItem>
+   629→              </SelectContent>
+   630→            </Select>
+   631→          </div>
+   632→          <div className="space-y-1.5">
+   633→            <Label className="text-xs font-medium">Notes</Label>
+   634→            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any observations on return..." className="h-20 text-sm" />
+   635→          </div>
+   636→        </div>
+   637→        <DialogFooter className="pt-2">
+   638→          <Button variant="outline" onClick={() => onOpenChange(false)} className="h-9">Cancel</Button>
+   639→          <Button onClick={handleReturn} disabled={loading} className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white">
+   640→            {loading ? "Processing..." : "Return Asset"}
+   641→          </Button>
+   642→        </DialogFooter>
+   643→      </DialogContent>
+   644→    </Dialog>
+   645→  )
+   646→}
+   647→
+   648→// ── Asset Detail Sheet ───────────────────────────────────────────────
+   649→function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
+   650→  asset: ITAsset | null; open: boolean; onOpenChange: (v: boolean) => void
+   651→  onIssue: () => void; onReturn: () => void
+   652→}) {
+   653→  const { setItAssets } = useERPStore()
+   654→  const [actionLoading, setActionLoading] = useState(false)
+   655→
+   656→  if (!asset) return null
+   657→
+   658→  const specs = parseSpecifications(asset.specifications)
+   659→  const CatIcon = getCategoryIcon(asset.category)
+   660→  const catColor = getCategoryColor(asset.category)
+   661→  const activeIssuance = asset.issuances?.find(i => i.status === "issued")
+   662→  const warrantyDays = getWarrantyDaysLeft(asset.warrantyExpiry)
+   663→
+   664→  const handleMarkMaintenance = async () => {
+   665→    setActionLoading(true)
+   666→    try {
+   667→      const res = await fetch(`/api/it-assets/${asset.id}`, {
+   668→        method: "PUT",
+   669→        headers: { "Content-Type": "application/json" },
+   670→        body: JSON.stringify({ status: "maintenance" }),
+   671→      })
+   672→      if (res.ok) {
+   673→        const updated = await res.json()
+   674→        const { itAssets } = useERPStore.getState()
+   675→        setItAssets(itAssets.map(a => a.id === updated.id ? updated : a))
+   676→      }
+   677→    } catch {
+   678→      // silent
+   679→    } finally {
+   680→      setActionLoading(false)
+   681→    }
+   682→  }
+   683→
+   684→  const handleRetire = async () => {
+   685→    setActionLoading(true)
+   686→    try {
+   687→      const res = await fetch(`/api/it-assets/${asset.id}`, {
+   688→        method: "PUT",
+   689→        headers: { "Content-Type": "application/json" },
+   690→        body: JSON.stringify({ status: "retired", condition: "retired" }),
+   691→      })
+   692→      if (res.ok) {
+   693→        const updated = await res.json()
+   694→        const { itAssets } = useERPStore.getState()
+   695→        setItAssets(itAssets.map(a => a.id === updated.id ? updated : a))
+   696→      }
+   697→    } catch {
+   698→      // silent
+   699→    } finally {
+   700→      setActionLoading(false)
+   701→    }
+   702→  }
+   703→
+   704→  return (
+   705→    <Sheet open={open} onOpenChange={onOpenChange}>
+   706→      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+   707→        <SheetHeader className="pb-4">
+   708→          <div className="flex items-start justify-between">
+   709→            <div className="flex items-center gap-3">
+   710→              <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${catColor.icon}`}>
+   711→                <CatIcon className="h-5 w-5" />
+   712→              </div>
+   713→              <div>
+   714→                <SheetTitle className="text-base">{asset.name}</SheetTitle>
+   715→                <p className="text-sm text-muted-foreground">{asset.assetTag}</p>
+   716→              </div>
+   717→            </div>
+   718→            <StatusBadge status={asset.status} />
+   719→          </div>
+   720→        </SheetHeader>
+   721→
+   722→        <div className="space-y-6">
+   723→          {/* Quick Info */}
+   724→          <div className="grid grid-cols-2 gap-3">
+   725→            <div className="p-3 rounded-lg border bg-muted/30">
+   726→              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Category</p>
+   727→              <p className={`text-sm font-medium ${catColor.text}`}>{asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}</p>
+   728→            </div>
+   729→            <div className="p-3 rounded-lg border bg-muted/30">
+   730→              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Condition</p>
+   731→              <ConditionDots condition={asset.condition} />
+   732→            </div>
+   733→            <div className="p-3 rounded-lg border bg-muted/30">
+   734→              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Brand / Model</p>
+   735→              <p className="text-sm font-medium">{asset.brand || "—"} {asset.model || ""}</p>
+   736→            </div>
+   737→            <div className="p-3 rounded-lg border bg-muted/30">
+   738→              <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Serial Number</p>
+   739→              <p className="text-sm font-mono">{asset.serialNumber || "—"}</p>
+   740→            </div>
+   741→          </div>
+   742→
+   743→          {/* Specifications */}
+   744→          {specs && (
+   745→            <div>
+   746→              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Specifications</h4>
+   747→              <div className="space-y-1.5">
+   748→                {Object.entries(specs).map(([key, val]) => (
+   749→                  <div key={key} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+   750→                    <span className="text-xs text-muted-foreground">{key}</span>
+   751→                    <span className="text-xs font-medium">{val}</span>
+   752→                  </div>
+   753→                ))}
+   754→              </div>
+   755→            </div>
+   756→          )}
+   757→
+   758→          {/* Purchase Info */}
+   759→          <div>
+   760→            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Purchase Information</h4>
+   761→            <div className="space-y-1.5">
+   762→              <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+   763→                <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3 w-3" /> Purchase Date</span>
+   764→                <span className="text-xs font-medium">{formatDate(asset.purchaseDate)}</span>
+   765→              </div>
+   766→              <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+   767→                <span className="text-xs text-muted-foreground flex items-center gap-1.5"><DollarSign className="h-3 w-3" /> Cost</span>
+   768→                <span className="text-xs font-medium">{formatCurrency(asset.purchaseCost)}</span>
+   769→              </div>
+   770→              {asset.vendor && (
+   771→                <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+   772→                  <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Building2 className="h-3 w-3" /> Vendor</span>
+   773→                  <span className="text-xs font-medium">{asset.vendor}</span>
+   774→                </div>
+   775→              )}
+   776→              {asset.invoiceNumber && (
+   777→                <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+   778→                  <span className="text-xs text-muted-foreground flex items-center gap-1.5"><FileText className="h-3 w-3" /> Invoice</span>
+   779→                  <span className="text-xs font-medium font-mono">{asset.invoiceNumber}</span>
+   780→                </div>
+   781→              )}
+   782→            </div>
+   783→          </div>
+   784→
+   785→          {/* Warranty */}
+   786→          <div>
+   787→            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Warranty Status</h4>
+   788→            <div className="p-3 rounded-lg border bg-muted/30">
+   789→              <div className="flex items-center justify-between">
+   790→                <span className="text-xs text-muted-foreground">Expiry Date</span>
+   791→                <span className="text-xs font-medium">{formatDate(asset.warrantyExpiry)}</span>
+   792→              </div>
+   793→              <div className="mt-2">
+   794→                <WarrantyIndicator expiry={asset.warrantyExpiry} />
+   795→              </div>
+   796→              {warrantyDays !== null && warrantyDays > 0 && (
+   797→                <div className="mt-2">
+   798→                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+   799→                    <div
+   800→                      className={`h-full rounded-full transition-all ${warrantyDays <= 30 ? "bg-amber-500" : "bg-emerald-500"}`}
+   801→                      style={{ width: `${Math.min(100, Math.max(0, (warrantyDays / 365) * 100))}%` }}
+   802→                    />
+   803→                  </div>
+   804→                </div>
+   805→              )}
+   806→            </div>
+   807→          </div>
+   808→
+   809→          {/* Location */}
+   810→          {asset.location && (
+   811→            <div>
+   812→              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Location</h4>
+   813→              <div className="p-3 rounded-lg border bg-muted/30">
+   814→                <span className="text-sm">{asset.location}</span>
+   815→              </div>
+   816→            </div>
+   817→          )}
+   818→
+   819→          {/* Current Assignment */}
+   820→          {activeIssuance && (
+   821→            <div>
+   822→              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Current Assignment</h4>
+   823→              <div className="p-3 rounded-lg border border-amber-200 bg-amber-50/50">
+   824→                <div className="flex items-center gap-3">
+   825→                  <Avatar className="h-8 w-8">
+   826→                    <AvatarFallback className="bg-amber-100 text-amber-700 text-xs">
+   827→                      {getInitials(activeIssuance.issuedTo?.name || "?")}
+   828→                    </AvatarFallback>
+   829→                  </Avatar>
+   830→                  <div className="flex-1">
+   831→                    <p className="text-sm font-medium">{activeIssuance.issuedTo?.name}</p>
+   832→                    <p className="text-xs text-muted-foreground">Issued {formatDate(activeIssuance.issueDate)}</p>
+   833→                  </div>
+   834→                </div>
+   835→                {activeIssuance.purpose && (
+   836→                  <p className="mt-2 text-xs text-muted-foreground">Purpose: {activeIssuance.purpose}</p>
+   837→                )}
+   838→                {activeIssuance.expectedReturnDate && (
+   839→                  <p className="mt-1 text-xs text-muted-foreground">
+   840→                    Expected return: {formatDate(activeIssuance.expectedReturnDate)}
+   841→                    {isIssuanceOverdue(activeIssuance) && (
+   842→                      <span className="ml-1 text-rose-600 font-medium">(Overdue)</span>
+   843→                    )}
+   844→                  </p>
+   845→                )}
+   846→              </div>
+   847→            </div>
+   848→          )}
+   849→
+   850→          {/* Issuance History Timeline */}
+   851→          {asset.issuances && asset.issuances.length > 0 && (
+   852→            <div>
+   853→              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Issuance History</h4>
+   854→              <div className="relative space-y-0">
+   855→                {asset.issuances.map((issuance, idx) => {
+   856→                  const effectiveStatus = getEffectiveIssuanceStatus(issuance)
+   857→                  const issConfig = ISSUANCE_STATUS_CONFIG[effectiveStatus] || ISSUANCE_STATUS_CONFIG.issued
+   858→                  const isLast = idx === asset.issuances.length - 1
+   859→                  return (
+   860→                    <div key={issuance.id} className="flex gap-3">
+   861→                      <div className="flex flex-col items-center">
+   862→                        <div className={`h-3 w-3 rounded-full border-2 mt-1 ${effectiveStatus === "returned" ? "border-emerald-400 bg-emerald-100" : effectiveStatus === "overdue" ? "border-rose-400 bg-rose-100" : "border-amber-400 bg-amber-100"}`} />
+   863→                        {!isLast && <div className="w-0.5 flex-1 bg-muted my-1" />}
+   864→                      </div>
+   865→                      <div className={`pb-4 flex-1 ${isLast ? "pb-0" : ""}`}>
+   866→                        <div className="flex items-start justify-between">
+   867→                          <div>
+   868→                            <p className="text-sm font-medium">{issuance.issuedTo?.name || "Unknown"}</p>
+   869→                            <p className="text-xs text-muted-foreground">
+   870→                              Issued {formatDate(issuance.issueDate)} by {issuance.issuedBy?.name || "Unknown"}
+   871→                            </p>
+   872→                          </div>
+   873→                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${issConfig.bg} ${issConfig.color}`}>
+   874→                            {issConfig.label}
+   875→                          </span>
+   876→                        </div>
+   877→                        {issuance.actualReturnDate && (
+   878→                          <p className="text-xs text-muted-foreground mt-0.5">Returned {formatDate(issuance.actualReturnDate)}</p>
+   879→                        )}
+   880→                        {issuance.purpose && (
+   881→                          <p className="text-xs text-muted-foreground mt-0.5 italic">{issuance.purpose}</p>
+   882→                        )}
+   883→                      </div>
+   884→                    </div>
+   885→                  )
+   886→                })}
+   887→              </div>
+   888→            </div>
+   889→          )}
+   890→
+   891→          {/* Notes */}
+   892→          {asset.notes && (
+   893→            <div>
+   894→              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notes</h4>
+   895→              <div className="p-3 rounded-lg border bg-muted/30">
+   896→                <p className="text-sm text-muted-foreground">{asset.notes}</p>
+   897→              </div>
+   898→            </div>
+   899→          )}
+   900→
+   901→          <Separator />
+   902→
+   903→          {/* Action Buttons */}
+   904→          <div className="flex flex-wrap gap-2">
+   905→            {asset.status === "available" && (
+   906→              <Button onClick={onIssue} className="h-9 bg-amber-600 hover:bg-amber-700 text-white text-xs" disabled={actionLoading}>
+   907→                <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" /> Issue Asset
+   908→              </Button>
+   909→            )}
+   910→            {asset.status === "issued" && (
+   911→              <Button onClick={onReturn} className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs" disabled={actionLoading}>
+   912→                <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Return Asset
+   913→              </Button>
+   914→            )}
+   915→            {asset.status !== "maintenance" && asset.status !== "retired" && (
+   916→              <Button variant="outline" onClick={handleMarkMaintenance} className="h-9 text-xs" disabled={actionLoading}>
+   917→                <Wrench className="h-3.5 w-3.5 mr-1.5" /> Mark Maintenance
+   918→              </Button>
+   919→            )}
+   920→            {asset.status !== "retired" && (
+   921→              <Button variant="outline" onClick={handleRetire} className="h-9 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50" disabled={actionLoading}>
+   922→                <CirclePause className="h-3.5 w-3.5 mr-1.5" /> Retire
+   923→              </Button>
+   924→            )}
+   925→          </div>
+   926→        </div>
+   927→      </SheetContent>
+   928→    </Sheet>
+   929→  )
+   930→}
+   931→
+   932→// ── Asset Card ───────────────────────────────────────────────────────
+   933→function AssetCard({ asset, onClick, onIssue, onReturn }: {
+   934→  asset: ITAsset; onClick: () => void; onIssue: () => void; onReturn: () => void
+   935→}) {
+   936→  const catIcon = getCategoryIcon(asset.category)
+   937→  const catColor = getCategoryColor(asset.category)
+   938→
+   939→  return (
+   940→    <motion.div variants={itemVariants}>
+   941→      <Card
+   942→        className="group cursor-pointer border hover:shadow-lg transition-all duration-200 hover:border-emerald-200 relative overflow-hidden"
+   943→        onClick={onClick}
+   944→      >
+   945→        {/* Top color bar */}
+   946→        <div className={`h-1 ${catColor.dot || catColor.bg}`} style={{ background: asset.category === "laptop" ? "#10b981" : asset.category === "desktop" ? "#64748b" : asset.category === "monitor" ? "#06b6d4" : asset.category === "keyboard" ? "#8b5cf6" : asset.category === "mouse" ? "#f59e0b" : asset.category === "headphone" ? "#f43f5e" : asset.category === "usb" ? "#14b8a6" : "#9ca3af" }} />
+   947→        <CardContent className="p-4">
+   948→          <div className="flex items-start gap-3">
+   949→            {/* Category Icon */}
+   950→            <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${catColor.icon}`}>
+   951→              {React.createElement(catIcon, { className: "h-5 w-5" })}
+   952→            </div>
+   953→
+   954→            {/* Main Info */}
+   955→            <div className="flex-1 min-w-0">
+   956→              <div className="flex items-start justify-between gap-2">
+   957→                <div className="min-w-0">
+   958→                  <p className="text-sm font-semibold truncate">{asset.name}</p>
+   959→                  <p className="text-xs text-muted-foreground font-mono">{asset.assetTag}</p>
+   960→                </div>
+   961→                <StatusBadge status={asset.status} />
+   962→              </div>
+   963→
+   964→              {(asset.brand || asset.model) && (
+   965→                <p className="text-xs text-muted-foreground mt-1 truncate">
+   966→                  {asset.brand}{asset.brand && asset.model ? " • " : ""}{asset.model}
+   967→                </p>
+   968→              )}
+   969→
+   970→              <div className="flex items-center gap-3 mt-2">
+   971→                <ConditionDots condition={asset.condition} />
+   972→                {asset.purchaseCost != null && (
+   973→                  <span className="text-xs font-medium text-muted-foreground">{formatCurrency(asset.purchaseCost)}</span>
+   974→                )}
+   975→              </div>
+   976→
+   977→              {/* Assigned user */}
+   978→              {asset.assignedTo && (
+   979→                <div className="flex items-center gap-2 mt-2">
+   980→                  <Avatar className="h-5 w-5">
+   981→                    <AvatarFallback className="text-[8px] bg-amber-100 text-amber-700">
+   982→                      {getInitials(asset.assignedTo.name)}
+   983→                    </AvatarFallback>
+   984→                  </Avatar>
+   985→                  <span className="text-xs text-muted-foreground truncate">{asset.assignedTo.name}</span>
+   986→                </div>
+   987→              )}
+   988→
+   989→              {/* Warranty indicator */}
+   990→              {(isWarrantyExpiringSoon(asset.warrantyExpiry) || isWarrantyExpired(asset.warrantyExpiry)) && (
+   991→                <div className="mt-2">
+   992→                  <WarrantyIndicator expiry={asset.warrantyExpiry} />
+   993→                </div>
+   994→              )}
+   995→            </div>
+   996→          </div>
+   997→
+   998→          {/* Quick Actions */}
+   999→          <div className="flex items-center gap-1 mt-3 pt-3 border-t opacity-0 group-hover:opacity-100 transition-opacity">
+  1000→            {asset.status === "available" && (
+  1001→              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={e => { e.stopPropagation(); onIssue() }}>
+  1002→                <ArrowRightLeft className="h-3 w-3" /> Issue
+  1003→              </Button>
+  1004→            )}
+  1005→            {asset.status === "issued" && (
+  1006→              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={e => { e.stopPropagation(); onReturn() }}>
+  1007→                <RotateCcw className="h-3 w-3" /> Return
+  1008→              </Button>
+  1009→            )}
+  1010→            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={e => { e.stopPropagation(); onClick() }}>
+  1011→              <Eye className="h-3 w-3" /> View
+  1012→            </Button>
+  1013→          </div>
+  1014→        </CardContent>
+  1015→      </Card>
+  1016→    </motion.div>
+  1017→  )
+  1018→}
+  1019→
+  1020→// ── Asset Row (list view) ────────────────────────────────────────────
+  1021→function AssetRow({ asset, onClick, onIssue, onReturn }: {
+  1022→  asset: ITAsset; onClick: () => void; onIssue: () => void; onReturn: () => void
+  1023→}) {
+  1024→  const catIcon = getCategoryIcon(asset.category)
+  1025→  const catColor = getCategoryColor(asset.category)
+  1026→
+  1027→  return (
+  1028→    <motion.div variants={itemVariants}>
+  1029→      <div
+  1030→        className="flex items-center gap-4 p-3 rounded-lg border hover:bg-muted/30 hover:border-emerald-200 cursor-pointer transition-all group"
+  1031→        onClick={onClick}
+  1032→      >
+  1033→        <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${catColor.icon}`}>
+  1034→          {React.createElement(catIcon, { className: "h-4 w-4" })}
+  1035→        </div>
+  1036→        <div className="min-w-0 flex-1">
+  1037→          <div className="flex items-center gap-2">
+  1038→            <p className="text-sm font-medium truncate">{asset.name}</p>
+  1039→            <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted">{asset.assetTag}</span>
+  1040→          </div>
+  1041→          <p className="text-xs text-muted-foreground truncate">
+  1042→            {asset.brand}{asset.brand && asset.model ? " • " : ""}{asset.model}
+  1043→            {asset.serialNumber ? ` • SN: ${asset.serialNumber}` : ""}
+  1044→          </p>
+  1045→        </div>
+  1046→        <StatusBadge status={asset.status} />
+  1047→        <ConditionDots condition={asset.condition} />
+  1048→        {asset.assignedTo ? (
+  1049→          <div className="flex items-center gap-1.5 min-w-[100px]">
+  1050→            <Avatar className="h-5 w-5">
+  1051→              <AvatarFallback className="text-[8px] bg-amber-100 text-amber-700">{getInitials(asset.assignedTo.name)}</AvatarFallback>
+  1052→            </Avatar>
+  1053→            <span className="text-xs truncate">{asset.assignedTo.name}</span>
+  1054→          </div>
+  1055→        ) : (
+  1056→          <span className="text-xs text-muted-foreground min-w-[100px]">Unassigned</span>
+  1057→        )}
+  1058→        <span className="text-xs font-medium min-w-[80px] text-right">{formatCurrency(asset.purchaseCost)}</span>
+  1059→        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+  1060→          {asset.status === "available" && (
+  1061→            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-amber-600" onClick={e => { e.stopPropagation(); onIssue() }}>
+  1062→              <ArrowRightLeft className="h-3.5 w-3.5" />
+  1063→            </Button>
+  1064→          )}
+  1065→          {asset.status === "issued" && (
+  1066→            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600" onClick={e => { e.stopPropagation(); onReturn() }}>
+  1067→              <RotateCcw className="h-3.5 w-3.5" />
+  1068→            </Button>
+  1069→          )}
+  1070→          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={e => { e.stopPropagation(); onClick() }}>
+  1071→            <Eye className="h-3.5 w-3.5" />
+  1072→          </Button>
+  1073→        </div>
+  1074→      </div>
+  1075→    </motion.div>
+  1076→  )
+  1077→}
+  1078→
+  1079→// ── Main Component ───────────────────────────────────────────────────
+  1080→export function ITAssetsView() {
+  1081→  const { itAssets, assetIssuances, employees, setItAssets, setAssetIssuances } = useERPStore()
+  1082→
+  1083→  // State
+  1084→  const [categoryTab, setCategoryTab] = useState("All")
+  1085→  const [mainTab, setMainTab] = useState("inventory")
+  1086→  const [statusFilter, setStatusFilter] = useState("All")
+  1087→  const [search, setSearch] = useState("")
+  1088→  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  1089→  const [selectedAsset, setSelectedAsset] = useState<ITAsset | null>(null)
+  1090→  const [detailOpen, setDetailOpen] = useState(false)
+  1091→  const [issueAsset, setIssueAsset] = useState<ITAsset | null>(null)
+  1092→  const [returnAsset, setReturnAsset] = useState<ITAsset | null>(null)
+  1093→  const [addOpen, setAddOpen] = useState(false)
+  1094→  const [issuanceStatusFilter, setIssuanceStatusFilter] = useState("all")
+  1095→
+  1096→  // Merge users from both store sources
+  1097→  const allUsers = useMemo(() => {
+  1098→    const userMap = new Map<string, User>()
+  1099→    employees.forEach(e => {
+  1100→      if (e.user) userMap.set(e.user.id, e.user)
+  1101→    })
+  1102→    return Array.from(userMap.values())
+  1103→  }, [employees])
+  1104→
+  1105→  // KPI computations
+  1106→  const kpis = useMemo(() => {
+  1107→    const total = itAssets.length
+  1108→    const available = itAssets.filter(a => a.status === "available").length
+  1109→    const issued = itAssets.filter(a => a.status === "issued").length
+  1110→    const maintenance = itAssets.filter(a => a.status === "maintenance").length
+  1111→    const totalValue = itAssets.reduce((s, a) => s + (a.purchaseCost || 0), 0)
+  1112→    const warrantyExpiring = itAssets.filter(a => isWarrantyExpiringSoon(a.warrantyExpiry)).length
+  1113→    return { total, available, issued, maintenance, totalValue, warrantyExpiring }
+  1114→  }, [itAssets])
+  1115→
+  1116→  // Filter assets
+  1117→  const filteredAssets = useMemo(() => {
+  1118→    let result = itAssets
+  1119→    if (categoryTab !== "All") {
+  1120→      const catValue = CATEGORY_MAP[categoryTab]
+  1121→      if (catValue) result = result.filter(a => a.category === catValue)
+  1122→    }
+  1123→    if (statusFilter !== "All") {
+  1124→      const statusValue = STATUS_MAP[statusFilter]
+  1125→      if (statusValue) result = result.filter(a => a.status === statusValue)
+  1126→    }
+  1127→    if (search.trim()) {
+  1128→      const q = search.toLowerCase()
+  1129→      result = result.filter(a =>
+  1130→        a.name.toLowerCase().includes(q) ||
+  1131→        a.assetTag.toLowerCase().includes(q) ||
+  1132→        (a.serialNumber && a.serialNumber.toLowerCase().includes(q)) ||
+  1133→        (a.brand && a.brand.toLowerCase().includes(q)) ||
+  1134→        (a.model && a.model.toLowerCase().includes(q))
+  1135→      )
+  1136→    }
+  1137→    return result
+  1138→  }, [itAssets, categoryTab, statusFilter, search])
+  1139→
+  1140→  // Filter issuances
+  1141→  const filteredIssuances = useMemo(() => {
+  1142→    let result = assetIssuances
+  1143→    if (issuanceStatusFilter !== "all") {
+  1144→      result = result.filter(i => getEffectiveIssuanceStatus(i) === issuanceStatusFilter)
+  1145→    }
+  1146→    return result.sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
+  1147→  }, [assetIssuances, issuanceStatusFilter])
+  1148→
+  1149→  // Handlers
+  1150→  const openDetail = useCallback((asset: ITAsset) => {
+  1151→    setSelectedAsset(asset)
+  1152→    setDetailOpen(true)
+  1153→  }, [])
+  1154→
+  1155→  const openIssue = useCallback((asset: ITAsset) => {
+  1156→    setIssueAsset(asset)
+  1157→  }, [])
+  1158→
+  1159→  const openReturn = useCallback((asset: ITAsset) => {
+  1160→    setReturnAsset(asset)
+  1161→  }, [])
+  1162→
+  1163→  // Refresh data helper
+  1164→  const refreshData = useCallback(async () => {
+  1165→    try {
+  1166→      const [assetsRes, issuancesRes] = await Promise.all([
+  1167→        fetch("/api/it-assets"),
+  1168→        fetch("/api/asset-issuances"),
+  1169→      ])
+  1170→      const [assetsJson, issuancesJson] = await Promise.all([assetsRes.json(), issuancesRes.json()])
+  1171→      const assetsData = assetsJson?.data || []
+  1172→      const issuancesData = issuancesJson?.data || []
+  1173→      setItAssets(assetsData as ITAsset[])
+  1174→      setAssetIssuances(issuancesData as AssetIssuance[])
+  1175→    } catch {
+  1176→      // silent
+  1177→    }
+  1178→  }, [setItAssets, setAssetIssuances])
+  1179→
+  1180→  // Update selected asset when itAssets changes
+  1181→  React.useEffect(() => {
+  1182→    if (selectedAsset) {
+  1183→      const updated = itAssets.find(a => a.id === selectedAsset.id)
+  1184→      if (updated) setSelectedAsset(updated)
+  1185→    }
+  1186→  }, [itAssets, selectedAsset])
+  1187→
+  1188→  return (
+  1189→    <div className="h-full flex flex-col">
+  1190→      {/* Header */}
+  1191→      <div className="px-6 pt-6 pb-4">
+  1192→        <div className="flex items-center justify-between mb-6">
+  1193→          <div>
+  1194→            <h1 className="text-2xl font-bold tracking-tight">IT Asset Management</h1>
+  1195→            <p className="text-sm text-muted-foreground mt-0.5">Track, issue, and manage your organization&apos;s IT assets</p>
+  1196→          </div>
+  1197→          <Button onClick={() => setAddOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 gap-1.5">
+  1198→            <Plus className="h-4 w-4" /> Add Asset
+  1199→          </Button>
+  1200→        </div>
+  1201→
+  1202→        {/* KPI Row */}
+  1203→        <motion.div
+  1204→          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"
+  1205→          variants={containerVariants}
+  1206→          initial="hidden"
+  1207→          animate="visible"
+  1208→        >
+  1209→          <KPICard icon={Package} label="Total Assets" value={kpis.total} colorClass="bg-emerald-100 text-emerald-600" />
+  1210→          <KPICard icon={CheckCircle2} label="Available" value={kpis.available} sub="Ready to issue" colorClass="bg-teal-100 text-teal-600" />
+  1211→          <KPICard icon={ArrowRightLeft} label="Issued" value={kpis.issued} sub="In use" colorClass="bg-amber-100 text-amber-600" />
+  1212→          <KPICard icon={Wrench} label="In Maintenance" value={kpis.maintenance} colorClass="bg-cyan-100 text-cyan-600" />
+  1213→          <KPICard icon={DollarSign} label="Total Value" value={formatCurrency(kpis.totalValue)} colorClass="bg-emerald-100 text-emerald-600" />
+  1214→          <KPICard icon={AlertTriangle} label="Warranty Expiring" value={kpis.warrantyExpiring} sub="Within 30 days" colorClass="bg-rose-100 text-rose-600" />
+  1215→        </motion.div>
+  1216→      </div>
+  1217→
+  1218→      {/* Category Tabs */}
+  1219→      <div className="px-6 pb-3">
+  1220→        <div className="flex items-center gap-1 overflow-x-auto pb-1">
+  1221→          {CATEGORIES.map(cat => (
+  1222→            <Button
+  1223→              key={cat}
+  1224→              size="sm"
+  1225→              variant={categoryTab === cat ? "default" : "ghost"}
+  1226→              className={`h-8 text-xs whitespace-nowrap shrink-0 ${categoryTab === cat ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+  1227→              onClick={() => setCategoryTab(cat)}
+  1228→            >
+  1229→              {cat}
+  1230→            </Button>
+  1231→          ))}
+  1232→        </div>
+  1233→      </div>
+  1234→
+  1235→      {/* Main Tabs */}
+  1236→      <div className="px-6 pb-2">
+  1237→        <Tabs value={mainTab} onValueChange={setMainTab}>
+  1238→          <TabsList className="h-9">
+  1239→            <TabsTrigger value="inventory" className="text-xs px-4">Asset Inventory</TabsTrigger>
+  1240→            <TabsTrigger value="issuances" className="text-xs px-4">Issuance Records</TabsTrigger>
+  1241→          </TabsList>
+  1242→        </Tabs>
+  1243→      </div>
+  1244→
+  1245→      {/* Content */}
+  1246→      <div className="flex-1 overflow-y-auto px-6 pb-6">
+  1247→        {mainTab === "inventory" ? (
+  1248→          <div className="space-y-4">
+  1249→            {/* Search & Filters Bar */}
+  1250→            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+  1251→              <div className="relative flex-1 w-full">
+  1252→                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+  1253→                <Input
+  1254→                  value={search}
+  1255→                  onChange={e => setSearch(e.target.value)}
+  1256→                  placeholder="Search by name, asset tag, serial number..."
+  1257→                  className="pl-9 h-9"
+  1258→                />
+  1259→                {search && (
+  1260→                  <Button size="sm" variant="ghost" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setSearch("")}>
+  1261→                    <X className="h-3 w-3" />
+  1262→                  </Button>
+  1263→                )}
+  1264→              </div>
+  1265→              <div className="flex items-center gap-2">
+  1266→                <div className="flex items-center gap-1">
+  1267→                  {STATUS_FILTERS.map(s => (
+  1268→                    <Button
+  1269→                      key={s}
+  1270→                      size="sm"
+  1271→                      variant={statusFilter === s ? "default" : "outline"}
+  1272→                      className={`h-8 text-xs ${statusFilter === s ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+  1273→                      onClick={() => setStatusFilter(s)}
+  1274→                    >
+  1275→                      {s}
+  1276→                    </Button>
+  1277→                  ))}
+  1278→                </div>
+  1279→                <Separator orientation="vertical" className="h-6" />
+  1280→                <div className="flex items-center gap-1 border rounded-md p-0.5">
+  1281→                  <Button size="sm" variant={viewMode === "grid" ? "default" : "ghost"} className={`h-7 w-7 p-0 ${viewMode === "grid" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`} onClick={() => setViewMode("grid")}>
+  1282→                    <LayoutGrid className="h-3.5 w-3.5" />
+  1283→                  </Button>
+  1284→                  <Button size="sm" variant={viewMode === "list" ? "default" : "ghost"} className={`h-7 w-7 p-0 ${viewMode === "list" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`} onClick={() => setViewMode("list")}>
+  1285→                    <List className="h-3.5 w-3.5" />
+  1286→                  </Button>
+  1287→                </div>
+  1288→              </div>
+  1289→            </div>
+  1290→
+  1291→            {/* Results Count */}
+  1292→            <div className="flex items-center justify-between">
+  1293→              <p className="text-xs text-muted-foreground">
+  1294→                Showing {filteredAssets.length} of {itAssets.length} assets
+  1295→                {categoryTab !== "All" && ` in ${categoryTab}`}
+  1296→                {statusFilter !== "All" && ` • ${statusFilter}`}
+  1297→              </p>
+  1298→            </div>
+  1299→
+  1300→            {/* Asset Grid / List */}
+  1301→            {filteredAssets.length === 0 ? (
+  1302→              <Card className="border-dashed">
+  1303→                <CardContent className="py-16 text-center">
+  1304→                  <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+  1305→                  <p className="text-sm font-medium text-muted-foreground">No assets found</p>
+  1306→                  <p className="text-xs text-muted-foreground mt-1">
+  1307→                    {search ? "Try adjusting your search or filters" : "Add your first IT asset to get started"}
+  1308→                  </p>
+  1309→                  {!search && (
+  1310→                    <Button onClick={() => setAddOpen(true)} className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs">
+  1311→                      <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Asset
+  1312→                    </Button>
+  1313→                  )}
+  1314→                </CardContent>
+  1315→              </Card>
+  1316→            ) : viewMode === "grid" ? (
+  1317→              <motion.div
+  1318→                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+  1319→                variants={containerVariants}
+  1320→                initial="hidden"
+  1321→                animate="visible"
+  1322→                key="grid"
+  1323→              >
+  1324→                {filteredAssets.map(asset => (
+  1325→                  <AssetCard
+  1326→                    key={asset.id}
+  1327→                    asset={asset}
+  1328→                    onClick={() => openDetail(asset)}
+  1329→                    onIssue={() => openIssue(asset)}
+  1330→                    onReturn={() => openReturn(asset)}
+  1331→                  />
+  1332→                ))}
+  1333→              </motion.div>
+  1334→            ) : (
+  1335→              <motion.div
+  1336→                className="space-y-1.5"
+  1337→                variants={containerVariants}
+  1338→                initial="hidden"
+  1339→                animate="visible"
+  1340→                key="list"
+  1341→              >
+  1342→                {/* List Header */}
+  1343→                <div className="flex items-center gap-4 px-3 py-2 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+  1344→                  <div className="w-9" />
+  1345→                  <div className="flex-1">Asset</div>
+  1346→                  <div className="w-24">Status</div>
+  1347→                  <div className="w-16">Condition</div>
+  1348→                  <div className="w-28">Assigned To</div>
+  1349→                  <div className="w-20 text-right">Value</div>
+  1350→                  <div className="w-16" />
+  1351→                </div>
+  1352→                {filteredAssets.map(asset => (
+  1353→                  <AssetRow
+  1354→                    key={asset.id}
+  1355→                    asset={asset}
+  1356→                    onClick={() => openDetail(asset)}
+  1357→                    onIssue={() => openIssue(asset)}
+  1358→                    onReturn={() => openReturn(asset)}
+  1359→                  />
+  1360→                ))}
+  1361→              </motion.div>
+  1362→            )}
+  1363→          </div>
+  1364→        ) : (
+  1365→          /* Issuance Records Tab */
+  1366→          <div className="space-y-4">
+  1367→            {/* Issuance Filters */}
+  1368→            <div className="flex items-center gap-2">
+  1369→              <span className="text-xs text-muted-foreground font-medium">Filter:</span>
+  1370→              <div className="flex items-center gap-1">
+  1371→                {[
+  1372→                  { key: "all", label: "All" },
+  1373→                  { key: "issued", label: "Issued" },
+  1374→                  { key: "returned", label: "Returned" },
+  1375→                  { key: "overdue", label: "Overdue" },
+  1376→                ].map(f => (
+  1377→                  <Button
+  1378→                    key={f.key}
+  1379→                    size="sm"
+  1380→                    variant={issuanceStatusFilter === f.key ? "default" : "outline"}
+  1381→                    className={`h-7 text-xs ${issuanceStatusFilter === f.key ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+  1382→                    onClick={() => setIssuanceStatusFilter(f.key)}
+  1383→                  >
+  1384→                    {f.label}
+  1385→                  </Button>
+  1386→                ))}
+  1387→              </div>
+  1388→              <span className="text-xs text-muted-foreground ml-auto">{filteredIssuances.length} records</span>
+  1389→            </div>
+  1390→
+  1391→            {filteredIssuances.length === 0 ? (
+  1392→              <Card className="border-dashed">
+  1393→                <CardContent className="py-16 text-center">
+  1394→                  <ArrowRightLeft className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+  1395→                  <p className="text-sm font-medium text-muted-foreground">No issuance records found</p>
+  1396→                  <p className="text-xs text-muted-foreground mt-1">Issue an asset to create the first record</p>
+  1397→                </CardContent>
+  1398→              </Card>
+  1399→            ) : (
+  1400→              <div className="border rounded-lg overflow-hidden">
+  1401→                <div className="overflow-x-auto">
+  1402→                  <table className="w-full text-sm">
+  1403→                    <thead>
+  1404→                      <tr className="bg-muted/50 border-b">
+  1405→                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Asset</th>
+  1406→                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Issued To</th>
+  1407→                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Issued By</th>
+  1408→                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Issue Date</th>
+  1409→                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Expected Return</th>
+  1410→                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Actual Return</th>
+  1411→                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Status</th>
+  1412→                        <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Actions</th>
+  1413→                      </tr>
+  1414→                    </thead>
+  1415→                    <tbody>
+  1416→                      {filteredIssuances.map((issuance, idx) => {
+  1417→                        const effectiveStatus = getEffectiveIssuanceStatus(issuance)
+  1418→                        const issConfig = ISSUANCE_STATUS_CONFIG[effectiveStatus] || ISSUANCE_STATUS_CONFIG.issued
+  1419→                        const asset = issuance.asset
+  1420→                        const CatIcon = asset ? getCategoryIcon(asset.category) : Package
+  1421→                        return (
+  1422→                          <tr
+  1423→                            key={issuance.id}
+  1424→                            className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${effectiveStatus === "overdue" ? "bg-rose-50/50" : ""}`}
+  1425→                          >
+  1426→                            <td className="py-3 px-4">
+  1427→                              {asset ? (
+  1428→                                <div className="flex items-center gap-2">
+  1429→                                  <div className={`h-7 w-7 rounded flex items-center justify-center shrink-0 ${getCategoryColor(asset.category).icon}`}>
+  1430→                                    <CatIcon className="h-3.5 w-3.5" />
+  1431→                                  </div>
+  1432→                                  <div>
+  1433→                                    <p className="text-xs font-medium">{asset.name}</p>
+  1434→                                    <p className="text-[10px] text-muted-foreground font-mono">{asset.assetTag}</p>
+  1435→                                  </div>
+  1436→                                </div>
+  1437→                              ) : (
+  1438→                                <span className="text-xs text-muted-foreground">Unknown asset</span>
+  1439→                              )}
+  1440→                            </td>
+  1441→                            <td className="py-3 px-4">
+  1442→                              {issuance.issuedTo ? (
+  1443→                                <div className="flex items-center gap-1.5">
+  1444→                                  <Avatar className="h-5 w-5">
+  1445→                                    <AvatarFallback className="text-[8px]">{getInitials(issuance.issuedTo.name)}</AvatarFallback>
+  1446→                                  </Avatar>
+  1447→                                  <span className="text-xs">{issuance.issuedTo.name}</span>
+  1448→                                </div>
+  1449→                              ) : "—"}
+  1450→                            </td>
+  1451→                            <td className="py-3 px-4">
+  1452→                              <span className="text-xs text-muted-foreground">{issuance.issuedBy?.name || "—"}</span>
+  1453→                            </td>
+  1454→                            <td className="py-3 px-4">
+  1455→                              <span className="text-xs">{formatDate(issuance.issueDate)}</span>
+  1456→                            </td>
+  1457→                            <td className="py-3 px-4">
+  1458→                              {issuance.expectedReturnDate ? (
+  1459→                                <span className={`text-xs ${effectiveStatus === "overdue" ? "text-rose-600 font-medium" : ""}`}>
+  1460→                                  {formatDate(issuance.expectedReturnDate)}
+  1461→                                </span>
+  1462→                              ) : (
+  1463→                                <span className="text-xs text-muted-foreground">—</span>
+  1464→                              )}
+  1465→                            </td>
+  1466→                            <td className="py-3 px-4">
+  1467→                              <span className="text-xs">{formatDate(issuance.actualReturnDate)}</span>
+  1468→                            </td>
+  1469→                            <td className="py-3 px-4">
+  1470→                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${issConfig.bg} ${issConfig.color}`}>
+  1471→                                {issConfig.label}
+  1472→                              </span>
+  1473→                            </td>
+  1474→                            <td className="py-3 px-4">
+  1475→                              {effectiveStatus === "issued" || effectiveStatus === "overdue" ? (
+  1476→                                <Button
+  1477→                                  size="sm"
+  1478→                                  variant="ghost"
+  1479→                                  className="h-7 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+  1480→                                  onClick={() => {
+  1481→                                    if (asset) {
+  1482→                                      openReturn(asset)
+  1483→                                    }
+  1484→                                  }}
+  1485→                                >
+  1486→                                  <RotateCcw className="h-3 w-3 mr-1" /> Return
+  1487→                                </Button>
+  1488→                              ) : (
+  1489→                                <Button
+  1490→                                  size="sm"
+  1491→                                  variant="ghost"
+  1492→                                  className="h-7 text-xs"
+  1493→                                  onClick={() => {
+  1494→                                    if (asset) openDetail(asset)
+  1495→                                  }}
+  1496→                                >
+  1497→                                  <Eye className="h-3 w-3 mr-1" /> View
+  1498→                                </Button>
+  1499→                              )}
+  1500→                            </td>
+  1501→                          </tr>
+  1502→                        )
+  1503→                      })}
+  1504→                    </tbody>
+  1505→                  </table>
+  1506→                </div>
+  1507→              </div>
+  1508→            )}
+  1509→          </div>
+  1510→        )}
+  1511→      </div>
+  1512→
+  1513→      {/* Detail Sheet */}
+  1514→      <AssetDetailSheet
+  1515→        asset={selectedAsset}
+  1516→        open={detailOpen}
+  1517→        onOpenChange={setDetailOpen}
+  1518→        onIssue={() => {
+  1519→          setDetailOpen(false)
+  1520→          if (selectedAsset) openIssue(selectedAsset)
+  1521→        }}
+  1522→        onReturn={() => {
+  1523→          setDetailOpen(false)
+  1524→          if (selectedAsset) openReturn(selectedAsset)
+  1525→        }}
+  1526→      />
+  1527→
+  1528→      {/* Issue Dialog */}
+  1529→      {issueAsset && (
+  1530→        <IssueAssetDialog
+  1531→          asset={issueAsset}
+  1532→          open={!!issueAsset}
+  1533→          onOpenChange={(v) => { if (!v) setIssueAsset(null) }}
+  1534→          users={allUsers}
+  1535→        />
+  1536→      )}
+  1537→
+  1538→      {/* Return Dialog */}
+  1539→      {returnAsset && (
+  1540→        <ReturnAssetDialog
+  1541→          asset={returnAsset}
+  1542→          open={!!returnAsset}
+  1543→          onOpenChange={(v) => { if (!v) setReturnAsset(null) }}
+  1544→        />
+  1545→      )}
+  1546→
+  1547→      {/* Add Asset Dialog */}
+  1548→      <AddAssetDialog
+  1549→        open={addOpen}
+  1550→        onOpenChange={setAddOpen}
+  1551→        users={allUsers}
+  1552→      />
+  1553→    </div>
+  1554→  )
+  1555→}
+  1556→

@@ -1,0 +1,972 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo } from "react"
+     4→import { useERPStore, type Asset } from "@/lib/store"
+     5→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+     6→import { Button } from "@/components/ui/button"
+     7→import { Badge } from "@/components/ui/badge"
+     8→import { Input } from "@/components/ui/input"
+     9→import { Label } from "@/components/ui/label"
+    10→import { Textarea } from "@/components/ui/textarea"
+    11→import { ScrollArea } from "@/components/ui/scroll-area"
+    12→import { Separator } from "@/components/ui/separator"
+    13→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+    14→import {
+    15→  Dialog,
+    16→  DialogContent,
+    17→  DialogHeader,
+    18→  DialogTitle,
+    19→  DialogFooter,
+    20→  DialogDescription,
+    21→} from "@/components/ui/dialog"
+    22→import {
+    23→  DropdownMenu,
+    24→  DropdownMenuContent,
+    25→  DropdownMenuItem,
+    26→  DropdownMenuTrigger,
+    27→} from "@/components/ui/dropdown-menu"
+    28→import { motion, AnimatePresence } from "framer-motion"
+    29→import {
+    30→  Image as ImageIcon,
+    31→  Video,
+    32→  FileText,
+    33→  Palette,
+    34→  Type,
+    35→  FolderOpen,
+    36→  Grid3X3,
+    37→  List,
+    38→  Search,
+    39→  Filter,
+    40→  Upload,
+    41→  Download,
+    42→  Edit3,
+    43→  Trash2,
+    44→  MoreHorizontal,
+    45→  X,
+    46→  ChevronRight,
+    47→  ChevronDown,
+    48→  HardDrive,
+    49→  LayoutTemplate,
+    50→  BookOpen,
+    51→  Eye,
+    52→  Tag,
+    53→  User,
+    54→  Calendar,
+    55→  File,
+    56→  Link2,
+    57→  Folder,
+    58→  Plus,
+    59→  CheckCircle2,
+    60→} from "lucide-react"
+    61→
+    62→// ── Animation variants ──────────────────────────────────────────────
+    63→const containerVariants = {
+    64→  hidden: { opacity: 0 },
+    65→  visible: {
+    66→    opacity: 1,
+    67→    transition: { staggerChildren: 0.05, delayChildren: 0.1 },
+    68→  },
+    69→}
+    70→
+    71→const itemVariants = {
+    72→  hidden: { opacity: 0, y: 12, scale: 0.97 },
+    73→  visible: {
+    74→    opacity: 1,
+    75→    y: 0,
+    76→    scale: 1,
+    77→    transition: { type: "spring", stiffness: 300, damping: 24 },
+    78→  },
+    79→}
+    80→
+    81→// ── Type config ─────────────────────────────────────────────────────
+    82→const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; icon: React.ElementType }> = {
+    83→  image: { label: "Image", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", icon: ImageIcon },
+    84→  video: { label: "Video", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200", icon: Video },
+    85→  document: { label: "Document", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", icon: FileText },
+    86→  template: { label: "Template", color: "text-violet-700", bg: "bg-violet-50", border: "border-violet-200", icon: LayoutTemplate },
+    87→  font: { label: "Font", color: "text-cyan-700", bg: "bg-cyan-50", border: "border-cyan-200", icon: Type },
+    88→  "brand-guide": { label: "Brand Guide", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-200", icon: BookOpen },
+    89→}
+    90→
+    91→const PLACEHOLDER_COLORS: Record<string, string[]> = {
+    92→  image: ["#10b981", "#059669", "#047857"],
+    93→  video: ["#f43f5e", "#e11d48", "#be123c"],
+    94→  document: ["#f59e0b", "#d97706", "#b45309"],
+    95→  template: ["#8b5cf6", "#7c3aed", "#6d28d9"],
+    96→  font: ["#06b6d4", "#0891b2", "#0e7490"],
+    97→  "brand-guide": ["#14b8a6", "#0d9488", "#0f766e"],
+    98→}
+    99→
+   100→// ── Folder config ───────────────────────────────────────────────────
+   101→interface FolderItem {
+   102→  id: string
+   103→  label: string
+   104→  icon: React.ElementType
+   105→  type?: string
+   106→  isClientFolder?: boolean
+   107→}
+   108→
+   109→const SYSTEM_FOLDERS: FolderItem[] = [
+   110→  { id: "all", label: "All Assets", icon: FolderOpen },
+   111→  { id: "image", label: "Images", icon: ImageIcon, type: "image" },
+   112→  { id: "video", label: "Videos", icon: Video, type: "video" },
+   113→  { id: "document", label: "Documents", icon: FileText, type: "document" },
+   114→  { id: "template", label: "Templates", icon: LayoutTemplate, type: "template" },
+   115→  { id: "brand-guide", label: "Brand Guides", icon: BookOpen, type: "brand-guide" },
+   116→  { id: "font", label: "Fonts", icon: Type, type: "font" },
+   117→]
+   118→
+   119→// ── Format helpers ──────────────────────────────────────────────────
+   120→function formatFileSize(bytes: number): string {
+   121→  if (bytes === 0) return "0 B"
+   122→  const k = 1024
+   123→  const sizes = ["B", "KB", "MB", "GB"]
+   124→  const i = Math.floor(Math.log(bytes) / Math.log(k))
+   125→  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i]
+   126→}
+   127→
+   128→function formatDate(dateStr: string): string {
+   129→  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+   130→}
+   131→
+   132→// ── Main Component ──────────────────────────────────────────────────
+   133→export function AssetsView() {
+   134→  const { assets, clients, setAssets } = useERPStore()
+   135→
+   136→  // View state
+   137→  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+   138→  const [selectedFolder, setSelectedFolder] = useState("all")
+   139→  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null)
+   140→  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+   141→
+   142→  // Filters
+   143→  const [searchQuery, setSearchQuery] = useState("")
+   144→  const [typeFilter, setTypeFilter] = useState("all")
+   145→  const [clientFilter, setClientFilter] = useState("all")
+   146→
+   147→  // Upload dialog
+   148→  const [showUploadDialog, setShowUploadDialog] = useState(false)
+   149→  const [uploadName, setUploadName] = useState("")
+   150→  const [uploadType, setUploadType] = useState("image")
+   151→  const [uploadTags, setUploadTags] = useState("")
+   152→  const [uploadClientId, setUploadClientId] = useState("")
+   153→
+   154→  // Edit tags dialog
+   155→  const [showEditDialog, setShowEditDialog] = useState(false)
+   156→  const [editAssetId, setEditAssetId] = useState<string | null>(null)
+   157→  const [editTags, setEditTags] = useState("")
+   158→  const [editClientId, setEditClientId] = useState("")
+   159→
+   160→  // Client folders expanded
+   161→  const [clientFoldersExpanded, setClientFoldersExpanded] = useState(true)
+   162→
+   163→  // ── Computed ───────────────────────────────────────────────────────
+   164→  const selectedAsset = useMemo(() => assets.find((a) => a.id === selectedAssetId) || null, [assets, selectedAssetId])
+   165→
+   166→  const clientFolders = useMemo(() => {
+   167→    const folders: { clientId: string; clientName: string; count: number }[] = []
+   168→    clients.forEach((c) => {
+   169→      const count = assets.filter((a) => a.clientId === c.id).length
+   170→      if (count > 0) folders.push({ clientId: c.id, clientName: c.name, count })
+   171→    })
+   172→    return folders
+   173→  }, [clients, assets])
+   174→
+   175→  const filteredAssets = useMemo(() => {
+   176→    return assets.filter((a) => {
+   177→      // Folder filter
+   178→      if (selectedFolder !== "all" && selectedFolder.startsWith("client-")) {
+   179→        const clientId = selectedFolder.replace("client-", "")
+   180→        if (a.clientId !== clientId) return false
+   181→      } else if (selectedFolder !== "all") {
+   182→        if (a.type !== selectedFolder) return false
+   183→      }
+   184→
+   185→      // Type filter
+   186→      if (typeFilter !== "all" && a.type !== typeFilter) return false
+   187→
+   188→      // Client filter
+   189→      if (clientFilter !== "all" && a.clientId !== clientFilter) return false
+   190→
+   191→      // Search
+   192→      if (searchQuery) {
+   193→        const q = searchQuery.toLowerCase()
+   194→        const matchesName = a.name.toLowerCase().includes(q)
+   195→        const matchesTags = a.tags?.toLowerCase().includes(q) ?? false
+   196→        const matchesClient = a.client?.name.toLowerCase().includes(q) ?? false
+   197→        if (!matchesName && !matchesTags && !matchesClient) return false
+   198→      }
+   199→
+   200→      return true
+   201→    })
+   202→  }, [assets, selectedFolder, typeFilter, clientFilter, searchQuery])
+   203→
+   204→  // Stats
+   205→  const totalAssets = assets.length
+   206→  const imageCount = assets.filter((a) => a.type === "image").length
+   207→  const videoCount = assets.filter((a) => a.type === "video").length
+   208→  const templateCount = assets.filter((a) => a.type === "template").length
+   209→  const totalStorage = assets.reduce((sum, a) => sum + a.size, 0)
+   210→
+   211→  // ── Handlers ───────────────────────────────────────────────────────
+   212→  const handleDeleteAsset = async (assetId: string) => {
+   213→    try {
+   214→      const res = await fetch(`/api/assets/${assetId}`, { method: "DELETE" })
+   215→      if (res.ok) {
+   216→        setAssets(assets.filter((a) => a.id !== assetId))
+   217→        if (selectedAssetId === assetId) setSelectedAssetId(null)
+   218→      }
+   219→    } catch (error) {
+   220→      console.error("Failed to delete asset:", error)
+   221→    }
+   222→  }
+   223→
+   224→  const handleUploadAsset = async () => {
+   225→    if (!uploadName) return
+   226→    const body = {
+   227→      name: uploadName,
+   228→      type: uploadType,
+   229→      url: `/uploads/${uploadName.toLowerCase().replace(/\s+/g, "-")}`,
+   230→      thumbnailUrl: null,
+   231→      size: Math.floor(Math.random() * 5000000) + 100000,
+   232→      mimeType: `${uploadType}/${uploadType === "image" ? "png" : uploadType === "video" ? "mp4" : "pdf"}`,
+   233→      tags: uploadTags || null,
+   234→      folder: uploadType,
+   235→      uploadedById: "user-admin",
+   236→      clientId: uploadClientId || null,
+   237→    }
+   238→    try {
+   239→      const res = await fetch("/api/assets", {
+   240→        method: "POST",
+   241→        headers: { "Content-Type": "application/json" },
+   242→        body: JSON.stringify(body),
+   243→      })
+   244→      if (res.ok) {
+   245→        const data = await res.json()
+   246→        setAssets([data.asset, ...assets])
+   247→        resetUploadForm()
+   248→        setShowUploadDialog(false)
+   249→      }
+   250→    } catch (error) {
+   251→      console.error("Failed to upload asset:", error)
+   252→    }
+   253→  }
+   254→
+   255→  const handleUpdateAsset = async () => {
+   256→    if (!editAssetId) return
+   257→    try {
+   258→      const res = await fetch(`/api/assets/${editAssetId}`, {
+   259→        method: "PUT",
+   260→        headers: { "Content-Type": "application/json" },
+   261→        body: JSON.stringify({
+   262→          tags: editTags || null,
+   263→          clientId: editClientId || null,
+   264→        }),
+   265→      })
+   266→      if (res.ok) {
+   267→        const data = await res.json()
+   268→        setAssets(assets.map((a) => (a.id === editAssetId ? data.asset : a)))
+   269→        setShowEditDialog(false)
+   270→        setEditAssetId(null)
+   271→      }
+   272→    } catch (error) {
+   273→      console.error("Failed to update asset:", error)
+   274→    }
+   275→  }
+   276→
+   277→  const resetUploadForm = () => {
+   278→    setUploadName("")
+   279→    setUploadType("image")
+   280→    setUploadTags("")
+   281→    setUploadClientId("")
+   282→  }
+   283→
+   284→  const openEditDialog = (asset: Asset) => {
+   285→    setEditAssetId(asset.id)
+   286→    setEditTags(asset.tags || "")
+   287→    setEditClientId(asset.clientId || "")
+   288→    setShowEditDialog(true)
+   289→  }
+   290→
+   291→  // ── Render Asset Placeholder ───────────────────────────────────────
+   292→  const renderPlaceholder = (asset: Asset) => {
+   293→    const colors = PLACEHOLDER_COLORS[asset.type] || PLACEHOLDER_COLORS.document
+   294→    const cfg = TYPE_CONFIG[asset.type] || TYPE_CONFIG.document
+   295→    const Icon = cfg.icon
+   296→
+   297→    return (
+   298→      <div
+   299→        className="w-full aspect-square rounded-t-lg flex items-center justify-center relative overflow-hidden"
+   300→        style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]}, ${colors[2]})` }}
+   301→      >
+   302→        <Icon className="h-10 w-10 text-white/80" />
+   303→        <div className="absolute bottom-2 right-2">
+   304→          <Badge className={`${cfg.bg} ${cfg.color} ${cfg.border} text-[10px] px-1.5 py-0`}>
+   305→            {cfg.label}
+   306→          </Badge>
+   307→        </div>
+   308→      </div>
+   309→    )
+   310→  }
+   311→
+   312→  // ── Render ─────────────────────────────────────────────────────────
+   313→  return (
+   314→    <div className="h-full flex flex-col">
+   315→      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex-1 flex flex-col">
+   316→        {/* ── Header ──────────────────────────────────────────────────── */}
+   317→        <motion.div variants={itemVariants} className="p-4 md:p-6 pb-0">
+   318→          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+   319→            <div>
+   320→              <h1 className="text-2xl font-bold tracking-tight">Digital Asset Library</h1>
+   321→              <p className="text-muted-foreground text-sm mt-1">Manage, organize, and share your creative assets</p>
+   322→            </div>
+   323→            <Button
+   324→              onClick={() => { resetUploadForm(); setShowUploadDialog(true) }}
+   325→              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+   326→            >
+   327→              <Upload className="h-4 w-4" /> Upload Asset
+   328→            </Button>
+   329→          </div>
+   330→        </motion.div>
+   331→
+   332→        {/* ── Top Stats ───────────────────────────────────────────────── */}
+   333→        <motion.div variants={itemVariants} className="px-4 md:px-6 pt-4">
+   334→          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+   335→            <Card className="border-l-4 border-l-emerald-500">
+   336→              <CardContent className="p-3">
+   337→                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Assets</p>
+   338→                <p className="text-xl font-bold mt-0.5">{totalAssets}</p>
+   339→              </CardContent>
+   340→            </Card>
+   341→            <Card className="border-l-4 border-l-emerald-400">
+   342→              <CardContent className="p-3">
+   343→                <div className="flex items-center gap-1.5">
+   344→                  <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
+   345→                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Images</p>
+   346→                </div>
+   347→                <p className="text-xl font-bold mt-0.5">{imageCount}</p>
+   348→              </CardContent>
+   349→            </Card>
+   350→            <Card className="border-l-4 border-l-rose-400">
+   351→              <CardContent className="p-3">
+   352→                <div className="flex items-center gap-1.5">
+   353→                  <Video className="h-3.5 w-3.5 text-rose-600" />
+   354→                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Videos</p>
+   355→                </div>
+   356→                <p className="text-xl font-bold mt-0.5">{videoCount}</p>
+   357→              </CardContent>
+   358→            </Card>
+   359→            <Card className="border-l-4 border-l-violet-400">
+   360→              <CardContent className="p-3">
+   361→                <div className="flex items-center gap-1.5">
+   362→                  <LayoutTemplate className="h-3.5 w-3.5 text-violet-600" />
+   363→                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Templates</p>
+   364→                </div>
+   365→                <p className="text-xl font-bold mt-0.5">{templateCount}</p>
+   366→              </CardContent>
+   367→            </Card>
+   368→            <Card className="border-l-4 border-l-teal-400 col-span-2 sm:col-span-1">
+   369→              <CardContent className="p-3">
+   370→                <div className="flex items-center gap-1.5">
+   371→                  <HardDrive className="h-3.5 w-3.5 text-teal-600" />
+   372→                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Storage</p>
+   373→                </div>
+   374→                <p className="text-xl font-bold mt-0.5">{formatFileSize(totalStorage)}</p>
+   375→              </CardContent>
+   376→            </Card>
+   377→          </div>
+   378→        </motion.div>
+   379→
+   380→        {/* ── Main Content Area ───────────────────────────────────────── */}
+   381→        <motion.div variants={itemVariants} className="flex-1 flex gap-0 mt-4 min-h-0">
+   382→          {/* ── Left Sidebar ────────────────────────────────────────────── */}
+   383→          <div className={`border-r bg-muted/20 transition-all duration-200 ${sidebarCollapsed ? "w-12" : "w-56"} shrink-0 hidden md:block`}>
+   384→            <div className="p-3">
+   385→              <Button
+   386→                variant="ghost"
+   387→                size="icon"
+   388→                className="h-7 w-7"
+   389→                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+   390→              >
+   391→                <ChevronRight className={`h-4 w-4 transition-transform ${sidebarCollapsed ? "" : "rotate-180"}`} />
+   392→              </Button>
+   393→            </div>
+   394→
+   395→            {!sidebarCollapsed && (
+   396→              <ScrollArea className="h-[calc(100vh-320px)]">
+   397→                <div className="px-2 space-y-1">
+   398→                  {SYSTEM_FOLDERS.map((folder) => {
+   399→                    const Icon = folder.icon
+   400→                    const isActive = selectedFolder === folder.id
+   401→                    const count = folder.type
+   402→                      ? assets.filter((a) => a.type === folder.type).length
+   403→                      : totalAssets
+   404→
+   405→                    return (
+   406→                      <button
+   407→                        key={folder.id}
+   408→                        onClick={() => setSelectedFolder(folder.id)}
+   409→                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+   410→                          isActive
+   411→                            ? "bg-emerald-50 text-emerald-700 font-medium"
+   412→                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+   413→                        }`}
+   414→                      >
+   415→                        <Icon className="h-4 w-4 shrink-0" />
+   416→                        <span className="flex-1 text-left truncate">{folder.label}</span>
+   417→                        <span className="text-xs opacity-60">{count}</span>
+   418→                      </button>
+   419→                    )
+   420→                  })}
+   421→
+   422→                  {/* Client Folders */}
+   423→                  {clientFolders.length > 0 && (
+   424→                    <>
+   425→                      <Separator className="my-2" />
+   426→                      <button
+   427→                        onClick={() => setClientFoldersExpanded(!clientFoldersExpanded)}
+   428→                        className="w-full flex items-center gap-2 px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider"
+   429→                      >
+   430→                        {clientFoldersExpanded ? (
+   431→                          <ChevronDown className="h-3 w-3" />
+   432→                        ) : (
+   433→                          <ChevronRight className="h-3 w-3" />
+   434→                        )}
+   435→                        Client Folders
+   436→                      </button>
+   437→
+   438→                      <AnimatePresence>
+   439→                        {clientFoldersExpanded && clientFolders.map((cf) => {
+   440→                          const isActive = selectedFolder === `client-${cf.clientId}`
+   441→                          return (
+   442→                            <motion.button
+   443→                              key={cf.clientId}
+   444→                              initial={{ opacity: 0, height: 0 }}
+   445→                              animate={{ opacity: 1, height: "auto" }}
+   446→                              exit={{ opacity: 0, height: 0 }}
+   447→                              onClick={() => setSelectedFolder(`client-${cf.clientId}`)}
+   448→                              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+   449→                                isActive
+   450→                                  ? "bg-emerald-50 text-emerald-700 font-medium"
+   451→                                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+   452→                              }`}
+   453→                            >
+   454→                              <Folder className="h-4 w-4 shrink-0" />
+   455→                              <span className="flex-1 text-left truncate">{cf.clientName}</span>
+   456→                              <span className="text-xs opacity-60">{cf.count}</span>
+   457→                            </motion.button>
+   458→                          )
+   459→                        })}
+   460→                      </AnimatePresence>
+   461→                    </>
+   462→                  )}
+   463→                </div>
+   464→              </ScrollArea>
+   465→            )}
+   466→          </div>
+   467→
+   468→          {/* ── Center: Search + Assets ─────────────────────────────────── */}
+   469→          <div className="flex-1 min-w-0 flex flex-col p-4 md:p-6">
+   470→            {/* Search & Filter Bar */}
+   471→            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center mb-4">
+   472→              <div className="relative flex-1 w-full sm:max-w-sm">
+   473→                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+   474→                <Input
+   475→                  placeholder="Search assets..."
+   476→                  value={searchQuery}
+   477→                  onChange={(e) => setSearchQuery(e.target.value)}
+   478→                  className="pl-9"
+   479→                />
+   480→              </div>
+   481→              <div className="flex gap-2 flex-wrap">
+   482→                <Select value={typeFilter} onValueChange={setTypeFilter}>
+   483→                  <SelectTrigger className="w-[130px]">
+   484→                    <Filter className="h-3.5 w-3.5 mr-1" />
+   485→                    <SelectValue placeholder="Type" />
+   486→                  </SelectTrigger>
+   487→                  <SelectContent>
+   488→                    <SelectItem value="all">All Types</SelectItem>
+   489→                    <SelectItem value="image">Images</SelectItem>
+   490→                    <SelectItem value="video">Videos</SelectItem>
+   491→                    <SelectItem value="document">Documents</SelectItem>
+   492→                    <SelectItem value="template">Templates</SelectItem>
+   493→                    <SelectItem value="font">Fonts</SelectItem>
+   494→                    <SelectItem value="brand-guide">Brand Guides</SelectItem>
+   495→                  </SelectContent>
+   496→                </Select>
+   497→                <Select value={clientFilter} onValueChange={setClientFilter}>
+   498→                  <SelectTrigger className="w-[150px]">
+   499→                    <SelectValue placeholder="Client" />
+   500→                  </SelectTrigger>
+   501→                  <SelectContent>
+   502→                    <SelectItem value="all">All Clients</SelectItem>
+   503→                    {clients.map((c) => (
+   504→                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+   505→                    ))}
+   506→                  </SelectContent>
+   507→                </Select>
+   508→                <div className="flex border rounded-md">
+   509→                  <Button
+   510→                    variant={viewMode === "grid" ? "secondary" : "ghost"}
+   511→                    size="icon"
+   512→                    className="h-9 w-9 rounded-r-none"
+   513→                    onClick={() => setViewMode("grid")}
+   514→                  >
+   515→                    <Grid3X3 className="h-4 w-4" />
+   516→                  </Button>
+   517→                  <Button
+   518→                    variant={viewMode === "list" ? "secondary" : "ghost"}
+   519→                    size="icon"
+   520→                    className="h-9 w-9 rounded-l-none"
+   521→                    onClick={() => setViewMode("list")}
+   522→                  >
+   523→                    <List className="h-4 w-4" />
+   524→                  </Button>
+   525→                </div>
+   526→              </div>
+   527→            </div>
+   528→
+   529→            {/* Upload Drop Zone (visual) */}
+   530→            <div className="border-2 border-dashed border-muted-foreground/20 rounded-lg p-6 mb-4 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors cursor-pointer"
+   531→              onClick={() => { resetUploadForm(); setShowUploadDialog(true) }}
+   532→            >
+   533→              <Upload className="h-8 w-8 mx-auto text-muted-foreground/40" />
+   534→              <p className="text-sm text-muted-foreground mt-2">Drag & drop files here or <span className="text-emerald-600 font-medium">browse</span></p>
+   535→              <p className="text-xs text-muted-foreground/60 mt-1">Supports images, videos, documents, templates, fonts</p>
+   536→            </div>
+   537→
+   538→            {/* Assets Grid/List */}
+   539→            {filteredAssets.length === 0 ? (
+   540→              <Card className="flex-1">
+   541→                <CardContent className="py-16 text-center">
+   542→                  <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground/40" />
+   543→                  <p className="text-muted-foreground mt-4 font-medium">No assets found</p>
+   544→                  <p className="text-sm text-muted-foreground/70 mt-1">
+   545→                    {assets.length === 0 ? "Upload your first asset to get started" : "Try adjusting your filters"}
+   546→                  </p>
+   547→                </CardContent>
+   548→              </Card>
+   549→            ) : viewMode === "grid" ? (
+   550→              <ScrollArea className="flex-1">
+   551→                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+   552→                  <AnimatePresence>
+   553→                    {filteredAssets.map((asset, index) => {
+   554→                      const cfg = TYPE_CONFIG[asset.type] || TYPE_CONFIG.document
+   555→                      const tags = asset.tags ? asset.tags.split(",").map((t) => t.trim()).filter(Boolean) : []
+   556→                      const isSelected = selectedAssetId === asset.id
+   557→
+   558→                      return (
+   559→                        <motion.div
+   560→                          key={asset.id}
+   561→                          layout
+   562→                          initial={{ opacity: 0, scale: 0.9 }}
+   563→                          animate={{ opacity: 1, scale: 1 }}
+   564→                          exit={{ opacity: 0, scale: 0.9 }}
+   565→                          transition={{ delay: index * 0.02 }}
+   566→                        >
+   567→                          <Card
+   568→                            className={`cursor-pointer transition-all hover:shadow-lg ${
+   569→                              isSelected ? "ring-2 ring-emerald-500 shadow-lg" : ""
+   570→                            }`}
+   571→                            onClick={() => setSelectedAssetId(isSelected ? null : asset.id)}
+   572→                          >
+   573→                            {renderPlaceholder(asset)}
+   574→                            <CardContent className="p-3 space-y-1.5">
+   575→                              <p className="text-sm font-medium truncate">{asset.name}</p>
+   576→                              <div className="flex items-center justify-between">
+   577→                                <span className="text-xs text-muted-foreground">{formatFileSize(asset.size)}</span>
+   578→                                <Badge variant="outline" className={`${cfg.bg} ${cfg.color} ${cfg.border} text-[10px] px-1.5 py-0`}>
+   579→                                  {cfg.label}
+   580→                                </Badge>
+   581→                              </div>
+   582→                              {tags.length > 0 && (
+   583→                                <div className="flex flex-wrap gap-1">
+   584→                                  {tags.slice(0, 3).map((tag) => (
+   585→                                    <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+   586→                                      {tag}
+   587→                                    </span>
+   588→                                  ))}
+   589→                                  {tags.length > 3 && (
+   590→                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+   591→                                      +{tags.length - 3}
+   592→                                    </span>
+   593→                                  )}
+   594→                                </div>
+   595→                              )}
+   596→                              {asset.client && (
+   597→                                <p className="text-[10px] text-muted-foreground truncate">{asset.client.name}</p>
+   598→                              )}
+   599→                              <div className="flex items-center justify-between pt-1" onClick={(e) => e.stopPropagation()}>
+   600→                                <span className="text-[10px] text-muted-foreground">{formatDate(asset.createdAt)}</span>
+   601→                                <div className="flex gap-0.5">
+   602→                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDialog(asset)}>
+   603→                                    <Edit3 className="h-3 w-3" />
+   604→                                  </Button>
+   605→                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500" onClick={() => handleDeleteAsset(asset.id)}>
+   606→                                    <Trash2 className="h-3 w-3" />
+   607→                                  </Button>
+   608→                                </div>
+   609→                              </div>
+   610→                            </CardContent>
+   611→                          </Card>
+   612→                        </motion.div>
+   613→                      )
+   614→                    })}
+   615→                  </AnimatePresence>
+   616→                </div>
+   617→              </ScrollArea>
+   618→            ) : (
+   619→              /* List View */
+   620→              <ScrollArea className="flex-1">
+   621→                <div className="border rounded-lg overflow-hidden">
+   622→                  <table className="w-full text-sm">
+   623→                    <thead className="bg-muted/50 sticky top-0">
+   624→                      <tr>
+   625→                        <th className="text-left p-3 font-medium">Name</th>
+   626→                        <th className="text-left p-3 font-medium hidden sm:table-cell">Type</th>
+   627→                        <th className="text-left p-3 font-medium hidden md:table-cell">Size</th>
+   628→                        <th className="text-left p-3 font-medium hidden lg:table-cell">Client</th>
+   629→                        <th className="text-left p-3 font-medium hidden lg:table-cell">Date</th>
+   630→                        <th className="w-10"></th>
+   631→                      </tr>
+   632→                    </thead>
+   633→                    <tbody>
+   634→                      {filteredAssets.map((asset) => {
+   635→                        const cfg = TYPE_CONFIG[asset.type] || TYPE_CONFIG.document
+   636→                        const Icon = cfg.icon
+   637→                        const isSelected = selectedAssetId === asset.id
+   638→
+   639→                        return (
+   640→                          <tr
+   641→                            key={asset.id}
+   642→                            className={`border-t hover:bg-muted/30 transition-colors cursor-pointer ${
+   643→                              isSelected ? "bg-emerald-50/50" : ""
+   644→                            }`}
+   645→                            onClick={() => setSelectedAssetId(isSelected ? null : asset.id)}
+   646→                          >
+   647→                            <td className="p-3">
+   648→                              <div className="flex items-center gap-2">
+   649→                                <div className={`h-8 w-8 rounded flex items-center justify-center ${cfg.bg}`}>
+   650→                                  <Icon className={`h-4 w-4 ${cfg.color}`} />
+   651→                                </div>
+   652→                                <span className="font-medium truncate max-w-[200px]">{asset.name}</span>
+   653→                              </div>
+   654→                            </td>
+   655→                            <td className="p-3 hidden sm:table-cell">
+   656→                              <Badge variant="outline" className={`${cfg.bg} ${cfg.color} ${cfg.border} text-xs`}>
+   657→                                {cfg.label}
+   658→                              </Badge>
+   659→                            </td>
+   660→                            <td className="p-3 text-muted-foreground hidden md:table-cell">{formatFileSize(asset.size)}</td>
+   661→                            <td className="p-3 text-muted-foreground hidden lg:table-cell">{asset.client?.name || "—"}</td>
+   662→                            <td className="p-3 text-muted-foreground hidden lg:table-cell">{formatDate(asset.createdAt)}</td>
+   663→                            <td className="p-2" onClick={(e) => e.stopPropagation()}>
+   664→                              <DropdownMenu>
+   665→                                <DropdownMenuTrigger asChild>
+   666→                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+   667→                                    <MoreHorizontal className="h-4 w-4" />
+   668→                                  </Button>
+   669→                                </DropdownMenuTrigger>
+   670→                                <DropdownMenuContent align="end">
+   671→                                  <DropdownMenuItem onClick={() => setSelectedAssetId(asset.id)}>
+   672→                                    <Eye className="h-4 w-4 mr-2" />View Details
+   673→                                  </DropdownMenuItem>
+   674→                                  <DropdownMenuItem onClick={() => openEditDialog(asset)}>
+   675→                                    <Edit3 className="h-4 w-4 mr-2" />Edit
+   676→                                  </DropdownMenuItem>
+   677→                                  <DropdownMenuItem>
+   678→                                    <Download className="h-4 w-4 mr-2" />Download
+   679→                                  </DropdownMenuItem>
+   680→                                  <DropdownMenuItem className="text-rose-600" onClick={() => handleDeleteAsset(asset.id)}>
+   681→                                    <Trash2 className="h-4 w-4 mr-2" />Delete
+   682→                                  </DropdownMenuItem>
+   683→                                </DropdownMenuContent>
+   684→                              </DropdownMenu>
+   685→                            </td>
+   686→                          </tr>
+   687→                        )
+   688→                      })}
+   689→                    </tbody>
+   690→                  </table>
+   691→                </div>
+   692→              </ScrollArea>
+   693→            )}
+   694→          </div>
+   695→
+   696→          {/* ── Right Detail Panel ──────────────────────────────────────── */}
+   697→          <AnimatePresence>
+   698→            {selectedAsset && (
+   699→              <motion.div
+   700→                initial={{ width: 0, opacity: 0 }}
+   701→                animate={{ width: 320, opacity: 1 }}
+   702→                exit={{ width: 0, opacity: 0 }}
+   703→                transition={{ duration: 0.2 }}
+   704→                className="border-l bg-muted/10 shrink-0 overflow-hidden hidden lg:block"
+   705→              >
+   706→                <ScrollArea className="h-[calc(100vh-220px)]">
+   707→                  <div className="p-4 space-y-4">
+   708→                    {/* Close button */}
+   709→                    <div className="flex items-center justify-between">
+   710→                      <h3 className="font-semibold text-sm">Asset Details</h3>
+   711→                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedAssetId(null)}>
+   712→                        <X className="h-4 w-4" />
+   713→                      </Button>
+   714→                    </div>
+   715→
+   716→                    {/* Large Preview */}
+   717→                    <div className="rounded-lg overflow-hidden">
+   718→                      {renderPlaceholder(selectedAsset)}
+   719→                    </div>
+   720→
+   721→                    {/* File Info */}
+   722→                    <div className="space-y-3">
+   723→                      <h4 className="font-semibold text-sm truncate">{selectedAsset.name}</h4>
+   724→
+   725→                      <div className="space-y-2">
+   726→                        <div className="flex items-center gap-2 text-sm">
+   727→                          <File className="h-4 w-4 text-muted-foreground shrink-0" />
+   728→                          <span className="text-muted-foreground">Type:</span>
+   729→                          <Badge variant="outline" className={`${TYPE_CONFIG[selectedAsset.type]?.bg || ""} ${TYPE_CONFIG[selectedAsset.type]?.color || ""} ${TYPE_CONFIG[selectedAsset.type]?.border || ""} text-xs`}>
+   730→                            {TYPE_CONFIG[selectedAsset.type]?.label || selectedAsset.type}
+   731→                          </Badge>
+   732→                        </div>
+   733→
+   734→                        <div className="flex items-center gap-2 text-sm">
+   735→                          <HardDrive className="h-4 w-4 text-muted-foreground shrink-0" />
+   736→                          <span className="text-muted-foreground">Size:</span>
+   737→                          <span>{formatFileSize(selectedAsset.size)}</span>
+   738→                        </div>
+   739→
+   740→                        {selectedAsset.mimeType && (
+   741→                          <div className="flex items-center gap-2 text-sm">
+   742→                            <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
+   743→                            <span className="text-muted-foreground">MIME:</span>
+   744→                            <span className="truncate">{selectedAsset.mimeType}</span>
+   745→                          </div>
+   746→                        )}
+   747→
+   748→                        <div className="flex items-center gap-2 text-sm">
+   749→                          <User className="h-4 w-4 text-muted-foreground shrink-0" />
+   750→                          <span className="text-muted-foreground">Uploaded by:</span>
+   751→                          <span>{selectedAsset.uploadedBy.name}</span>
+   752→                        </div>
+   753→
+   754→                        <div className="flex items-center gap-2 text-sm">
+   755→                          <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+   756→                          <span className="text-muted-foreground">Date:</span>
+   757→                          <span>{formatDate(selectedAsset.createdAt)}</span>
+   758→                        </div>
+   759→
+   760→                        {selectedAsset.client && (
+   761→                          <div className="flex items-center gap-2 text-sm">
+   762→                            <Folder className="h-4 w-4 text-muted-foreground shrink-0" />
+   763→                            <span className="text-muted-foreground">Client:</span>
+   764→                            <span>{selectedAsset.client.name}</span>
+   765→                          </div>
+   766→                        )}
+   767→                      </div>
+   768→
+   769→                      {/* Tags */}
+   770→                      <div>
+   771→                        <div className="flex items-center gap-1 mb-2">
+   772→                          <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+   773→                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Tags</span>
+   774→                        </div>
+   775→                        {selectedAsset.tags ? (
+   776→                          <div className="flex flex-wrap gap-1">
+   777→                            {selectedAsset.tags.split(",").map((tag, i) => (
+   778→                              <Badge key={i} variant="secondary" className="text-xs">
+   779→                                {tag.trim()}
+   780→                              </Badge>
+   781→                            ))}
+   782→                          </div>
+   783→                        ) : (
+   784→                          <p className="text-xs text-muted-foreground/60">No tags</p>
+   785→                        )}
+   786→                      </div>
+   787→
+   788→                      {/* Metadata */}
+   789→                      {selectedAsset.metadata && (() => {
+   790→                        try {
+   791→                          const meta = JSON.parse(selectedAsset.metadata)
+   792→                          return (
+   793→                            <div>
+   794→                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Metadata</span>
+   795→                              <div className="mt-1 space-y-1">
+   796→                                {meta.width && meta.height && (
+   797→                                  <p className="text-xs text-muted-foreground">
+   798→                                    Dimensions: {meta.width} × {meta.height}
+   799→                                  </p>
+   800→                                )}
+   801→                                {meta.duration && (
+   802→                                  <p className="text-xs text-muted-foreground">
+   803→                                    Duration: {meta.duration}s
+   804→                                  </p>
+   805→                                )}
+   806→                              </div>
+   807→                            </div>
+   808→                          )
+   809→                        } catch { return null }
+   810→                      })()}
+   811→
+   812→                      {/* Actions */}
+   813→                      <div className="flex gap-2 pt-2">
+   814→                        <Button
+   815→                          variant="outline"
+   816→                          size="sm"
+   817→                          className="flex-1 gap-1"
+   818→                          onClick={() => openEditDialog(selectedAsset)}
+   819→                        >
+   820→                          <Edit3 className="h-3.5 w-3.5" /> Edit
+   821→                        </Button>
+   822→                        <Button
+   823→                          size="sm"
+   824→                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+   825→                        >
+   826→                          <Download className="h-3.5 w-3.5" /> Download
+   827→                        </Button>
+   828→                      </div>
+   829→
+   830→                      <Button
+   831→                        variant="ghost"
+   832→                        size="sm"
+   833→                        className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1"
+   834→                        onClick={() => handleDeleteAsset(selectedAsset.id)}
+   835→                      >
+   836→                        <Trash2 className="h-3.5 w-3.5" /> Delete Asset
+   837→                      </Button>
+   838→                    </div>
+   839→                  </div>
+   840→                </ScrollArea>
+   841→              </motion.div>
+   842→            )}
+   843→          </AnimatePresence>
+   844→        </motion.div>
+   845→      </motion.div>
+   846→
+   847→      {/* ── Upload Dialog ──────────────────────────────────────────────── */}
+   848→      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+   849→        <DialogContent className="max-w-md">
+   850→          <DialogHeader>
+   851→            <DialogTitle className="flex items-center gap-2">
+   852→              <Upload className="h-5 w-5 text-emerald-600" /> Upload Asset
+   853→            </DialogTitle>
+   854→            <DialogDescription>Add a new asset to your library</DialogDescription>
+   855→          </DialogHeader>
+   856→
+   857→          <div className="space-y-4 py-2">
+   858→            <div className="space-y-2">
+   859→              <Label>Asset Name *</Label>
+   860→              <Input
+   861→                value={uploadName}
+   862→                onChange={(e) => setUploadName(e.target.value)}
+   863→                placeholder="e.g., Hero Banner Image"
+   864→              />
+   865→            </div>
+   866→
+   867→            <div className="space-y-2">
+   868→              <Label>Type</Label>
+   869→              <Select value={uploadType} onValueChange={setUploadType}>
+   870→                <SelectTrigger>
+   871→                  <SelectValue />
+   872→                </SelectTrigger>
+   873→                <SelectContent>
+   874→                  <SelectItem value="image">Image</SelectItem>
+   875→                  <SelectItem value="video">Video</SelectItem>
+   876→                  <SelectItem value="document">Document</SelectItem>
+   877→                  <SelectItem value="template">Template</SelectItem>
+   878→                  <SelectItem value="font">Font</SelectItem>
+   879→                  <SelectItem value="brand-guide">Brand Guide</SelectItem>
+   880→                </SelectContent>
+   881→              </Select>
+   882→            </div>
+   883→
+   884→            <div className="space-y-2">
+   885→              <Label>Tags (comma-separated)</Label>
+   886→              <Input
+   887→                value={uploadTags}
+   888→                onChange={(e) => setUploadTags(e.target.value)}
+   889→                placeholder="e.g., social, banner, summer"
+   890→              />
+   891→            </div>
+   892→
+   893→            <div className="space-y-2">
+   894→              <Label>Assign to Client (optional)</Label>
+   895→              <Select value={uploadClientId} onValueChange={setUploadClientId}>
+   896→                <SelectTrigger>
+   897→                  <SelectValue placeholder="No client" />
+   898→                </SelectTrigger>
+   899→                <SelectContent>
+   900→                  <SelectItem value="none">No client</SelectItem>
+   901→                  {clients.map((c) => (
+   902→                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+   903→                  ))}
+   904→                </SelectContent>
+   905→              </Select>
+   906→            </div>
+   907→
+   908→            {/* Visual drop zone in dialog */}
+   909→            <div className="border-2 border-dashed border-muted-foreground/20 rounded-lg p-8 text-center">
+   910→              <Upload className="h-8 w-8 mx-auto text-muted-foreground/40" />
+   911→              <p className="text-sm text-muted-foreground mt-2">Click to select files</p>
+   912→              <p className="text-xs text-muted-foreground/60 mt-1">or drag and drop</p>
+   913→            </div>
+   914→          </div>
+   915→
+   916→          <DialogFooter>
+   917→            <Button variant="outline" onClick={() => setShowUploadDialog(false)}>Cancel</Button>
+   918→            <Button onClick={handleUploadAsset} disabled={!uploadName} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+   919→              <Plus className="h-4 w-4" /> Upload
+   920→            </Button>
+   921→          </DialogFooter>
+   922→        </DialogContent>
+   923→      </Dialog>
+   924→
+   925→      {/* ── Edit Asset Dialog ──────────────────────────────────────────── */}
+   926→      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+   927→        <DialogContent className="max-w-md">
+   928→          <DialogHeader>
+   929→            <DialogTitle className="flex items-center gap-2">
+   930→              <Edit3 className="h-5 w-5 text-emerald-600" /> Edit Asset
+   931→            </DialogTitle>
+   932→            <DialogDescription>Update tags and client assignment</DialogDescription>
+   933→          </DialogHeader>
+   934→
+   935→          <div className="space-y-4 py-2">
+   936→            <div className="space-y-2">
+   937→              <Label>Tags (comma-separated)</Label>
+   938→              <Input
+   939→                value={editTags}
+   940→                onChange={(e) => setEditTags(e.target.value)}
+   941→                placeholder="e.g., social, banner, summer"
+   942→              />
+   943→            </div>
+   944→
+   945→            <div className="space-y-2">
+   946→              <Label>Assign to Client</Label>
+   947→              <Select value={editClientId} onValueChange={setEditClientId}>
+   948→                <SelectTrigger>
+   949→                  <SelectValue placeholder="No client" />
+   950→                </SelectTrigger>
+   951→                <SelectContent>
+   952→                  <SelectItem value="none">No client</SelectItem>
+   953→                  {clients.map((c) => (
+   954→                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+   955→                  ))}
+   956→                </SelectContent>
+   957→              </Select>
+   958→            </div>
+   959→          </div>
+   960→
+   961→          <DialogFooter>
+   962→            <Button variant="outline" onClick={() => setShowEditDialog(false)}>Cancel</Button>
+   963→            <Button onClick={handleUpdateAsset} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+   964→              <CheckCircle2 className="h-4 w-4" /> Save Changes
+   965→            </Button>
+   966→          </DialogFooter>
+   967→        </DialogContent>
+   968→      </Dialog>
+   969→    </div>
+   970→  )
+   971→}
+   972→

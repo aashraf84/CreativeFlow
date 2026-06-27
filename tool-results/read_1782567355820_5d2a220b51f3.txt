@@ -1,0 +1,681 @@
+     1→"use client";
+     2→
+     3→import React, { useState, useMemo } from "react";
+     4→import { useERPStore, type ContentStage, type ContentType, type Platform } from "@/lib/store";
+     5→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+     6→import { Badge } from "@/components/ui/badge";
+     7→import { Button } from "@/components/ui/button";
+     8→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+     9→import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+    10→import { Separator } from "@/components/ui/separator";
+    11→import {
+    12→  LineChart,
+    13→  Line,
+    14→  BarChart,
+    15→  Bar,
+    16→  PieChart,
+    17→  Pie,
+    18→  Cell,
+    19→  XAxis,
+    20→  YAxis,
+    21→  CartesianGrid,
+    22→  Tooltip,
+    23→  ResponsiveContainer,
+    24→  Legend,
+    25→} from "recharts";
+    26→import { motion } from "framer-motion";
+    27→import {
+    28→  BarChart3,
+    29→  TrendingUp,
+    30→  Eye,
+    31→  Clock,
+    32→  FileText,
+    33→  Instagram,
+    34→  Facebook,
+    35→  Twitter,
+    36→  Linkedin,
+    37→  ArrowUpRight,
+    38→  ArrowDownRight,
+    39→  CalendarDays,
+    40→  Heart,
+    41→  MessageSquare,
+    42→  Share2,
+    43→  Users,
+    44→  Zap,
+    45→} from "lucide-react";
+    46→
+    47→// ── Animation variants ──────────────────────────────────────────────
+    48→const containerVariants = {
+    49→  hidden: { opacity: 0 },
+    50→  visible: {
+    51→    opacity: 1,
+    52→    transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+    53→  },
+    54→};
+    55→
+    56→const itemVariants = {
+    57→  hidden: { opacity: 0, y: 16, scale: 0.97 },
+    58→  visible: {
+    59→    opacity: 1,
+    60→    y: 0,
+    61→    scale: 1,
+    62→    transition: { type: "spring", stiffness: 300, damping: 24 },
+    63→  },
+    64→};
+    65→
+    66→// ── Color palette (emerald/teal) ────────────────────────────────────
+    67→const EMERALD_PALETTE = ["#10b981", "#14b8a6", "#06b6d4", "#0d9488", "#059669", "#34d399", "#6ee7b7", "#2dd4bf"];
+    68→
+    69→const PLATFORM_COLORS: Record<string, string> = {
+    70→  instagram: "#E4405F",
+    71→  facebook: "#1877F2",
+    72→  twitter: "#1DA1F2",
+    73→  linkedin: "#0A66C2",
+    74→  tiktok: "#000000",
+    75→  youtube: "#FF0000",
+    76→  pinterest: "#E60023",
+    77→  snapchat: "#FFFC00",
+    78→};
+    79→
+    80→const STAGE_COLORS: Record<ContentStage, string> = {
+    81→  idea: "#10b981",
+    82→  design: "#14b8a6",
+    83→  edit: "#06b6d4",
+    84→  review: "#f59e0b",
+    85→  approve: "#22c55e",
+    86→  disseminate: "#0d9488",
+    87→  archived: "#94a3b8",
+    88→};
+    89→
+    90→const TYPE_COLORS: Record<ContentType, string> = {
+    91→  post: "#10b981",
+    92→  story: "#14b8a6",
+    93→  reel: "#06b6d4",
+    94→  carousel: "#0d9488",
+    95→  video: "#059669",
+    96→  graphic: "#34d399",
+    97→  article: "#2dd4bf",
+    98→};
+    99→
+   100→const STAGE_LABELS: Record<ContentStage, string> = {
+   101→  idea: "Idea",
+   102→  design: "Design",
+   103→  edit: "Edit",
+   104→  review: "Review",
+   105→  approve: "Approve",
+   106→  disseminate: "Disseminate",
+   107→  archived: "Archived",
+   108→};
+   109→
+   110→type DateRange = "7d" | "30d" | "90d" | "custom";
+   111→
+   112→// ── Platform icon helper ─────────────────────────────────────────────
+   113→function PlatformIcon({ platform, className }: { platform: Platform; className?: string }) {
+   114→  switch (platform) {
+   115→    case "instagram": return <Instagram className={className} />;
+   116→    case "facebook": return <Facebook className={className} />;
+   117→    case "twitter": return <Twitter className={className} />;
+   118→    case "linkedin": return <Linkedin className={className} />;
+   119→    default: return <Share2 className={className} />;
+   120→  }
+   121→}
+   122→
+   123→// ── KPI card component ──────────────────────────────────────────────
+   124→function KPICard({
+   125→  title,
+   126→  value,
+   127→  change,
+   128→  changeLabel,
+   129→  icon: Icon,
+   130→  color,
+   131→}: {
+   132→  title: string;
+   133→  value: string;
+   134→  change: number;
+   135→  changeLabel: string;
+   136→  icon: React.ComponentType<{ className?: string }>;
+   137→  color: string;
+   138→}) {
+   139→  const isPositive = change >= 0;
+   140→  return (
+   141→    <Card className="relative overflow-hidden">
+   142→      <CardContent className="p-6">
+   143→        <div className="flex items-start justify-between">
+   144→          <div className="space-y-2">
+   145→            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+   146→            <p className="text-3xl font-bold tracking-tight">{value}</p>
+   147→            <div className="flex items-center gap-1 text-xs">
+   148→              {isPositive ? (
+   149→                <ArrowUpRight className="h-3 w-3 text-emerald-500" />
+   150→              ) : (
+   151→                <ArrowDownRight className="h-3 w-3 text-red-500" />
+   152→              )}
+   153→              <span className={isPositive ? "text-emerald-500 font-medium" : "text-red-500 font-medium"}>
+   154→                {Math.abs(change)}%
+   155→              </span>
+   156→              <span className="text-muted-foreground">{changeLabel}</span>
+   157→            </div>
+   158→          </div>
+   159→          <div
+   160→            className="flex h-11 w-11 items-center justify-center rounded-xl"
+   161→            style={{ backgroundColor: `${color}15` }}
+   162→          >
+   163→            <Icon className="h-5 w-5" style={{ color }} />
+   164→          </div>
+   165→        </div>
+   166→      </CardContent>
+   167→    </Card>
+   168→  );
+   169→}
+   170→
+   171→// ── Custom tooltip component ──────────────────────────────────────
+   172→function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
+   173→  if (!active || !payload) return null;
+   174→  return (
+   175→    <div className="rounded-lg border bg-background p-3 shadow-md">
+   176→      <p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+   177→      {payload.map((item, i) => (
+   178→        <div key={i} className="flex items-center gap-2 text-sm">
+   179→          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+   180→          <span className="text-muted-foreground">{item.name}:</span>
+   181→          <span className="font-semibold">{item.value.toLocaleString()}</span>
+   182→        </div>
+   183→      ))}
+   184→    </div>
+   185→  );
+   186→}
+   187→
+   188→export function AnalyticsView() {
+   189→  const { contents, posts, teams, socialAccounts } = useERPStore();
+   190→  const [dateRange, setDateRange] = useState<DateRange>("30d");
+   191→
+   192→  // ── Generate engagement over time data ──────────────────────────────
+   193→  const engagementTimeData = useMemo(() => {
+   194→    const days = dateRange === "7d" ? 7 : dateRange === "30d" ? 30 : 90;
+   195→    const data = [];
+   196→    for (let i = days - 1; i >= 0; i--) {
+   197→      const date = new Date();
+   198→      date.setDate(date.getDate() - i);
+   199→      const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+   200→      const factor = 1 + Math.sin(i * 0.3) * 0.3;
+   201→      data.push({
+   202→        date: dateStr,
+   203→        likes: Math.round((120 + Math.random() * 80) * factor),
+   204→        comments: Math.round((35 + Math.random() * 25) * factor),
+   205→        shares: Math.round((18 + Math.random() * 12) * factor),
+   206→      });
+   207→    }
+   208→    return data;
+   209→  }, [dateRange]);
+   210→
+   211→  // ── Content by type ──────────────────────────────────────────────
+   212→  const contentByTypeData = useMemo(() => {
+   213→    const typeCounts: Record<string, number> = {};
+   214→    contents.forEach((c) => {
+   215→      typeCounts[c.type] = (typeCounts[c.type] || 0) + 1;
+   216→    });
+   217→    if (Object.keys(typeCounts).length === 0) {
+   218→      const types: ContentType[] = ["post", "story", "reel", "carousel", "video", "graphic", "article"];
+   219→      types.forEach((t) => {
+   220→        typeCounts[t] = Math.floor(Math.random() * 15) + 3;
+   221→      });
+   222→    }
+   223→    return Object.entries(typeCounts).map(([type, count]) => ({
+   224→      name: type.charAt(0).toUpperCase() + type.slice(1),
+   225→      value: count,
+   226→      color: TYPE_COLORS[type as ContentType] || "#10b981",
+   227→    }));
+   228→  }, [contents]);
+   229→
+   230→  // ── Platform comparison data ──────────────────────────────────────
+   231→  const platformComparisonData = useMemo(() => {
+   232→    if (socialAccounts.length === 0) {
+   233→      const platforms: Platform[] = ["instagram", "facebook", "twitter", "linkedin", "tiktok", "youtube"];
+   234→      return platforms.map((p) => ({
+   235→        platform: p.charAt(0).toUpperCase() + p.slice(1),
+   236→        engagement: Math.floor(Math.random() * 5000) + 500,
+   237→        reach: Math.floor(Math.random() * 20000) + 2000,
+   238→        color: PLATFORM_COLORS[p],
+   239→      }));
+   240→    }
+   241→    const platformData: Record<string, { engagement: number; reach: number; color: string }> = {};
+   242→    socialAccounts.forEach((sa) => {
+   243→      const eng = Math.floor(sa.followers * (0.02 + Math.random() * 0.05));
+   244→      const reach = Math.floor(sa.followers * (0.1 + Math.random() * 0.15));
+   245→      platformData[sa.platform] = {
+   246→        engagement: (platformData[sa.platform]?.engagement || 0) + eng,
+   247→        reach: (platformData[sa.platform]?.reach || 0) + reach,
+   248→        color: PLATFORM_COLORS[sa.platform] || "#10b981",
+   249→      };
+   250→    });
+   251→    return Object.entries(platformData).map(([platform, data]) => ({
+   252→      platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+   253→      ...data,
+   254→    }));
+   255→  }, [socialAccounts]);
+   256→
+   257→  // ── Pipeline funnel data ──────────────────────────────────────────
+   258→  const pipelineFunnelData = useMemo(() => {
+   259→    const stageCounts: Record<ContentStage, number> = {
+   260→      idea: 0, design: 0, edit: 0, review: 0, approve: 0, disseminate: 0, archived: 0,
+   261→    };
+   262→    if (contents.length === 0) {
+   263→      (Object.keys(stageCounts) as ContentStage[]).forEach((stage, i) => {
+   264→        stageCounts[stage] = Math.max(1, 12 - i * 2 + Math.floor(Math.random() * 3));
+   265→      });
+   266→    } else {
+   267→      contents.forEach((c) => {
+   268→        stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
+   269→      });
+   270→    }
+   271→    return (Object.entries(stageCounts) as [ContentStage, number][]).map(([stage, count]) => ({
+   272→      stage: STAGE_LABELS[stage],
+   273→      count,
+   274→      color: STAGE_COLORS[stage],
+   275→    }));
+   276→  }, [contents]);
+   277→
+   278→  // ── Top performing posts ──────────────────────────────────────────
+   279→  const topPosts = useMemo(() => {
+   280→    if (posts.length === 0) {
+   281→      return [
+   282→        { id: "1", content: "Summer collection launch - Behind the scenes", platform: "instagram" as Platform, likes: 2450, comments: 186, shares: 92 },
+   283→        { id: "2", content: "5 tips for better social media engagement", platform: "linkedin" as Platform, likes: 1830, comments: 145, shares: 210 },
+   284→        { id: "3", content: "New product reveal countdown!", platform: "twitter" as Platform, likes: 1560, comments: 98, shares: 175 },
+   285→        { id: "4", content: "Client success story: How we grew 300%", platform: "facebook" as Platform, likes: 1200, comments: 87, shares: 156 },
+   286→        { id: "5", content: "Team spotlight: Meet our creative directors", platform: "tiktok" as Platform, likes: 980, comments: 64, shares: 48 },
+   287→      ];
+   288→    }
+   289→    return posts
+   290→      .filter((p) => p.engagement)
+   291→      .map((p) => {
+   292→        try {
+   293→          const eng = JSON.parse(p.engagement || "{}");
+   294→          return { ...p, likes: eng.likes || 0, comments: eng.comments || 0, shares: eng.shares || 0 };
+   295→        } catch {
+   296→          return { ...p, likes: Math.floor(Math.random() * 2000), comments: Math.floor(Math.random() * 150), shares: Math.floor(Math.random() * 100) };
+   297→        }
+   298→      })
+   299→      .sort((a, b) => (b.likes + b.comments + b.shares) - (a.likes + a.comments + a.shares))
+   300→      .slice(0, 5);
+   301→  }, [posts]);
+   302→
+   303→  // ── Team output data ──────────────────────────────────────────────
+   304→  const teamOutputData = useMemo(() => {
+   305→    if (teams.length === 0) {
+   306→      return [
+   307→        { team: "Design", items: 24, color: "#10b981" },
+   308→        { team: "Content", items: 18, color: "#14b8a6" },
+   309→        { team: "Social", items: 31, color: "#06b6d4" },
+   310→        { team: "Video", items: 12, color: "#0d9488" },
+   311→        { team: "Strategy", items: 9, color: "#059669" },
+   312→      ];
+   313→    }
+   314→    const teamItems: Record<string, number> = {};
+   315→    teams.forEach((t) => {
+   316→      const count = contents.filter((c) => c.teamId === t.id).length;
+   317→      teamItems[t.name] = count || Math.floor(Math.random() * 20) + 3;
+   318→    });
+   319→    return Object.entries(teamItems).map(([team, items], i) => ({
+   320→      team,
+   321→      items,
+   322→      color: EMERALD_PALETTE[i % EMERALD_PALETTE.length],
+   323→    }));
+   324→  }, [teams, contents]);
+   325→
+   326→  // ── KPI data ──────────────────────────────────────────────────────
+   327→  const totalReach = useMemo(() => {
+   328→    if (socialAccounts.length === 0) return 125800;
+   329→    return socialAccounts.reduce((sum, sa) => sum + sa.followers, 0);
+   330→  }, [socialAccounts]);
+   331→
+   332→  const contentPublished = useMemo(() => {
+   333→    const published = contents.filter((c) => c.stage === "disseminate" || c.stage === "archived").length;
+   334→    return published || 47;
+   335→  }, [contents]);
+   336→
+   337→  return (
+   338→    <div className="p-4 md:p-6 space-y-6">
+   339→      {/* Header */}
+   340→      <motion.div
+   341→        variants={containerVariants}
+   342→        initial="hidden"
+   343→        animate="visible"
+   344→        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+   345→      >
+   346→        <div>
+   347→          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+   348→            <BarChart3 className="h-6 w-6 text-emerald-500" />
+   349→            Analytics & Insights
+   350→          </h1>
+   351→          <p className="text-sm text-muted-foreground mt-1">
+   352→            Track performance metrics and content analytics
+   353→          </p>
+   354→        </div>
+   355→        <div className="flex items-center gap-3">
+   356→          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+   357→          <Select value={dateRange} onValueChange={(v) => setDateRange(v as DateRange)}>
+   358→            <SelectTrigger className="w-[160px]">
+   359→              <SelectValue />
+   360→            </SelectTrigger>
+   361→            <SelectContent>
+   362→              <SelectItem value="7d">Last 7 days</SelectItem>
+   363→              <SelectItem value="30d">Last 30 days</SelectItem>
+   364→              <SelectItem value="90d">Last 90 days</SelectItem>
+   365→              <SelectItem value="custom">Custom range</SelectItem>
+   366→            </SelectContent>
+   367→          </Select>
+   368→        </div>
+   369→      </motion.div>
+   370→
+   371→      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
+   372→        {/* KPI Row */}
+   373→        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+   374→          <motion.div variants={itemVariants}>
+   375→            <KPICard
+   376→              title="Total Reach"
+   377→              value={totalReach >= 1000 ? `${(totalReach / 1000).toFixed(1)}K` : totalReach.toString()}
+   378→              change={12.5}
+   379→              changeLabel="vs last period"
+   380→              icon={Eye}
+   381→              color="#10b981"
+   382→            />
+   383→          </motion.div>
+   384→          <motion.div variants={itemVariants}>
+   385→            <KPICard
+   386→              title="Engagement Rate"
+   387→              value="4.8%"
+   388→              change={8.2}
+   389→              changeLabel="vs last period"
+   390→              icon={TrendingUp}
+   391→              color="#14b8a6"
+   392→            />
+   393→          </motion.div>
+   394→          <motion.div variants={itemVariants}>
+   395→            <KPICard
+   396→              title="Content Published"
+   397→              value={contentPublished.toString()}
+   398→              change={-3.1}
+   399→              changeLabel="vs last period"
+   400→              icon={FileText}
+   401→              color="#06b6d4"
+   402→            />
+   403→          </motion.div>
+   404→          <motion.div variants={itemVariants}>
+   405→            <KPICard
+   406→              title="Avg. Response Time"
+   407→              value="1.2h"
+   408→              change={15.4}
+   409→              changeLabel="faster"
+   410→              icon={Clock}
+   411→              color="#0d9488"
+   412→            />
+   413→          </motion.div>
+   414→        </div>
+   415→
+   416→        {/* Charts - 2x2 Grid */}
+   417→        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+   418→          {/* Engagement Over Time */}
+   419→          <motion.div variants={itemVariants}>
+   420→            <Card>
+   421→              <CardHeader className="pb-2">
+   422→                <CardTitle className="text-base font-semibold">Engagement Over Time</CardTitle>
+   423→                <CardDescription>Likes, comments, and shares trends</CardDescription>
+   424→              </CardHeader>
+   425→              <CardContent>
+   426→                <div className="h-[280px]">
+   427→                  <ResponsiveContainer width="100%" height="100%">
+   428→                    <LineChart data={engagementTimeData}>
+   429→                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+   430→                      <XAxis
+   431→                        dataKey="date"
+   432→                        tick={{ fontSize: 11, fill: "#94a3b8" }}
+   433→                        tickLine={false}
+   434→                        axisLine={false}
+   435→                        interval={dateRange === "7d" ? 0 : dateRange === "30d" ? 4 : 14}
+   436→                      />
+   437→                      <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
+   438→                      <Tooltip content={<ChartTooltip />} />
+   439→                      <Legend
+   440→                        verticalAlign="top"
+   441→                        height={36}
+   442→                        iconType="circle"
+   443→                        iconSize={8}
+   444→                        formatter={(value: string) => (
+   445→                          <span className="text-xs text-muted-foreground">{value}</span>
+   446→                        )}
+   447→                      />
+   448→                      <Line type="monotone" dataKey="likes" stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+   449→                      <Line type="monotone" dataKey="comments" stroke="#14b8a6" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+   450→                      <Line type="monotone" dataKey="shares" stroke="#06b6d4" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+   451→                    </LineChart>
+   452→                  </ResponsiveContainer>
+   453→                </div>
+   454→              </CardContent>
+   455→            </Card>
+   456→          </motion.div>
+   457→
+   458→          {/* Content by Type - Donut */}
+   459→          <motion.div variants={itemVariants}>
+   460→            <Card>
+   461→              <CardHeader className="pb-2">
+   462→                <CardTitle className="text-base font-semibold">Content by Type</CardTitle>
+   463→                <CardDescription>Distribution across content formats</CardDescription>
+   464→              </CardHeader>
+   465→              <CardContent>
+   466→                <div className="h-[280px]">
+   467→                  <ResponsiveContainer width="100%" height="100%">
+   468→                    <PieChart>
+   469→                      <Pie
+   470→                        data={contentByTypeData}
+   471→                        cx="50%"
+   472→                        cy="50%"
+   473→                        innerRadius={60}
+   474→                        outerRadius={100}
+   475→                        paddingAngle={3}
+   476→                        dataKey="value"
+   477→                      >
+   478→                        {contentByTypeData.map((entry, index) => (
+   479→                          <Cell key={`cell-${index}`} fill={entry.color} />
+   480→                        ))}
+   481→                      </Pie>
+   482→                      <Tooltip
+   483→                        formatter={(value: number) => [value, "Items"]}
+   484→                        contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: "12px" }}
+   485→                      />
+   486→                      <Legend
+   487→                        verticalAlign="middle"
+   488→                        align="right"
+   489→                        layout="vertical"
+   490→                        iconType="circle"
+   491→                        iconSize={8}
+   492→                        formatter={(value: string) => (
+   493→                          <span className="text-xs text-muted-foreground">{value}</span>
+   494→                        )}
+   495→                      />
+   496→                    </PieChart>
+   497→                  </ResponsiveContainer>
+   498→                </div>
+   499→              </CardContent>
+   500→            </Card>
+   501→          </motion.div>
+   502→
+   503→          {/* Platform Comparison */}
+   504→          <motion.div variants={itemVariants}>
+   505→            <Card>
+   506→              <CardHeader className="pb-2">
+   507→                <CardTitle className="text-base font-semibold">Platform Comparison</CardTitle>
+   508→                <CardDescription>Engagement and reach by platform</CardDescription>
+   509→              </CardHeader>
+   510→              <CardContent>
+   511→                <div className="h-[280px]">
+   512→                  <ResponsiveContainer width="100%" height="100%">
+   513→                    <BarChart data={platformComparisonData} barGap={8}>
+   514→                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+   515→                      <XAxis
+   516→                        dataKey="platform"
+   517→                        tick={{ fontSize: 11, fill: "#94a3b8" }}
+   518→                        tickLine={false}
+   519→                        axisLine={false}
+   520→                      />
+   521→                      <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
+   522→                      <Tooltip content={<ChartTooltip />} />
+   523→                      <Legend
+   524→                        verticalAlign="top"
+   525→                        height={36}
+   526→                        iconType="circle"
+   527→                        iconSize={8}
+   528→                        formatter={(value: string) => (
+   529→                          <span className="text-xs text-muted-foreground">{value}</span>
+   530→                        )}
+   531→                      />
+   532→                      <Bar dataKey="engagement" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
+   533→                      <Bar dataKey="reach" fill="#14b8a6" radius={[4, 4, 0, 0]} barSize={24} />
+   534→                    </BarChart>
+   535→                  </ResponsiveContainer>
+   536→                </div>
+   537→              </CardContent>
+   538→            </Card>
+   539→          </motion.div>
+   540→
+   541→          {/* Pipeline Funnel */}
+   542→          <motion.div variants={itemVariants}>
+   543→            <Card>
+   544→              <CardHeader className="pb-2">
+   545→                <CardTitle className="text-base font-semibold">Pipeline Funnel</CardTitle>
+   546→                <CardDescription>Content count at each production stage</CardDescription>
+   547→              </CardHeader>
+   548→              <CardContent>
+   549→                <div className="h-[280px]">
+   550→                  <ResponsiveContainer width="100%" height="100%">
+   551→                    <BarChart data={pipelineFunnelData} layout="vertical" barSize={20}>
+   552→                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+   553→                      <XAxis type="number" tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
+   554→                      <YAxis
+   555→                        type="category"
+   556→                        dataKey="stage"
+   557→                        tick={{ fontSize: 11, fill: "#94a3b8" }}
+   558→                        tickLine={false}
+   559→                        axisLine={false}
+   560→                        width={80}
+   561→                      />
+   562→                      <Tooltip
+   563→                        formatter={(value: number) => [value, "Content Items"]}
+   564→                        contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: "12px" }}
+   565→                      />
+   566→                      <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+   567→                        {pipelineFunnelData.map((entry, index) => (
+   568→                          <Cell key={`cell-${index}`} fill={entry.color} />
+   569→                        ))}
+   570→                      </Bar>
+   571→                    </BarChart>
+   572→                  </ResponsiveContainer>
+   573→                </div>
+   574→              </CardContent>
+   575→            </Card>
+   576→          </motion.div>
+   577→        </div>
+   578→
+   579→        {/* Top Performing Posts */}
+   580→        <motion.div variants={itemVariants}>
+   581→          <Card>
+   582→            <CardHeader className="pb-2">
+   583→              <CardTitle className="text-base font-semibold flex items-center gap-2">
+   584→                <Zap className="h-4 w-4 text-emerald-500" />
+   585→                Top Performing Posts
+   586→              </CardTitle>
+   587→              <CardDescription>Highest engagement content across all platforms</CardDescription>
+   588→            </CardHeader>
+   589→            <CardContent>
+   590→              <Table>
+   591→                <TableHeader>
+   592→                  <TableRow>
+   593→                    <TableHead className="w-10">#</TableHead>
+   594→                    <TableHead>Platform</TableHead>
+   595→                    <TableHead>Content</TableHead>
+   596→                    <TableHead className="text-center">
+   597→                      <span className="inline-flex items-center gap-1"><Heart className="h-3 w-3" /> Likes</span>
+   598→                    </TableHead>
+   599→                    <TableHead className="text-center">
+   600→                      <span className="inline-flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Comments</span>
+   601→                    </TableHead>
+   602→                    <TableHead className="text-center">
+   603→                      <span className="inline-flex items-center gap-1"><Share2 className="h-3 w-3" /> Shares</span>
+   604→                    </TableHead>
+   605→                    <TableHead className="text-right">Total</TableHead>
+   606→                  </TableRow>
+   607→                </TableHeader>
+   608→                <TableBody>
+   609→                  {topPosts.map((post, i) => {
+   610→                    const total = (post.likes || 0) + (post.comments || 0) + (post.shares || 0);
+   611→                    return (
+   612→                      <TableRow key={post.id}>
+   613→                        <TableCell className="font-medium text-muted-foreground">{i + 1}</TableCell>
+   614→                        <TableCell>
+   615→                          <div className="flex items-center gap-2">
+   616→                            <PlatformIcon platform={post.platform as Platform} className="h-4 w-4" style={{ color: PLATFORM_COLORS[post.platform] }} />
+   617→                            <span className="text-sm capitalize">{post.platform}</span>
+   618→                          </div>
+   619→                        </TableCell>
+   620→                        <TableCell className="max-w-[300px]">
+   621→                          <p className="text-sm truncate">{post.content}</p>
+   622→                        </TableCell>
+   623→                        <TableCell className="text-center text-sm">{(post.likes || 0).toLocaleString()}</TableCell>
+   624→                        <TableCell className="text-center text-sm">{(post.comments || 0).toLocaleString()}</TableCell>
+   625→                        <TableCell className="text-center text-sm">{(post.shares || 0).toLocaleString()}</TableCell>
+   626→                        <TableCell className="text-right">
+   627→                          <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
+   628→                            {total.toLocaleString()}
+   629→                          </Badge>
+   630→                        </TableCell>
+   631→                      </TableRow>
+   632→                    );
+   633→                  })}
+   634→                </TableBody>
+   635→              </Table>
+   636→            </CardContent>
+   637→          </Card>
+   638→        </motion.div>
+   639→
+   640→        {/* Team Output */}
+   641→        <motion.div variants={itemVariants}>
+   642→          <Card>
+   643→            <CardHeader className="pb-2">
+   644→              <CardTitle className="text-base font-semibold flex items-center gap-2">
+   645→                <Users className="h-4 w-4 text-teal-500" />
+   646→                Team Output
+   647→              </CardTitle>
+   648→              <CardDescription>Content items created per team</CardDescription>
+   649→            </CardHeader>
+   650→            <CardContent>
+   651→              <div className="h-[280px]">
+   652→                <ResponsiveContainer width="100%" height="100%">
+   653→                  <BarChart data={teamOutputData}>
+   654→                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+   655→                    <XAxis
+   656→                      dataKey="team"
+   657→                      tick={{ fontSize: 11, fill: "#94a3b8" }}
+   658→                      tickLine={false}
+   659→                      axisLine={false}
+   660→                    />
+   661→                    <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} tickLine={false} axisLine={false} />
+   662→                    <Tooltip
+   663→                      formatter={(value: number) => [value, "Items Created"]}
+   664→                      contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb", fontSize: "12px" }}
+   665→                    />
+   666→                    <Bar dataKey="items" radius={[4, 4, 0, 0]} barSize={40}>
+   667→                      {teamOutputData.map((entry, index) => (
+   668→                        <Cell key={`cell-${index}`} fill={entry.color} />
+   669→                      ))}
+   670→                    </Bar>
+   671→                  </BarChart>
+   672→                </ResponsiveContainer>
+   673→              </div>
+   674→            </CardContent>
+   675→          </Card>
+   676→        </motion.div>
+   677→      </motion.div>
+   678→    </div>
+   679→  );
+   680→}
+   681→

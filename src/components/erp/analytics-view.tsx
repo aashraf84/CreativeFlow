@@ -192,21 +192,38 @@ export function AnalyticsView() {
   // ── Generate engagement over time data ──────────────────────────────
   const engagementTimeData = useMemo(() => {
     const days = dateRange === "7d" ? 7 : dateRange === "30d" ? 30 : 90;
-    const data = [];
+    // Group posts by date and sum engagement
+    const dateMap: Record<string, { likes: number; comments: number; shares: number }> = {};
+    const now = new Date();
     for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
+      const date = new Date(now);
       date.setDate(date.getDate() - i);
-      const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      const factor = 1 + Math.sin(i * 0.3) * 0.3;
-      data.push({
-        date: dateStr,
-        likes: Math.round((120 + Math.random() * 80) * factor),
-        comments: Math.round((35 + Math.random() * 25) * factor),
-        shares: Math.round((18 + Math.random() * 12) * factor),
-      });
+      const key = date.toISOString().slice(0, 10);
+      dateMap[key] = { likes: 0, comments: 0, shares: 0 };
     }
-    return data;
-  }, [dateRange]);
+    posts.forEach((p) => {
+      try {
+        const eng = JSON.parse(p.engagement || "{}");
+        const dateStr = (p.publishedAt || p.createdAt).slice(0, 10);
+        if (dateMap[dateStr] !== undefined) {
+          dateMap[dateStr].likes += eng.likes || 0;
+          dateMap[dateStr].comments += eng.comments || 0;
+          dateMap[dateStr].shares += eng.shares || 0;
+        }
+      } catch {
+        // Skip posts with unparseable engagement
+      }
+    });
+    return Object.entries(dateMap).map(([key, val]) => {
+      const date = new Date(key + "T00:00:00");
+      return {
+        date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        likes: val.likes,
+        comments: val.comments,
+        shares: val.shares,
+      };
+    });
+  }, [dateRange, posts]);
 
   // ── Content by type ──────────────────────────────────────────────
   const contentByTypeData = useMemo(() => {
@@ -214,11 +231,9 @@ export function AnalyticsView() {
     contents.forEach((c) => {
       typeCounts[c.type] = (typeCounts[c.type] || 0) + 1;
     });
+    // If no content exists, return empty array instead of random data
     if (Object.keys(typeCounts).length === 0) {
-      const types: ContentType[] = ["post", "story", "reel", "carousel", "video", "graphic", "article"];
-      types.forEach((t) => {
-        typeCounts[t] = Math.floor(Math.random() * 15) + 3;
-      });
+      return [];
     }
     return Object.entries(typeCounts).map(([type, count]) => ({
       name: type.charAt(0).toUpperCase() + type.slice(1),
@@ -229,45 +244,51 @@ export function AnalyticsView() {
 
   // ── Platform comparison data ──────────────────────────────────────
   const platformComparisonData = useMemo(() => {
+    // If no social accounts exist, return empty array
     if (socialAccounts.length === 0) {
-      const platforms: Platform[] = ["instagram", "facebook", "twitter", "linkedin", "tiktok", "youtube"];
-      return platforms.map((p) => ({
-        platform: p.charAt(0).toUpperCase() + p.slice(1),
-        engagement: Math.floor(Math.random() * 5000) + 500,
-        reach: Math.floor(Math.random() * 20000) + 2000,
-        color: PLATFORM_COLORS[p],
-      }));
+      return [];
     }
-    const platformData: Record<string, { engagement: number; reach: number; color: string }> = {};
+    // Compute engagement and reach from actual post data per platform
+    const platformData: Record<string, { engagement: number; reach: number; followers: number; color: string }> = {};
     socialAccounts.forEach((sa) => {
-      const eng = Math.floor(sa.followers * (0.02 + Math.random() * 0.05));
-      const reach = Math.floor(sa.followers * (0.1 + Math.random() * 0.15));
-      platformData[sa.platform] = {
-        engagement: (platformData[sa.platform]?.engagement || 0) + eng,
-        reach: (platformData[sa.platform]?.reach || 0) + reach,
-        color: PLATFORM_COLORS[sa.platform] || "#10b981",
-      };
+      if (!platformData[sa.platform]) {
+        platformData[sa.platform] = { engagement: 0, reach: 0, followers: 0, color: PLATFORM_COLORS[sa.platform] || "#10b981" };
+      }
+      platformData[sa.platform].followers += sa.followers;
+    });
+    // Sum actual engagement from posts per platform
+    posts.forEach((p) => {
+      try {
+        const eng = JSON.parse(p.engagement || "{}");
+        const totalEng = (eng.likes || 0) + (eng.comments || 0) + (eng.shares || 0);
+        if (platformData[p.platform]) {
+          platformData[p.platform].engagement += totalEng;
+        }
+      } catch {
+        // Skip unparseable
+      }
+    });
+    // Reach = total followers for accounts on that platform (best available proxy)
+    Object.keys(platformData).forEach((p) => {
+      platformData[p].reach = platformData[p].followers;
     });
     return Object.entries(platformData).map(([platform, data]) => ({
       platform: platform.charAt(0).toUpperCase() + platform.slice(1),
-      ...data,
+      engagement: data.engagement,
+      reach: data.reach,
+      color: data.color,
     }));
-  }, [socialAccounts]);
+  }, [socialAccounts, posts]);
 
   // ── Pipeline funnel data ──────────────────────────────────────────
   const pipelineFunnelData = useMemo(() => {
     const stageCounts: Record<ContentStage, number> = {
       idea: 0, design: 0, edit: 0, review: 0, approve: 0, disseminate: 0, archived: 0,
     };
-    if (contents.length === 0) {
-      (Object.keys(stageCounts) as ContentStage[]).forEach((stage, i) => {
-        stageCounts[stage] = Math.max(1, 12 - i * 2 + Math.floor(Math.random() * 3));
-      });
-    } else {
-      contents.forEach((c) => {
-        stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
-      });
-    }
+    // Always compute from real data; if no contents, all stages remain 0
+    contents.forEach((c) => {
+      stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
+    });
     return (Object.entries(stageCounts) as [ContentStage, number][]).map(([stage, count]) => ({
       stage: STAGE_LABELS[stage],
       count,
@@ -278,22 +299,15 @@ export function AnalyticsView() {
   // ── Top performing posts ──────────────────────────────────────────
   const topPosts = useMemo(() => {
     if (posts.length === 0) {
-      return [
-        { id: "1", content: "Summer collection launch - Behind the scenes", platform: "instagram" as Platform, likes: 2450, comments: 186, shares: 92 },
-        { id: "2", content: "5 tips for better social media engagement", platform: "linkedin" as Platform, likes: 1830, comments: 145, shares: 210 },
-        { id: "3", content: "New product reveal countdown!", platform: "twitter" as Platform, likes: 1560, comments: 98, shares: 175 },
-        { id: "4", content: "Client success story: How we grew 300%", platform: "facebook" as Platform, likes: 1200, comments: 87, shares: 156 },
-        { id: "5", content: "Team spotlight: Meet our creative directors", platform: "tiktok" as Platform, likes: 980, comments: 64, shares: 48 },
-      ];
+      return [];
     }
     return posts
-      .filter((p) => p.engagement)
       .map((p) => {
         try {
           const eng = JSON.parse(p.engagement || "{}");
           return { ...p, likes: eng.likes || 0, comments: eng.comments || 0, shares: eng.shares || 0 };
         } catch {
-          return { ...p, likes: Math.floor(Math.random() * 2000), comments: Math.floor(Math.random() * 150), shares: Math.floor(Math.random() * 100) };
+          return { ...p, likes: 0, comments: 0, shares: 0 };
         }
       })
       .sort((a, b) => (b.likes + b.comments + b.shares) - (a.likes + a.comments + a.shares))
@@ -303,18 +317,12 @@ export function AnalyticsView() {
   // ── Team output data ──────────────────────────────────────────────
   const teamOutputData = useMemo(() => {
     if (teams.length === 0) {
-      return [
-        { team: "Design", items: 24, color: "#10b981" },
-        { team: "Content", items: 18, color: "#14b8a6" },
-        { team: "Social", items: 31, color: "#06b6d4" },
-        { team: "Video", items: 12, color: "#0d9488" },
-        { team: "Strategy", items: 9, color: "#059669" },
-      ];
+      return [];
     }
     const teamItems: Record<string, number> = {};
     teams.forEach((t) => {
       const count = contents.filter((c) => c.teamId === t.id).length;
-      teamItems[t.name] = count || Math.floor(Math.random() * 20) + 3;
+      teamItems[t.name] = count; // Show actual count, even if 0
     });
     return Object.entries(teamItems).map(([team, items], i) => ({
       team,
@@ -325,14 +333,78 @@ export function AnalyticsView() {
 
   // ── KPI data ──────────────────────────────────────────────────────
   const totalReach = useMemo(() => {
-    if (socialAccounts.length === 0) return 125800;
     return socialAccounts.reduce((sum, sa) => sum + sa.followers, 0);
   }, [socialAccounts]);
 
   const contentPublished = useMemo(() => {
-    const published = contents.filter((c) => c.stage === "disseminate" || c.stage === "archived").length;
-    return published || 47;
+    return contents.filter((c) => c.stage === "disseminate" || c.stage === "archived").length;
   }, [contents]);
+
+  // ── Compute real KPI change values ───────────────────────────────────
+  // Compare current period counts vs previous period
+  const kpiChanges = useMemo(() => {
+    const now = new Date();
+    const currentStart = new Date(now);
+    const prevStart = new Date(now);
+    const days = dateRange === "7d" ? 7 : dateRange === "30d" ? 30 : 90;
+    currentStart.setDate(currentStart.getDate() - days);
+    prevStart.setDate(prevStart.getDate() - days * 2);
+
+    const currentContents = contents.filter((c) => new Date(c.createdAt) >= currentStart).length;
+    const prevContents = contents.filter((c) => {
+      const d = new Date(c.createdAt);
+      return d >= prevStart && d < currentStart;
+    }).length;
+    const contentChange = prevContents > 0 ? Math.round(((currentContents - prevContents) / prevContents) * 1000) / 10 : (currentContents > 0 ? 100 : 0);
+
+    const currentPosts = posts.filter((p) => {
+      const d = new Date(p.publishedAt || p.createdAt);
+      return d >= currentStart;
+    }).length;
+    const prevPosts = posts.filter((p) => {
+      const d = new Date(p.publishedAt || p.createdAt);
+      return d >= prevStart && d < currentStart;
+    }).length;
+    const postsChange = prevPosts > 0 ? Math.round(((currentPosts - prevPosts) / prevPosts) * 1000) / 10 : (currentPosts > 0 ? 100 : 0);
+
+    // Engagement rate: total engagement / total reach
+    let totalEngagement = 0;
+    posts.forEach((p) => {
+      try {
+        const eng = JSON.parse(p.engagement || "{}");
+        totalEngagement += (eng.likes || 0) + (eng.comments || 0) + (eng.shares || 0);
+      } catch { /* skip */ }
+    });
+    const reach = socialAccounts.reduce((sum, sa) => sum + sa.followers, 0);
+    const engagementRate = reach > 0 ? (totalEngagement / reach) * 100 : 0;
+
+    // Engagement rate change: compare current vs previous period
+    let prevEngagement = 0;
+    posts.filter((p) => {
+      const d = new Date(p.publishedAt || p.createdAt);
+      return d >= prevStart && d < currentStart;
+    }).forEach((p) => {
+      try {
+        const eng = JSON.parse(p.engagement || "{}");
+        prevEngagement += (eng.likes || 0) + (eng.comments || 0) + (eng.shares || 0);
+      } catch { /* skip */ }
+    });
+    const prevEngRate = reach > 0 ? (prevEngagement / reach) * 100 : 0;
+    const engRateChange = prevEngRate > 0 ? Math.round(((engagementRate - prevEngRate) / prevEngRate) * 1000) / 10 : (engagementRate > 0 ? 100 : 0);
+
+    // Published content change
+    const currentPublished = contents.filter((c) => {
+      const d = new Date(c.publishedAt || c.createdAt);
+      return d >= currentStart && (c.stage === "disseminate" || c.stage === "archived");
+    }).length;
+    const prevPublished = contents.filter((c) => {
+      const d = new Date(c.publishedAt || c.createdAt);
+      return d >= prevStart && d < currentStart && (c.stage === "disseminate" || c.stage === "archived");
+    }).length;
+    const publishedChange = prevPublished > 0 ? Math.round(((currentPublished - prevPublished) / prevPublished) * 1000) / 10 : (currentPublished > 0 ? 100 : 0);
+
+    return { contentChange, postsChange, engagementRate, engRateChange, publishedChange };
+  }, [contents, posts, socialAccounts, dateRange]);
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -375,7 +447,7 @@ export function AnalyticsView() {
             <KPICard
               title="Total Reach"
               value={totalReach >= 1000 ? `${(totalReach / 1000).toFixed(1)}K` : totalReach.toString()}
-              change={12.5}
+              change={kpiChanges.contentChange}
               changeLabel="vs last period"
               icon={Eye}
               color="#10b981"
@@ -384,8 +456,8 @@ export function AnalyticsView() {
           <motion.div variants={itemVariants}>
             <KPICard
               title="Engagement Rate"
-              value="4.8%"
-              change={8.2}
+              value={kpiChanges.engagementRate > 0 ? `${kpiChanges.engagementRate.toFixed(1)}%` : "—"}
+              change={kpiChanges.engRateChange}
               changeLabel="vs last period"
               icon={TrendingUp}
               color="#14b8a6"
@@ -395,7 +467,7 @@ export function AnalyticsView() {
             <KPICard
               title="Content Published"
               value={contentPublished.toString()}
-              change={-3.1}
+              change={kpiChanges.publishedChange}
               changeLabel="vs last period"
               icon={FileText}
               color="#06b6d4"
@@ -403,10 +475,15 @@ export function AnalyticsView() {
           </motion.div>
           <motion.div variants={itemVariants}>
             <KPICard
-              title="Avg. Response Time"
-              value="1.2h"
-              change={15.4}
-              changeLabel="faster"
+              title="Posts This Period"
+              value={posts.filter((p) => {
+                const days = dateRange === "7d" ? 7 : dateRange === "30d" ? 30 : 90;
+                const start = new Date();
+                start.setDate(start.getDate() - days);
+                return new Date(p.publishedAt || p.createdAt) >= start;
+              }).length.toString()}
+              change={kpiChanges.postsChange}
+              changeLabel="vs last period"
               icon={Clock}
               color="#0d9488"
             />
@@ -464,6 +541,9 @@ export function AnalyticsView() {
               </CardHeader>
               <CardContent>
                 <div className="h-[280px]">
+                  {contentByTypeData.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No content data available</div>
+                  ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -495,6 +575,7 @@ export function AnalyticsView() {
                       />
                     </PieChart>
                   </ResponsiveContainer>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -509,6 +590,9 @@ export function AnalyticsView() {
               </CardHeader>
               <CardContent>
                 <div className="h-[280px]">
+                  {platformComparisonData.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No platform data available</div>
+                  ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={platformComparisonData} barGap={8}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -533,6 +617,7 @@ export function AnalyticsView() {
                       <Bar dataKey="reach" fill="#14b8a6" radius={[4, 4, 0, 0]} barSize={24} />
                     </BarChart>
                   </ResponsiveContainer>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -587,6 +672,9 @@ export function AnalyticsView() {
               <CardDescription>Highest engagement content across all platforms</CardDescription>
             </CardHeader>
             <CardContent>
+              {topPosts.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">No post data available</div>
+              ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -633,6 +721,7 @@ export function AnalyticsView() {
                   })}
                 </TableBody>
               </Table>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -649,6 +738,9 @@ export function AnalyticsView() {
             </CardHeader>
             <CardContent>
               <div className="h-[280px]">
+                {teamOutputData.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No team data available</div>
+                ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={teamOutputData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -670,6 +762,7 @@ export function AnalyticsView() {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </CardContent>
           </Card>

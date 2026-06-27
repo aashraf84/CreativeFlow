@@ -1,0 +1,1294 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo, useCallback } from "react"
+     4→import { useERPStore, type BrandKit, type Client } from "@/lib/store"
+     5→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+     6→import { Button } from "@/components/ui/button"
+     7→import { Badge } from "@/components/ui/badge"
+     8→import { Input } from "@/components/ui/input"
+     9→import { Label } from "@/components/ui/label"
+    10→import { Textarea } from "@/components/ui/textarea"
+    11→import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+    12→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+    13→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+    14→import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+    15→import { ScrollArea } from "@/components/ui/scroll-area"
+    16→import { Separator } from "@/components/ui/separator"
+    17→import { motion, AnimatePresence } from "framer-motion"
+    18→import {
+    19→  Palette,
+    20→  Type,
+    21→  ImageIcon,
+    22→  MessageSquare,
+    23→  FileText,
+    24→  Plus,
+    25→  Copy,
+    26→  Check,
+    27→  Download,
+    28→  Upload,
+    29→  Trash2,
+    30→  Edit3,
+    31→  Search,
+    32→  ChevronDown,
+    33→  SwatchBook,
+    34→  Bold,
+    35→  Italic,
+    36→  Underline,
+    37→  Eye,
+    38→  CheckCircle2,
+    39→  XCircle,
+    40→  Sparkles,
+    41→  Building2,
+    42→  Globe,
+    43→  Hash,
+    44→  GripVertical,
+    45→  FolderOpen,
+    46→  Lightbulb,
+    47→} from "lucide-react"
+    48→import { cn } from "@/lib/utils"
+    49→import { useToast } from "@/hooks/use-toast"
+    50→
+    51→// ── Animation variants ──
+    52→const containerVariants = {
+    53→  hidden: { opacity: 0 },
+    54→  visible: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
+    55→}
+    56→const itemVariants = {
+    57→  hidden: { opacity: 0, y: 12, scale: 0.97 },
+    58→  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } },
+    59→}
+    60→
+    61→// ── Color group helpers ──
+    62→type ColorGroup = "primary" | "secondary" | "accent" | "neutral"
+    63→
+    64→interface ColorItem {
+    65→  name: string
+    66→  hex: string
+    67→  group: ColorGroup
+    68→}
+    69→
+    70→function parseColorValue(value: string): ColorItem | null {
+    71→  try {
+    72→    const parsed = JSON.parse(value)
+    73→    if (parsed.hex && parsed.name) return parsed as ColorItem
+    74→    return null
+    75→  } catch {
+    76→    return null
+    77→  }
+    78→}
+    79→
+    80→interface FontItem {
+    81→  name: string
+    82→  category: "heading" | "body" | "accent"
+    83→  weights: number[]
+    84→  sample: string
+    85→}
+    86→
+    87→function parseFontValue(value: string): FontItem | null {
+    88→  try {
+    89→    const parsed = JSON.parse(value)
+    90→    if (parsed.name) return parsed as FontItem
+    91→    return null
+    92→  } catch {
+    93→    return null
+    94→  }
+    95→}
+    96→
+    97→interface LogoItem {
+    98→  name: string
+    99→  variant: "primary" | "secondary" | "icon" | "monochrome"
+   100→  url: string
+   101→  background: "light" | "dark"
+   102→}
+   103→
+   104→function parseLogoValue(value: string): LogoItem | null {
+   105→  try {
+   106→    const parsed = JSON.parse(value)
+   107→    if (parsed.name) return parsed as LogoItem
+   108→    return null
+   109→  } catch {
+   110→    return null
+   111→  }
+   112→}
+   113→
+   114→interface VoiceItem {
+   115→  description: string
+   116→  dos: string[]
+   117→  donts: string[]
+   118→  taglines: string[]
+   119→}
+   120→
+   121→function parseVoiceValue(value: string): VoiceItem | null {
+   122→  try {
+   123→    const parsed = JSON.parse(value)
+   124→    if (parsed.description) return parsed as VoiceItem
+   125→    return null
+   126→  } catch {
+   127→    return null
+   128→  }
+   129→}
+   130→
+   131→interface GuidelineItem {
+   132→  title: string
+   133→  description: string
+   134→  documentType: string
+   135→  url: string
+   136→}
+   137→
+   138→function parseGuidelineValue(value: string): GuidelineItem | null {
+   139→  try {
+   140→    const parsed = JSON.parse(value)
+   141→    if (parsed.title) return parsed as GuidelineItem
+   142→    return null
+   143→  } catch {
+   144→    return null
+   145→  }
+   146→}
+   147→
+   148→// ── Main Component ──
+   149→export function BrandKitView() {
+   150→  const { brandKits, clients, setBrandKits } = useERPStore()
+   151→  const { toast } = useToast()
+   152→  const [activeSection, setActiveSection] = useState("colors")
+   153→  const [selectedClientId, setSelectedClientId] = useState<string>("organization")
+   154→  const [searchQuery, setSearchQuery] = useState("")
+   155→
+   156→  // Dialog states
+   157→  const [showAddColor, setShowAddColor] = useState(false)
+   158→  const [showAddFont, setShowAddFont] = useState(false)
+   159→  const [showAddLogo, setShowAddLogo] = useState(false)
+   160→  const [showAddVoice, setShowAddVoice] = useState(false)
+   161→  const [showAddGuideline, setShowAddGuideline] = useState(false)
+   162→  const [showEditItem, setShowEditItem] = useState<BrandKit | null>(null)
+   163→
+   164→  // Filter brand kits by client
+   165→  const filteredKits = useMemo(() => {
+   166→    if (selectedClientId === "organization") {
+   167→      return brandKits.filter(bk => !bk.clientId)
+   168→    }
+   169→    return brandKits.filter(bk => bk.clientId === selectedClientId)
+   170→  }, [brandKits, selectedClientId])
+   171→
+   172→  // Group by type
+   173→  const colorItems = useMemo(() =>
+   174→    filteredKits.filter(bk => bk.type === "color").map(bk => ({ ...bk, parsed: parseColorValue(bk.value) })),
+   175→    [filteredKits]
+   176→  )
+   177→  const fontItems = useMemo(() =>
+   178→    filteredKits.filter(bk => bk.type === "typography").map(bk => ({ ...bk, parsed: parseFontValue(bk.value) })),
+   179→    [filteredKits]
+   180→  )
+   181→  const logoItems = useMemo(() =>
+   182→    filteredKits.filter(bk => bk.type === "logo").map(bk => ({ ...bk, parsed: parseLogoValue(bk.value) })),
+   183→    [filteredKits]
+   184→  )
+   185→  const voiceItems = useMemo(() =>
+   186→    filteredKits.filter(bk => bk.type === "voice").map(bk => ({ ...bk, parsed: parseVoiceValue(bk.value) })),
+   187→    [filteredKits]
+   188→  )
+   189→  const guidelineItems = useMemo(() =>
+   190→    filteredKits.filter(bk => bk.type === "guidelines").map(bk => ({ ...bk, parsed: parseGuidelineValue(bk.value) })),
+   191→    [filteredKits]
+   192→  )
+   193→
+   194→  // Group colors by category
+   195→  const colorsByGroup = useMemo(() => {
+   196→    const groups: Record<ColorGroup, typeof colorItems> = { primary: [], secondary: [], accent: [], neutral: [] }
+   197→    colorItems.forEach(item => {
+   198→      if (item.parsed?.group && groups[item.parsed.group]) {
+   199→        groups[item.parsed.group].push(item)
+   200→      } else {
+   201→        groups.primary.push(item)
+   202→      }
+   203→    })
+   204→    return groups
+   205→  }, [colorItems])
+   206→
+   207→  // API helpers
+   208→  const createBrandKit = useCallback(async (data: { name: string; type: string; value: string; clientId?: string }) => {
+   209→    try {
+   210→      const res = await fetch("/api/brand-kit", {
+   211→        method: "POST",
+   212→        headers: { "Content-Type": "application/json" },
+   213→        body: JSON.stringify({
+   214→          ...data,
+   215→          clientId: selectedClientId === "organization" ? null : selectedClientId,
+   216→        }),
+   217→      })
+   218→      const json = await res.json()
+   219→      if (json.brandKit) {
+   220→        setBrandKits([...brandKits, json.brandKit])
+   221→        toast({ title: "Brand kit item added", description: `${data.name} has been added successfully.` })
+   222→      }
+   223→    } catch {
+   224→      toast({ title: "Error", description: "Failed to add brand kit item.", variant: "destructive" })
+   225→    }
+   226→  }, [brandKits, selectedClientId, setBrandKits, toast])
+   227→
+   228→  const deleteBrandKit = useCallback(async (id: string) => {
+   229→    try {
+   230→      await fetch(`/api/brand-kit/${id}`, { method: "DELETE" })
+   231→      setBrandKits(brandKits.filter(bk => bk.id !== id))
+   232→      toast({ title: "Item removed", description: "Brand kit item has been deleted." })
+   233→    } catch {
+   234→      toast({ title: "Error", description: "Failed to delete item.", variant: "destructive" })
+   235→    }
+   236→  }, [brandKits, setBrandKits, toast])
+   237→
+   238→  const updateBrandKit = useCallback(async (id: string, data: Record<string, unknown>) => {
+   239→    try {
+   240→      const res = await fetch(`/api/brand-kit/${id}`, {
+   241→        method: "PUT",
+   242→        headers: { "Content-Type": "application/json" },
+   243→        body: JSON.stringify(data),
+   244→      })
+   245→      const json = await res.json()
+   246→      if (json.brandKit) {
+   247→        setBrandKits(brandKits.map(bk => bk.id === id ? json.brandKit : bk))
+   248→        toast({ title: "Item updated", description: "Brand kit item has been updated." })
+   249→      }
+   250→    } catch {
+   251→      toast({ title: "Error", description: "Failed to update item.", variant: "destructive" })
+   252→    }
+   253→  }, [brandKits, setBrandKits, toast])
+   254→
+   255→  const selectedClient = useMemo(() =>
+   256→    selectedClientId === "organization" ? null : clients.find(c => c.id === selectedClientId),
+   257→    [selectedClientId, clients]
+   258→  )
+   259→
+   260→  return (
+   261→    <motion.div className="p-4 lg:p-6 space-y-6" variants={containerVariants} initial="hidden" animate="visible">
+   262→      {/* Header */}
+   263→      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+   264→        <div>
+   265→          <h2 className="text-xl font-bold tracking-tight">Brand Kit</h2>
+   266→          <p className="text-sm text-muted-foreground mt-0.5">
+   267→            Manage brand guidelines, colors, typography, and assets
+   268→          </p>
+   269→        </div>
+   270→        <div className="flex items-center gap-2">
+   271→          <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+   272→            <SelectTrigger className="w-[200px] h-9 text-sm">
+   273→              <Building2 className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+   274→              <SelectValue />
+   275→            </SelectTrigger>
+   276→            <SelectContent>
+   277→              <SelectItem value="organization">
+   278→                <span className="flex items-center gap-2">
+   279→                  <Globe className="h-3.5 w-3.5" /> Organization
+   280→                </span>
+   281→              </SelectItem>
+   282→              {clients.map(client => (
+   283→                <SelectItem key={client.id} value={client.id}>
+   284→                  {client.name}
+   285→                </SelectItem>
+   286→              ))}
+   287→            </SelectContent>
+   288→          </Select>
+   289→        </div>
+   290→      </motion.div>
+   291→
+   292→      {/* Client Banner */}
+   293→      {selectedClient && (
+   294→        <motion.div variants={itemVariants}>
+   295→          <Card className="shadow-sm border-emerald-200 dark:border-emerald-800/50 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30">
+   296→            <CardContent className="p-4 flex items-center gap-3">
+   297→              <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold text-sm">
+   298→                {selectedClient.name.split(/[\s-&]+/).map(w => w[0]).join("").slice(0, 2).toUpperCase()}
+   299→              </div>
+   300→              <div>
+   301→                <p className="text-sm font-semibold">{selectedClient.name} Brand Kit</p>
+   302→                <p className="text-xs text-muted-foreground">
+   303→                  {selectedClient.industry || "Custom brand guidelines for this client"}
+   304→                </p>
+   305→              </div>
+   306→            </CardContent>
+   307→          </Card>
+   308→        </motion.div>
+   309→      )}
+   310→
+   311→      {/* Brand Sections Tabs */}
+   312→      <motion.div variants={itemVariants}>
+   313→        <Tabs value={activeSection} onValueChange={setActiveSection}>
+   314→          <TabsList className="h-10 w-full justify-start gap-1 bg-muted/50 p-1 rounded-xl overflow-x-auto">
+   315→            <TabsTrigger value="colors" className="gap-1.5 text-xs data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+   316→              <SwatchBook className="h-3.5 w-3.5" /> Colors
+   317→              {colorItems.length > 0 && <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[9px] px-1">{colorItems.length}</Badge>}
+   318→            </TabsTrigger>
+   319→            <TabsTrigger value="typography" className="gap-1.5 text-xs data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+   320→              <Type className="h-3.5 w-3.5" /> Typography
+   321→              {fontItems.length > 0 && <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[9px] px-1">{fontItems.length}</Badge>}
+   322→            </TabsTrigger>
+   323→            <TabsTrigger value="logos" className="gap-1.5 text-xs data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+   324→              <ImageIcon className="h-3.5 w-3.5" /> Logos
+   325→              {logoItems.length > 0 && <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[9px] px-1">{logoItems.length}</Badge>}
+   326→            </TabsTrigger>
+   327→            <TabsTrigger value="voice" className="gap-1.5 text-xs data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+   328→              <MessageSquare className="h-3.5 w-3.5" /> Voice & Tone
+   329→              {voiceItems.length > 0 && <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[9px] px-1">{voiceItems.length}</Badge>}
+   330→            </TabsTrigger>
+   331→            <TabsTrigger value="guidelines" className="gap-1.5 text-xs data-[state=active]:bg-emerald-500 data-[state=active]:text-white">
+   332→              <FileText className="h-3.5 w-3.5" /> Guidelines
+   333→              {guidelineItems.length > 0 && <Badge variant="secondary" className="ml-1 h-4 min-w-4 text-[9px] px-1">{guidelineItems.length}</Badge>}
+   334→            </TabsTrigger>
+   335→          </TabsList>
+   336→
+   337→          {/* ─── COLORS SECTION ─── */}
+   338→          <TabsContent value="colors" className="mt-4 space-y-4">
+   339→            <div className="flex items-center justify-between">
+   340→              <p className="text-sm text-muted-foreground">Brand color palette with primary, secondary, accent, and neutral tones</p>
+   341→              <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowAddColor(true)}>
+   342→                <Plus className="h-3.5 w-3.5" /> Add Color
+   343→              </Button>
+   344→            </div>
+   345→
+   346→            {(["primary", "secondary", "accent", "neutral"] as ColorGroup[]).map(group => (
+   347→              <div key={group}>
+   348→                <div className="flex items-center gap-2 mb-2">
+   349→                  <Badge className={cn(
+   350→                    "text-[10px] font-semibold uppercase tracking-wider",
+   351→                    group === "primary" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+   352→                    group === "secondary" && "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+   353→                    group === "accent" && "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+   354→                    group === "neutral" && "bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-300",
+   355→                  )}>
+   356→                    {group}
+   357→                  </Badge>
+   358→                  <Separator className="flex-1" />
+   359→                </div>
+   360→                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+   361→                  {colorsByGroup[group].map(item => (
+   362→                    <ColorSwatchCard
+   363→                      key={item.id}
+   364→                      item={item}
+   365→                      parsed={item.parsed}
+   366→                      onDelete={() => deleteBrandKit(item.id)}
+   367→                      onEdit={() => setShowEditItem(item)}
+   368→                    />
+   369→                  ))}
+   370→                  {colorsByGroup[group].length === 0 && (
+   371→                    <div className="col-span-full py-6 text-center">
+   372→                      <p className="text-xs text-muted-foreground">No {group} colors defined</p>
+   373→                    </div>
+   374→                  )}
+   375→                </div>
+   376→              </div>
+   377→            ))}
+   378→
+   379→            {colorItems.length === 0 && (
+   380→              <Card className="shadow-sm border-dashed">
+   381→                <CardContent className="py-12 text-center">
+   382→                  <SwatchBook className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+   383→                  <p className="text-sm font-medium text-muted-foreground">No colors defined yet</p>
+   384→                  <p className="text-xs text-muted-foreground/70 mt-1">Add your brand colors to get started</p>
+   385→                  <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => setShowAddColor(true)}>
+   386→                    <Plus className="h-3.5 w-3.5" /> Add First Color
+   387→                  </Button>
+   388→                </CardContent>
+   389→              </Card>
+   390→            )}
+   391→          </TabsContent>
+   392→
+   393→          {/* ─── TYPOGRAPHY SECTION ─── */}
+   394→          <TabsContent value="typography" className="mt-4 space-y-4">
+   395→            <div className="flex items-center justify-between">
+   396→              <p className="text-sm text-muted-foreground">Brand typography system with heading, body, and accent fonts</p>
+   397→              <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowAddFont(true)}>
+   398→                <Plus className="h-3.5 w-3.5" /> Add Font
+   399→              </Button>
+   400→            </div>
+   401→
+   402→            {(["heading", "body", "accent"] as const).map(category => {
+   403→              const categoryFonts = fontItems.filter(f => f.parsed?.category === category)
+   404→              return (
+   405→                <div key={category}>
+   406→                  <div className="flex items-center gap-2 mb-2">
+   407→                    <Badge className={cn(
+   408→                      "text-[10px] font-semibold uppercase tracking-wider",
+   409→                      category === "heading" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+   410→                      category === "body" && "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+   411→                      category === "accent" && "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+   412→                    )}>
+   413→                      {category} Font
+   414→                    </Badge>
+   415→                    <Separator className="flex-1" />
+   416→                  </div>
+   417→                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+   418→                    {categoryFonts.map(item => (
+   419→                      <FontCard
+   420→                        key={item.id}
+   421→                        item={item}
+   422→                        parsed={item.parsed}
+   423→                        onDelete={() => deleteBrandKit(item.id)}
+   424→                        onEdit={() => setShowEditItem(item)}
+   425→                      />
+   426→                    ))}
+   427→                  </div>
+   428→                  {categoryFonts.length === 0 && (
+   429→                    <Card className="shadow-sm border-dashed">
+   430→                      <CardContent className="py-6 text-center">
+   431→                        <p className="text-xs text-muted-foreground">No {category} font defined</p>
+   432→                      </CardContent>
+   433→                    </Card>
+   434→                  )}
+   435→                </div>
+   436→              )
+   437→            })}
+   438→
+   439→            {fontItems.length === 0 && (
+   440→              <Card className="shadow-sm border-dashed">
+   441→                <CardContent className="py-12 text-center">
+   442→                  <Type className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+   443→                  <p className="text-sm font-medium text-muted-foreground">No typography defined yet</p>
+   444→                  <p className="text-xs text-muted-foreground/70 mt-1">Add your brand fonts to get started</p>
+   445→                  <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => setShowAddFont(true)}>
+   446→                    <Plus className="h-3.5 w-3.5" /> Add First Font
+   447→                  </Button>
+   448→                </CardContent>
+   449→              </Card>
+   450→            )}
+   451→          </TabsContent>
+   452→
+   453→          {/* ─── LOGOS SECTION ─── */}
+   454→          <TabsContent value="logos" className="mt-4 space-y-4">
+   455→            <div className="flex items-center justify-between">
+   456→              <p className="text-sm text-muted-foreground">Logo variants and usage guidelines</p>
+   457→              <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowAddLogo(true)}>
+   458→                <Upload className="h-3.5 w-3.5" /> Upload Logo
+   459→              </Button>
+   460→            </div>
+   461→
+   462→            {(["primary", "secondary", "icon", "monochrome"] as const).map(variant => {
+   463→              const variantLogos = logoItems.filter(l => l.parsed?.variant === variant)
+   464→              return (
+   465→                <div key={variant}>
+   466→                  <div className="flex items-center gap-2 mb-2">
+   467→                    <Badge className={cn(
+   468→                      "text-[10px] font-semibold uppercase tracking-wider",
+   469→                      variant === "primary" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+   470→                      variant === "secondary" && "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+   471→                      variant === "icon" && "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
+   472→                      variant === "monochrome" && "bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-300",
+   473→                    )}>
+   474→                      {variant}
+   475→                    </Badge>
+   476→                    <Separator className="flex-1" />
+   477→                  </div>
+   478→                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+   479→                    {variantLogos.map(item => (
+   480→                      <LogoCard
+   481→                        key={item.id}
+   482→                        item={item}
+   483→                        parsed={item.parsed}
+   484→                        onDelete={() => deleteBrandKit(item.id)}
+   485→                      />
+   486→                    ))}
+   487→                  </div>
+   488→                  {variantLogos.length === 0 && (
+   489→                    <Card className="shadow-sm border-dashed">
+   490→                      <CardContent className="py-6 text-center">
+   491→                        <p className="text-xs text-muted-foreground">No {variant} logo uploaded</p>
+   492→                      </CardContent>
+   493→                    </Card>
+   494→                  )}
+   495→                </div>
+   496→              )
+   497→            })}
+   498→
+   499→            {logoItems.length === 0 && (
+   500→              <Card className="shadow-sm border-dashed">
+   501→                <CardContent className="py-12 text-center">
+   502→                  <ImageIcon className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+   503→                  <p className="text-sm font-medium text-muted-foreground">No logos uploaded yet</p>
+   504→                  <p className="text-xs text-muted-foreground/70 mt-1">Upload your brand logos and variants</p>
+   505→                  <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => setShowAddLogo(true)}>
+   506→                    <Upload className="h-3.5 w-3.5" /> Upload Logo
+   507→                  </Button>
+   508→                </CardContent>
+   509→              </Card>
+   510→            )}
+   511→          </TabsContent>
+   512→
+   513→          {/* ─── VOICE & TONE SECTION ─── */}
+   514→          <TabsContent value="voice" className="mt-4 space-y-4">
+   515→            <div className="flex items-center justify-between">
+   516→              <p className="text-sm text-muted-foreground">Brand voice guidelines, do&apos;s &amp; don&apos;ts, and key phrases</p>
+   517→              <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowAddVoice(true)}>
+   518→                <Plus className="h-3.5 w-3.5" /> Add Voice Guide
+   519→              </Button>
+   520→            </div>
+   521→
+   522→            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   523→              {voiceItems.map(item => (
+   524→                <VoiceCard
+   525→                  key={item.id}
+   526→                  item={item}
+   527→                  parsed={item.parsed}
+   528→                  onDelete={() => deleteBrandKit(item.id)}
+   529→                  onEdit={() => setShowEditItem(item)}
+   530→                />
+   531→              ))}
+   532→            </div>
+   533→
+   534→            {voiceItems.length === 0 && (
+   535→              <Card className="shadow-sm border-dashed">
+   536→                <CardContent className="py-12 text-center">
+   537→                  <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+   538→                  <p className="text-sm font-medium text-muted-foreground">No voice guidelines defined yet</p>
+   539→                  <p className="text-xs text-muted-foreground/70 mt-1">Define your brand voice, tone, and key phrases</p>
+   540→                  <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => setShowAddVoice(true)}>
+   541→                    <Plus className="h-3.5 w-3.5" /> Add Voice Guide
+   542→                  </Button>
+   543→                </CardContent>
+   544→              </Card>
+   545→            )}
+   546→          </TabsContent>
+   547→
+   548→          {/* ─── GUIDELINES SECTION ─── */}
+   549→          <TabsContent value="guidelines" className="mt-4 space-y-4">
+   550→            <div className="flex items-center justify-between">
+   551→              <p className="text-sm text-muted-foreground">Brand guidelines documents and resources</p>
+   552→              <Button size="sm" className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowAddGuideline(true)}>
+   553→                <Upload className="h-3.5 w-3.5" /> Upload Document
+   554→              </Button>
+   555→            </div>
+   556→
+   557→            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+   558→              {guidelineItems.map(item => (
+   559→                <GuidelineCard
+   560→                  key={item.id}
+   561→                  item={item}
+   562→                  parsed={item.parsed}
+   563→                  onDelete={() => deleteBrandKit(item.id)}
+   564→                />
+   565→              ))}
+   566→            </div>
+   567→
+   568→            {guidelineItems.length === 0 && (
+   569→              <Card className="shadow-sm border-dashed">
+   570→                <CardContent className="py-12 text-center">
+   571→                  <FileText className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+   572→                  <p className="text-sm font-medium text-muted-foreground">No guidelines documents uploaded yet</p>
+   573→                  <p className="text-xs text-muted-foreground/70 mt-1">Upload brand guidelines, social media guides, and more</p>
+   574→                  <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => setShowAddGuideline(true)}>
+   575→                    <Upload className="h-3.5 w-3.5" /> Upload Document
+   576→                  </Button>
+   577→                </CardContent>
+   578→              </Card>
+   579→            )}
+   580→          </TabsContent>
+   581→        </Tabs>
+   582→      </motion.div>
+   583→
+   584→      {/* ─── DIALOGS ─── */}
+   585→      <AddColorDialog open={showAddColor} onOpenChange={setShowAddColor} onSubmit={createBrandKit} />
+   586→      <AddFontDialog open={showAddFont} onOpenChange={setShowAddFont} onSubmit={createBrandKit} />
+   587→      <AddLogoDialog open={showAddLogo} onOpenChange={setShowAddLogo} onSubmit={createBrandKit} />
+   588→      <AddVoiceDialog open={showAddVoice} onOpenChange={setShowAddVoice} onSubmit={createBrandKit} />
+   589→      <AddGuidelineDialog open={showAddGuideline} onOpenChange={setShowAddGuideline} onSubmit={createBrandKit} />
+   590→      <EditBrandKitDialog item={showEditItem} onClose={() => setShowEditItem(null)} onUpdate={updateBrandKit} />
+   591→    </motion.div>
+   592→  )
+   593→}
+   594→
+   595→// ── Color Swatch Card ──
+   596→function ColorSwatchCard({ item, parsed, onDelete, onEdit }: {
+   597→  item: BrandKit
+   598→  parsed: ColorItem | null
+   599→  onDelete: () => void
+   600→  onEdit: () => void
+   601→}) {
+   602→  const [copied, setCopied] = useState(false)
+   603→
+   604→  const copyHex = () => {
+   605→    if (parsed?.hex) {
+   606→      navigator.clipboard.writeText(parsed.hex)
+   607→      setCopied(true)
+   608→      setTimeout(() => setCopied(false), 1500)
+   609→    }
+   610→  }
+   611→
+   612→  if (!parsed) return null
+   613→
+   614→  return (
+   615→    <motion.div variants={itemVariants}>
+   616→      <Card className="shadow-sm border-border/60 group overflow-hidden hover:shadow-md transition-all">
+   617→        <div
+   618→          className="h-20 w-full cursor-pointer relative transition-transform group-hover:scale-[1.02]"
+   619→          style={{ backgroundColor: parsed.hex }}
+   620→          onClick={copyHex}
+   621→        >
+   622→          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+   623→            {copied ? (
+   624→              <Check className="h-5 w-5 text-white" />
+   625→            ) : (
+   626→              <Copy className="h-4 w-4 text-white" />
+   627→            )}
+   628→          </div>
+   629→        </div>
+   630→        <CardContent className="p-3">
+   631→          <div className="flex items-start justify-between">
+   632→            <div className="flex-1 min-w-0">
+   633→              <p className="text-xs font-semibold truncate">{parsed.name}</p>
+   634→              <TooltipProvider>
+   635→                <Tooltip>
+   636→                  <TooltipTrigger asChild>
+   637→                    <p className="text-[10px] text-muted-foreground font-mono mt-0.5 cursor-pointer" onClick={copyHex}>
+   638→                      {parsed.hex}
+   639→                    </p>
+   640→                  </TooltipTrigger>
+   641→                  <TooltipContent>
+   642→                    <p>Click to copy</p>
+   643→                  </TooltipContent>
+   644→                </Tooltip>
+   645→              </TooltipProvider>
+   646→            </div>
+   647→            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+   648→              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit}>
+   649→                <Edit3 className="h-3 w-3" />
+   650→              </Button>
+   651→              <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500 hover:text-rose-600" onClick={onDelete}>
+   652→                <Trash2 className="h-3 w-3" />
+   653→              </Button>
+   654→            </div>
+   655→          </div>
+   656→        </CardContent>
+   657→      </Card>
+   658→    </motion.div>
+   659→  )
+   660→}
+   661→
+   662→// ── Font Card ──
+   663→function FontCard({ item, parsed, onDelete, onEdit }: {
+   664→  item: BrandKit
+   665→  parsed: FontItem | null
+   666→  onDelete: () => void
+   667→  onEdit: () => void
+   668→}) {
+   669→  if (!parsed) return null
+   670→
+   671→  const weightLabels: Record<number, string> = {
+   672→    100: "Thin", 200: "Extra Light", 300: "Light", 400: "Regular",
+   673→    500: "Medium", 600: "Semi Bold", 700: "Bold", 800: "Extra Bold", 900: "Black",
+   674→  }
+   675→
+   676→  return (
+   677→    <motion.div variants={itemVariants}>
+   678→      <Card className="shadow-sm border-border/60 group hover:shadow-md transition-all">
+   679→        <CardContent className="p-4">
+   680→          <div className="flex items-start justify-between mb-3">
+   681→            <div>
+   682→              <h4 className="text-sm font-bold">{parsed.name}</h4>
+   683→              <Badge className={cn(
+   684→                "mt-1 text-[9px]",
+   685→                parsed.category === "heading" && "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+   686→                parsed.category === "body" && "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+   687→                parsed.category === "accent" && "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+   688→              )}>
+   689→                {parsed.category}
+   690→              </Badge>
+   691→            </div>
+   692→            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+   693→              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit}>
+   694→                <Edit3 className="h-3 w-3" />
+   695→              </Button>
+   696→              <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500 hover:text-rose-600" onClick={onDelete}>
+   697→                <Trash2 className="h-3 w-3" />
+   698→              </Button>
+   699→            </div>
+   700→          </div>
+   701→
+   702→          {/* Font preview */}
+   703→          <div className="bg-muted/50 rounded-lg p-3 space-y-1.5 mb-3">
+   704→            <p className="text-xl" style={{ fontWeight: 700 }}>{parsed.sample || "The quick brown fox"}</p>
+   705→            <p className="text-sm text-muted-foreground" style={{ fontWeight: 400 }}>{parsed.sample || "jumps over the lazy dog"}</p>
+   706→          </div>
+   707→
+   708→          {/* Weight chips */}
+   709→          <div className="flex flex-wrap gap-1">
+   710→            {parsed.weights.map(w => (
+   711→              <span key={w} className="text-[9px] px-1.5 py-0.5 rounded bg-muted font-medium">
+   712→                {weightLabels[w] || w}
+   713→              </span>
+   714→            ))}
+   715→          </div>
+   716→        </CardContent>
+   717→      </Card>
+   718→    </motion.div>
+   719→  )
+   720→}
+   721→
+   722→// ── Logo Card ──
+   723→function LogoCard({ item, parsed, onDelete }: {
+   724→  item: BrandKit
+   725→  parsed: LogoItem | null
+   726→  onDelete: () => void
+   727→}) {
+   728→  if (!parsed) return null
+   729→
+   730→  return (
+   731→    <motion.div variants={itemVariants}>
+   732→      <Card className="shadow-sm border-border/60 group overflow-hidden hover:shadow-md transition-all">
+   733→        {/* Preview area with light/dark backgrounds */}
+   734→        <div className="relative">
+   735→          <div className={cn(
+   736→            "h-32 flex items-center justify-center border-b",
+   737→            parsed.background === "dark" ? "bg-slate-900" : "bg-white"
+   738→          )}>
+   739→            <div className={cn(
+   740→              "h-16 w-auto flex items-center justify-center rounded-lg",
+   741→              parsed.background === "dark" ? "text-white" : "text-slate-900"
+   742→            )}>
+   743→              {parsed.url ? (
+   744→                <img src={parsed.url} alt={parsed.name} className="max-h-16 max-w-[80%] object-contain" />
+   745→              ) : (
+   746→                <div className="flex flex-col items-center gap-1">
+   747→                  <Sparkles className="h-8 w-8" />
+   748→                  <span className="text-[10px] opacity-50">{parsed.name}</span>
+   749→                </div>
+   750→              )}
+   751→            </div>
+   752→          </div>
+   753→          <Badge className="absolute top-2 left-2 text-[9px] bg-black/50 text-white hover:bg-black/60">
+   754→            {parsed.variant}
+   755→          </Badge>
+   756→        </div>
+   757→        <CardContent className="p-3">
+   758→          <div className="flex items-center justify-between">
+   759→            <p className="text-xs font-semibold truncate">{parsed.name}</p>
+   760→            <div className="flex items-center gap-1">
+   761→              <Button variant="ghost" size="icon" className="h-6 w-6">
+   762→                <Download className="h-3 w-3" />
+   763→              </Button>
+   764→              <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500 hover:text-rose-600" onClick={onDelete}>
+   765→                <Trash2 className="h-3 w-3" />
+   766→              </Button>
+   767→            </div>
+   768→          </div>
+   769→        </CardContent>
+   770→      </Card>
+   771→    </motion.div>
+   772→  )
+   773→}
+   774→
+   775→// ── Voice Card ──
+   776→function VoiceCard({ item, parsed, onDelete, onEdit }: {
+   777→  item: BrandKit
+   778→  parsed: VoiceItem | null
+   779→  onDelete: () => void
+   780→  onEdit: () => void
+   781→}) {
+   782→  if (!parsed) return null
+   783→
+   784→  return (
+   785→    <motion.div variants={itemVariants}>
+   786→      <Card className="shadow-sm border-border/60 group hover:shadow-md transition-all">
+   787→        <CardHeader className="pb-3">
+   788→          <div className="flex items-start justify-between">
+   789→            <div className="flex items-center gap-2">
+   790→              <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center">
+   791→                <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+   792→              </div>
+   793→              <CardTitle className="text-sm">{item.name}</CardTitle>
+   794→            </div>
+   795→            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+   796→              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit}>
+   797→                <Edit3 className="h-3 w-3" />
+   798→              </Button>
+   799→              <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500 hover:text-rose-600" onClick={onDelete}>
+   800→                <Trash2 className="h-3 w-3" />
+   801→              </Button>
+   802→            </div>
+   803→          </div>
+   804→        </CardHeader>
+   805→        <CardContent className="space-y-4 pt-0">
+   806→          {/* Description */}
+   807→          <p className="text-xs text-muted-foreground leading-relaxed">{parsed.description}</p>
+   808→
+   809→          {/* Do's and Don'ts */}
+   810→          <div className="grid grid-cols-2 gap-3">
+   811→            <div>
+   812→              <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-1.5 flex items-center gap-1">
+   813→                <CheckCircle2 className="h-3 w-3" /> Do&apos;s
+   814→              </p>
+   815→              <ul className="space-y-1">
+   816→                {parsed.dos.map((d, i) => (
+   817→                  <li key={i} className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+   818→                    <span className="text-emerald-500 mt-0.5">•</span>
+   819→                    <span>{d}</span>
+   820→                  </li>
+   821→                ))}
+   822→              </ul>
+   823→            </div>
+   824→            <div>
+   825→              <p className="text-[10px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400 mb-1.5 flex items-center gap-1">
+   826→                <XCircle className="h-3 w-3" /> Don&apos;ts
+   827→              </p>
+   828→              <ul className="space-y-1">
+   829→                {parsed.donts.map((d, i) => (
+   830→                  <li key={i} className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+   831→                    <span className="text-rose-500 mt-0.5">•</span>
+   832→                    <span>{d}</span>
+   833→                  </li>
+   834→                ))}
+   835→              </ul>
+   836→            </div>
+   837→          </div>
+   838→
+   839→          {/* Taglines */}
+   840→          {parsed.taglines.length > 0 && (
+   841→            <div>
+   842→              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1.5 flex items-center gap-1">
+   843→                <Sparkles className="h-3 w-3" /> Key Phrases
+   844→              </p>
+   845→              <div className="flex flex-wrap gap-1.5">
+   846→                {parsed.taglines.map((t, i) => (
+   847→                  <Badge key={i} variant="secondary" className="text-[10px]">{t}</Badge>
+   848→                ))}
+   849→              </div>
+   850→            </div>
+   851→          )}
+   852→        </CardContent>
+   853→      </Card>
+   854→    </motion.div>
+   855→  )
+   856→}
+   857→
+   858→// ── Guideline Card ──
+   859→function GuidelineCard({ item, parsed, onDelete }: {
+   860→  item: BrandKit
+   861→  parsed: GuidelineItem | null
+   862→  onDelete: () => void
+   863→}) {
+   864→  if (!parsed) return null
+   865→
+   866→  const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+   867→    "brand-guidelines": FileText,
+   868→    "social-media": MessageSquare,
+   869→    "style-guide": SwatchBook,
+   870→  }
+   871→  const Icon = typeIcons[parsed.documentType] || FileText
+   872→
+   873→  return (
+   874→    <motion.div variants={itemVariants}>
+   875→      <Card className="shadow-sm border-border/60 group hover:shadow-md transition-all">
+   876→        <CardContent className="p-4">
+   877→          <div className="flex items-start gap-3">
+   878→            <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+   879→              <Icon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+   880→            </div>
+   881→            <div className="flex-1 min-w-0">
+   882→              <h4 className="text-sm font-semibold truncate">{parsed.title}</h4>
+   883→              <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">{parsed.description}</p>
+   884→              <div className="flex items-center gap-2 mt-2">
+   885→                <Badge variant="secondary" className="text-[9px]">{parsed.documentType}</Badge>
+   886→                <Button variant="ghost" size="sm" className="h-6 text-[10px] gap-1 text-emerald-600 hover:text-emerald-700">
+   887→                  <Download className="h-3 w-3" /> Download
+   888→                </Button>
+   889→              </div>
+   890→            </div>
+   891→            <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity" onClick={onDelete}>
+   892→              <Trash2 className="h-3.5 w-3.5" />
+   893→            </Button>
+   894→          </div>
+   895→        </CardContent>
+   896→      </Card>
+   897→    </motion.div>
+   898→  )
+   899→}
+   900→
+   901→// ── Add Color Dialog ──
+   902→function AddColorDialog({ open, onOpenChange, onSubmit }: {
+   903→  open: boolean
+   904→  onOpenChange: (open: boolean) => void
+   905→  onSubmit: (data: { name: string; type: string; value: string }) => void
+   906→}) {
+   907→  const [name, setName] = useState("")
+   908→  const [hex, setHex] = useState("#")
+   909→  const [group, setGroup] = useState<ColorGroup>("primary")
+   910→
+   911→  const handleSubmit = () => {
+   912→    if (!name || !hex || hex === "#") return
+   913→    onSubmit({
+   914→      name,
+   915→      type: "color",
+   916→      value: JSON.stringify({ name, hex, group }),
+   917→    })
+   918→    setName("")
+   919→    setHex("#")
+   920→    setGroup("primary")
+   921→    onOpenChange(false)
+   922→  }
+   923→
+   924→  return (
+   925→    <Dialog open={open} onOpenChange={onOpenChange}>
+   926→      <DialogContent className="sm:max-w-md">
+   927→        <DialogHeader>
+   928→          <DialogTitle className="flex items-center gap-2">
+   929→            <SwatchBook className="h-5 w-5 text-emerald-600" /> Add Brand Color
+   930→          </DialogTitle>
+   931→          <DialogDescription>Add a new color to your brand palette</DialogDescription>
+   932→        </DialogHeader>
+   933→        <div className="space-y-4 py-2">
+   934→          <div className="flex items-center gap-3">
+   935→            <div className="h-14 w-14 rounded-xl border-2 border-border shadow-inner" style={{ backgroundColor: hex }} />
+   936→            <div className="flex-1 space-y-2">
+   937→              <div>
+   938→                <Label className="text-xs">Color Name</Label>
+   939→                <Input placeholder="e.g., Brand Green" value={name} onChange={e => setName(e.target.value)} className="h-8 text-sm" />
+   940→              </div>
+   941→            </div>
+   942→          </div>
+   943→          <div className="grid grid-cols-2 gap-3">
+   944→            <div>
+   945→              <Label className="text-xs">Hex Value</Label>
+   946→              <div className="flex items-center gap-1">
+   947→                <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+   948→                <Input placeholder="00A86B" value={hex.replace("#", "")} onChange={e => setHex("#" + e.target.value.replace("#", ""))} className="h-8 text-sm font-mono" />
+   949→              </div>
+   950→            </div>
+   951→            <div>
+   952→              <Label className="text-xs">Group</Label>
+   953→              <Select value={group} onValueChange={v => setGroup(v as ColorGroup)}>
+   954→                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+   955→                <SelectContent>
+   956→                  <SelectItem value="primary">Primary</SelectItem>
+   957→                  <SelectItem value="secondary">Secondary</SelectItem>
+   958→                  <SelectItem value="accent">Accent</SelectItem>
+   959→                  <SelectItem value="neutral">Neutral</SelectItem>
+   960→                </SelectContent>
+   961→              </Select>
+   962→            </div>
+   963→          </div>
+   964→        </div>
+   965→        <DialogFooter>
+   966→          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+   967→          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSubmit}>Add Color</Button>
+   968→        </DialogFooter>
+   969→      </DialogContent>
+   970→    </Dialog>
+   971→  )
+   972→}
+   973→
+   974→// ── Add Font Dialog ──
+   975→function AddFontDialog({ open, onOpenChange, onSubmit }: {
+   976→  open: boolean
+   977→  onOpenChange: (open: boolean) => void
+   978→  onSubmit: (data: { name: string; type: string; value: string }) => void
+   979→}) {
+   980→  const [name, setName] = useState("")
+   981→  const [category, setCategory] = useState<"heading" | "body" | "accent">("heading")
+   982→  const [sample, setSample] = useState("")
+   983→
+   984→  const handleSubmit = () => {
+   985→    if (!name) return
+   986→    onSubmit({
+   987→      name,
+   988→      type: "typography",
+   989→      value: JSON.stringify({ name, category, weights: [400, 500, 600, 700], sample: sample || "The quick brown fox" }),
+   990→    })
+   991→    setName("")
+   992→    setCategory("heading")
+   993→    setSample("")
+   994→    onOpenChange(false)
+   995→  }
+   996→
+   997→  return (
+   998→    <Dialog open={open} onOpenChange={onOpenChange}>
+   999→      <DialogContent className="sm:max-w-md">
+  1000→        <DialogHeader>
+  1001→          <DialogTitle className="flex items-center gap-2">
+  1002→            <Type className="h-5 w-5 text-emerald-600" /> Add Brand Font
+  1003→          </DialogTitle>
+  1004→          <DialogDescription>Add a new font to your typography system</DialogDescription>
+  1005→        </DialogHeader>
+  1006→        <div className="space-y-4 py-2">
+  1007→          <div>
+  1008→            <Label className="text-xs">Font Name</Label>
+  1009→            <Input placeholder="e.g., Inter, Playfair Display" value={name} onChange={e => setName(e.target.value)} className="h-8 text-sm" />
+  1010→          </div>
+  1011→          <div>
+  1012→            <Label className="text-xs">Category</Label>
+  1013→            <Select value={category} onValueChange={v => setCategory(v as "heading" | "body" | "accent")}>
+  1014→              <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+  1015→              <SelectContent>
+  1016→                <SelectItem value="heading">Heading Font</SelectItem>
+  1017→                <SelectItem value="body">Body Font</SelectItem>
+  1018→                <SelectItem value="accent">Accent Font</SelectItem>
+  1019→              </SelectContent>
+  1020→            </Select>
+  1021→          </div>
+  1022→          <div>
+  1023→            <Label className="text-xs">Sample Text (optional)</Label>
+  1024→            <Input placeholder="The quick brown fox jumps over the lazy dog" value={sample} onChange={e => setSample(e.target.value)} className="h-8 text-sm" />
+  1025→          </div>
+  1026→        </div>
+  1027→        <DialogFooter>
+  1028→          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+  1029→          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSubmit}>Add Font</Button>
+  1030→        </DialogFooter>
+  1031→      </DialogContent>
+  1032→    </Dialog>
+  1033→  )
+  1034→}
+  1035→
+  1036→// ── Add Logo Dialog ──
+  1037→function AddLogoDialog({ open, onOpenChange, onSubmit }: {
+  1038→  open: boolean
+  1039→  onOpenChange: (open: boolean) => void
+  1040→  onSubmit: (data: { name: string; type: string; value: string }) => void
+  1041→}) {
+  1042→  const [name, setName] = useState("")
+  1043→  const [variant, setVariant] = useState<"primary" | "secondary" | "icon" | "monochrome">("primary")
+  1044→  const [background, setBackground] = useState<"light" | "dark">("light")
+  1045→
+  1046→  const handleSubmit = () => {
+  1047→    if (!name) return
+  1048→    onSubmit({
+  1049→      name,
+  1050→      type: "logo",
+  1051→      value: JSON.stringify({ name, variant, background, url: "" }),
+  1052→    })
+  1053→    setName("")
+  1054→    setVariant("primary")
+  1055→    setBackground("light")
+  1056→    onOpenChange(false)
+  1057→  }
+  1058→
+  1059→  return (
+  1060→    <Dialog open={open} onOpenChange={onOpenChange}>
+  1061→      <DialogContent className="sm:max-w-md">
+  1062→        <DialogHeader>
+  1063→          <DialogTitle className="flex items-center gap-2">
+  1064→            <ImageIcon className="h-5 w-5 text-emerald-600" /> Upload Logo
+  1065→          </DialogTitle>
+  1066→          <DialogDescription>Add a new logo variant to your brand kit</DialogDescription>
+  1067→        </DialogHeader>
+  1068→        <div className="space-y-4 py-2">
+  1069→          <div>
+  1070→            <Label className="text-xs">Logo Name</Label>
+  1071→            <Input placeholder="e.g., Logo - Full Color" value={name} onChange={e => setName(e.target.value)} className="h-8 text-sm" />
+  1072→          </div>
+  1073→          <div className="grid grid-cols-2 gap-3">
+  1074→            <div>
+  1075→              <Label className="text-xs">Variant</Label>
+  1076→              <Select value={variant} onValueChange={v => setVariant(v as "primary" | "secondary" | "icon" | "monochrome")}>
+  1077→                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+  1078→                <SelectContent>
+  1079→                  <SelectItem value="primary">Primary</SelectItem>
+  1080→                  <SelectItem value="secondary">Secondary</SelectItem>
+  1081→                  <SelectItem value="icon">Icon</SelectItem>
+  1082→                  <SelectItem value="monochrome">Monochrome</SelectItem>
+  1083→                </SelectContent>
+  1084→              </Select>
+  1085→            </div>
+  1086→            <div>
+  1087→              <Label className="text-xs">Background</Label>
+  1088→              <Select value={background} onValueChange={v => setBackground(v as "light" | "dark")}>
+  1089→                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+  1090→                <SelectContent>
+  1091→                  <SelectItem value="light">Light Background</SelectItem>
+  1092→                  <SelectItem value="dark">Dark Background</SelectItem>
+  1093→                </SelectContent>
+  1094→              </Select>
+  1095→            </div>
+  1096→          </div>
+  1097→          <div className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-emerald-400 transition-colors">
+  1098→            <Upload className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+  1099→            <p className="text-xs text-muted-foreground">Click to upload or drag and drop</p>
+  1100→            <p className="text-[10px] text-muted-foreground/60 mt-1">SVG, PNG, or JPG (max 5MB)</p>
+  1101→          </div>
+  1102→        </div>
+  1103→        <DialogFooter>
+  1104→          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+  1105→          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSubmit}>Upload Logo</Button>
+  1106→        </DialogFooter>
+  1107→      </DialogContent>
+  1108→    </Dialog>
+  1109→  )
+  1110→}
+  1111→
+  1112→// ── Add Voice Dialog ──
+  1113→function AddVoiceDialog({ open, onOpenChange, onSubmit }: {
+  1114→  open: boolean
+  1115→  onOpenChange: (open: boolean) => void
+  1116→  onSubmit: (data: { name: string; type: string; value: string }) => void
+  1117→}) {
+  1118→  const [name, setName] = useState("")
+  1119→  const [description, setDescription] = useState("")
+  1120→  const [dos, setDos] = useState("")
+  1121→  const [donts, setDonts] = useState("")
+  1122→  const [taglines, setTaglines] = useState("")
+  1123→
+  1124→  const handleSubmit = () => {
+  1125→    if (!name || !description) return
+  1126→    onSubmit({
+  1127→      name,
+  1128→      type: "voice",
+  1129→      value: JSON.stringify({
+  1130→        description,
+  1131→        dos: dos.split("\n").filter(s => s.trim()),
+  1132→        donts: donts.split("\n").filter(s => s.trim()),
+  1133→        taglines: taglines.split("\n").filter(s => s.trim()),
+  1134→      }),
+  1135→    })
+  1136→    setName("")
+  1137→    setDescription("")
+  1138→    setDos("")
+  1139→    setDonts("")
+  1140→    setTaglines("")
+  1141→    onOpenChange(false)
+  1142→  }
+  1143→
+  1144→  return (
+  1145→    <Dialog open={open} onOpenChange={onOpenChange}>
+  1146→      <DialogContent className="sm:max-w-lg">
+  1147→        <DialogHeader>
+  1148→          <DialogTitle className="flex items-center gap-2">
+  1149→            <MessageSquare className="h-5 w-5 text-emerald-600" /> Add Voice Guidelines
+  1150→          </DialogTitle>
+  1151→          <DialogDescription>Define brand voice, tone, and key phrases</DialogDescription>
+  1152→        </DialogHeader>
+  1153→        <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
+  1154→          <div>
+  1155→            <Label className="text-xs">Guide Name</Label>
+  1156→            <Input placeholder="e.g., Social Media Voice" value={name} onChange={e => setName(e.target.value)} className="h-8 text-sm" />
+  1157→          </div>
+  1158→          <div>
+  1159→            <Label className="text-xs">Voice Description</Label>
+  1160→            <Textarea placeholder="Describe the brand voice and tone..." value={description} onChange={e => setDescription(e.target.value)} className="min-h-[80px] text-sm" />
+  1161→          </div>
+  1162→          <div className="grid grid-cols-2 gap-3">
+  1163→            <div>
+  1164→              <Label className="text-xs text-emerald-600">Do&apos;s (one per line)</Label>
+  1165→              <Textarea placeholder="Be conversational&#10;Use active voice" value={dos} onChange={e => setDos(e.target.value)} className="min-h-[100px] text-sm" />
+  1166→            </div>
+  1167→            <div>
+  1168→              <Label className="text-xs text-rose-600">Don&apos;ts (one per line)</Label>
+  1169→              <Textarea placeholder="Don't use jargon&#10;Avoid passive voice" value={donts} onChange={e => setDonts(e.target.value)} className="min-h-[100px] text-sm" />
+  1170→            </div>
+  1171→          </div>
+  1172→          <div>
+  1173→            <Label className="text-xs">Key Phrases / Taglines (one per line)</Label>
+  1174→            <Textarea placeholder="Empowering creativity&#10;Design without limits" value={taglines} onChange={e => setTaglines(e.target.value)} className="min-h-[60px] text-sm" />
+  1175→          </div>
+  1176→        </div>
+  1177→        <DialogFooter>
+  1178→          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+  1179→          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSubmit}>Add Voice Guide</Button>
+  1180→        </DialogFooter>
+  1181→      </DialogContent>
+  1182→    </Dialog>
+  1183→  )
+  1184→}
+  1185→
+  1186→// ── Add Guideline Dialog ──
+  1187→function AddGuidelineDialog({ open, onOpenChange, onSubmit }: {
+  1188→  open: boolean
+  1189→  onOpenChange: (open: boolean) => void
+  1190→  onSubmit: (data: { name: string; type: string; value: string }) => void
+  1191→}) {
+  1192→  const [title, setTitle] = useState("")
+  1193→  const [description, setDescription] = useState("")
+  1194→  const [docType, setDocType] = useState("brand-guidelines")
+  1195→
+  1196→  const handleSubmit = () => {
+  1197→    if (!title) return
+  1198→    onSubmit({
+  1199→      name: title,
+  1200→      type: "guidelines",
+  1201→      value: JSON.stringify({ title, description, documentType: docType, url: "" }),
+  1202→    })
+  1203→    setTitle("")
+  1204→    setDescription("")
+  1205→    setDocType("brand-guidelines")
+  1206→    onOpenChange(false)
+  1207→  }
+  1208→
+  1209→  return (
+  1210→    <Dialog open={open} onOpenChange={onOpenChange}>
+  1211→      <DialogContent className="sm:max-w-md">
+  1212→        <DialogHeader>
+  1213→          <DialogTitle className="flex items-center gap-2">
+  1214→            <FileText className="h-5 w-5 text-emerald-600" /> Upload Document
+  1215→          </DialogTitle>
+  1216→          <DialogDescription>Add a brand guideline document or resource</DialogDescription>
+  1217→        </DialogHeader>
+  1218→        <div className="space-y-4 py-2">
+  1219→          <div>
+  1220→            <Label className="text-xs">Document Title</Label>
+  1221→            <Input placeholder="e.g., Brand Guidelines 2024" value={title} onChange={e => setTitle(e.target.value)} className="h-8 text-sm" />
+  1222→          </div>
+  1223→          <div>
+  1224→            <Label className="text-xs">Description</Label>
+  1225→            <Textarea placeholder="Brief description of the document..." value={description} onChange={e => setDescription(e.target.value)} className="min-h-[60px] text-sm" />
+  1226→          </div>
+  1227→          <div>
+  1228→            <Label className="text-xs">Document Type</Label>
+  1229→            <Select value={docType} onValueChange={setDocType}>
+  1230→              <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+  1231→              <SelectContent>
+  1232→                <SelectItem value="brand-guidelines">Brand Guidelines</SelectItem>
+  1233→                <SelectItem value="social-media">Social Media Guidelines</SelectItem>
+  1234→                <SelectItem value="style-guide">Style Guide</SelectItem>
+  1235→                <SelectItem value="other">Other</SelectItem>
+  1236→              </SelectContent>
+  1237→            </Select>
+  1238→          </div>
+  1239→          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-emerald-400 transition-colors">
+  1240→            <Upload className="h-6 w-6 mx-auto text-muted-foreground/40 mb-2" />
+  1241→            <p className="text-xs text-muted-foreground">Click to upload PDF, DOCX, or PNG</p>
+  1242→          </div>
+  1243→        </div>
+  1244→        <DialogFooter>
+  1245→          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+  1246→          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSubmit}>Upload Document</Button>
+  1247→        </DialogFooter>
+  1248→      </DialogContent>
+  1249→    </Dialog>
+  1250→  )
+  1251→}
+  1252→
+  1253→// ── Edit Brand Kit Item Dialog ──
+  1254→function EditBrandKitDialog({ item, onClose, onUpdate }: {
+  1255→  item: BrandKit | null
+  1256→  onClose: () => void
+  1257→  onUpdate: (id: string, data: Record<string, unknown>) => void
+  1258→}) {
+  1259→  const [name, setName] = useState("")
+  1260→
+  1261→  React.useEffect(() => {
+  1262→    if (item) setName(item.name)
+  1263→  }, [item])
+  1264→
+  1265→  if (!item) return null
+  1266→
+  1267→  const handleSubmit = () => {
+  1268→    if (!name) return
+  1269→    onUpdate(item.id, { name })
+  1270→    onClose()
+  1271→  }
+  1272→
+  1273→  return (
+  1274→    <Dialog open={!!item} onOpenChange={() => onClose()}>
+  1275→      <DialogContent className="sm:max-w-md">
+  1276→        <DialogHeader>
+  1277→          <DialogTitle>Edit Brand Kit Item</DialogTitle>
+  1278→          <DialogDescription>Update the name of this brand kit item</DialogDescription>
+  1279→        </DialogHeader>
+  1280→        <div className="space-y-4 py-2">
+  1281→          <div>
+  1282→            <Label className="text-xs">Name</Label>
+  1283→            <Input value={name} onChange={e => setName(e.target.value)} className="h-8 text-sm" />
+  1284→          </div>
+  1285→        </div>
+  1286→        <DialogFooter>
+  1287→          <Button variant="outline" onClick={onClose}>Cancel</Button>
+  1288→          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSubmit}>Save Changes</Button>
+  1289→        </DialogFooter>
+  1290→      </DialogContent>
+  1291→    </Dialog>
+  1292→  )
+  1293→}
+  1294→

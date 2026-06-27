@@ -1,0 +1,1143 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo, useCallback, useEffect } from "react"
+     4→import { useERPStore, type Account, type TaxRate, type JournalEntry, type JournalEntryLine } from "@/lib/store"
+     5→import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+     6→import { Button } from "@/components/ui/button"
+     7→import { Badge } from "@/components/ui/badge"
+     8→import { Input } from "@/components/ui/input"
+     9→import { Label } from "@/components/ui/label"
+    10→import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+    11→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+    12→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+    13→import { ScrollArea } from "@/components/ui/scroll-area"
+    14→import { Switch } from "@/components/ui/switch"
+    15→import { Textarea } from "@/components/ui/textarea"
+    16→import { motion, AnimatePresence } from "framer-motion"
+    17→import {
+    18→  Landmark, DollarSign, TrendingUp, TrendingDown, Plus, Search, FileText,
+    19→  Percent, Wallet, CreditCard, PiggyBank, ArrowUpRight, ArrowDownRight,
+    20→  CheckCircle2, XCircle, BookOpen, BarChart3, ChevronRight, ChevronDown,
+    21→  Trash2, Edit3, Eye, Send, Ban, RefreshCw, Download, Minus, Calculator,
+    22→} from "lucide-react"
+    23→import { format } from "date-fns"
+    24→
+    25→// ── Animation variants ──────────────────────────────────────────────
+    26→const containerVariants = {
+    27→  hidden: { opacity: 0 },
+    28→  visible: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
+    29→}
+    30→const itemVariants = {
+    31→  hidden: { opacity: 0, y: 12, scale: 0.97 },
+    32→  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
+    33→}
+    34→
+    35→// ── Account type config ─────────────────────────────────────────────
+    36→const ACCOUNT_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
+    37→  asset: { label: "Asset", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: Wallet },
+    38→  liability: { label: "Liability", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", icon: CreditCard },
+    39→  equity: { label: "Equity", color: "text-teal-700", bg: "bg-teal-50 border-teal-200", icon: PiggyBank },
+    40→  revenue: { label: "Revenue", color: "text-green-700", bg: "bg-green-50 border-green-200", icon: TrendingUp },
+    41→  expense: { label: "Expense", color: "text-red-700", bg: "bg-red-50 border-red-200", icon: TrendingDown },
+    42→}
+    43→
+    44→const ACCOUNT_TYPES = ["All", "Asset", "Liability", "Equity", "Revenue", "Expense"]
+    45→
+    46→// ── Helpers ─────────────────────────────────────────────────────────
+    47→function safeParse<T>(val: unknown, fallback: T): T {
+    48→  try { return val as T } catch { return fallback }
+    49→}
+    50→
+    51→function formatCurrency(amount: number): string {
+    52→  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount)
+    53→}
+    54→
+    55→function statusBadge(status: string) {
+    56→  const map: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ElementType }> = {
+    57→    posted: { variant: "default", icon: CheckCircle2 },
+    58→    draft: { variant: "secondary", icon: FileText },
+    59→    void: { variant: "destructive", icon: Ban },
+    60→  }
+    61→  const cfg = map[status] || map.draft
+    62→  const Icon = cfg.icon
+    63→  return <Badge variant={cfg.variant} className="gap-1"><Icon className="h-3 w-3" />{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
+    64→}
+    65→
+    66→// ── Account Form State ──────────────────────────────────────────────
+    67→interface AccountFormData {
+    68→  code: string; name: string; type: string; description: string; normalBalance: string;
+    69→  parentId: string; category: string; isActive: boolean; balance: number;
+    70→}
+    71→
+    72→const defaultAccountForm: AccountFormData = {
+    73→  code: "", name: "", type: "asset", description: "", normalBalance: "debit",
+    74→  parentId: "", category: "", isActive: true, balance: 0,
+    75→}
+    76→
+    77→// ── Journal Entry Form State ────────────────────────────────────────
+    78→interface JLineForm { accountId: string; debit: number; credit: number; description: string }
+    79→interface JEntryFormData {
+    80→  date: string; description: string; reference: string; source: string; period: string;
+    81→  isAdjusting: boolean; lines: JLineForm[];
+    82→}
+    83→
+    84→const defaultLine: JLineForm = { accountId: "", debit: 0, credit: 0, description: "" }
+    85→const defaultJEntryForm: JEntryFormData = {
+    86→  date: new Date().toISOString().split("T")[0], description: "", reference: "",
+    87→  source: "manual", period: new Date().toISOString().slice(0, 7), isAdjusting: false,
+    88→  lines: [{ ...defaultLine }, { ...defaultLine }],
+    89→}
+    90→
+    91→// ── Tax Rate Form State ─────────────────────────────────────────────
+    92→interface TaxRateFormData { name: string; rate: number; type: string; isActive: boolean }
+    93→const defaultTaxForm: TaxRateFormData = { name: "", rate: 0, type: "sales", isActive: true }
+    94→
+    95→// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    96→// MAIN COMPONENT
+    97→// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    98→export function FinanceAccountsView() {
+    99→  const { financeAccounts, taxRates, journalEntries } = useERPStore()
+   100→
+   101→  // ── Local state ─────────────────────────────────────────────────
+   102→  const [activeTab, setActiveTab] = useState("chart-of-accounts")
+   103→  const [search, setSearch] = useState("")
+   104→  const [typeFilter, setTypeFilter] = useState("All")
+   105→  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set())
+   106→
+   107→  // Account dialogs
+   108→  const [showAccountDialog, setShowAccountDialog] = useState(false)
+   109→  const [editingAccount, setEditingAccount] = useState<Account | null>(null)
+   110→  const [accountForm, setAccountForm] = useState<AccountFormData>(defaultAccountForm)
+   111→
+   112→  // General Ledger
+   113→  const [selectedGlAccount, setSelectedGlAccount] = useState<string>("")
+   114→  const [glLines, setGlLines] = useState<(JournalEntryLine & { jeNumber: string; jeDate: string; jeDescription: string; jeReference: string | null })[]>([])
+   115→  const [glLoading, setGlLoading] = useState(false)
+   116→
+   117→  // Journal Entry dialogs
+   118→  const [showJEntryDialog, setShowJEntryDialog] = useState(false)
+   119→  const [jEntryForm, setJEntryForm] = useState<JEntryFormData>(defaultJEntryForm)
+   120→  const [expandedJEntries, setExpandedJEntries] = useState<Set<string>>(new Set())
+   121→  const [jeStatusFilter, setJeStatusFilter] = useState("all")
+   122→  const [jeSourceFilter, setJeSourceFilter] = useState("all")
+   123→  const [jePeriodFilter, setJePeriodFilter] = useState("")
+   124→  const [jeSearch, setJeSearch] = useState("")
+   125→
+   126→  // Financial reports
+   127→  const [reportData, setReportData] = useState<Record<string, unknown> | null>(null)
+   128→  const [reportLoading, setReportLoading] = useState(false)
+   129→  const [reportPeriod, setReportPeriod] = useState("")
+   130→
+   131→  // Tax Rate dialogs
+   132→  const [showTaxDialog, setShowTaxDialog] = useState(false)
+   133→  const [editingTax, setEditingTax] = useState<TaxRate | null>(null)
+   134→  const [taxForm, setTaxForm] = useState<TaxRateFormData>(defaultTaxForm)
+   135→
+   136→  // ── Fallback data fetching with retry ────────────────────────────────
+   137→  useEffect(() => {
+   138→    const fetchWithRetry = async (url: string, setter: (data: unknown[]) => void, maxRetries = 3) => {
+   139→      for (let i = 0; i < maxRetries; i++) {
+   140→        try {
+   141→          const res = await fetch(url)
+   142→          const json = await res.json()
+   143→          if (json.data) { setter(json.data); return }
+   144→        } catch { /* retry */ }
+   145→        if (i < maxRetries - 1) await new Promise(r => setTimeout(r, 2000 * (i + 1)))
+   146→      }
+   147→    }
+   148→    if (financeAccounts.length === 0) {
+   149→      fetchWithRetry("/api/accounts", (d) => useERPStore.getState().setFinanceAccounts(d as Account[]))
+   150→    }
+   151→    if (journalEntries.length === 0) {
+   152→      fetchWithRetry("/api/journal-entries", (d) => useERPStore.getState().setJournalEntries(d as JournalEntry[]))
+   153→    }
+   154→    if (taxRates.length === 0) {
+   155→      fetchWithRetry("/api/tax-rates", (d) => useERPStore.getState().setTaxRates(d as TaxRate[]))
+   156→    }
+   157→    // Pre-fetch trial balance report so it's ready when the user clicks the tab
+   158→    fetchWithRetry("/api/financial-reports?type=trial-balance", (d) => setReportData(d as Record<string, unknown>))
+   159→  }, []) // only on mount
+   160→
+   161→  // ── Computed ─────────────────────────────────────────────────────
+   162→  const parentAccounts = useMemo(() => financeAccounts.filter((a) => !a.parentId), [financeAccounts])
+   163→  const childAccountsMap = useMemo(() => {
+   164→    const map: Record<string, Account[]> = {}
+   165→    financeAccounts.forEach((a) => {
+   166→      if (a.parentId) {
+   167→        if (!map[a.parentId]) map[a.parentId] = []
+   168→        map[a.parentId].push(a)
+   169→      }
+   170→    })
+   171→    return map
+   172→  }, [financeAccounts])
+   173→
+   174→  const filteredAccounts = useMemo(() => {
+   175→    let list = financeAccounts
+   176→    if (typeFilter !== "All") list = list.filter((a) => a.type === typeFilter.toLowerCase())
+   177→    if (search) {
+   178→      const q = search.toLowerCase()
+   179→      list = list.filter((a) => a.code.toLowerCase().includes(q) || a.name.toLowerCase().includes(q))
+   180→    }
+   181→    return list
+   182→  }, [financeAccounts, typeFilter, search])
+   183→
+   184→  const kpis = useMemo(() => {
+   185→    const byType: Record<string, number> = {}
+   186→    financeAccounts.forEach((a) => {
+   187→      if (!a.parentId) return // only leaf/child accounts for totals
+   188→      byType[a.type] = (byType[a.type] || 0) + a.balance
+   189→    })
+   190→    return {
+   191→      totalAssets: byType["asset"] || 0,
+   192→      totalLiabilities: byType["liability"] || 0,
+   193→      totalEquity: byType["equity"] || 0,
+   194→      totalRevenue: byType["revenue"] || 0,
+   195→      totalExpenses: byType["expense"] || 0,
+   196→    }
+   197→  }, [financeAccounts])
+   198→
+   199→  const filteredJournalEntries = useMemo(() => {
+   200→    let list = journalEntries
+   201→    if (jeStatusFilter !== "all") list = list.filter((e) => e.status === jeStatusFilter)
+   202→    if (jeSourceFilter !== "all") list = list.filter((e) => e.source === jeSourceFilter)
+   203→    if (jePeriodFilter) list = list.filter((e) => e.period === jePeriodFilter)
+   204→    if (jeSearch) {
+   205→      const q = jeSearch.toLowerCase()
+   206→      list = list.filter((e) => e.number.toLowerCase().includes(q) || e.description.toLowerCase().includes(q))
+   207→    }
+   208→    return list
+   209→  }, [journalEntries, jeStatusFilter, jeSourceFilter, jePeriodFilter, jeSearch])
+   210→
+   211→  const periods = useMemo(() => {
+   212→    const set = new Set(journalEntries.map((e) => e.period))
+   213→    return Array.from(set).sort().reverse()
+   214→  }, [journalEntries])
+   215→
+   216→  // ── Handlers ─────────────────────────────────────────────────────
+   217→  const toggleExpand = (id: string) => {
+   218→    setExpandedAccounts((prev) => {
+   219→      const next = new Set(prev)
+   220→      if (next.has(id)) next.delete(id); else next.add(id)
+   221→      return next
+   222→    })
+   223→  }
+   224→
+   225→  const toggleJEntryExpand = (id: string) => {
+   226→    setExpandedJEntries((prev) => {
+   227→      const next = new Set(prev)
+   228→      if (next.has(id)) next.delete(id); else next.add(id)
+   229→      return next
+   230→    })
+   231→  }
+   232→
+   233→  const openAddAccount = () => {
+   234→    setEditingAccount(null)
+   235→    setAccountForm(defaultAccountForm)
+   236→    setShowAccountDialog(true)
+   237→  }
+   238→
+   239→  const openEditAccount = (account: Account) => {
+   240→    setEditingAccount(account)
+   241→    setAccountForm({
+   242→      code: account.code, name: account.name, type: account.type,
+   243→      description: account.description || "", normalBalance: account.normalBalance,
+   244→      parentId: account.parentId || "", category: account.category || "",
+   245→      isActive: account.isActive, balance: account.balance,
+   246→    })
+   247→    setShowAccountDialog(true)
+   248→  }
+   249→
+   250→  const saveAccount = async () => {
+   251→    const payload = {
+   252→      ...accountForm,
+   253→      parentId: accountForm.parentId || null,
+   254→      description: accountForm.description || null,
+   255→      category: accountForm.category || null,
+   256→    }
+   257→    try {
+   258→      if (editingAccount) {
+   259→        await fetch(`/api/accounts/${editingAccount.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+   260→      } else {
+   261→        await fetch("/api/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+   262→      }
+   263→      setShowAccountDialog(false)
+   264→      refreshAccounts()
+   265→    } catch (e) { console.error("Save account error:", e) }
+   266→  }
+   267→
+   268→  const deleteAccount = async (id: string) => {
+   269→    try {
+   270→      const res = await fetch(`/api/accounts/${id}`, { method: "DELETE" })
+   271→      if (res.ok) refreshAccounts()
+   272→      else { const data = await res.json(); alert(data.error || "Cannot delete account") }
+   273→    } catch (e) { console.error("Delete error:", e) }
+   274→  }
+   275→
+   276→  const refreshAccounts = async () => {
+   277→    try {
+   278→      const res = await fetch("/api/accounts")
+   279→      const json = await res.json()
+   280→      if (json.data) useERPStore.getState().setFinanceAccounts(json.data)
+   281→    } catch { /* ignore */ }
+   282→  }
+   283→
+   284→  // GL
+   285→  const loadGeneralLedger = useCallback(async (accountId: string) => {
+   286→    if (!accountId) return
+   287→    setSelectedGlAccount(accountId)
+   288→    setGlLoading(true)
+   289→    try {
+   290→      const res = await fetch(`/api/accounts/${accountId}`)
+   291→      const json = await res.json()
+   292→      if (json.data?.recentTransactions) {
+   293→        setGlLines(json.data.recentTransactions.map((l: Record<string, unknown>) => ({
+   294→          ...l,
+   295→          jeNumber: (l.journalEntry as Record<string, string>)?.number || "",
+   296→          jeDate: (l.journalEntry as Record<string, string>)?.date || "",
+   297→          jeDescription: (l.journalEntry as Record<string, string>)?.description || "",
+   298→          jeReference: (l.journalEntry as Record<string, string>)?.reference || null,
+   299→        })))
+   300→      }
+   301→    } catch { /* ignore */ }
+   302→    setGlLoading(false)
+   303→  }, [])
+   304→
+   305→  // Journal entries
+   306→  const openAddJEntry = () => {
+   307→    setJEntryForm({ ...defaultJEntryForm, lines: [{ ...defaultLine }, { ...defaultLine }] })
+   308→    setShowJEntryDialog(true)
+   309→  }
+   310→
+   311→  const saveJEntry = async (postNow: boolean) => {
+   312→    const totalDebit = jEntryForm.lines.reduce((s, l) => s + (l.debit || 0), 0)
+   313→    const totalCredit = jEntryForm.lines.reduce((s, l) => s + (l.credit || 0), 0)
+   314→    if (Math.abs(totalDebit - totalCredit) > 0.01) { alert("Total debits must equal total credits"); return }
+   315→    if (!jEntryForm.description) { alert("Description is required"); return }
+   316→    if (!jEntryForm.period) { alert("Period is required"); return }
+   317→    try {
+   318→      const payload = {
+   319→        ...jEntryForm,
+   320→        status: postNow ? "posted" : "draft",
+   321→        lines: jEntryForm.lines.map((l) => ({ ...l, debit: l.debit || 0, credit: l.credit || 0 })),
+   322→      }
+   323→      await fetch("/api/journal-entries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+   324→      setShowJEntryDialog(false)
+   325→      refreshJournalEntries()
+   326→    } catch (e) { console.error("Save JE error:", e) }
+   327→  }
+   328→
+   329→  const postJEntry = async (id: string) => {
+   330→    try {
+   331→      await fetch(`/api/journal-entries/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "posted" }) })
+   332→      refreshJournalEntries()
+   333→    } catch { /* ignore */ }
+   334→  }
+   335→
+   336→  const voidJEntry = async (id: string) => {
+   337→    try {
+   338→      await fetch(`/api/journal-entries/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "void" }) })
+   339→      refreshJournalEntries()
+   340→    } catch { /* ignore */ }
+   341→  }
+   342→
+   343→  const refreshJournalEntries = async () => {
+   344→    try {
+   345→      const res = await fetch("/api/journal-entries")
+   346→      const json = await res.json()
+   347→      if (json.data) useERPStore.getState().setJournalEntries(json.data)
+   348→    } catch { /* ignore */ }
+   349→  }
+   350→
+   351→  // Financial reports
+   352→  const loadReport = async (type: string) => {
+   353→    setReportLoading(true)
+   354→    try {
+   355→      const params = new URLSearchParams({ type })
+   356→      if (reportPeriod) params.set("period", reportPeriod)
+   357→      const res = await fetch(`/api/financial-reports?${params}`)
+   358→      const json = await res.json()
+   359→      setReportData(json.data || null)
+   360→    } catch { /* ignore */ }
+   361→    setReportLoading(false)
+   362→  }
+   363→
+   364→  useEffect(() => {
+   365→    let cancelled = false
+   366→    const fetchReport = async () => {
+   367→      let type = ""
+   368→      if (activeTab === "trial-balance") type = "trial-balance"
+   369→      else if (activeTab === "balance-sheet") type = "balance-sheet"
+   370→      else if (activeTab === "pnl") type = "pnl"
+   371→      if (!type) return
+   372→      setReportLoading(true)
+   373→      // Retry up to 3 times with delay for transient server failures
+   374→      for (let attempt = 0; attempt < 3; attempt++) {
+   375→        try {
+   376→          const params = new URLSearchParams({ type })
+   377→          if (reportPeriod) params.set("period", reportPeriod)
+   378→          const res = await fetch(`/api/financial-reports?${params}`)
+   379→          const json = await res.json()
+   380→          if (!cancelled) setReportData(json.data || null)
+   381→          break // success, stop retrying
+   382→        } catch {
+   383→          if (attempt < 2) await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+   384→        }
+   385→      }
+   386→      if (!cancelled) setReportLoading(false)
+   387→    }
+   388→    fetchReport()
+   389→    return () => { cancelled = true }
+   390→  }, [activeTab, reportPeriod])
+   391→
+   392→  // Tax rates
+   393→  const openAddTax = () => { setEditingTax(null); setTaxForm(defaultTaxForm); setShowTaxDialog(true) }
+   394→  const openEditTax = (t: TaxRate) => { setEditingTax(t); setTaxForm({ name: t.name, rate: t.rate, type: t.type, isActive: t.isActive }); setShowTaxDialog(true) }
+   395→
+   396→  const saveTaxRate = async () => {
+   397→    try {
+   398→      if (editingTax) {
+   399→        await fetch(`/api/tax-rates/${editingTax.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(taxForm) })
+   400→      } else {
+   401→        await fetch("/api/tax-rates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(taxForm) })
+   402→      }
+   403→      setShowTaxDialog(false)
+   404→      refreshTaxRates()
+   405→    } catch { /* ignore */ }
+   406→  }
+   407→
+   408→  const deleteTaxRate = async (id: string) => {
+   409→    try { await fetch(`/api/tax-rates/${id}`, { method: "DELETE" }); refreshTaxRates() } catch { /* ignore */ }
+   410→  }
+   411→
+   412→  const refreshTaxRates = async () => {
+   413→    try {
+   414→      const res = await fetch("/api/tax-rates")
+   415→      const json = await res.json()
+   416→      if (json.data) useERPStore.getState().setTaxRates(json.data)
+   417→    } catch { /* ignore */ }
+   418→  }
+   419→
+   420→  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   421→  // RENDER
+   422→  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   423→  return (
+   424→    <div className="p-4 md:p-6 space-y-6">
+   425→      {/* Header */}
+   426→      <motion.div variants={containerVariants} initial="hidden" animate="visible">
+   427→        <motion.div variants={itemVariants} className="flex items-center justify-between flex-wrap gap-4">
+   428→          <div>
+   429→            <h1 className="text-2xl font-bold flex items-center gap-2"><Landmark className="h-6 w-6 text-emerald-600" />Finance & Accounts</h1>
+   430→            <p className="text-sm text-muted-foreground mt-1">Chart of accounts, journal entries, and financial reporting</p>
+   431→          </div>
+   432→        </motion.div>
+   433→
+   434→        {/* KPIs */}
+   435→        <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
+   436→          {[
+   437→            { label: "Total Assets", value: kpis.totalAssets, icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50" },
+   438→            { label: "Total Liabilities", value: kpis.totalLiabilities, icon: CreditCard, color: "text-amber-600", bg: "bg-amber-50" },
+   439→            { label: "Total Equity", value: kpis.totalEquity, icon: PiggyBank, color: "text-teal-600", bg: "bg-teal-50" },
+   440→            { label: "Total Revenue", value: kpis.totalRevenue, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
+   441→            { label: "Total Expenses", value: kpis.totalExpenses, icon: TrendingDown, color: "text-red-600", bg: "bg-red-50" },
+   442→          ].map((kpi) => (
+   443→            <Card key={kpi.label} className="border-0 shadow-sm">
+   444→              <CardContent className="p-4">
+   445→                <div className="flex items-center gap-3">
+   446→                  <div className={`p-2 rounded-lg ${kpi.bg}`}><kpi.icon className={`h-4 w-4 ${kpi.color}`} /></div>
+   447→                  <div>
+   448→                    <p className="text-xs text-muted-foreground">{kpi.label}</p>
+   449→                    <p className="text-lg font-bold">{formatCurrency(kpi.value)}</p>
+   450→                  </div>
+   451→                </div>
+   452→              </CardContent>
+   453→            </Card>
+   454→          ))}
+   455→        </motion.div>
+   456→      </motion.div>
+   457→
+   458→      {/* Tabs */}
+   459→      <Tabs value={activeTab} onValueChange={setActiveTab}>
+   460→        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
+   461→          <TabsTrigger value="chart-of-accounts" className="text-xs">Chart of Accounts</TabsTrigger>
+   462→          <TabsTrigger value="general-ledger" className="text-xs">General Ledger</TabsTrigger>
+   463→          <TabsTrigger value="journal-entries" className="text-xs">Journal Entries</TabsTrigger>
+   464→          <TabsTrigger value="trial-balance" className="text-xs">Trial Balance</TabsTrigger>
+   465→          <TabsTrigger value="balance-sheet" className="text-xs">Balance Sheet</TabsTrigger>
+   466→          <TabsTrigger value="pnl" className="text-xs">P&L Statement</TabsTrigger>
+   467→          <TabsTrigger value="tax-rates" className="text-xs">Tax Rates</TabsTrigger>
+   468→        </TabsList>
+   469→
+   470→        {/* ── Tab 1: Chart of Accounts ──────────────────────────── */}
+   471→        <TabsContent value="chart-of-accounts">
+   472→          <Card className="border-0 shadow-sm">
+   473→            <CardHeader className="pb-3">
+   474→              <div className="flex flex-wrap items-center justify-between gap-3">
+   475→                <CardTitle className="text-base">Chart of Accounts</CardTitle>
+   476→                <div className="flex items-center gap-2">
+   477→                  <div className="relative">
+   478→                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+   479→                    <Input placeholder="Search accounts..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-48 h-8 text-xs" />
+   480→                  </div>
+   481→                  <Button size="sm" onClick={openAddAccount} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"><Plus className="h-3.5 w-3.5 mr-1" />Add Account</Button>
+   482→                </div>
+   483→              </div>
+   484→              {/* Type pills */}
+   485→              <div className="flex gap-1 mt-2 flex-wrap">
+   486→                {ACCOUNT_TYPES.map((t) => (
+   487→                  <Button key={t} size="sm" variant={typeFilter === t ? "default" : "outline"} onClick={() => setTypeFilter(t)} className={`h-7 text-xs ${typeFilter === t ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}>
+   488→                    {t}
+   489→                  </Button>
+   490→                ))}
+   491→              </div>
+   492→            </CardHeader>
+   493→            <CardContent className="p-0">
+   494→              <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
+   495→                <table className="w-full text-xs">
+   496→                  <thead className="bg-muted/50 sticky top-0">
+   497→                    <tr>
+   498→                      <th className="text-left p-2.5 font-medium">Code</th>
+   499→                      <th className="text-left p-2.5 font-medium">Name</th>
+   500→                      <th className="text-left p-2.5 font-medium">Type</th>
+   501→                      <th className="text-left p-2.5 font-medium">Normal Balance</th>
+   502→                      <th className="text-right p-2.5 font-medium">Balance</th>
+   503→                      <th className="text-center p-2.5 font-medium">Status</th>
+   504→                      <th className="text-center p-2.5 font-medium">Txns</th>
+   505→                      <th className="text-right p-2.5 font-medium">Actions</th>
+   506→                    </tr>
+   507→                  </thead>
+   508→                  <tbody>
+   509→                    {parentAccounts.filter((a) => {
+   510→                      if (typeFilter !== "All" && a.type !== typeFilter.toLowerCase()) return false
+   511→                      if (search) {
+   512→                        const q = search.toLowerCase()
+   513→                        const children = childAccountsMap[a.id] || []
+   514→                        const matchesParent = a.code.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)
+   515→                        const matchesChild = children.some((c) => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q))
+   516→                        return matchesParent || matchesChild
+   517→                      }
+   518→                      return true
+   519→                    }).map((parent) => {
+   520→                      const children = childAccountsMap[parent.id] || []
+   521→                      const isExpanded = expandedAccounts.has(parent.id)
+   522→                      const cfg = ACCOUNT_TYPE_CONFIG[parent.type]
+   523→                      return (
+   524→                        <React.Fragment key={parent.id}>
+   525→                          <tr className="border-b hover:bg-muted/30 cursor-pointer" onClick={() => toggleExpand(parent.id)}>
+   526→                            <td className="p-2.5 font-bold">{parent.code}</td>
+   527→                            <td className="p-2.5 font-bold flex items-center gap-1">
+   528→                              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+   529→                              {parent.name}
+   530→                            </td>
+   531→                            <td className="p-2.5">
+   532→                              {cfg && <Badge variant="outline" className={`${cfg.color} text-[10px]`}><cfg.icon className="h-2.5 w-2.5 mr-1" />{cfg.label}</Badge>}
+   533→                            </td>
+   534→                            <td className="p-2.5 capitalize">{parent.normalBalance}</td>
+   535→                            <td className="p-2.5 text-right font-medium">{formatCurrency(parent.balance)}</td>
+   536→                            <td className="p-2.5 text-center"><Badge variant={parent.isActive ? "default" : "secondary"} className="text-[10px]">{parent.isActive ? "Active" : "Inactive"}</Badge></td>
+   537→                            <td className="p-2.5 text-center text-muted-foreground">{safeParse(parent._count?.journalLines, 0)}</td>
+   538→                            <td className="p-2.5 text-right">
+   539→                              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); openEditAccount(parent) }}><Edit3 className="h-3 w-3" /></Button>
+   540→                            </td>
+   541→                          </tr>
+   542→                          <AnimatePresence>
+   543→                            {isExpanded && children.map((child) => {
+   544→                              const childCfg = ACCOUNT_TYPE_CONFIG[child.type]
+   545→                              return (
+   546→                                <motion.tr key={child.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="border-b bg-muted/10 hover:bg-muted/20 cursor-pointer" onClick={() => { setSelectedGlAccount(child.id); setActiveTab("general-ledger"); loadGeneralLedger(child.id) }}>
+   547→                                  <td className="p-2.5 pl-8">{child.code}</td>
+   548→                                  <td className="p-2.5">{child.name}</td>
+   549→                                  <td className="p-2.5">
+   550→                                    {childCfg && <Badge variant="outline" className={`${childCfg.color} text-[10px]`}><childCfg.icon className="h-2.5 w-2.5 mr-1" />{childCfg.label}</Badge>}
+   551→                                  </td>
+   552→                                  <td className="p-2.5 capitalize">{child.normalBalance}</td>
+   553→                                  <td className="p-2.5 text-right font-medium">{formatCurrency(child.balance)}</td>
+   554→                                  <td className="p-2.5 text-center"><Badge variant={child.isActive ? "default" : "secondary"} className="text-[10px]">{child.isActive ? "Active" : "Inactive"}</Badge></td>
+   555→                                  <td className="p-2.5 text-center text-muted-foreground">{safeParse(child._count?.journalLines, 0)}</td>
+   556→                                  <td className="p-2.5 text-right flex gap-1 justify-end">
+   557→                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); openEditAccount(child) }}><Edit3 className="h-3 w-3" /></Button>
+   558→                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500 hover:text-red-700" onClick={(e) => { e.stopPropagation(); deleteAccount(child.id) }}><Trash2 className="h-3 w-3" /></Button>
+   559→                                  </td>
+   560→                                </motion.tr>
+   561→                              )
+   562→                            })}
+   563→                          </AnimatePresence>
+   564→                        </React.Fragment>
+   565→                      )
+   566→                    })}
+   567→                    {financeAccounts.length === 0 && (
+   568→                      <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No accounts found. Add your first account to get started.</td></tr>
+   569→                    )}
+   570→                  </tbody>
+   571→                </table>
+   572→              </div>
+   573→            </CardContent>
+   574→          </Card>
+   575→        </TabsContent>
+   576→
+   577→        {/* ── Tab 2: General Ledger ─────────────────────────────── */}
+   578→        <TabsContent value="general-ledger">
+   579→          <Card className="border-0 shadow-sm">
+   580→            <CardHeader className="pb-3">
+   581→              <div className="flex flex-wrap items-center justify-between gap-3">
+   582→                <CardTitle className="text-base flex items-center gap-2"><BookOpen className="h-4 w-4 text-emerald-600" />General Ledger</CardTitle>
+   583→                <Select value={selectedGlAccount} onValueChange={(v) => loadGeneralLedger(v)}>
+   584→                  <SelectTrigger className="w-64 h-8 text-xs"><SelectValue placeholder="Select account..." /></SelectTrigger>
+   585→                  <SelectContent>
+   586→                    {financeAccounts.filter((a) => a.parentId).map((a) => (
+   587→                      <SelectItem key={a.id} value={a.id}>{a.code} - {a.name}</SelectItem>
+   588→                    ))}
+   589→                  </SelectContent>
+   590→                </Select>
+   591→              </div>
+   592→            </CardHeader>
+   593→            <CardContent>
+   594→              {glLoading ? (
+   595→                <div className="flex items-center justify-center py-12"><RefreshCw className="h-5 w-5 animate-spin text-emerald-600" /></div>
+   596→              ) : !selectedGlAccount ? (
+   597→                <div className="text-center py-12 text-muted-foreground">Select an account to view its general ledger</div>
+   598→              ) : glLines.length === 0 ? (
+   599→                <div className="text-center py-12 text-muted-foreground">No transactions found for this account</div>
+   600→              ) : (
+   601→                <div className="overflow-x-auto">
+   602→                  <table className="w-full text-xs">
+   603→                    <thead className="bg-muted/50">
+   604→                      <tr>
+   605→                        <th className="text-left p-2.5 font-medium">Date</th>
+   606→                        <th className="text-left p-2.5 font-medium">JE #</th>
+   607→                        <th className="text-left p-2.5 font-medium">Description</th>
+   608→                        <th className="text-left p-2.5 font-medium">Reference</th>
+   609→                        <th className="text-right p-2.5 font-medium">Debit</th>
+   610→                        <th className="text-right p-2.5 font-medium">Credit</th>
+   611→                        <th className="text-right p-2.5 font-medium">Balance</th>
+   612→                      </tr>
+   613→                    </thead>
+   614→                    <tbody>
+   615→                      {(() => {
+   616→                        let runningBalance = 0
+   617→                        const acct = financeAccounts.find((a) => a.id === selectedGlAccount)
+   618→                        const isDebitNormal = acct?.normalBalance === "debit"
+   619→                        return glLines.map((line, i) => {
+   620→                          if (isDebitNormal) runningBalance += line.debit - line.credit
+   621→                          else runningBalance += line.credit - line.debit
+   622→                          return (
+   623→                            <tr key={line.id} className="border-b hover:bg-muted/30">
+   624→                              <td className="p-2.5">{line.jeDate ? format(new Date(line.jeDate), "MMM dd, yyyy") : ""}</td>
+   625→                              <td className="p-2.5 font-medium text-emerald-700">{line.jeNumber}</td>
+   626→                              <td className="p-2.5">{line.jeDescription}</td>
+   627→                              <td className="p-2.5 text-muted-foreground">{line.jeReference || "-"}</td>
+   628→                              <td className="p-2.5 text-right">{line.debit > 0 ? formatCurrency(line.debit) : "-"}</td>
+   629→                              <td className="p-2.5 text-right">{line.credit > 0 ? formatCurrency(line.credit) : "-"}</td>
+   630→                              <td className="p-2.5 text-right font-medium">{formatCurrency(runningBalance)}</td>
+   631→                            </tr>
+   632→                          )
+   633→                        })
+   634→                      })()}
+   635→                    </tbody>
+   636→                  </table>
+   637→                </div>
+   638→              )}
+   639→            </CardContent>
+   640→          </Card>
+   641→        </TabsContent>
+   642→
+   643→        {/* ── Tab 3: Journal Entries ────────────────────────────── */}
+   644→        <TabsContent value="journal-entries">
+   645→          <Card className="border-0 shadow-sm">
+   646→            <CardHeader className="pb-3">
+   647→              <div className="flex flex-wrap items-center justify-between gap-3">
+   648→                <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-emerald-600" />Journal Entries</CardTitle>
+   649→                <Button size="sm" onClick={openAddJEntry} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"><Plus className="h-3.5 w-3.5 mr-1" />New Entry</Button>
+   650→              </div>
+   651→              <div className="flex flex-wrap gap-2 mt-2">
+   652→                <Select value={jeStatusFilter} onValueChange={setJeStatusFilter}>
+   653→                  <SelectTrigger className="w-28 h-7 text-xs"><SelectValue /></SelectTrigger>
+   654→                  <SelectContent>
+   655→                    <SelectItem value="all">All Status</SelectItem>
+   656→                    <SelectItem value="draft">Draft</SelectItem>
+   657→                    <SelectItem value="posted">Posted</SelectItem>
+   658→                    <SelectItem value="void">Void</SelectItem>
+   659→                  </SelectContent>
+   660→                </Select>
+   661→                <Select value={jeSourceFilter} onValueChange={setJeSourceFilter}>
+   662→                  <SelectTrigger className="w-28 h-7 text-xs"><SelectValue /></SelectTrigger>
+   663→                  <SelectContent>
+   664→                    <SelectItem value="all">All Sources</SelectItem>
+   665→                    <SelectItem value="manual">Manual</SelectItem>
+   666→                    <SelectItem value="invoice">Invoice</SelectItem>
+   667→                    <SelectItem value="expense">Expense</SelectItem>
+   668→                    <SelectItem value="payroll">Payroll</SelectItem>
+   669→                  </SelectContent>
+   670→                </Select>
+   671→                {periods.length > 0 && (
+   672→                  <Select value={jePeriodFilter} onValueChange={setJePeriodFilter}>
+   673→                    <SelectTrigger className="w-28 h-7 text-xs"><SelectValue placeholder="All Periods" /></SelectTrigger>
+   674→                    <SelectContent>
+   675→                      <SelectItem value="all">All Periods</SelectItem>
+   676→                      {periods.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+   677→                    </SelectContent>
+   678→                  </Select>
+   679→                )}
+   680→                <div className="relative">
+   681→                  <Search className="absolute left-2.5 top-2 h-3 w-3 text-muted-foreground" />
+   682→                  <Input placeholder="Search entries..." value={jeSearch} onChange={(e) => setJeSearch(e.target.value)} className="pl-7 w-40 h-7 text-xs" />
+   683→                </div>
+   684→              </div>
+   685→            </CardHeader>
+   686→            <CardContent className="p-0">
+   687→              <div className="max-h-[60vh] overflow-y-auto">
+   688→                {filteredJournalEntries.length === 0 ? (
+   689→                  <div className="text-center py-12 text-muted-foreground">No journal entries found</div>
+   690→                ) : filteredJournalEntries.map((entry) => {
+   691→                  const isExpanded = expandedJEntries.has(entry.id)
+   692→                  return (
+   693→                    <motion.div key={entry.id} layout className="border-b">
+   694→                      <div className="flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer" onClick={() => toggleJEntryExpand(entry.id)}>
+   695→                        <div className="flex-shrink-0">{isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</div>
+   696→                        <div className="flex-1 min-w-0 grid grid-cols-2 md:grid-cols-5 gap-2 items-center">
+   697→                          <div><p className="font-medium text-xs text-emerald-700">{entry.number}</p><p className="text-[10px] text-muted-foreground">{format(new Date(entry.date), "MMM dd, yyyy")}</p></div>
+   698→                          <div className="md:col-span-2"><p className="text-xs truncate">{entry.description}</p><p className="text-[10px] text-muted-foreground">{entry.source}{entry.reference ? ` · ${entry.reference}` : ""}</p></div>
+   699→                          <div className="text-right"><p className="text-xs">Dr: {formatCurrency(entry.totalDebit)}</p><p className="text-xs">Cr: {formatCurrency(entry.totalCredit)}</p></div>
+   700→                          <div className="flex items-center gap-2 justify-end">{statusBadge(entry.status)}</div>
+   701→                        </div>
+   702→                        <div className="flex gap-1 flex-shrink-0">
+   703→                          {entry.status === "draft" && <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={(e) => { e.stopPropagation(); postJEntry(entry.id) }}><Send className="h-3 w-3 mr-1" />Post</Button>}
+   704→                          {entry.status === "posted" && <Button size="sm" variant="outline" className="h-6 text-[10px] text-red-500" onClick={(e) => { e.stopPropagation(); voidJEntry(entry.id) }}><Ban className="h-3 w-3 mr-1" />Void</Button>}
+   705→                        </div>
+   706→                      </div>
+   707→                      <AnimatePresence>
+   708→                        {isExpanded && (
+   709→                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+   710→                            <div className="px-4 pb-3">
+   711→                              <table className="w-full text-xs">
+   712→                                <thead className="bg-muted/30">
+   713→                                  <tr><th className="text-left p-2 font-medium">Account</th><th className="text-left p-2 font-medium">Description</th><th className="text-right p-2 font-medium">Debit</th><th className="text-right p-2 font-medium">Credit</th></tr>
+   714→                                </thead>
+   715→                                <tbody>
+   716→                                  {entry.lines.map((line) => (
+   717→                                    <tr key={line.id} className="border-b border-muted/30">
+   718→                                      <td className="p-2">{line.account?.code} - {line.account?.name}</td>
+   719→                                      <td className="p-2 text-muted-foreground">{line.description || "-"}</td>
+   720→                                      <td className="p-2 text-right">{line.debit > 0 ? formatCurrency(line.debit) : "-"}</td>
+   721→                                      <td className="p-2 text-right">{line.credit > 0 ? formatCurrency(line.credit) : "-"}</td>
+   722→                                    </tr>
+   723→                                  ))}
+   724→                                </tbody>
+   725→                                <tfoot className="bg-muted/20 font-medium">
+   726→                                  <tr><td className="p-2" colSpan={2}>Total</td><td className="p-2 text-right">{formatCurrency(entry.totalDebit)}</td><td className="p-2 text-right">{formatCurrency(entry.totalCredit)}</td></tr>
+   727→                                </tfoot>
+   728→                              </table>
+   729→                            </div>
+   730→                          </motion.div>
+   731→                        )}
+   732→                      </AnimatePresence>
+   733→                    </motion.div>
+   734→                  )
+   735→                })}
+   736→              </div>
+   737→            </CardContent>
+   738→          </Card>
+   739→        </TabsContent>
+   740→
+   741→        {/* ── Tab 4: Trial Balance ──────────────────────────────── */}
+   742→        <TabsContent value="trial-balance">
+   743→          <Card className="border-0 shadow-sm">
+   744→            <CardHeader className="pb-3">
+   745→              <div className="flex items-center justify-between gap-3">
+   746→                <CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4 text-emerald-600" />Trial Balance</CardTitle>
+   747→                <div className="flex items-center gap-2">
+   748→                  {periods.length > 0 && (
+   749→                    <Select value={reportPeriod} onValueChange={setReportPeriod}>
+   750→                      <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="All Periods" /></SelectTrigger>
+   751→                      <SelectContent><SelectItem value="all">All Periods</SelectItem>{periods.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+   752→                    </Select>
+   753→                  )}
+   754→                  <Button size="sm" variant="outline" className="h-8 text-xs"><Download className="h-3.5 w-3.5 mr-1" />Export</Button>
+   755→                </div>
+   756→              </div>
+   757→            </CardHeader>
+   758→            <CardContent>
+   759→              {reportLoading ? (
+   760→                <div className="flex items-center justify-center py-12"><RefreshCw className="h-5 w-5 animate-spin text-emerald-600" /></div>
+   761→              ) : reportData ? (
+   762→                <div className="overflow-x-auto">
+   763→                  <table className="w-full text-xs">
+   764→                    <thead className="bg-muted/50">
+   765→                      <tr><th className="text-left p-2.5 font-medium">Account Code</th><th className="text-left p-2.5 font-medium">Account Name</th><th className="text-left p-2.5 font-medium">Type</th><th className="text-right p-2.5 font-medium">Debit Total</th><th className="text-right p-2.5 font-medium">Credit Total</th></tr>
+   766→                    </thead>
+   767→                    <tbody>
+   768→                      {(reportData.accounts as { code: string; name: string; type: string; debitTotal: number; creditTotal: number }[] || []).map((a) => (
+   769→                        <tr key={a.code} className="border-b hover:bg-muted/30">
+   770→                          <td className="p-2.5 font-medium">{a.code}</td>
+   771→                          <td className="p-2.5">{a.name}</td>
+   772→                          <td className="p-2.5"><Badge variant="outline" className="text-[10px] capitalize">{a.type}</Badge></td>
+   773→                          <td className="p-2.5 text-right">{a.debitTotal > 0 ? formatCurrency(a.debitTotal) : "-"}</td>
+   774→                          <td className="p-2.5 text-right">{a.creditTotal > 0 ? formatCurrency(a.creditTotal) : "-"}</td>
+   775→                        </tr>
+   776→                      ))}
+   777→                    </tbody>
+   778→                    <tfoot className="bg-muted/20 font-bold">
+   779→                      <tr>
+   780→                        <td className="p-2.5" colSpan={3}>Total</td>
+   781→                        <td className="p-2.5 text-right">{formatCurrency(reportData.totalDebits as number || 0)}</td>
+   782→                        <td className="p-2.5 text-right">{formatCurrency(reportData.totalCredits as number || 0)}</td>
+   783→                      </tr>
+   784→                    </tfoot>
+   785→                  </table>
+   786→                  <div className="mt-4 flex items-center gap-2">
+   787→                    {reportData.isBalanced ? (
+   788→                      <Badge className="bg-emerald-100 text-emerald-800 gap-1"><CheckCircle2 className="h-3 w-3" />Books are balanced</Badge>
+   789→                    ) : (
+   790→                      <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Books are NOT balanced</Badge>
+   791→                    )}
+   792→                    <span className="text-xs text-muted-foreground">Difference: {formatCurrency(Math.abs((reportData.totalDebits as number || 0) - (reportData.totalCredits as number || 0)))}</span>
+   793→                  </div>
+   794→                </div>
+   795→              ) : (
+   796→                <div className="text-center py-12 text-muted-foreground">No data available</div>
+   797→              )}
+   798→            </CardContent>
+   799→          </Card>
+   800→        </TabsContent>
+   801→
+   802→        {/* ── Tab 5: Balance Sheet ──────────────────────────────── */}
+   803→        <TabsContent value="balance-sheet">
+   804→          <Card className="border-0 shadow-sm">
+   805→            <CardHeader className="pb-3">
+   806→              <div className="flex items-center justify-between gap-3">
+   807→                <CardTitle className="text-base flex items-center gap-2"><Landmark className="h-4 w-4 text-emerald-600" />Balance Sheet</CardTitle>
+   808→                {periods.length > 0 && (
+   809→                  <Select value={reportPeriod} onValueChange={setReportPeriod}>
+   810→                    <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="All Periods" /></SelectTrigger>
+   811→                    <SelectContent><SelectItem value="all">All Periods</SelectItem>{periods.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+   812→                  </Select>
+   813→                )}
+   814→              </div>
+   815→            </CardHeader>
+   816→            <CardContent>
+   817→              {reportLoading ? (
+   818→                <div className="flex items-center justify-center py-12"><RefreshCw className="h-5 w-5 animate-spin text-emerald-600" /></div>
+   819→              ) : reportData ? (
+   820→                <div className="space-y-6">
+   821→                  {/* ASSETS */}
+   822→                  <div>
+   823→                    <h3 className="text-sm font-bold text-emerald-700 mb-2 flex items-center gap-1"><Wallet className="h-4 w-4" />ASSETS</h3>
+   824→                    <div className="space-y-1">
+   825→                      {(reportData.assets as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
+   826→                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+   827→                          <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
+   828→                        </div>
+   829→                      ))}
+   830→                      <div className="flex justify-between text-sm font-bold p-2 bg-emerald-50 rounded mt-1">
+   831→                        <span>Total Assets</span><span className="text-emerald-700">{formatCurrency(reportData.totalAssets as number || 0)}</span>
+   832→                      </div>
+   833→                    </div>
+   834→                  </div>
+   835→
+   836→                  {/* LIABILITIES */}
+   837→                  <div>
+   838→                    <h3 className="text-sm font-bold text-amber-700 mb-2 flex items-center gap-1"><CreditCard className="h-4 w-4" />LIABILITIES</h3>
+   839→                    <div className="space-y-1">
+   840→                      {(reportData.liabilities as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
+   841→                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+   842→                          <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
+   843→                        </div>
+   844→                      ))}
+   845→                      <div className="flex justify-between text-sm font-bold p-2 bg-amber-50 rounded mt-1">
+   846→                        <span>Total Liabilities</span><span className="text-amber-700">{formatCurrency(reportData.totalLiabilities as number || 0)}</span>
+   847→                      </div>
+   848→                    </div>
+   849→                  </div>
+   850→
+   851→                  {/* EQUITY */}
+   852→                  <div>
+   853→                    <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><PiggyBank className="h-4 w-4" />EQUITY</h3>
+   854→                    <div className="space-y-1">
+   855→                      {(reportData.equity as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
+   856→                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+   857→                          <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
+   858→                        </div>
+   859→                      ))}
+   860→                      <div className="flex justify-between text-sm font-bold p-2 bg-teal-50 rounded mt-1">
+   861→                        <span>Total Equity</span><span className="text-teal-700">{formatCurrency(reportData.totalEquity as number || 0)}</span>
+   862→                      </div>
+   863→                    </div>
+   864→                  </div>
+   865→
+   866→                  {/* VALIDATION */}
+   867→                  <div className="border-t pt-4 space-y-2">
+   868→                    <div className="flex justify-between text-sm font-bold p-2 bg-muted/30 rounded">
+   869→                      <span>Total Liabilities + Equity</span><span>{formatCurrency(reportData.totalLiabilitiesAndEquity as number || 0)}</span>
+   870→                    </div>
+   871→                    {reportData.isBalanced ? (
+   872→                      <Badge className="bg-emerald-100 text-emerald-800 gap-1"><CheckCircle2 className="h-3 w-3" />Balance sheet is balanced</Badge>
+   873→                    ) : (
+   874→                      <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Balance sheet is NOT balanced</Badge>
+   875→                    )}
+   876→                  </div>
+   877→                </div>
+   878→              ) : (
+   879→                <div className="text-center py-12 text-muted-foreground">No data available</div>
+   880→              )}
+   881→            </CardContent>
+   882→          </Card>
+   883→        </TabsContent>
+   884→
+   885→        {/* ── Tab 6: P&L Statement ──────────────────────────────── */}
+   886→        <TabsContent value="pnl">
+   887→          <Card className="border-0 shadow-sm">
+   888→            <CardHeader className="pb-3">
+   889→              <div className="flex items-center justify-between gap-3">
+   890→                <CardTitle className="text-base flex items-center gap-2"><Calculator className="h-4 w-4 text-emerald-600" />Profit & Loss Statement</CardTitle>
+   891→                {periods.length > 0 && (
+   892→                  <Select value={reportPeriod} onValueChange={setReportPeriod}>
+   893→                    <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="All Periods" /></SelectTrigger>
+   894→                    <SelectContent><SelectItem value="all">All Periods</SelectItem>{periods.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+   895→                  </Select>
+   896→                )}
+   897→              </div>
+   898→            </CardHeader>
+   899→            <CardContent>
+   900→              {reportLoading ? (
+   901→                <div className="flex items-center justify-center py-12"><RefreshCw className="h-5 w-5 animate-spin text-emerald-600" /></div>
+   902→              ) : reportData ? (
+   903→                <div className="space-y-6">
+   904→                  {/* Revenue */}
+   905→                  <div>
+   906→                    <h3 className="text-sm font-bold text-green-700 mb-2 flex items-center gap-1"><TrendingUp className="h-4 w-4" />REVENUE</h3>
+   907→                    <div className="space-y-1">
+   908→                      {(reportData.revenue as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
+   909→                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+   910→                          <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
+   911→                        </div>
+   912→                      ))}
+   913→                      <div className="flex justify-between text-sm font-bold p-2 bg-green-50 rounded mt-1">
+   914→                        <span>Total Revenue</span><span className="text-green-700">{formatCurrency(reportData.totalRevenue as number || 0)}</span>
+   915→                      </div>
+   916→                    </div>
+   917→                  </div>
+   918→
+   919→                  {/* Expenses */}
+   920→                  <div>
+   921→                    <h3 className="text-sm font-bold text-red-700 mb-2 flex items-center gap-1"><TrendingDown className="h-4 w-4" />EXPENSES</h3>
+   922→                    <div className="space-y-1">
+   923→                      {(reportData.expenses as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
+   924→                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+   925→                          <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
+   926→                        </div>
+   927→                      ))}
+   928→                      <div className="flex justify-between text-sm font-bold p-2 bg-red-50 rounded mt-1">
+   929→                        <span>Total Expenses</span><span className="text-red-700">{formatCurrency(reportData.totalExpenses as number || 0)}</span>
+   930→                      </div>
+   931→                    </div>
+   932→                  </div>
+   933→
+   934→                  {/* Net Income */}
+   935→                  <div className="border-t pt-4">
+   936→                    <div className={`flex justify-between text-lg font-bold p-3 rounded ${((reportData.netIncome as number) || 0) >= 0 ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>
+   937→                      <span>Net Income</span>
+   938→                      <span>{formatCurrency(reportData.netIncome as number || 0)}</span>
+   939→                    </div>
+   940→                  </div>
+   941→
+   942→                  {/* Visual bar chart */}
+   943→                  <div className="space-y-3 pt-4">
+   944→                    <h4 className="text-xs font-medium text-muted-foreground">Revenue vs Expenses</h4>
+   945→                    {(() => {
+   946→                      const rev = reportData.totalRevenue as number || 0
+   947→                      const exp = reportData.totalExpenses as number || 0
+   948→                      const max = Math.max(rev, exp, 1)
+   949→                      return (
+   950→                        <div className="space-y-2">
+   951→                          <div>
+   952→                            <div className="flex justify-between text-xs mb-1"><span>Revenue</span><span className="font-medium">{formatCurrency(rev)}</span></div>
+   953→                            <div className="h-6 bg-muted/30 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${(rev / max) * 100}%` }} /></div>
+   954→                          </div>
+   955→                          <div>
+   956→                            <div className="flex justify-between text-xs mb-1"><span>Expenses</span><span className="font-medium">{formatCurrency(exp)}</span></div>
+   957→                            <div className="h-6 bg-muted/30 rounded-full overflow-hidden"><div className="h-full bg-red-400 rounded-full transition-all" style={{ width: `${(exp / max) * 100}%` }} /></div>
+   958→                          </div>
+   959→                        </div>
+   960→                      )
+   961→                    })()}
+   962→                  </div>
+   963→                </div>
+   964→              ) : (
+   965→                <div className="text-center py-12 text-muted-foreground">No data available</div>
+   966→              )}
+   967→            </CardContent>
+   968→          </Card>
+   969→        </TabsContent>
+   970→
+   971→        {/* ── Tab 7: Tax Rates ──────────────────────────────────── */}
+   972→        <TabsContent value="tax-rates">
+   973→          <Card className="border-0 shadow-sm">
+   974→            <CardHeader className="pb-3">
+   975→              <div className="flex items-center justify-between gap-3">
+   976→                <CardTitle className="text-base flex items-center gap-2"><Percent className="h-4 w-4 text-emerald-600" />Tax Rates</CardTitle>
+   977→                <Button size="sm" onClick={openAddTax} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"><Plus className="h-3.5 w-3.5 mr-1" />Add Tax Rate</Button>
+   978→              </div>
+   979→            </CardHeader>
+   980→            <CardContent className="p-0">
+   981→              <div className="overflow-x-auto">
+   982→                <table className="w-full text-xs">
+   983→                  <thead className="bg-muted/50">
+   984→                    <tr>
+   985→                      <th className="text-left p-2.5 font-medium">Name</th>
+   986→                      <th className="text-left p-2.5 font-medium">Rate</th>
+   987→                      <th className="text-left p-2.5 font-medium">Type</th>
+   988→                      <th className="text-center p-2.5 font-medium">Status</th>
+   989→                      <th className="text-right p-2.5 font-medium">Actions</th>
+   990→                    </tr>
+   991→                  </thead>
+   992→                  <tbody>
+   993→                    {taxRates.map((t) => (
+   994→                      <tr key={t.id} className="border-b hover:bg-muted/30">
+   995→                        <td className="p-2.5 font-medium">{t.name}</td>
+   996→                        <td className="p-2.5">{t.rate}%</td>
+   997→                        <td className="p-2.5"><Badge variant="outline" className="text-[10px] capitalize">{t.type}</Badge></td>
+   998→                        <td className="p-2.5 text-center"><Badge variant={t.isActive ? "default" : "secondary"} className="text-[10px]">{t.isActive ? "Active" : "Inactive"}</Badge></td>
+   999→                        <td className="p-2.5 text-right flex gap-1 justify-end">
+  1000→                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openEditTax(t)}><Edit3 className="h-3 w-3" /></Button>
+  1001→                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500 hover:text-red-700" onClick={() => deleteTaxRate(t.id)}><Trash2 className="h-3 w-3" /></Button>
+  1002→                        </td>
+  1003→                      </tr>
+  1004→                    ))}
+  1005→                    {taxRates.length === 0 && (
+  1006→                      <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No tax rates found. Add your first tax rate.</td></tr>
+  1007→                    )}
+  1008→                  </tbody>
+  1009→                </table>
+  1010→              </div>
+  1011→            </CardContent>
+  1012→          </Card>
+  1013→        </TabsContent>
+  1014→      </Tabs>
+  1015→
+  1016→      {/* ── Account Dialog ─────────────────────────────────────── */}
+  1017→      <Dialog open={showAccountDialog} onOpenChange={setShowAccountDialog}>
+  1018→        <DialogContent className="sm:max-w-md">
+  1019→          <DialogHeader><DialogTitle>{editingAccount ? "Edit Account" : "Add Account"}</DialogTitle><DialogDescription>{editingAccount ? "Update account details" : "Create a new account in the chart of accounts"}</DialogDescription></DialogHeader>
+  1020→          <div className="grid gap-3 py-2">
+  1021→            <div className="grid grid-cols-2 gap-3">
+  1022→              <div><Label className="text-xs">Code</Label><Input value={accountForm.code} onChange={(e) => setAccountForm({ ...accountForm, code: e.target.value })} className="h-8 text-xs" /></div>
+  1023→              <div><Label className="text-xs">Name</Label><Input value={accountForm.name} onChange={(e) => setAccountForm({ ...accountForm, name: e.target.value })} className="h-8 text-xs" /></div>
+  1024→            </div>
+  1025→            <div className="grid grid-cols-2 gap-3">
+  1026→              <div><Label className="text-xs">Type</Label>
+  1027→                <Select value={accountForm.type} onValueChange={(v) => setAccountForm({ ...accountForm, type: v, normalBalance: (v === "asset" || v === "expense") ? "debit" : "credit" })}>
+  1028→                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+  1029→                  <SelectContent><SelectItem value="asset">Asset</SelectItem><SelectItem value="liability">Liability</SelectItem><SelectItem value="equity">Equity</SelectItem><SelectItem value="revenue">Revenue</SelectItem><SelectItem value="expense">Expense</SelectItem></SelectContent>
+  1030→                </Select>
+  1031→              </div>
+  1032→              <div><Label className="text-xs">Normal Balance</Label>
+  1033→                <Select value={accountForm.normalBalance} onValueChange={(v) => setAccountForm({ ...accountForm, normalBalance: v })}>
+  1034→                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+  1035→                  <SelectContent><SelectItem value="debit">Debit</SelectItem><SelectItem value="credit">Credit</SelectItem></SelectContent>
+  1036→                </Select>
+  1037→              </div>
+  1038→            </div>
+  1039→            <div><Label className="text-xs">Description</Label><Input value={accountForm.description} onChange={(e) => setAccountForm({ ...accountForm, description: e.target.value })} className="h-8 text-xs" /></div>
+  1040→            <div className="grid grid-cols-2 gap-3">
+  1041→              <div><Label className="text-xs">Parent Account</Label>
+  1042→                <Select value={accountForm.parentId} onValueChange={(v) => setAccountForm({ ...accountForm, parentId: v === "__none__" ? "" : v })}>
+  1043→                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="None (Top-level)" /></SelectTrigger>
+  1044→                  <SelectContent>
+  1045→                    <SelectItem value="__none__">None (Top-level)</SelectItem>
+  1046→                    {parentAccounts.map((a) => <SelectItem key={a.id} value={a.id}>{a.code} - {a.name}</SelectItem>)}
+  1047→                  </SelectContent>
+  1048→                </Select>
+  1049→              </div>
+  1050→              <div><Label className="text-xs">Category</Label><Input value={accountForm.category} onChange={(e) => setAccountForm({ ...accountForm, category: e.target.value })} className="h-8 text-xs" /></div>
+  1051→            </div>
+  1052→            {!editingAccount && <div><Label className="text-xs">Opening Balance</Label><Input type="number" value={accountForm.balance} onChange={(e) => setAccountForm({ ...accountForm, balance: parseFloat(e.target.value) || 0 })} className="h-8 text-xs" /></div>}
+  1053→            <div className="flex items-center gap-2"><Switch checked={accountForm.isActive} onCheckedChange={(v) => setAccountForm({ ...accountForm, isActive: v })} /><Label className="text-xs">Active</Label></div>
+  1054→          </div>
+  1055→          <DialogFooter><Button variant="outline" onClick={() => setShowAccountDialog(false)} className="text-xs">Cancel</Button><Button onClick={saveAccount} className="text-xs bg-emerald-600 hover:bg-emerald-700">{editingAccount ? "Update" : "Create"}</Button></DialogFooter>
+  1056→        </DialogContent>
+  1057→      </Dialog>
+  1058→
+  1059→      {/* ── Journal Entry Dialog ───────────────────────────────── */}
+  1060→      <Dialog open={showJEntryDialog} onOpenChange={setShowJEntryDialog}>
+  1061→        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+  1062→          <DialogHeader><DialogTitle>Create Journal Entry</DialogTitle><DialogDescription>Add a new journal entry with debit and credit lines</DialogDescription></DialogHeader>
+  1063→          <div className="grid gap-3 py-2">
+  1064→            <div className="grid grid-cols-3 gap-3">
+  1065→              <div><Label className="text-xs">Date</Label><Input type="date" value={jEntryForm.date} onChange={(e) => setJEntryForm({ ...jEntryForm, date: e.target.value })} className="h-8 text-xs" /></div>
+  1066→              <div><Label className="text-xs">Period</Label><Input value={jEntryForm.period} onChange={(e) => setJEntryForm({ ...jEntryForm, period: e.target.value })} className="h-8 text-xs" placeholder="2026-01" /></div>
+  1067→              <div><Label className="text-xs">Source</Label>
+  1068→                <Select value={jEntryForm.source} onValueChange={(v) => setJEntryForm({ ...jEntryForm, source: v })}>
+  1069→                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+  1070→                  <SelectContent><SelectItem value="manual">Manual</SelectItem><SelectItem value="invoice">Invoice</SelectItem><SelectItem value="expense">Expense</SelectItem><SelectItem value="payroll">Payroll</SelectItem><SelectItem value="transfer">Transfer</SelectItem></SelectContent>
+  1071→                </Select>
+  1072→              </div>
+  1073→            </div>
+  1074→            <div><Label className="text-xs">Description</Label><Input value={jEntryForm.description} onChange={(e) => setJEntryForm({ ...jEntryForm, description: e.target.value })} className="h-8 text-xs" /></div>
+  1075→            <div className="grid grid-cols-2 gap-3">
+  1076→              <div><Label className="text-xs">Reference</Label><Input value={jEntryForm.reference} onChange={(e) => setJEntryForm({ ...jEntryForm, reference: e.target.value })} className="h-8 text-xs" /></div>
+  1077→              <div className="flex items-center gap-2 pt-5"><Switch checked={jEntryForm.isAdjusting} onCheckedChange={(v) => setJEntryForm({ ...jEntryForm, isAdjusting: v })} /><Label className="text-xs">Adjusting Entry</Label></div>
+  1078→            </div>
+  1079→
+  1080→            {/* Lines */}
+  1081→            <div className="space-y-2 mt-2">
+  1082→              <div className="flex items-center justify-between"><Label className="text-xs font-medium">Line Items</Label><Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => setJEntryForm({ ...jEntryForm, lines: [...jEntryForm.lines, { ...defaultLine }] })}><Plus className="h-3 w-3 mr-1" />Add Line</Button></div>
+  1083→              {jEntryForm.lines.map((line, i) => (
+  1084→                <div key={i} className="grid grid-cols-12 gap-2 items-end">
+  1085→                  <div className="col-span-4"><Label className="text-[10px]">Account</Label>
+  1086→                    <Select value={line.accountId} onValueChange={(v) => { const nl = [...jEntryForm.lines]; nl[i] = { ...nl[i], accountId: v }; setJEntryForm({ ...jEntryForm, lines: nl }) }}>
+  1087→                      <SelectTrigger className="h-7 text-[10px]"><SelectValue placeholder="Select..." /></SelectTrigger>
+  1088→                      <SelectContent>{financeAccounts.filter((a) => a.parentId).map((a) => <SelectItem key={a.id} value={a.id}>{a.code} - {a.name}</SelectItem>)}</SelectContent>
+  1089→                    </Select>
+  1090→                  </div>
+  1091→                  <div className="col-span-2"><Label className="text-[10px]">Debit</Label><Input type="number" value={line.debit || ""} onChange={(e) => { const nl = [...jEntryForm.lines]; nl[i] = { ...nl[i], debit: parseFloat(e.target.value) || 0 }; setJEntryForm({ ...jEntryForm, lines: nl }) }} className="h-7 text-[10px]" /></div>
+  1092→                  <div className="col-span-2"><Label className="text-[10px]">Credit</Label><Input type="number" value={line.credit || ""} onChange={(e) => { const nl = [...jEntryForm.lines]; nl[i] = { ...nl[i], credit: parseFloat(e.target.value) || 0 }; setJEntryForm({ ...jEntryForm, lines: nl }) }} className="h-7 text-[10px]" /></div>
+  1093→                  <div className="col-span-3"><Label className="text-[10px]">Description</Label><Input value={line.description} onChange={(e) => { const nl = [...jEntryForm.lines]; nl[i] = { ...nl[i], description: e.target.value }; setJEntryForm({ ...jEntryForm, lines: nl }) }} className="h-7 text-[10px]" /></div>
+  1094→                  <div className="col-span-1">{jEntryForm.lines.length > 2 && <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500" onClick={() => { const nl = jEntryForm.lines.filter((_, j) => j !== i); setJEntryForm({ ...jEntryForm, lines: nl }) }}><Minus className="h-3 w-3" /></Button>}</div>
+  1095→                </div>
+  1096→              ))}
+  1097→            </div>
+  1098→
+  1099→            {/* Totals */}
+  1100→            <div className="flex items-center justify-between bg-muted/30 p-3 rounded mt-2">
+  1101→              <div className="flex gap-6">
+  1102→                <div><span className="text-xs text-muted-foreground">Total Debit: </span><span className="text-xs font-bold">{formatCurrency(jEntryForm.lines.reduce((s, l) => s + (l.debit || 0), 0))}</span></div>
+  1103→                <div><span className="text-xs text-muted-foreground">Total Credit: </span><span className="text-xs font-bold">{formatCurrency(jEntryForm.lines.reduce((s, l) => s + (l.credit || 0), 0))}</span></div>
+  1104→              </div>
+  1105→              {Math.abs(jEntryForm.lines.reduce((s, l) => s + (l.debit || 0), 0) - jEntryForm.lines.reduce((s, l) => s + (l.credit || 0), 0)) < 0.01 ? (
+  1106→                <Badge className="bg-emerald-100 text-emerald-800 text-[10px] gap-1"><CheckCircle2 className="h-3 w-3" />Balanced</Badge>
+  1107→              ) : (
+  1108→                <Badge variant="destructive" className="text-[10px] gap-1"><XCircle className="h-3 w-3" />Not Balanced</Badge>
+  1109→              )}
+  1110→            </div>
+  1111→          </div>
+  1112→          <DialogFooter className="gap-2">
+  1113→            <Button variant="outline" onClick={() => setShowJEntryDialog(false)} className="text-xs">Cancel</Button>
+  1114→            <Button onClick={() => saveJEntry(false)} variant="outline" className="text-xs">Save as Draft</Button>
+  1115→            <Button onClick={() => saveJEntry(true)} className="text-xs bg-emerald-600 hover:bg-emerald-700">Post</Button>
+  1116→          </DialogFooter>
+  1117→        </DialogContent>
+  1118→      </Dialog>
+  1119→
+  1120→      {/* ── Tax Rate Dialog ────────────────────────────────────── */}
+  1121→      <Dialog open={showTaxDialog} onOpenChange={setShowTaxDialog}>
+  1122→        <DialogContent className="sm:max-w-sm">
+  1123→          <DialogHeader><DialogTitle>{editingTax ? "Edit Tax Rate" : "Add Tax Rate"}</DialogTitle><DialogDescription>{editingTax ? "Update tax rate details" : "Create a new tax rate"}</DialogDescription></DialogHeader>
+  1124→          <div className="grid gap-3 py-2">
+  1125→            <div><Label className="text-xs">Name</Label><Input value={taxForm.name} onChange={(e) => setTaxForm({ ...taxForm, name: e.target.value })} className="h-8 text-xs" /></div>
+  1126→            <div className="grid grid-cols-2 gap-3">
+  1127→              <div><Label className="text-xs">Rate (%)</Label><Input type="number" step="0.01" value={taxForm.rate} onChange={(e) => setTaxForm({ ...taxForm, rate: parseFloat(e.target.value) || 0 })} className="h-8 text-xs" /></div>
+  1128→              <div><Label className="text-xs">Type</Label>
+  1129→                <Select value={taxForm.type} onValueChange={(v) => setTaxForm({ ...taxForm, type: v })}>
+  1130→                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+  1131→                  <SelectContent><SelectItem value="income">Income</SelectItem><SelectItem value="sales">Sales</SelectItem><SelectItem value="payroll">Payroll</SelectItem><SelectItem value="vat">VAT</SelectItem></SelectContent>
+  1132→                </Select>
+  1133→              </div>
+  1134→            </div>
+  1135→            <div className="flex items-center gap-2"><Switch checked={taxForm.isActive} onCheckedChange={(v) => setTaxForm({ ...taxForm, isActive: v })} /><Label className="text-xs">Active</Label></div>
+  1136→          </div>
+  1137→          <DialogFooter><Button variant="outline" onClick={() => setShowTaxDialog(false)} className="text-xs">Cancel</Button><Button onClick={saveTaxRate} className="text-xs bg-emerald-600 hover:bg-emerald-700">{editingTax ? "Update" : "Create"}</Button></DialogFooter>
+  1138→        </DialogContent>
+  1139→      </Dialog>
+  1140→    </div>
+  1141→  )
+  1142→}
+  1143→

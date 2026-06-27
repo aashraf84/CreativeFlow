@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useERPStore, type Platform } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Settings,
   Building2,
@@ -45,6 +46,7 @@ import {
   RotateCcw,
   CheckCircle2,
   Camera,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -85,12 +87,46 @@ const PLATFORM_INTEGRATIONS: {
   { platform: "snapchat", name: "Snapchat", icon: Shield, color: "#FFFC00", description: "Connect your Snapchat account" },
 ];
 
+// ── Types ──────────────────────────────────────────────────────────
+interface OrgData {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  plan: string;
+  maxUsers: number;
+  maxAccounts: number;
+}
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  role: string;
+}
+
+interface UsageData {
+  userCount: number;
+  accountCount: number;
+}
+
+// Plan display mapping
+const PLAN_DISPLAY: Record<string, string> = {
+  starter: "Starter",
+  professional: "Professional",
+  enterprise: "Enterprise",
+};
+
 export function SettingsView() {
   const { currentUser, socialAccounts } = useERPStore();
 
   // ── Organization Settings state ────────────────────────────────
   const [orgName, setOrgName] = useState("Vortex Digital");
   const [orgPlan, setOrgPlan] = useState("Professional");
+  const [orgUsage, setOrgUsage] = useState<UsageData>({ userCount: 0, accountCount: 0 });
+  const [orgMaxUsers, setOrgMaxUsers] = useState(50);
+  const [orgMaxAccounts, setOrgMaxAccounts] = useState(20);
 
   // ── User Profile state ─────────────────────────────────────────
   const [userName, setUserName] = useState(currentUser?.name || "Sarah Chen");
@@ -119,6 +155,51 @@ export function SettingsView() {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showResetData, setShowResetData] = useState(false);
 
+  // ── Loading & saving states ────────────────────────────────────
+  const [isLoading, setIsLoading] = useState(true);
+  const [savingSection, setSavingSection] = useState<string | null>(null);
+  const [savedSection, setSavedSection] = useState<string | null>(null);
+
+  // ── Load settings from API on mount ────────────────────────────
+  const loadSettings = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/settings");
+      if (!res.ok) throw new Error("Failed to load settings");
+      const data = await res.json();
+
+      if (data.organization) {
+        const org = data.organization as OrgData;
+        setOrgName(org.name);
+        setOrgPlan(PLAN_DISPLAY[org.plan] || org.plan || "Starter");
+        setOrgMaxUsers(org.maxUsers);
+        setOrgMaxAccounts(org.maxAccounts);
+      }
+
+      if (data.user) {
+        const user = data.user as UserProfile;
+        setUserName(user.name);
+        setUserEmail(user.email);
+        setUserRole(user.role);
+      }
+
+      if (data.usage) {
+        setOrgUsage(data.usage);
+      }
+    } catch (err) {
+      console.error("Failed to load settings:", err);
+      toast.error("Failed to load settings", {
+        description: "Using default values. Please refresh to try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
   // ── Toggle platform connection ─────────────────────────────────
   function togglePlatform(platform: string) {
     setLocalConnected((prev) => {
@@ -129,10 +210,145 @@ export function SettingsView() {
     });
   }
 
-  // ── Save handler ───────────────────────────────────────────────
-  function handleSave(section: string) {
-    // In a real app, this would call an API
-    console.log(`Saved ${section} settings`);
+  // ── Save handler — calls the API ───────────────────────────────
+  async function handleSave(section: string) {
+    setSavingSection(section);
+    setSavedSection(null);
+
+    try {
+      let body: Record<string, unknown> = {};
+
+      switch (section) {
+        case "organization":
+          body = {
+            organization: { name: orgName },
+          };
+          break;
+        case "profile":
+          body = {
+            user: { name: userName, email: userEmail },
+          };
+          break;
+        case "notifications":
+          body = {
+            notifications: {
+              emailNotifications,
+              inAppNotifications,
+              weeklyDigest,
+              mentionAlerts,
+              contentApprovalAlerts,
+              scheduleReminders,
+            },
+          };
+          break;
+        case "workspace":
+          body = {
+            notifications: {
+              defaultTeam,
+              defaultView,
+              timezone,
+              language,
+            },
+          };
+          break;
+        default:
+          return;
+      }
+
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to save settings");
+      }
+
+      // Show success feedback
+      setSavedSection(section);
+      toast.success(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved`, {
+        description: "Your changes have been saved successfully.",
+      });
+
+      // Reset "Saved!" indicator after 2 seconds
+      setTimeout(() => setSavedSection(null), 2000);
+    } catch (err) {
+      console.error(`Failed to save ${section} settings:`, err);
+      toast.error("Failed to save settings", {
+        description: err instanceof Error ? err.message : "An unexpected error occurred. Please try again.",
+      });
+    } finally {
+      setSavingSection(null);
+    }
+  }
+
+  // ── Save button with loading/saved states ──────────────────────
+  function SaveButton({ section, label }: { section: string; label: string }) {
+    const isSaving = savingSection === section;
+    const isSaved = savedSection === section;
+
+    return (
+      <Button
+        onClick={() => handleSave(section)}
+        disabled={isSaving || isLoading}
+        className={cn(
+          "bg-emerald-600 hover:bg-emerald-700 text-white min-w-[130px]",
+          isSaved && "bg-emerald-500 hover:bg-emerald-500 cursor-default"
+        )}
+      >
+        {isSaving ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+            Saving...
+          </>
+        ) : isSaved ? (
+          <>
+            <CheckCircle2 className="h-4 w-4 mr-1.5" />
+            Saved!
+          </>
+        ) : (
+          <>
+            <Save className="h-4 w-4 mr-1.5" />
+            {label}
+          </>
+        )}
+      </Button>
+    );
+  }
+
+  // ── Loading skeleton ───────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-6 space-y-6 max-w-4xl">
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <Settings className="h-6 w-6 text-emerald-500" />
+              Settings
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage your organization, profile, and preferences
+            </p>
+          </div>
+        </div>
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <div className="h-4 w-40 bg-muted rounded animate-pulse" />
+                <div className="h-10 w-full bg-muted rounded animate-pulse" />
+                <div className="h-10 w-full bg-muted rounded animate-pulse" />
+                <div className="flex justify-end">
+                  <div className="h-10 w-32 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -203,21 +419,15 @@ export function SettingsView() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">User Limit</Label>
-                  <p className="text-sm text-muted-foreground">25 / 50 users</p>
+                  <p className="text-sm text-muted-foreground">{orgUsage.userCount} / {orgMaxUsers} users</p>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Account Limit</Label>
-                  <p className="text-sm text-muted-foreground">8 / 20 accounts</p>
+                  <p className="text-sm text-muted-foreground">{orgUsage.accountCount} / {orgMaxAccounts} accounts</p>
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button
-                  onClick={() => handleSave("organization")}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  <Save className="h-4 w-4 mr-1.5" />
-                  Save Changes
-                </Button>
+                <SaveButton section="organization" label="Save Changes" />
               </div>
             </CardContent>
           </Card>
@@ -273,13 +483,7 @@ export function SettingsView() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button
-                  onClick={() => handleSave("profile")}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  <Save className="h-4 w-4 mr-1.5" />
-                  Save Profile
-                </Button>
+                <SaveButton section="profile" label="Save Profile" />
               </div>
             </CardContent>
           </Card>
@@ -316,13 +520,7 @@ export function SettingsView() {
                 </React.Fragment>
               ))}
               <div className="flex justify-end pt-3">
-                <Button
-                  onClick={() => handleSave("notifications")}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  <Save className="h-4 w-4 mr-1.5" />
-                  Save Preferences
-                </Button>
+                <SaveButton section="notifications" label="Save Preferences" />
               </div>
             </CardContent>
           </Card>
@@ -410,13 +608,7 @@ export function SettingsView() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button
-                  onClick={() => handleSave("workspace")}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                >
-                  <Save className="h-4 w-4 mr-1.5" />
-                  Save Workspace
-                </Button>
+                <SaveButton section="workspace" label="Save Workspace" />
               </div>
             </CardContent>
           </Card>
