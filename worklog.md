@@ -928,3 +928,84 @@ Stage Summary:
 - Organization name and user profile changes persist to the database
 - Users get visual feedback (loading spinner, "Saved!" state, toast notifications) for all save operations
 - Loading skeleton shows while initial data is being fetched
+
+---
+
+## Task ID: 1
+## Agent: full-stack-developer
+## Date: 2026-06-27
+## Task: Migrate VortexERP from SQLite to Neon PostgreSQL and implement multi-tenant setup
+
+### Summary
+Migrated the database from SQLite to Neon PostgreSQL (serverless). Added a `Tenant` model at the top of the data hierarchy and linked `Organization` and `User` to it. Created tenant management APIs and a tenant context helper. Updated the seed route to create a default tenant first, then the organization under that tenant. Existing API routes continue to work unchanged because they all filter by `organizationId` (now scoped to a tenant).
+
+### Files Modified
+1. **`.env`** — Replaced SQLite URL with Neon PostgreSQL pooler URL (`DATABASE_URL`) and direct URL (`DIRECT_URL`). Values are quoted so the file can be sourced as a shell script (URL contains `&` for query params).
+2. **`prisma/schema.prisma`** — Provider `sqlite` → `postgresql`; added `directUrl = env("DIRECT_URL")` for migrations; added new `Tenant` model (id, name, slug, plan, status, domain, settings, timestamps, relations); added `tenantId` (required) + `tenant` relation to `Organization`; added `tenantId` (optional) + `tenant?` relation to `User`; added `@@index([tenantId])` to both.
+3. **`package.json`** — Prefixed `dev`, `db:push`, `db:generate`, `db:migrate`, `db:reset`, `seed` scripts with `set -a && . ./.env && set +a &&` so the Neon URLs override the system env var (`DATABASE_URL=file:...`) that the sandbox injects.
+4. **`src/lib/tenant.ts`** (NEW) — `getDefaultTenant()`, `getTenantById()`, `getTenantBySlug()`, `getCurrentOrg()` helpers.
+5. **`src/app/api/seed/route.ts`** — Added `tenant.deleteMany()` to cleanup; creates a `Tenant` ("Default Tenant", slug `default`) BEFORE the `Organization`; `Organization.create` includes `tenantId`; all 12 `User.create` calls include `tenantId`; added `tenant: 1` to the success response.
+6. **`src/app/api/tenants/route.ts`** (NEW) — GET (list with counts) and POST (create with validation).
+7. **`src/app/api/tenants/[id]/route.ts`** (NEW) — GET (with orgs + users), PUT (update with validation), DELETE (cascade delete tenant + all its data in a `$transaction`).
+
+### Key Decisions
+- **Multi-tenant pattern preserved**: Existing routes still filter by `organizationId`. The new `tenantId` columns add a layer above Organization without breaking existing per-org queries. No existing route logic was modified.
+- **System env var override**: The sandbox injects `DATABASE_URL=file:/home/z/my-project/db/custom.db`. Next.js does NOT override system env vars with `.env` values, so the runtime Prisma client was reading the stale SQLite URL. Fixed by sourcing `.env` with `set -a && . ./.env && set +a &&` in npm scripts. The `.env` values are quoted so the `&` in the Neon query string doesn't break shell parsing.
+- **directUrl**: Neon recommends a direct (non-pooler) connection for migrations and the pooler connection for runtime queries. The schema declares both; `prisma db push` uses `directUrl`, runtime Prisma Client uses `url`.
+- **SSL**: Both connection strings include `sslmode=require&channel_binding=require`.
+- **Optional `User.tenantId`**: Made optional (`String?`) so existing user-creation code that doesn't supply `tenantId` continues to work. The seed route sets it explicitly.
+- **Cascade delete**: Implemented tenant deletion as a manual cascade inside a `$transaction` because none of the relations declare `onDelete: Cascade`. The order matches the seed route's cleanup order to avoid FK violations.
+
+### Verification
+1. `bun run db:push` — succeeded, all tables created in Neon. Prisma Client regenerated.
+2. `GET /api/tenants` (empty) → `[]`
+3. `POST /api/tenants` → 201 with full tenant object including `_count`
+4. `GET /api/seed` → `{"success":true,"data":{"tenant":1,"organization":1,"users":12,"teams":6,"clients":5,"campaigns":4,"content":22,"socialAccounts":12,"posts":15,"automations":5,"comments":15,"activities":34,"approvals":5,"departments":6,"employees":14,"payrollRuns":3,"jobPostings":8,"disseminators":4,"disseminationTasks":12,"financeAccounts":28,"taxRates":5,"journalEntries":10}}`
+5. `GET /api/tenants` (after seed) → Default Tenant with `_count: {organizations: 1, users: 12}`
+6. `GET /` → HTTP 200 (root page renders against Neon data)
+7. `GET /api/tenants/[id]` → returns tenant with full organizations + users arrays
+8. `PUT /api/tenants/[id]` → 200 with updated tenant
+9. `GET /api/dashboard` → returns real dashboard data (contentByStage, postsPublishedThisWeek, teamStats) computed from Neon
+10. `bun run lint` → no errors
+
+### Stage Summary
+- Database: migrated from SQLite to Neon PostgreSQL (serverless)
+- Schema: added `Tenant` model + `tenantId` on Organization (required) and User (optional)
+- APIs: 4 new endpoints for tenant CRUD (list, create, get-by-id, update, delete-with-cascade)
+- Seed: now creates tenant first, then org under tenant, then 12 users linked to tenant
+- Backward compat: all existing routes continue to work unchanged (they filter by organizationId)
+- Lint: passes clean
+
+---
+Task ID: 2
+Agent: main
+Task: Migrate from SQLite to Neon PostgreSQL with multi-tenant setup
+
+Work Log:
+- Updated .env with Neon PostgreSQL connection strings (DATABASE_URL + DIRECT_URL)
+- Added quotes around URLs in .env to handle & characters in query params
+- Updated Prisma schema: provider sqlite→postgresql, added directUrl
+- Added Tenant model (id, name, slug, plan, status, domain, settings)
+- Added tenantId field to Organization model (required, relation to Tenant)
+- Added tenantId field to User model (optional, relation to Tenant)
+- Added @@index([tenantId]) on Organization and User for query performance
+- Created src/lib/tenant.ts with helper functions:
+  - getDefaultTenant(): Get or create the default tenant
+  - getTenantById(id): Get tenant by ID
+  - getTenantBySlug(slug): Get tenant by slug
+  - getCurrentOrg(): Get or create org for default tenant
+- Created /api/tenants/route.ts (GET list, POST create)
+- Created /api/tenants/[id]/route.ts (GET, PUT, DELETE with cascade)
+- Updated seed route to create tenant first, then org with tenantId
+- Fixed seed delete order for PostgreSQL FK constraints (added missing models: Expense, ITAsset, PurchaseOrder, Vendor, Product, Warehouse, etc.)
+- Successfully pushed schema to Neon PostgreSQL
+- Successfully seeded all data to Neon (tenant, org, 12 users, 6 teams, 22 content, 12 social accounts, 14 employees, 32 accounts, 10 journal entries, etc.)
+- Verified APIs return real data from Neon: Dashboard, Tenants, Accounts all working
+
+Stage Summary:
+- Database migrated from SQLite to Neon PostgreSQL (serverless)
+- Multi-tenant architecture implemented: Tenant → Organization → all data
+- All existing API routes work unchanged (they use organizationId for filtering)
+- Tenant management APIs created for full CRUD operations
+- Seed route creates default tenant "Default Tenant" with slug "default"
+- Connection uses pooler URL for runtime, direct URL for migrations

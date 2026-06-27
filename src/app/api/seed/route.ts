@@ -43,6 +43,7 @@ export async function GET() {
 
 
     // Clear existing data in correct order (respecting foreign keys)
+    // Delete child records first, then parent records
     await db.journalEntryLine.deleteMany()
     await db.journalEntry.deleteMany()
     await db.invoiceItem.deleteMany()
@@ -54,6 +55,24 @@ export async function GET() {
     await db.influencer.deleteMany()
     await db.inboxMessage.deleteMany()
     await db.notification.deleteMany()
+    await db.assetIssuance.deleteMany()
+    await db.iTAsset.deleteMany()
+    await db.purchaseOrderItem.deleteMany()
+    await db.purchaseOrder.deleteMany()
+    await db.vendor.deleteMany()
+    await db.stockMovement.deleteMany()
+    await db.stockLevel.deleteMany()
+    await db.warehouse.deleteMany()
+    await db.product.deleteMany()
+    await db.expense.deleteMany()
+    await db.taxRate.deleteMany()
+    await db.account.deleteMany()
+    await db.payrollItem.deleteMany()
+    await db.payrollRun.deleteMany()
+    await db.leaveRequest.deleteMany()
+    await db.employee.deleteMany()
+    await db.jobPosting.deleteMany()
+    await db.department.deleteMany()
     await db.asset.deleteMany()
     await db.timeEntry.deleteMany()
     await db.invoice.deleteMany()
@@ -72,9 +91,22 @@ export async function GET() {
     await db.team.deleteMany()
     await db.user.deleteMany()
     await db.organization.deleteMany()
+    await db.tenant.deleteMany()
 
     // ============================================
-    // 1. Organization
+    // 1. Tenant (multi-tenant root)
+    // ============================================
+    const tenant = await db.tenant.create({
+      data: {
+        name: 'Default Tenant',
+        slug: 'default',
+        plan: 'professional',
+        status: 'active',
+      },
+    })
+
+    // ============================================
+    // 2. Organization (scoped to tenant)
     // ============================================
     const org = await db.organization.create({
       data: {
@@ -84,48 +116,49 @@ export async function GET() {
         plan: 'professional',
         maxUsers: 25,
         maxAccounts: 50,
+        tenantId: tenant.id,
       },
     })
 
     // ============================================
-    // 2. Users
+    // 3. Users (linked to tenant + organization)
     // ============================================
     const users = await Promise.all([
       db.user.create({
-        data: { email: 'sarah.chen@vortexdigital.com', name: 'Sarah Chen', role: 'admin', organizationId: org.id },
+        data: { email: 'sarah.chen@vortexdigital.com', name: 'Sarah Chen', role: 'admin', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'marcus.williams@vortexdigital.com', name: 'Marcus Williams', role: 'lead', organizationId: org.id },
+        data: { email: 'marcus.williams@vortexdigital.com', name: 'Marcus Williams', role: 'lead', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'priya.sharma@vortexdigital.com', name: 'Priya Sharma', role: 'lead', organizationId: org.id },
+        data: { email: 'priya.sharma@vortexdigital.com', name: 'Priya Sharma', role: 'lead', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'jake.morrison@vortexdigital.com', name: 'Jake Morrison', role: 'lead', organizationId: org.id },
+        data: { email: 'jake.morrison@vortexdigital.com', name: 'Jake Morrison', role: 'lead', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'luna.rodriguez@vortexdigital.com', name: 'Luna Rodriguez', role: 'member', organizationId: org.id },
+        data: { email: 'luna.rodriguez@vortexdigital.com', name: 'Luna Rodriguez', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'david.kim@vortexdigital.com', name: 'David Kim', role: 'member', organizationId: org.id },
+        data: { email: 'david.kim@vortexdigital.com', name: 'David Kim', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'emma.thompson@vortexdigital.com', name: 'Emma Thompson', role: 'member', organizationId: org.id },
+        data: { email: 'emma.thompson@vortexdigital.com', name: 'Emma Thompson', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'alex.nakamura@vortexdigital.com', name: 'Alex Nakamura', role: 'member', organizationId: org.id },
+        data: { email: 'alex.nakamura@vortexdigital.com', name: 'Alex Nakamura', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'maya.patel@vortexdigital.com', name: 'Maya Patel', role: 'member', organizationId: org.id },
+        data: { email: 'maya.patel@vortexdigital.com', name: 'Maya Patel', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'jordan.lee@vortexdigital.com', name: 'Jordan Lee', role: 'member', organizationId: org.id },
+        data: { email: 'jordan.lee@vortexdigital.com', name: 'Jordan Lee', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'sam.rodriguez@vortexdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: org.id },
+        data: { email: 'sam.rodriguez@vortexdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'riley.kim@vortexdigital.com', name: 'Riley Kim', role: 'member', organizationId: org.id },
+        data: { email: 'riley.kim@vortexdigital.com', name: 'Riley Kim', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
     ])
 
@@ -883,6 +916,7 @@ export async function GET() {
       success: true,
       message: 'Database seeded successfully',
       data: {
+        tenant: 1,
         organization: 1,
         users: users.length,
         teams: teams.length,

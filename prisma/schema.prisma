@@ -3,8 +3,24 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  plan        String   @default("starter")  // starter, professional, enterprise
+  status      String   @default("active")   // active, suspended, cancelled
+  domain      String?  // custom domain for the tenant
+  settings    String?  // JSON string for tenant-level settings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizations Organization[]
+  users         User[]
 }
 
 model Organization {
@@ -15,9 +31,11 @@ model Organization {
   plan        String   @default("starter")
   maxUsers    Int      @default(10)
   maxAccounts Int      @default(25)
+  tenantId    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
   users      User[]
   teams      Team[]
   clients    Client[]
@@ -55,6 +73,8 @@ model Organization {
   communicationContacts CommunicationContact[]
   journalEntries    JournalEntry[]
   invoiceItems      InvoiceItem[]
+
+  @@index([tenantId])
 }
 
 model User {
@@ -64,10 +84,12 @@ model User {
   avatar         String?
   role           String   @default("member")
   organizationId String
+  tenantId       String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   organization   Organization  @relation(fields: [organizationId], references: [id])
+  tenant         Tenant?       @relation(fields: [tenantId], references: [id])
   teamMemberships TeamMember[]
   contents       Content[]     @relation("ContentCreator")
   assignedContents Content[]   @relation("ContentAssignee")
@@ -92,6 +114,7 @@ model User {
   journalEntriesCreated JournalEntry[] @relation("JournalEntryCreator")
 
   @@index([organizationId])
+  @@index([tenantId])
 }
 
 model Team {
