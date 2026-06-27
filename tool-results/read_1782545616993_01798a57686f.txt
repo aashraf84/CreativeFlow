@@ -1,0 +1,2002 @@
+     1→import { PrismaClient } from '@prisma/client'
+     2→
+     3→const prisma = new PrismaClient()
+     4→
+     5→async function main() {
+     6→  console.log('🌱 Seeding database...')
+     7→
+     8→  // Clear existing data in correct order (respecting foreign keys)
+     9→  await prisma.purchaseOrderItem.deleteMany()
+    10→  await prisma.purchaseOrder.deleteMany()
+    11→  await prisma.stockMovement.deleteMany()
+    12→  await prisma.stockLevel.deleteMany()
+    13→  await prisma.warehouse.deleteMany()
+    14→  await prisma.product.deleteMany()
+    15→  await prisma.vendor.deleteMany()
+    16→  await prisma.taxRate.deleteMany()
+    17→  await prisma.account.deleteMany()
+    18→  await prisma.expense.deleteMany()
+    19→  await prisma.payrollItem.deleteMany()
+    20→  await prisma.payrollRun.deleteMany()
+    21→  await prisma.leaveRequest.deleteMany()
+    22→  await prisma.jobPosting.deleteMany()
+    23→  await prisma.employee.deleteMany()
+    24→  await prisma.department.deleteMany()
+    25→  await prisma.brandKit.deleteMany()
+    26→  await prisma.influencer.deleteMany()
+    27→  await prisma.inboxMessage.deleteMany()
+    28→  await prisma.notification.deleteMany()
+    29→  await prisma.asset.deleteMany()
+    30→  await prisma.timeEntry.deleteMany()
+    31→  await prisma.invoice.deleteMany()
+    32→  await prisma.approval.deleteMany()
+    33→  await prisma.activityLog.deleteMany()
+    34→  await prisma.comment.deleteMany()
+    35→  await prisma.post.deleteMany()
+    36→  await prisma.automationRule.deleteMany()
+    37→  await prisma.socialAccount.deleteMany()
+    38→  await prisma.content.deleteMany()
+    39→  await prisma.campaign.deleteMany()
+    40→  await prisma.client.deleteMany()
+    41→  await prisma.teamMember.deleteMany()
+    42→  await prisma.team.deleteMany()
+    43→  await prisma.user.deleteMany()
+    44→  await prisma.organization.deleteMany()
+    45→  console.log('✅ Cleared existing data')
+    46→
+    47→  // ============================================
+    48→  // 1. Organization
+    49→  // ============================================
+    50→  const org = await prisma.organization.create({
+    51→    data: {
+    52→      name: 'Vortex Digital',
+    53→      slug: 'vortex-digital',
+    54→      logo: '/logo.svg',
+    55→      plan: 'professional',
+    56→      maxUsers: 25,
+    57→      maxAccounts: 50,
+    58→    },
+    59→  })
+    60→  console.log('✅ Created organization: Vortex Digital')
+    61→
+    62→  // ============================================
+    63→  // 2. Users (8 total: 1 admin, 3 team leads, 4 members)
+    64→  // ============================================
+    65→  const users = await Promise.all([
+    66→    prisma.user.create({
+    67→      data: {
+    68→        email: 'sarah.chen@vortexdigital.com',
+    69→        name: 'Sarah Chen',
+    70→        role: 'admin',
+    71→        organizationId: org.id,
+    72→        avatar: null,
+    73→      },
+    74→    }),
+    75→    prisma.user.create({
+    76→      data: {
+    77→        email: 'marcus.williams@vortexdigital.com',
+    78→        name: 'Marcus Williams',
+    79→        role: 'lead',
+    80→        organizationId: org.id,
+    81→      },
+    82→    }),
+    83→    prisma.user.create({
+    84→      data: {
+    85→        email: 'priya.sharma@vortexdigital.com',
+    86→        name: 'Priya Sharma',
+    87→        role: 'lead',
+    88→        organizationId: org.id,
+    89→      },
+    90→    }),
+    91→    prisma.user.create({
+    92→      data: {
+    93→        email: 'jake.morrison@vortexdigital.com',
+    94→        name: 'Jake Morrison',
+    95→        role: 'lead',
+    96→        organizationId: org.id,
+    97→      },
+    98→    }),
+    99→    prisma.user.create({
+   100→      data: {
+   101→        email: 'luna.rodriguez@vortexdigital.com',
+   102→        name: 'Luna Rodriguez',
+   103→        role: 'member',
+   104→        organizationId: org.id,
+   105→      },
+   106→    }),
+   107→    prisma.user.create({
+   108→      data: {
+   109→        email: 'david.kim@vortexdigital.com',
+   110→        name: 'David Kim',
+   111→        role: 'member',
+   112→        organizationId: org.id,
+   113→      },
+   114→    }),
+   115→    prisma.user.create({
+   116→      data: {
+   117→        email: 'emma.thompson@vortexdigital.com',
+   118→        name: 'Emma Thompson',
+   119→        role: 'member',
+   120→        organizationId: org.id,
+   121→      },
+   122→    }),
+   123→    prisma.user.create({
+   124→      data: {
+   125→        email: 'alex.nakamura@vortexdigital.com',
+   126→        name: 'Alex Nakamura',
+   127→        role: 'member',
+   128→        organizationId: org.id,
+   129→      },
+   130→    }),
+   131→  ])
+   132→
+   133→  const [sarah, marcus, priya, jake, luna, david, emma, alex] = users
+   134→  console.log('✅ Created 8 users')
+   135→
+   136→  // ============================================
+   137→  // 3. Teams (6 teams)
+   138→  // ============================================
+   139→  const teams = await Promise.all([
+   140→    prisma.team.create({
+   141→      data: {
+   142→        name: 'Creatives',
+   143→        type: 'creatives',
+   144→        color: '#f59e0b',
+   145→        icon: 'lightbulb',
+   146→        description: 'Ideation and creative direction for all campaigns',
+   147→        organizationId: org.id,
+   148→      },
+   149→    }),
+   150→    prisma.team.create({
+   151→      data: {
+   152→        name: 'Content',
+   153→        type: 'content',
+   154→        color: '#10b981',
+   155→        icon: 'pen-tool',
+   156→        description: 'Copywriting and content creation across all platforms',
+   157→        organizationId: org.id,
+   158→      },
+   159→    }),
+   160→    prisma.team.create({
+   161→      data: {
+   162→        name: 'Design',
+   163→        type: 'design',
+   164→        color: '#8b5cf6',
+   165→        icon: 'palette',
+   166→        description: 'Visual design, graphics, and brand assets',
+   167→        organizationId: org.id,
+   168→      },
+   169→    }),
+   170→    prisma.team.create({
+   171→      data: {
+   172→        name: 'Edit',
+   173→        type: 'edit',
+   174→        color: '#ef4444',
+   175→        icon: 'film',
+   176→        description: 'Video editing, post-production, and quality review',
+   177→        organizationId: org.id,
+   178→      },
+   179→    }),
+   180→    prisma.team.create({
+   181→      data: {
+   182→        name: 'Archive',
+   183→        type: 'archive',
+   184→        color: '#6b7280',
+   185→        icon: 'archive',
+   186→        description: 'Content archiving and asset management',
+   187→        organizationId: org.id,
+   188→      },
+   189→    }),
+   190→    prisma.team.create({
+   191→      data: {
+   192→        name: 'Dissemination',
+   193→        type: 'dissemination',
+   194→        color: '#3b82f6',
+   195→        icon: 'share-2',
+   196→        description: 'Scheduling, publishing, and distribution across platforms',
+   197→        organizationId: org.id,
+   198→      },
+   199→    }),
+   200→  ])
+   201→
+   202→  const [creativesTeam, contentTeam, designTeam, editTeam, archiveTeam, disseminationTeam] = teams
+   203→  console.log('✅ Created 6 teams')
+   204→
+   205→  // ============================================
+   206→  // Team Members
+   207→  // ============================================
+   208→  await Promise.all([
+   209→    // Creatives: Marcus (lead), Luna
+   210→    prisma.teamMember.create({ data: { userId: marcus.id, teamId: creativesTeam.id, role: 'lead' } }),
+   211→    prisma.teamMember.create({ data: { userId: luna.id, teamId: creativesTeam.id, role: 'member' } }),
+   212→    // Content: Priya (lead), David, Emma
+   213→    prisma.teamMember.create({ data: { userId: priya.id, teamId: contentTeam.id, role: 'lead' } }),
+   214→    prisma.teamMember.create({ data: { userId: david.id, teamId: contentTeam.id, role: 'member' } }),
+   215→    prisma.teamMember.create({ data: { userId: emma.id, teamId: contentTeam.id, role: 'member' } }),
+   216→    // Design: Jake (lead), Luna, Alex
+   217→    prisma.teamMember.create({ data: { userId: jake.id, teamId: designTeam.id, role: 'lead' } }),
+   218→    prisma.teamMember.create({ data: { userId: luna.id, teamId: designTeam.id, role: 'member' } }),
+   219→    prisma.teamMember.create({ data: { userId: alex.id, teamId: designTeam.id, role: 'member' } }),
+   220→    // Edit: Marcus (lead), David
+   221→    prisma.teamMember.create({ data: { userId: marcus.id, teamId: editTeam.id, role: 'lead' } }),
+   222→    prisma.teamMember.create({ data: { userId: david.id, teamId: editTeam.id, role: 'member' } }),
+   223→    // Archive: Emma
+   224→    prisma.teamMember.create({ data: { userId: emma.id, teamId: archiveTeam.id, role: 'lead' } }),
+   225→    // Dissemination: Alex (lead), Luna
+   226→    prisma.teamMember.create({ data: { userId: alex.id, teamId: disseminationTeam.id, role: 'lead' } }),
+   227→    prisma.teamMember.create({ data: { userId: luna.id, teamId: disseminationTeam.id, role: 'member' } }),
+   228→  ])
+   229→  console.log('✅ Created team memberships')
+   230→
+   231→  // ============================================
+   232→  // 4. Clients (5)
+   233→  // ============================================
+   234→  const clients = await Promise.all([
+   235→    prisma.client.create({
+   236→      data: {
+   237→        name: 'TechCorp',
+   238→        industry: 'Technology',
+   239→        website: 'https://techcorp.io',
+   240→        email: 'marketing@techcorp.io',
+   241→        phone: '+1-555-0101',
+   242→        status: 'active',
+   243→        organizationId: org.id,
+   244→      },
+   245→    }),
+   246→    prisma.client.create({
+   247→      data: {
+   248→        name: 'FashionHub',
+   249→        industry: 'Fashion & Retail',
+   250→        website: 'https://fashionhub.com',
+   251→        email: 'pr@fashionhub.com',
+   252→        phone: '+1-555-0202',
+   253→        status: 'active',
+   254→        organizationId: org.id,
+   255→      },
+   256→    }),
+   257→    prisma.client.create({
+   258→      data: {
+   259→        name: 'FoodVibe',
+   260→        industry: 'Food & Beverage',
+   261→        website: 'https://foodvibe.co',
+   262→        email: 'hello@foodvibe.co',
+   263→        phone: '+1-555-0303',
+   264→        status: 'active',
+   265→        organizationId: org.id,
+   266→      },
+   267→    }),
+   268→    prisma.client.create({
+   269→      data: {
+   270→        name: 'AutoDrive',
+   271→        industry: 'Automotive',
+   272→        website: 'https://autodrive.com',
+   273→        email: 'media@autodrive.com',
+   274→        phone: '+1-555-0404',
+   275→        status: 'active',
+   276→        organizationId: org.id,
+   277→      },
+   278→    }),
+   279→    prisma.client.create({
+   280→      data: {
+   281→        name: 'WellnessCo',
+   282→        industry: 'Health & Wellness',
+   283→        website: 'https://wellnessco.com',
+   284→        email: 'info@wellnessco.com',
+   285→        phone: '+1-555-0505',
+   286→        status: 'prospect',
+   287→        organizationId: org.id,
+   288→      },
+   289→    }),
+   290→  ])
+   291→
+   292→  const [techcorp, fashionhub, foodvibe, autodrive, wellnessco] = clients
+   293→  console.log('✅ Created 5 clients')
+   294→
+   295→  // ============================================
+   296→  // 5. Campaigns (4)
+   297→  // ============================================
+   298→  const campaigns = await Promise.all([
+   299→    prisma.campaign.create({
+   300→      data: {
+   301→        name: 'TechCorp Spring Launch 2025',
+   302→        description: 'Full social media campaign for TechCorp\'s new SaaS product launch targeting enterprise clients',
+   303→        status: 'active',
+   304→        startDate: new Date('2025-02-01'),
+   305→        endDate: new Date('2025-04-30'),
+   306→        budget: 45000,
+   307→        clientId: techcorp.id,
+   308→        organizationId: org.id,
+   309→      },
+   310→    }),
+   311→    prisma.campaign.create({
+   312→      data: {
+   313→        name: 'FashionHub Summer Collection',
+   314→        description: 'Visual-first campaign for FashionHub\'s summer line across Instagram and TikTok',
+   315→        status: 'active',
+   316→        startDate: new Date('2025-03-01'),
+   317→        endDate: new Date('2025-06-30'),
+   318→        budget: 32000,
+   319→        clientId: fashionhub.id,
+   320→        organizationId: org.id,
+   321→      },
+   322→    }),
+   323→    prisma.campaign.create({
+   324→      data: {
+   325→        name: 'FoodVibe Taste Stories',
+   326→        description: 'User-generated content campaign encouraging food lovers to share their taste stories',
+   327→        status: 'draft',
+   328→        startDate: new Date('2025-05-01'),
+   329→        endDate: new Date('2025-07-31'),
+   330→        budget: 18000,
+   331→        clientId: foodvibe.id,
+   332→        organizationId: org.id,
+   333→      },
+   334→    }),
+   335→    prisma.campaign.create({
+   336→      data: {
+   337→        name: 'AutoDrive EV Revolution',
+   338→        description: 'Multi-platform campaign for AutoDrive\'s electric vehicle lineup launch',
+   339→        status: 'completed',
+   340→        startDate: new Date('2024-10-01'),
+   341→        endDate: new Date('2025-01-31'),
+   342→        budget: 68000,
+   343→        clientId: autodrive.id,
+   344→        organizationId: org.id,
+   345→      },
+   346→    }),
+   347→  ])
+   348→
+   349→  const [techcorpCampaign, fashionCampaign, foodvibeCampaign, autodriveCampaign] = campaigns
+   350→  console.log('✅ Created 4 campaigns')
+   351→
+   352→  // ============================================
+   353→  // 6. Content Items (20+ across all pipeline stages)
+   354→  // ============================================
+   355→  const now = new Date()
+   356→  const dayMs = 86400000
+   357→
+   358→  const contentItems = await Promise.all([
+   359→    // IDEA stage (4 items)
+   360→    prisma.content.create({
+   361→      data: {
+   362→        title: 'TechCorp CEO Spotlight Interview',
+   363→        description: 'Behind-the-scenes interview series with TechCorp leadership about the future of enterprise AI',
+   364→        type: 'video',
+   365→        stage: 'idea',
+   366→        priority: 'high',
+   367→        format: 'landscape',
+   368→        tags: 'interview,leadership,behind-the-scenes',
+   369→        dueDate: new Date(now.getTime() + 14 * dayMs),
+   370→        organizationId: org.id,
+   371→        campaignId: techcorpCampaign.id,
+   372→        creatorId: marcus.id,
+   373→        assigneeId: marcus.id,
+   374→        teamId: creativesTeam.id,
+   375→      },
+   376→    }),
+   377→    prisma.content.create({
+   378→      data: {
+   379→        title: 'FashionHub Summer Lookbook Reel',
+   380→        description: 'Fast-paced reel showcasing the top 10 summer looks from the new collection',
+   381→        type: 'reel',
+   382→        stage: 'idea',
+   383→        priority: 'medium',
+   384→        format: 'vertical',
+   385→        tags: 'lookbook,summer,fashion-reel',
+   386→        dueDate: new Date(now.getTime() + 10 * dayMs),
+   387→        organizationId: org.id,
+   388→        campaignId: fashionCampaign.id,
+   389→        creatorId: luna.id,
+   390→        assigneeId: luna.id,
+   391→        teamId: creativesTeam.id,
+   392→      },
+   393→    }),
+   394→    prisma.content.create({
+   395→      data: {
+   396→        title: 'FoodVibe Recipe Card Series',
+   397→        description: 'Weekly recipe cards featuring seasonal ingredients for Instagram carousel posts',
+   398→        type: 'carousel',
+   399→        stage: 'idea',
+   400→        priority: 'medium',
+   401→        format: 'square',
+   402→        tags: 'recipe,seasonal,carousel',
+   403→        dueDate: new Date(now.getTime() + 7 * dayMs),
+   404→        organizationId: org.id,
+   405→        campaignId: foodvibeCampaign.id,
+   406→        creatorId: priya.id,
+   407→        assigneeId: priya.id,
+   408→        teamId: contentTeam.id,
+   409→      },
+   410→    }),
+   411→    prisma.content.create({
+   412→      data: {
+   413→        title: 'AutoDrive Community Poll Series',
+   414→        description: 'Interactive LinkedIn polls about EV preferences and sustainability',
+   415→        type: 'post',
+   416→        stage: 'idea',
+   417→        priority: 'low',
+   418→        format: 'square',
+   419→        tags: 'poll,community,engagement',
+   420→        dueDate: new Date(now.getTime() + 21 * dayMs),
+   421→        organizationId: org.id,
+   422→        campaignId: autodriveCampaign.id,
+   423→        creatorId: emma.id,
+   424→        assigneeId: emma.id,
+   425→        teamId: contentTeam.id,
+   426→      },
+   427→    }),
+   428→
+   429→    // DESIGN stage (4 items)
+   430→    prisma.content.create({
+   431→      data: {
+   432→        title: 'TechCorp Product Feature Infographic',
+   433→        description: 'Infographic breaking down the 5 key features of the new SaaS platform',
+   434→        type: 'graphic',
+   435→        stage: 'design',
+   436→        priority: 'high',
+   437→        format: 'landscape',
+   438→        tags: 'infographic,product-features,saas',
+   439→        dueDate: new Date(now.getTime() + 5 * dayMs),
+   440→        organizationId: org.id,
+   441→        campaignId: techcorpCampaign.id,
+   442→        creatorId: marcus.id,
+   443→        assigneeId: jake.id,
+   444→        teamId: designTeam.id,
+   445→      },
+   446→    }),
+   447→    prisma.content.create({
+   448→      data: {
+   449→        title: 'FashionHub Brand Story Carousel',
+   450→        description: '7-slide carousel telling the FashionHub sustainability story',
+   451→        type: 'carousel',
+   452→        stage: 'design',
+   453→        priority: 'high',
+   454→        format: 'square',
+   455→        tags: 'brand-story,sustainability,carousel',
+   456→        dueDate: new Date(now.getTime() + 3 * dayMs),
+   457→        organizationId: org.id,
+   458→        campaignId: fashionCampaign.id,
+   459→        creatorId: priya.id,
+   460→        assigneeId: alex.id,
+   461→        teamId: designTeam.id,
+   462→      },
+   463→    }),
+   464→    prisma.content.create({
+   465→      data: {
+   466→        title: 'WellnessCo Mindfulness Tips Graphic Set',
+   467→        description: 'Set of 5 daily mindfulness tip graphics for Instagram feed',
+   468→        type: 'graphic',
+   469→        stage: 'design',
+   470→        priority: 'medium',
+   471→        format: 'square',
+   472→        tags: 'mindfulness,wellness,daily-tips',
+   473→        dueDate: new Date(now.getTime() + 8 * dayMs),
+   474→        organizationId: org.id,
+   475→        creatorId: luna.id,
+   476→        assigneeId: jake.id,
+   477→        teamId: designTeam.id,
+   478→      },
+   479→    }),
+   480→    prisma.content.create({
+   481→      data: {
+   482→        title: 'AutoDrive EV Comparison Chart',
+   483→        description: 'Visual comparison chart of AutoDrive EV models vs competitors',
+   484→        type: 'graphic',
+   485→        stage: 'design',
+   486→        priority: 'urgent',
+   487→        format: 'landscape',
+   488→        tags: 'comparison,ev,competitive',
+   489→        dueDate: new Date(now.getTime() + 2 * dayMs),
+   490→        organizationId: org.id,
+   491→        campaignId: autodriveCampaign.id,
+   492→        creatorId: marcus.id,
+   493→        assigneeId: luna.id,
+   494→        teamId: designTeam.id,
+   495→      },
+   496→    }),
+   497→
+   498→    // EDIT stage (3 items)
+   499→    prisma.content.create({
+   500→      data: {
+   501→        title: 'TechCorp Platform Demo Video',
+   502→        description: '3-minute product demo video for LinkedIn and YouTube',
+   503→        type: 'video',
+   504→        stage: 'edit',
+   505→        priority: 'urgent',
+   506→        format: 'landscape',
+   507→        tags: 'demo,product,video',
+   508→        dueDate: new Date(now.getTime() + 1 * dayMs),
+   509→        organizationId: org.id,
+   510→        campaignId: techcorpCampaign.id,
+   511→        creatorId: marcus.id,
+   512→        assigneeId: david.id,
+   513→        teamId: editTeam.id,
+   514→      },
+   515→    }),
+   516→    prisma.content.create({
+   517→      data: {
+   518→        title: 'FashionHub BTS Fashion Show Reel',
+   519→        description: 'Behind-the-scenes reel from the summer fashion show photoshoot',
+   520→        type: 'reel',
+   521→        stage: 'edit',
+   522→        priority: 'high',
+   523→        format: 'vertical',
+   524→        tags: 'behind-the-scenes,fashion-show,reel',
+   525→        dueDate: new Date(now.getTime() + 4 * dayMs),
+   526→        organizationId: org.id,
+   527→        campaignId: fashionCampaign.id,
+   528→        creatorId: luna.id,
+   529→        assigneeId: marcus.id,
+   530→        teamId: editTeam.id,
+   531→      },
+   532→    }),
+   533→    prisma.content.create({
+   534→      data: {
+   535→        title: 'FoodVibe Kitchen Stories Episode 3',
+   536→        description: 'Third episode of the Kitchen Stories video series featuring a local chef',
+   537→        type: 'video',
+   538→        stage: 'edit',
+   539→        priority: 'medium',
+   540→        format: 'landscape',
+   541→        tags: 'kitchen-stories,video-series,chef',
+   542→        dueDate: new Date(now.getTime() + 6 * dayMs),
+   543→        organizationId: org.id,
+   544→        campaignId: foodvibeCampaign.id,
+   545→        creatorId: priya.id,
+   546→        assigneeId: david.id,
+   547→        teamId: editTeam.id,
+   548→      },
+   549→    }),
+   550→
+   551→    // REVIEW stage (3 items)
+   552→    prisma.content.create({
+   553→      data: {
+   554→        title: 'TechCorp Case Study Carousel',
+   555→        description: 'Client success story carousel for TechCorp enterprise solution',
+   556→        type: 'carousel',
+   557→        stage: 'review',
+   558→        priority: 'high',
+   559→        format: 'square',
+   560→        tags: 'case-study,success-story,enterprise',
+   561→        dueDate: new Date(now.getTime() - 1 * dayMs),
+   562→        organizationId: org.id,
+   563→        campaignId: techcorpCampaign.id,
+   564→        creatorId: priya.id,
+   565→        assigneeId: sarah.id,
+   566→        teamId: contentTeam.id,
+   567→      },
+   568→    }),
+   569→    prisma.content.create({
+   570→      data: {
+   571→        title: 'FashionHub Influencer Collaboration Post',
+   572→        description: 'Sponsored post with @StyleMaven featuring FashionHub summer accessories',
+   573→        type: 'post',
+   574→        stage: 'review',
+   575→        priority: 'high',
+   576→        format: 'square',
+   577→        tags: 'influencer,sponsored,accessories',
+   578→        dueDate: new Date(now.getTime() - 1 * dayMs),
+   579→        organizationId: org.id,
+   580→        campaignId: fashionCampaign.id,
+   581→        creatorId: emma.id,
+   582→        assigneeId: priya.id,
+   583→        teamId: contentTeam.id,
+   584→      },
+   585→    }),
+   586→    prisma.content.create({
+   587→      data: {
+   588→        title: 'AutoDrive Test Drive Story Series',
+   589→        description: '5-part Instagram story series of real customer test drive experiences',
+   590→        type: 'story',
+   591→        stage: 'review',
+   592→        priority: 'medium',
+   593→        format: 'vertical',
+   594→        tags: 'test-drive,stories,customer-experience',
+   595→        dueDate: new Date(now.getTime() - 2 * dayMs),
+   596→        organizationId: org.id,
+   597→        campaignId: autodriveCampaign.id,
+   598→        creatorId: david.id,
+   599→        assigneeId: jake.id,
+   600→        teamId: contentTeam.id,
+   601→      },
+   602→    }),
+   603→
+   604→    // APPROVE stage (3 items)
+   605→    prisma.content.create({
+   606→      data: {
+   607→        title: 'TechCorp LinkedIn Thought Leadership Article',
+   608→        description: 'Long-form article on the future of cloud infrastructure for LinkedIn publishing',
+   609→        type: 'article',
+   610→        stage: 'approve',
+   611→        priority: 'medium',
+   612→        format: 'landscape',
+   613→        tags: 'thought-leadership,linkedin,cloud',
+   614→        dueDate: new Date(now.getTime() - 3 * dayMs),
+   615→        organizationId: org.id,
+   616→        campaignId: techcorpCampaign.id,
+   617→        creatorId: priya.id,
+   618→        assigneeId: sarah.id,
+   619→        teamId: contentTeam.id,
+   620→      },
+   621→    }),
+   622→    prisma.content.create({
+   623→      data: {
+   624→        title: 'FashionHub Summer Sale Announcement',
+   625→        description: 'Promotional graphics and copy for the 4th of July summer sale event',
+   626→        type: 'post',
+   627→        stage: 'approve',
+   628→        priority: 'urgent',
+   629→        format: 'square',
+   630→        tags: 'sale,promotion,summer',
+   631→        dueDate: new Date(now.getTime() - 1 * dayMs),
+   632→        organizationId: org.id,
+   633→        campaignId: fashionCampaign.id,
+   634→        creatorId: emma.id,
+   635→        assigneeId: sarah.id,
+   636→        teamId: contentTeam.id,
+   637→      },
+   638→    }),
+   639→    prisma.content.create({
+   640→      data: {
+   641→        title: 'WellnessCo 30-Day Challenge Graphic',
+   642→        description: 'Launch graphic for the 30-day wellness challenge community event',
+   643→        type: 'graphic',
+   644→        stage: 'approve',
+   645→        priority: 'medium',
+   646→        format: 'square',
+   647→        tags: 'challenge,community,wellness',
+   648→        dueDate: new Date(now.getTime() - 2 * dayMs),
+   649→        organizationId: org.id,
+   650→        creatorId: luna.id,
+   651→        assigneeId: sarah.id,
+   652→        teamId: designTeam.id,
+   653→      },
+   654→    }),
+   655→
+   656→    // DISSEMINATE stage (3 items)
+   657→    prisma.content.create({
+   658→      data: {
+   659→        title: 'TechCorp Feature Launch Thread',
+   660→        description: 'Twitter/X thread announcing the top 5 new features of the platform',
+   661→        type: 'post',
+   662→        stage: 'disseminate',
+   663→        priority: 'high',
+   664→        format: 'landscape',
+   665→        tags: 'launch,thread,features',
+   666→        dueDate: new Date(now.getTime() - 5 * dayMs),
+   667→        organizationId: org.id,
+   668→        campaignId: techcorpCampaign.id,
+   669→        creatorId: david.id,
+   670→        assigneeId: alex.id,
+   671→        teamId: disseminationTeam.id,
+   672→      },
+   673→    }),
+   674→    prisma.content.create({
+   675→      data: {
+   676→        title: 'FashionHub Style Guide TikTok',
+   677→        description: 'TikTok video showing 3 ways to style a summer outfit',
+   678→        type: 'video',
+   679→        stage: 'disseminate',
+   680→        priority: 'high',
+   681→        format: 'vertical',
+   682→        tags: 'style-guide,tiktok,outfit',
+   683→        dueDate: new Date(now.getTime() - 4 * dayMs),
+   684→        organizationId: org.id,
+   685→        campaignId: fashionCampaign.id,
+   686→        creatorId: luna.id,
+   687→        assigneeId: alex.id,
+   688→        teamId: disseminationTeam.id,
+   689→      },
+   690→    }),
+   691→    prisma.content.create({
+   692→      data: {
+   693→        title: 'AutoDrive EV Range Explainer Video',
+   694→        description: 'Short-form explainer video about EV range and charging for YouTube Shorts',
+   695→        type: 'video',
+   696→        stage: 'disseminate',
+   697→        priority: 'medium',
+   698→        format: 'vertical',
+   699→        tags: 'ev-range,explainer,youtube-shorts',
+   700→        dueDate: new Date(now.getTime() - 6 * dayMs),
+   701→        organizationId: org.id,
+   702→        campaignId: autodriveCampaign.id,
+   703→        creatorId: david.id,
+   704→        assigneeId: luna.id,
+   705→        teamId: disseminationTeam.id,
+   706→      },
+   707→    }),
+   708→
+   709→    // ARCHIVED stage (2 items - completed content)
+   710→    prisma.content.create({
+   711→      data: {
+   712→        title: 'AutoDrive Holiday Campaign Banner',
+   713→        description: 'Holiday season promotional banners across all platforms',
+   714→        type: 'graphic',
+   715→        stage: 'archived',
+   716→        priority: 'low',
+   717→        format: 'landscape',
+   718→        tags: 'holiday,promotional,banner',
+   719→        dueDate: new Date(now.getTime() - 30 * dayMs),
+   720→        publishedAt: new Date(now.getTime() - 35 * dayMs),
+   721→        organizationId: org.id,
+   722→        campaignId: autodriveCampaign.id,
+   723→        creatorId: jake.id,
+   724→        assigneeId: emma.id,
+   725→        teamId: archiveTeam.id,
+   726→      },
+   727→    }),
+   728→    prisma.content.create({
+   729→      data: {
+   730→        title: 'TechCorp Year-in-Review Video',
+   731→        description: 'Annual recap video highlighting TechCorp milestones and achievements',
+   732→        type: 'video',
+   733→        stage: 'archived',
+   734→        priority: 'low',
+   735→        format: 'landscape',
+   736→        tags: 'year-in-review,recap,milestones',
+   737→        dueDate: new Date(now.getTime() - 60 * dayMs),
+   738→        publishedAt: new Date(now.getTime() - 55 * dayMs),
+   739→        organizationId: org.id,
+   740→        campaignId: techcorpCampaign.id,
+   741→        creatorId: marcus.id,
+   742→        assigneeId: emma.id,
+   743→        teamId: archiveTeam.id,
+   744→      },
+   745→    }),
+   746→  ])
+   747→
+   748→  console.log(`✅ Created ${contentItems.length} content items`)
+   749→
+   750→  // ============================================
+   751→  // 7. Social Accounts (12 across platforms)
+   752→  // ============================================
+   753→  const socialAccounts = await Promise.all([
+   754→    prisma.socialAccount.create({
+   755→      data: {
+   756→        platform: 'instagram',
+   757→        accountId: 'ig_techcorp_official',
+   758→        username: '@techcorp',
+   759→        displayName: 'TechCorp Official',
+   760→        followers: 245000,
+   761→        isVerified: true,
+   762→        isActive: true,
+   763→        userId: alex.id,
+   764→        organizationId: org.id,
+   765→      },
+   766→    }),
+   767→    prisma.socialAccount.create({
+   768→      data: {
+   769→        platform: 'instagram',
+   770→        accountId: 'ig_fashionhub',
+   771→        username: '@fashionhub',
+   772→        displayName: 'FashionHub',
+   773→        followers: 890000,
+   774→        isVerified: true,
+   775→        isActive: true,
+   776→        userId: luna.id,
+   777→        organizationId: org.id,
+   778→      },
+   779→    }),
+   780→    prisma.socialAccount.create({
+   781→      data: {
+   782→        platform: 'facebook',
+   783→        accountId: 'fb_techcorp',
+   784→        username: 'TechCorp',
+   785→        displayName: 'TechCorp Inc.',
+   786→        followers: 180000,
+   787→        isVerified: true,
+   788→        isActive: true,
+   789→        userId: alex.id,
+   790→        organizationId: org.id,
+   791→      },
+   792→    }),
+   793→    prisma.socialAccount.create({
+   794→      data: {
+   795→        platform: 'facebook',
+   796→        accountId: 'fb_foodvibe',
+   797→        username: 'FoodVibe',
+   798→        displayName: 'FoodVibe',
+   799→        followers: 320000,
+   800→        isVerified: false,
+   801→        isActive: true,
+   802→        userId: luna.id,
+   803→        organizationId: org.id,
+   804→      },
+   805→    }),
+   806→    prisma.socialAccount.create({
+   807→      data: {
+   808→        platform: 'twitter',
+   809→        accountId: 'tw_techcorp',
+   810→        username: '@techcorp_io',
+   811→        displayName: 'TechCorp',
+   812→        followers: 95000,
+   813→        isVerified: true,
+   814→        isActive: true,
+   815→        userId: alex.id,
+   816→        organizationId: org.id,
+   817→      },
+   818→    }),
+   819→    prisma.socialAccount.create({
+   820→      data: {
+   821→        platform: 'twitter',
+   822→        accountId: 'tw_autodrive',
+   823→        username: '@autodrive_ev',
+   824→        displayName: 'AutoDrive',
+   825→        followers: 67000,
+   826→        isVerified: false,
+   827→        isActive: true,
+   828→        userId: luna.id,
+   829→        organizationId: org.id,
+   830→      },
+   831→    }),
+   832→    prisma.socialAccount.create({
+   833→      data: {
+   834→        platform: 'linkedin',
+   835→        accountId: 'li_techcorp',
+   836→        username: 'techcorp',
+   837→        displayName: 'TechCorp',
+   838→        followers: 420000,
+   839→        isVerified: true,
+   840→        isActive: true,
+   841→        userId: alex.id,
+   842→        organizationId: org.id,
+   843→      },
+   844→    }),
+   845→    prisma.socialAccount.create({
+   846→      data: {
+   847→        platform: 'linkedin',
+   848→        accountId: 'li_wellnessco',
+   849→        username: 'wellnessco',
+   850→        displayName: 'WellnessCo',
+   851→        followers: 28000,
+   852→        isVerified: false,
+   853→        isActive: true,
+   854→        userId: luna.id,
+   855→        organizationId: org.id,
+   856→      },
+   857→    }),
+   858→    prisma.socialAccount.create({
+   859→      data: {
+   860→        platform: 'tiktok',
+   861→        accountId: 'tt_fashionhub',
+   862→        username: '@fashionhub',
+   863→        displayName: 'FashionHub',
+   864→        followers: 1250000,
+   865→        isVerified: true,
+   866→        isActive: true,
+   867→        userId: luna.id,
+   868→        organizationId: org.id,
+   869→      },
+   870→    }),
+   871→    prisma.socialAccount.create({
+   872→      data: {
+   873→        platform: 'tiktok',
+   874→        accountId: 'tt_foodvibe',
+   875→        username: '@foodvibe',
+   876→        displayName: 'FoodVibe',
+   877→        followers: 560000,
+   878→        isVerified: false,
+   879→        isActive: true,
+   880→        userId: luna.id,
+   881→        organizationId: org.id,
+   882→      },
+   883→    }),
+   884→    prisma.socialAccount.create({
+   885→      data: {
+   886→        platform: 'youtube',
+   887→        accountId: 'yt_techcorp',
+   888→        username: 'TechCorp',
+   889→        displayName: 'TechCorp',
+   890→        followers: 78000,
+   891→        isVerified: true,
+   892→        isActive: true,
+   893→        userId: alex.id,
+   894→        organizationId: org.id,
+   895→      },
+   896→    }),
+   897→    prisma.socialAccount.create({
+   898→      data: {
+   899→        platform: 'youtube',
+   900→        accountId: 'yt_autodrive',
+   901→        username: 'AutoDrive',
+   902→        displayName: 'AutoDrive Official',
+   903→        followers: 145000,
+   904→        isVerified: false,
+   905→        isActive: true,
+   906→        userId: alex.id,
+   907→        organizationId: org.id,
+   908→      },
+   909→    }),
+   910→  ])
+   911→
+   912→  console.log(`✅ Created ${socialAccounts.length} social accounts`)
+   913→
+   914→  // ============================================
+   915→  // 8. Posts (15+ across statuses)
+   916→  // ============================================
+   917→  const [
+   918→    igTechcorp, igFashionhub, fbTechcorp, fbFoodvibe,
+   919→    twTechcorp, twAutodrive, liTechcorp, liWellnessco,
+   920→    ttFashionhub, ttFoodvibe, ytTechcorp, ytAutodrive
+   921→  ] = socialAccounts
+   922→
+   923→  const posts = await Promise.all([
+   924→    // Published posts (6)
+   925→    prisma.post.create({
+   926→      data: {
+   927→        content: '🚀 Exciting news! Our new enterprise platform just got 5 game-changing features. See what\'s new →',
+   928→        platform: 'instagram',
+   929→        status: 'published',
+   930→        scheduledAt: new Date(now.getTime() - 7 * dayMs),
+   931→        publishedAt: new Date(now.getTime() - 7 * dayMs),
+   932→        engagement: JSON.stringify({ likes: 1240, comments: 89, shares: 234, saves: 156, impressions: 45000 }),
+   933→        socialAccountId: igTechcorp.id,
+   934→        contentId: contentItems[16].id,
+   935→        userId: alex.id,
+   936→        organizationId: org.id,
+   937→      },
+   938→    }),
+   939→    prisma.post.create({
+   940→      data: {
+   941→        content: 'Summer vibes are here! ☀️ Swipe to see our top 10 looks from the new collection → #FashionHubSummer',
+   942→        platform: 'instagram',
+   943→        status: 'published',
+   944→        scheduledAt: new Date(now.getTime() - 5 * dayMs),
+   945→        publishedAt: new Date(now.getTime() - 5 * dayMs),
+   946→        engagement: JSON.stringify({ likes: 8900, comments: 432, shares: 1200, saves: 2300, impressions: 350000 }),
+   947→        socialAccountId: igFashionhub.id,
+   948→        contentId: contentItems[17].id,
+   949→        userId: luna.id,
+   950→        organizationId: org.id,
+   951→      },
+   952→    }),
+   953→    prisma.post.create({
+   954→      data: {
+   955→        content: 'The future of cloud computing is here. Our CEO shares insights on what enterprise AI means for your business. Read the full article on our blog.',
+   956→        platform: 'linkedin',
+   957→        status: 'published',
+   958→        scheduledAt: new Date(now.getTime() - 3 * dayMs),
+   959→        publishedAt: new Date(now.getTime() - 3 * dayMs),
+   960→        engagement: JSON.stringify({ likes: 340, comments: 56, shares: 89, impressions: 28000 }),
+   961→        socialAccountId: liTechcorp.id,
+   962→        userId: alex.id,
+   963→        organizationId: org.id,
+   964→      },
+   965→    }),
+   966→    prisma.post.create({
+   967→      data: {
+   968→        content: '3 ways to style your summer outfit 🌴 Which one is your fave? #FashionHub #SummerStyle #OOTD',
+   969→        platform: 'tiktok',
+   970→        status: 'published',
+   971→        scheduledAt: new Date(now.getTime() - 4 * dayMs),
+   972→        publishedAt: new Date(now.getTime() - 4 * dayMs),
+   973→        engagement: JSON.stringify({ likes: 45000, comments: 2100, shares: 8900, views: 890000 }),
+   974→        socialAccountId: ttFashionhub.id,
+   975→        contentId: contentItems[17].id,
+   976→        userId: luna.id,
+   977→        organizationId: org.id,
+   978→      },
+   979→    }),
+   980→    prisma.post.create({
+   981→      data: {
+   982→        content: '🎄 Holiday season is here! Save big on AutoDrive this season. Visit autodrive.com for exclusive deals.',
+   983→        platform: 'facebook',
+   984→        status: 'published',
+   985→        scheduledAt: new Date(now.getTime() - 35 * dayMs),
+   986→        publishedAt: new Date(now.getTime() - 35 * dayMs),
+   987→        engagement: JSON.stringify({ likes: 890, comments: 45, shares: 120, impressions: 65000 }),
+   988→        socialAccountId: fbTechcorp.id,
+   989→        userId: alex.id,
+   990→        organizationId: org.id,
+   991→      },
+   992→    }),
+   993→    prisma.post.create({
+   994→      data: {
+   995→        content: 'How far can an EV really go? We put our models to the test. Watch the full video on YouTube →',
+   996→        platform: 'twitter',
+   997→        status: 'published',
+   998→        scheduledAt: new Date(now.getTime() - 6 * dayMs),
+   999→        publishedAt: new Date(now.getTime() - 6 * dayMs),
+  1000→        engagement: JSON.stringify({ likes: 234, comments: 18, retweets: 67, impressions: 45000 }),
+  1001→        socialAccountId: twAutodrive.id,
+  1002→        contentId: contentItems[18].id,
+  1003→        userId: luna.id,
+  1004→        organizationId: org.id,
+  1005→      },
+  1006→    }),
+  1007→
+  1008→    // Scheduled posts (5)
+  1009→    prisma.post.create({
+  1010→      data: {
+  1011→        content: '📣 New feature alert! Our platform now supports real-time collaboration. See it in action →',
+  1012→        platform: 'twitter',
+  1013→        status: 'scheduled',
+  1014→        scheduledAt: new Date(now.getTime() + 1 * dayMs),
+  1015→        socialAccountId: twTechcorp.id,
+  1016→        contentId: contentItems[16].id,
+  1017→        userId: alex.id,
+  1018→        organizationId: org.id,
+  1019→      },
+  1020→    }),
+  1021→    prisma.post.create({
+  1022→      data: {
+  1023→        content: 'Summer Sale starts NOW! 🎉 Up to 50% off select items. Shop the collection → #FashionHubSale',
+  1024→        platform: 'instagram',
+  1025→        status: 'scheduled',
+  1026→        scheduledAt: new Date(now.getTime() + 2 * dayMs),
+  1027→        socialAccountId: igFashionhub.id,
+  1028→        contentId: contentItems[15].id,
+  1029→        userId: luna.id,
+  1030→        organizationId: org.id,
+  1031→      },
+  1032→    }),
+  1033→    prisma.post.create({
+  1034→      data: {
+  1035→        content: 'Wondering about EV range? Our latest explainer breaks down everything you need to know about going electric.',
+  1036→        platform: 'youtube',
+  1037→        status: 'scheduled',
+  1038→        scheduledAt: new Date(now.getTime() + 3 * dayMs),
+  1039→        socialAccountId: ytAutodrive.id,
+  1040→        contentId: contentItems[18].id,
+  1041→        userId: alex.id,
+  1042→        organizationId: org.id,
+  1043→      },
+  1044→    }),
+  1045→    prisma.post.create({
+  1046→      data: {
+  1047→        content: 'Monday motivation! Start your week with these 3 simple mindfulness techniques 🧘‍♀️ #WellnessCo',
+  1048→        platform: 'linkedin',
+  1049→        status: 'scheduled',
+  1050→        scheduledAt: new Date(now.getTime() + 4 * dayMs),
+  1051→        socialAccountId: liWellnessco.id,
+  1052→        contentId: contentItems[14].id,
+  1053→        userId: luna.id,
+  1054→        organizationId: org.id,
+  1055→      },
+  1056→    }),
+  1057→    prisma.post.create({
+  1058→      data: {
+  1059→        content: 'Fresh recipes coming your way! 🍳 This week\'s seasonal special: Lemon Herb Grilled Salmon',
+  1060→        platform: 'facebook',
+  1061→        status: 'scheduled',
+  1062→        scheduledAt: new Date(now.getTime() + 5 * dayMs),
+  1063→        socialAccountId: fbFoodvibe.id,
+  1064→        userId: luna.id,
+  1065→        organizationId: org.id,
+  1066→      },
+  1067→    }),
+  1068→
+  1069→    // Draft posts (4)
+  1070→    prisma.post.create({
+  1071→      data: {
+  1072→        content: 'Behind the scenes of our product photoshoot 📸 Stay tuned for the full reveal!',
+  1073→        platform: 'instagram',
+  1074→        status: 'draft',
+  1075→        socialAccountId: igFashionhub.id,
+  1076→        userId: luna.id,
+  1077→        organizationId: org.id,
+  1078→      },
+  1079→    }),
+  1080→    prisma.post.create({
+  1081→      data: {
+  1082→        content: 'Introducing Kitchen Stories: a new video series featuring local chefs and their signature dishes.',
+  1083→        platform: 'tiktok',
+  1084→        status: 'draft',
+  1085→        socialAccountId: ttFoodvibe.id,
+  1086→        contentId: contentItems[8].id,
+  1087→        userId: luna.id,
+  1088→        organizationId: org.id,
+  1089→      },
+  1090→    }),
+  1091→    prisma.post.create({
+  1092→      data: {
+  1093→        content: 'Our 30-day wellness challenge starts soon! Are you ready? Sign up at wellnessco.com/challenge',
+  1094→        platform: 'instagram',
+  1095→        status: 'draft',
+  1096→        socialAccountId: igFashionhub.id,
+  1097→        contentId: contentItems[14].id,
+  1098→        userId: luna.id,
+  1099→        organizationId: org.id,
+  1100→      },
+  1101→    }),
+  1102→    prisma.post.create({
+  1103→      data: {
+  1104→        content: 'Customer spotlight: How TechCorp helped Acme Inc reduce their infrastructure costs by 40%',
+  1105→        platform: 'linkedin',
+  1106→        status: 'draft',
+  1107→        socialAccountId: liTechcorp.id,
+  1108→        contentId: contentItems[10].id,
+  1109→        userId: alex.id,
+  1110→        organizationId: org.id,
+  1111→      },
+  1112→    }),
+  1113→  ])
+  1114→
+  1115→  console.log(`✅ Created ${posts.length} posts`)
+  1116→
+  1117→  // ============================================
+  1118→  // 9. Automation Rules (5)
+  1119→  // ============================================
+  1120→  const automations = await Promise.all([
+  1121→    prisma.automationRule.create({
+  1122→      data: {
+  1123→        name: 'Auto-assign to Design Team',
+  1124→        description: 'When content moves to design stage, automatically assign to the Design team lead',
+  1125→        trigger: 'stage_change',
+  1126→        conditions: JSON.stringify({ fromStage: 'idea', toStage: 'design' }),
+  1127→        actions: JSON.stringify({ assignToTeam: 'design', notifyTeamLead: true }),
+  1128→        isActive: true,
+  1129→        organizationId: org.id,
+  1130→      },
+  1131→    }),
+  1132→    prisma.automationRule.create({
+  1133→      data: {
+  1134→        name: 'Content Review Reminder',
+  1135→        description: 'Send a reminder when content has been in review stage for more than 48 hours',
+  1136→        trigger: 'scheduled_time',
+  1137→        conditions: JSON.stringify({ stage: 'review', hoursInStage: 48 }),
+  1138→        actions: JSON.stringify({ sendReminder: true, escalateTo: 'admin' }),
+  1139→        isActive: true,
+  1140→        organizationId: org.id,
+  1141→      },
+  1142→    }),
+  1143→    prisma.automationRule.create({
+  1144→      data: {
+  1145→        name: 'Auto-archive Completed Campaigns',
+  1146→        description: 'Move all content to archive when a campaign status changes to completed',
+  1147→        trigger: 'stage_change',
+  1148→        conditions: JSON.stringify({ campaignStatus: 'completed' }),
+  1149→        actions: JSON.stringify({ moveContentToArchive: true }),
+  1150→        isActive: true,
+  1151→        organizationId: org.id,
+  1152→      },
+  1153→    }),
+  1154→    prisma.automationRule.create({
+  1155→      data: {
+  1156→        name: 'High Engagement Alert',
+  1157→        description: 'Notify the team when a published post gets more than 1000 likes in the first hour',
+  1158→        trigger: 'engagement_threshold',
+  1159→        conditions: JSON.stringify({ metric: 'likes', threshold: 1000, timeWindow: '1h' }),
+  1160→        actions: JSON.stringify({ notifyTeam: true, boostPost: true }),
+  1161→        isActive: true,
+  1162→        organizationId: org.id,
+  1163→      },
+  1164→    }),
+  1165→    prisma.automationRule.create({
+  1166→      data: {
+  1167→        name: 'New Content Welcome Message',
+  1168→        description: 'Send a welcome message to the content creator when new content is created',
+  1169→        trigger: 'content_created',
+  1170→        conditions: JSON.stringify({ contentType: ['post', 'video', 'graphic'] }),
+  1171→        actions: JSON.stringify({ sendMessage: true, assignDefaultTeam: true }),
+  1172→        isActive: false,
+  1173→        organizationId: org.id,
+  1174→      },
+  1175→    }),
+  1176→  ])
+  1177→
+  1178→  console.log(`✅ Created ${automations.length} automation rules`)
+  1179→
+  1180→  // ============================================
+  1181→  // 10. Comments on content items
+  1182→  // ============================================
+  1183→  const comments = await Promise.all([
+  1184→    prisma.comment.create({
+  1185→      data: {
+  1186→        text: 'Great concept! Let\'s make sure we highlight the AI-powered features prominently.',
+  1187→        contentId: contentItems[0].id,
+  1188→        userId: sarah.id,
+  1189→      },
+  1190→    }),
+  1191→    prisma.comment.create({
+  1192→      data: {
+  1193→        text: 'I agree. Should we also include a demo snippet in the intro?',
+  1194→        contentId: contentItems[0].id,
+  1195→        userId: marcus.id,
+  1196→      },
+  1197→    }),
+  1198→    prisma.comment.create({
+  1199→      data: {
+  1200→        text: 'The color palette needs to match TechCorp\'s brand guidelines. Please use the updated brand kit.',
+  1201→        contentId: contentItems[4].id,
+  1202→        userId: sarah.id,
+  1203→      },
+  1204→    }),
+  1205→    prisma.comment.create({
+  1206→      data: {
+  1207→        text: 'Updated the colors. Can you review the new version?',
+  1208→        contentId: contentItems[4].id,
+  1209→        userId: jake.id,
+  1210→      },
+  1211→    }),
+  1212→    prisma.comment.create({
+  1213→      data: {
+  1214→        text: 'This is urgent - the client wants it by Friday. Can we prioritize?',
+  1215→        contentId: contentItems[7].id,
+  1216→        userId: marcus.id,
+  1217→      },
+  1218→    }),
+  1219→    prisma.comment.create({
+  1220→      data: {
+  1221→        text: 'Already on it. I\'ll have the first draft by tomorrow morning.',
+  1222→        contentId: contentItems[7].id,
+  1223→        userId: luna.id,
+  1224→      },
+  1225→    }),
+  1226→    prisma.comment.create({
+  1227→      data: {
+  1228→        text: 'The video needs better transitions between sections. Also, the audio levels are inconsistent.',
+  1229→        contentId: contentItems[8].id,
+  1230→        userId: marcus.id,
+  1231→      },
+  1232→    }),
+  1233→    prisma.comment.create({
+  1234→      data: {
+  1235→        text: 'Good catch! I\'ll fix the transitions and normalize the audio.',
+  1236→        contentId: contentItems[8].id,
+  1237→        userId: david.id,
+  1238→      },
+  1239→    }),
+  1240→    prisma.comment.create({
+  1241→      data: {
+  1242→        text: 'Client approved the draft copy. Ready for final review.',
+  1243→        contentId: contentItems[10].id,
+  1244→        userId: priya.id,
+  1245→      },
+  1246→    }),
+  1247→    prisma.comment.create({
+  1248→      data: {
+  1249→        text: 'Looks great! Minor edits on slide 3 - the font size is too small.',
+  1250→        contentId: contentItems[10].id,
+  1251→        userId: sarah.id,
+  1252→      },
+  1253→    }),
+  1254→    prisma.comment.create({
+  1255→      data: {
+  1256→        text: 'Need to get influencer approval before we publish this.',
+  1257→        contentId: contentItems[11].id,
+  1258→        userId: priya.id,
+  1259→      },
+  1260→    }),
+  1261→    prisma.comment.create({
+  1262→      data: {
+  1263→        text: 'Influencer approved! We\'re good to go.',
+  1264→        contentId: contentItems[11].id,
+  1265→        userId: emma.id,
+  1266→      },
+  1267→    }),
+  1268→    prisma.comment.create({
+  1269→      data: {
+  1270→        text: 'The sale copy needs more urgency. Add countdown language.',
+  1271→        contentId: contentItems[15].id,
+  1272→        userId: sarah.id,
+  1273→      },
+  1274→    }),
+  1275→    prisma.comment.create({
+  1276→      data: {
+  1277→        text: 'Updated with "Limited time only" and "Ends Sunday" messaging.',
+  1278→        contentId: contentItems[15].id,
+  1279→        userId: emma.id,
+  1280→      },
+  1281→    }),
+  1282→    prisma.comment.create({
+  1283→      data: {
+  1284→        text: 'Please schedule this for Monday 9AM EST.',
+  1285→        contentId: contentItems[16].id,
+  1286→        userId: alex.id,
+  1287→      },
+  1288→    }),
+  1289→  ])
+  1290→
+  1291→  console.log(`✅ Created ${comments.length} comments`)
+  1292→
+  1293→  // ============================================
+  1294→  // 11. Activity Log (30+ entries)
+  1295→  // ============================================
+  1296→  const activities = await Promise.all([
+  1297→    prisma.activityLog.create({
+  1298→      data: {
+  1299→        action: 'created',
+  1300→        entity: 'content',
+  1301→        entityId: contentItems[0].id,
+  1302→        details: JSON.stringify({ title: 'TechCorp CEO Spotlight Interview', stage: 'idea' }),
+  1303→        organizationId: org.id,
+  1304→        actorId: marcus.id,
+  1305→        createdAt: new Date(now.getTime() - 2 * dayMs),
+  1306→      },
+  1307→    }),
+  1308→    prisma.activityLog.create({
+  1309→      data: {
+  1310→        action: 'created',
+  1311→        entity: 'content',
+  1312→        entityId: contentItems[1].id,
+  1313→        details: JSON.stringify({ title: 'FashionHub Summer Lookbook Reel', stage: 'idea' }),
+  1314→        organizationId: org.id,
+  1315→        actorId: luna.id,
+  1316→        createdAt: new Date(now.getTime() - 2 * dayMs),
+  1317→      },
+  1318→    }),
+  1319→    prisma.activityLog.create({
+  1320→      data: {
+  1321→        action: 'moved',
+  1322→        entity: 'content',
+  1323→        entityId: contentItems[4].id,
+  1324→        details: JSON.stringify({ title: 'TechCorp Product Feature Infographic', fromStage: 'idea', toStage: 'design' }),
+  1325→        organizationId: org.id,
+  1326→        actorId: marcus.id,
+  1327→        createdAt: new Date(now.getTime() - 1.9 * dayMs),
+  1328→      },
+  1329→    }),
+  1330→    prisma.activityLog.create({
+  1331→      data: {
+  1332→        action: 'assigned',
+  1333→        entity: 'content',
+  1334→        entityId: contentItems[4].id,
+  1335→        details: JSON.stringify({ title: 'TechCorp Product Feature Infographic', assignee: 'Jake Morrison' }),
+  1336→        organizationId: org.id,
+  1337→        actorId: marcus.id,
+  1338→        createdAt: new Date(now.getTime() - 1.9 * dayMs),
+  1339→      },
+  1340→    }),
+  1341→    prisma.activityLog.create({
+  1342→      data: {
+  1343→        action: 'moved',
+  1344→        entity: 'content',
+  1345→        entityId: contentItems[7].id,
+  1346→        details: JSON.stringify({ title: 'AutoDrive EV Comparison Chart', fromStage: 'idea', toStage: 'design' }),
+  1347→        organizationId: org.id,
+  1348→        actorId: marcus.id,
+  1349→        createdAt: new Date(now.getTime() - 1.8 * dayMs),
+  1350→      },
+  1351→    }),
+  1352→    prisma.activityLog.create({
+  1353→      data: {
+  1354→        action: 'created',
+  1355→        entity: 'content',
+  1356→        entityId: contentItems[8].id,
+  1357→        details: JSON.stringify({ title: 'TechCorp Platform Demo Video', stage: 'edit' }),
+  1358→        organizationId: org.id,
+  1359→        actorId: marcus.id,
+  1360→        createdAt: new Date(now.getTime() - 1.7 * dayMs),
+  1361→      },
+  1362→    }),
+  1363→    prisma.activityLog.create({
+  1364→      data: {
+  1365→        action: 'commented',
+  1366→        entity: 'content',
+  1367→        entityId: contentItems[0].id,
+  1368→        details: JSON.stringify({ title: 'TechCorp CEO Spotlight Interview', comment: 'Great concept!' }),
+  1369→        organizationId: org.id,
+  1370→        actorId: sarah.id,
+  1371→        createdAt: new Date(now.getTime() - 1.5 * dayMs),
+  1372→      },
+  1373→    }),
+  1374→    prisma.activityLog.create({
+  1375→      data: {
+  1376→        action: 'moved',
+  1377→        entity: 'content',
+  1378→        entityId: contentItems[10].id,
+  1379→        details: JSON.stringify({ title: 'TechCorp Case Study Carousel', fromStage: 'edit', toStage: 'review' }),
+  1380→        organizationId: org.id,
+  1381→        actorId: priya.id,
+  1382→        createdAt: new Date(now.getTime() - 1.4 * dayMs),
+  1383→      },
+  1384→    }),
+  1385→    prisma.activityLog.create({
+  1386→      data: {
+  1387→        action: 'moved',
+  1388→        entity: 'content',
+  1389→        entityId: contentItems[11].id,
+  1390→        details: JSON.stringify({ title: 'FashionHub Influencer Collaboration Post', fromStage: 'edit', toStage: 'review' }),
+  1391→        organizationId: org.id,
+  1392→        actorId: emma.id,
+  1393→        createdAt: new Date(now.getTime() - 1.3 * dayMs),
+  1394→      },
+  1395→    }),
+  1396→    prisma.activityLog.create({
+  1397→      data: {
+  1398→        action: 'published',
+  1399→        entity: 'post',
+  1400→        entityId: posts[0].id,
+  1401→        details: JSON.stringify({ platform: 'instagram', account: '@techcorp' }),
+  1402→        organizationId: org.id,
+  1403→        actorId: alex.id,
+  1404→        createdAt: new Date(now.getTime() - 7 * dayMs),
+  1405→      },
+  1406→    }),
+  1407→    prisma.activityLog.create({
+  1408→      data: {
+  1409→        action: 'published',
+  1410→        entity: 'post',
+  1411→        entityId: posts[1].id,
+  1412→        details: JSON.stringify({ platform: 'instagram', account: '@fashionhub' }),
+  1413→        organizationId: org.id,
+  1414→        actorId: luna.id,
+  1415→        createdAt: new Date(now.getTime() - 5 * dayMs),
+  1416→      },
+  1417→    }),
+  1418→    prisma.activityLog.create({
+  1419→      data: {
+  1420→        action: 'published',
+  1421→        entity: 'post',
+  1422→        entityId: posts[2].id,
+  1423→        details: JSON.stringify({ platform: 'linkedin', account: 'TechCorp' }),
+  1424→        organizationId: org.id,
+  1425→        actorId: alex.id,
+  1426→        createdAt: new Date(now.getTime() - 3 * dayMs),
+  1427→      },
+  1428→    }),
+  1429→    prisma.activityLog.create({
+  1430→      data: {
+  1431→        action: 'published',
+  1432→        entity: 'post',
+  1433→        entityId: posts[3].id,
+  1434→        details: JSON.stringify({ platform: 'tiktok', account: '@fashionhub' }),
+  1435→        organizationId: org.id,
+  1436→        actorId: luna.id,
+  1437→        createdAt: new Date(now.getTime() - 4 * dayMs),
+  1438→      },
+  1439→    }),
+  1440→    prisma.activityLog.create({
+  1441→      data: {
+  1442→        action: 'moved',
+  1443→        entity: 'content',
+  1444→        entityId: contentItems[13].id,
+  1445→        details: JSON.stringify({ title: 'TechCorp LinkedIn Thought Leadership Article', fromStage: 'review', toStage: 'approve' }),
+  1446→        organizationId: org.id,
+  1447→        actorId: sarah.id,
+  1448→        createdAt: new Date(now.getTime() - 1.2 * dayMs),
+  1449→      },
+  1450→    }),
+  1451→    prisma.activityLog.create({
+  1452→      data: {
+  1453→        action: 'moved',
+  1454→        entity: 'content',
+  1455→        entityId: contentItems[14].id,
+  1456→        details: JSON.stringify({ title: 'FashionHub Summer Sale Announcement', fromStage: 'review', toStage: 'approve' }),
+  1457→        organizationId: org.id,
+  1458→        actorId: sarah.id,
+  1459→        createdAt: new Date(now.getTime() - 1.1 * dayMs),
+  1460→      },
+  1461→    }),
+  1462→    prisma.activityLog.create({
+  1463→      data: {
+  1464→        action: 'moved',
+  1465→        entity: 'content',
+  1466→        entityId: contentItems[16].id,
+  1467→        details: JSON.stringify({ title: 'TechCorp Feature Launch Thread', fromStage: 'approve', toStage: 'disseminate' }),
+  1468→        organizationId: org.id,
+  1469→        actorId: sarah.id,
+  1470→        createdAt: new Date(now.getTime() - 1 * dayMs),
+  1471→      },
+  1472→    }),
+  1473→    prisma.activityLog.create({
+  1474→      data: {
+  1475→        action: 'moved',
+  1476→        entity: 'content',
+  1477→        entityId: contentItems[17].id,
+  1478→        details: JSON.stringify({ title: 'FashionHub Style Guide TikTok', fromStage: 'approve', toStage: 'disseminate' }),
+  1479→        organizationId: org.id,
+  1480→        actorId: sarah.id,
+  1481→        createdAt: new Date(now.getTime() - 0.9 * dayMs),
+  1482→      },
+  1483→    }),
+  1484→    prisma.activityLog.create({
+  1485→      data: {
+  1486→        action: 'created',
+  1487→        entity: 'campaign',
+  1488→        entityId: foodvibeCampaign.id,
+  1489→        details: JSON.stringify({ name: 'FoodVibe Taste Stories', status: 'draft' }),
+  1490→        organizationId: org.id,
+  1491→        actorId: sarah.id,
+  1492→        createdAt: new Date(now.getTime() - 3 * dayMs),
+  1493→      },
+  1494→    }),
+  1495→    prisma.activityLog.create({
+  1496→      data: {
+  1497→        action: 'updated',
+  1498→        entity: 'campaign',
+  1499→        entityId: techcorpCampaign.id,
+  1500→        details: JSON.stringify({ name: 'TechCorp Spring Launch 2025', field: 'budget', value: 45000 }),
+  1501→        organizationId: org.id,
+  1502→        actorId: sarah.id,
+  1503→        createdAt: new Date(now.getTime() - 2.5 * dayMs),
+  1504→      },
+  1505→    }),
+  1506→    prisma.activityLog.create({
+  1507→      data: {
+  1508→        action: 'created',
+  1509→        entity: 'account',
+  1510→        entityId: socialAccounts[0].id,
+  1511→        details: JSON.stringify({ platform: 'instagram', username: '@techcorp' }),
+  1512→        organizationId: org.id,
+  1513→        actorId: sarah.id,
+  1514→        createdAt: new Date(now.getTime() - 30 * dayMs),
+  1515→      },
+  1516→    }),
+  1517→    prisma.activityLog.create({
+  1518→      data: {
+  1519→        action: 'created',
+  1520→        entity: 'account',
+  1521→        entityId: socialAccounts[1].id,
+  1522→        details: JSON.stringify({ platform: 'instagram', username: '@fashionhub' }),
+  1523→        organizationId: org.id,
+  1524→        actorId: sarah.id,
+  1525→        createdAt: new Date(now.getTime() - 30 * dayMs),
+  1526→      },
+  1527→    }),
+  1528→    prisma.activityLog.create({
+  1529→      data: {
+  1530→        action: 'assigned',
+  1531→        entity: 'content',
+  1532→        entityId: contentItems[5].id,
+  1533→        details: JSON.stringify({ title: 'FashionHub Brand Story Carousel', assignee: 'Alex Nakamura' }),
+  1534→        organizationId: org.id,
+  1535→        actorId: jake.id,
+  1536→        createdAt: new Date(now.getTime() - 1.6 * dayMs),
+  1537→      },
+  1538→    }),
+  1539→    prisma.activityLog.create({
+  1540→      data: {
+  1541→        action: 'commented',
+  1542→        entity: 'content',
+  1543→        entityId: contentItems[7].id,
+  1544→        details: JSON.stringify({ title: 'AutoDrive EV Comparison Chart', comment: 'This is urgent!' }),
+  1545→        organizationId: org.id,
+  1546→        actorId: marcus.id,
+  1547→        createdAt: new Date(now.getTime() - 1.5 * dayMs),
+  1548→      },
+  1549→    }),
+  1550→    prisma.activityLog.create({
+  1551→      data: {
+  1552→        action: 'commented',
+  1553→        entity: 'content',
+  1554→        entityId: contentItems[8].id,
+  1555→        details: JSON.stringify({ title: 'TechCorp Platform Demo Video', comment: 'Needs better transitions' }),
+  1556→        organizationId: org.id,
+  1557→        actorId: marcus.id,
+  1558→        createdAt: new Date(now.getTime() - 1.4 * dayMs),
+  1559→      },
+  1560→    }),
+  1561→    prisma.activityLog.create({
+  1562→      data: {
+  1563→        action: 'moved',
+  1564→        entity: 'content',
+  1565→        entityId: contentItems[18].id,
+  1566→        details: JSON.stringify({ title: 'AutoDrive EV Range Explainer Video', fromStage: 'approve', toStage: 'disseminate' }),
+  1567→        organizationId: org.id,
+  1568→        actorId: sarah.id,
+  1569→        createdAt: new Date(now.getTime() - 0.8 * dayMs),
+  1570→      },
+  1571→    }),
+  1572→    prisma.activityLog.create({
+  1573→      data: {
+  1574→        action: 'moved',
+  1575→        entity: 'content',
+  1576→        entityId: contentItems[15].id,
+  1577→        details: JSON.stringify({ title: 'FashionHub Summer Sale Announcement', fromStage: 'design', toStage: 'approve' }),
+  1578→        organizationId: org.id,
+  1579→        actorId: jake.id,
+  1580→        createdAt: new Date(now.getTime() - 0.7 * dayMs),
+  1581→      },
+  1582→    }),
+  1583→    prisma.activityLog.create({
+  1584→      data: {
+  1585→        action: 'created',
+  1586→        entity: 'content',
+  1587→        entityId: contentItems[2].id,
+  1588→        details: JSON.stringify({ title: 'FoodVibe Recipe Card Series', stage: 'idea' }),
+  1589→        organizationId: org.id,
+  1590→        actorId: priya.id,
+  1591→        createdAt: new Date(now.getTime() - 0.6 * dayMs),
+  1592→      },
+  1593→    }),
+  1594→    prisma.activityLog.create({
+  1595→      data: {
+  1596→        action: 'created',
+  1597→        entity: 'content',
+  1598→        entityId: contentItems[3].id,
+  1599→        details: JSON.stringify({ title: 'AutoDrive Community Poll Series', stage: 'idea' }),
+  1600→        organizationId: org.id,
+  1601→        actorId: emma.id,
+  1602→        createdAt: new Date(now.getTime() - 0.5 * dayMs),
+  1603→      },
+  1604→    }),
+  1605→    prisma.activityLog.create({
+  1606→      data: {
+  1607→        action: 'moved',
+  1608→        entity: 'content',
+  1609→        entityId: contentItems[6].id,
+  1610→        details: JSON.stringify({ title: 'WellnessCo Mindfulness Tips Graphic Set', fromStage: 'idea', toStage: 'design' }),
+  1611→        organizationId: org.id,
+  1612→        actorId: luna.id,
+  1613→        createdAt: new Date(now.getTime() - 0.4 * dayMs),
+  1614→      },
+  1615→    }),
+  1616→    prisma.activityLog.create({
+  1617→      data: {
+  1618→        action: 'updated',
+  1619→        entity: 'content',
+  1620→        entityId: contentItems[12].id,
+  1621→        details: JSON.stringify({ title: 'AutoDrive Test Drive Story Series', field: 'priority', value: 'medium' }),
+  1622→        organizationId: org.id,
+  1623→        actorId: david.id,
+  1624→        createdAt: new Date(now.getTime() - 0.3 * dayMs),
+  1625→      },
+  1626→    }),
+  1627→    prisma.activityLog.create({
+  1628→      data: {
+  1629→        action: 'published',
+  1630→        entity: 'post',
+  1631→        entityId: posts[4].id,
+  1632→        details: JSON.stringify({ platform: 'facebook', account: 'TechCorp Inc.' }),
+  1633→        organizationId: org.id,
+  1634→        actorId: alex.id,
+  1635→        createdAt: new Date(now.getTime() - 35 * dayMs),
+  1636→      },
+  1637→    }),
+  1638→    prisma.activityLog.create({
+  1639→      data: {
+  1640→        action: 'published',
+  1641→        entity: 'post',
+  1642→        entityId: posts[5].id,
+  1643→        details: JSON.stringify({ platform: 'twitter', account: '@autodrive_ev' }),
+  1644→        organizationId: org.id,
+  1645→        actorId: luna.id,
+  1646→        createdAt: new Date(now.getTime() - 6 * dayMs),
+  1647→      },
+  1648→    }),
+  1649→    prisma.activityLog.create({
+  1650→      data: {
+  1651→        action: 'moved',
+  1652→        entity: 'content',
+  1653→        entityId: contentItems[19].id,
+  1654→        details: JSON.stringify({ title: 'AutoDrive Holiday Campaign Banner', fromStage: 'disseminate', toStage: 'archived' }),
+  1655→        organizationId: org.id,
+  1656→        actorId: emma.id,
+  1657→        createdAt: new Date(now.getTime() - 30 * dayMs),
+  1658→      },
+  1659→    }),
+  1660→    prisma.activityLog.create({
+  1661→      data: {
+  1662→        action: 'moved',
+  1663→        entity: 'content',
+  1664→        entityId: contentItems[20].id,
+  1665→        details: JSON.stringify({ title: 'TechCorp Year-in-Review Video', fromStage: 'disseminate', toStage: 'archived' }),
+  1666→        organizationId: org.id,
+  1667→        actorId: emma.id,
+  1668→        createdAt: new Date(now.getTime() - 55 * dayMs),
+  1669→      },
+  1670→    }),
+  1671→  ])
+  1672→
+  1673→  console.log(`✅ Created ${activities.length} activity log entries`)
+  1674→
+  1675→  // ============================================
+  1676→  // 12. Approvals (5)
+  1677→  // ============================================
+  1678→  const approvals = await Promise.all([
+  1679→    prisma.approval.create({
+  1680→      data: {
+  1681→        type: 'content_review',
+  1682→        status: 'pending',
+  1683→        organizationId: org.id,
+  1684→        contentId: contentItems[10].id,
+  1685→        requestedById: priya.id,
+  1686→        createdAt: new Date(now.getTime() - 2 * dayMs),
+  1687→      },
+  1688→    }),
+  1689→    prisma.approval.create({
+  1690→      data: {
+  1691→        type: 'content_review',
+  1692→        status: 'approved',
+  1693→        comment: 'Great work! The copy is on-brand and compelling.',
+  1694→        organizationId: org.id,
+  1695→        contentId: contentItems[11].id,
+  1696→        requestedById: emma.id,
+  1697→        reviewedById: sarah.id,
+  1698→        reviewedAt: new Date(now.getTime() - 1 * dayMs),
+  1699→        createdAt: new Date(now.getTime() - 3 * dayMs),
+  1700→      },
+  1701→    }),
+  1702→    prisma.approval.create({
+  1703→      data: {
+  1704→        type: 'post_publish',
+  1705→        status: 'pending',
+  1706→        organizationId: org.id,
+  1707→        postId: posts[6].id,
+  1708→        requestedById: alex.id,
+  1709→        createdAt: new Date(now.getTime() - 0.5 * dayMs),
+  1710→      },
+  1711→    }),
+  1712→    prisma.approval.create({
+  1713→      data: {
+  1714→        type: 'post_publish',
+  1715→        status: 'rejected',
+  1716→        comment: 'Needs more urgency in the CTA. Please revise before scheduling.',
+  1717→        organizationId: org.id,
+  1718→        postId: posts[7].id,
+  1719→        requestedById: luna.id,
+  1720→        reviewedById: sarah.id,
+  1721→        reviewedAt: new Date(now.getTime() - 0.5 * dayMs),
+  1722→        createdAt: new Date(now.getTime() - 1.5 * dayMs),
+  1723→      },
+  1724→    }),
+  1725→    prisma.approval.create({
+  1726→      data: {
+  1727→        type: 'content_review',
+  1728→        status: 'approved',
+  1729→        comment: 'Approved with minor edits to slide 3.',
+  1730→        organizationId: org.id,
+  1731→        contentId: contentItems[13].id,
+  1732→        requestedById: priya.id,
+  1733→        reviewedById: sarah.id,
+  1734→        reviewedAt: new Date(now.getTime() - 0.8 * dayMs),
+  1735→        createdAt: new Date(now.getTime() - 2.5 * dayMs),
+  1736→      },
+  1737→    }),
+  1738→  ])
+  1739→  console.log(`✅ Created ${approvals.length} approvals`)
+  1740→
+  1741→  // ============================================
+  1742→  // 13. Invoices (4)
+  1743→  // ============================================
+  1744→  const invoices = await Promise.all([
+  1745→    prisma.invoice.create({
+  1746→      data: {
+  1747→        number: 'INV-2025-001',
+  1748→        clientId: techcorp.id,
+  1749→        campaignId: techcorpCampaign.id,
+  1750→        status: 'paid',
+  1751→        items: JSON.stringify([
+  1752→          { description: 'Social Media Management - March 2025', quantity: 1, rate: 5000, amount: 5000 },
+  1753→          { description: 'Content Creation (8 posts)', quantity: 8, rate: 500, amount: 4000 },
+  1754→          { description: 'Video Production (2 reels)', quantity: 2, rate: 1500, amount: 3000 },
+  1755→        ]),
+  1756→        subtotal: 12000,
+  1757→        tax: 960,
+  1758→        total: 12960,
+  1759→        dueDate: new Date(now.getTime() - 10 * dayMs),
+  1760→        paidAt: new Date(now.getTime() - 5 * dayMs),
+  1761→        notes: 'Net 30 payment terms. Thank you for your business!',
+  1762→        organizationId: org.id,
+  1763→        createdAt: new Date(now.getTime() - 30 * dayMs),
+  1764→      },
+  1765→    }),
+  1766→    prisma.invoice.create({
+  1767→      data: {
+  1768→        number: 'INV-2025-002',
+  1769→        clientId: fashionhub.id,
+  1770→        campaignId: fashionCampaign.id,
+  1771→        status: 'sent',
+  1772→        items: JSON.stringify([
+  1773→          { description: 'Social Media Strategy & Management - March 2025', quantity: 1, rate: 4500, amount: 4500 },
+  1774→          { description: 'Instagram Content (12 posts + 6 stories)', quantity: 1, rate: 3600, amount: 3600 },
+  1775→          { description: 'TikTok Content (4 videos)', quantity: 4, rate: 800, amount: 3200 },
+  1776→        ]),
+  1777→        subtotal: 11300,
+  1778→        tax: 904,
+  1779→        total: 12204,
+  1780→        dueDate: new Date(now.getTime() + 20 * dayMs),
+  1781→        notes: 'Payment due within 30 days of invoice date.',
+  1782→        organizationId: org.id,
+  1783→        createdAt: new Date(now.getTime() - 10 * dayMs),
+  1784→      },
+  1785→    }),
+  1786→    prisma.invoice.create({
+  1787→      data: {
+  1788→        number: 'INV-2025-003',
+  1789→        clientId: autodrive.id,
+  1790→        campaignId: autodriveCampaign.id,
+  1791→        status: 'overdue',
+  1792→        items: JSON.stringify([
+  1793→          { description: 'Multi-platform Campaign Management', quantity: 1, rate: 8000, amount: 8000 },
+  1794→          { description: 'Video Production (6 videos)', quantity: 6, rate: 2000, amount: 12000 },
+  1795→          { description: 'Analytics & Reporting', quantity: 1, rate: 2500, amount: 2500 },
+  1796→        ]),
+  1797→        subtotal: 22500,
+  1798→        tax: 1800,
+  1799→        total: 24300,
+  1800→        dueDate: new Date(now.getTime() - 15 * dayMs),
+  1801→        notes: 'OVERDUE - Please remit payment immediately.',
+  1802→        organizationId: org.id,
+  1803→        createdAt: new Date(now.getTime() - 45 * dayMs),
+  1804→      },
+  1805→    }),
+  1806→    prisma.invoice.create({
+  1807→      data: {
+  1808→        number: 'INV-2025-004',
+  1809→        clientId: foodvibe.id,
+  1810→        status: 'draft',
+  1811→        items: JSON.stringify([
+  1812→          { description: 'Campaign Strategy Development', quantity: 1, rate: 3000, amount: 3000 },
+  1813→          { description: 'Content Creation (6 posts)', quantity: 6, rate: 400, amount: 2400 },
+  1814→        ]),
+  1815→        subtotal: 5400,
+  1816→        tax: 432,
+  1817→        total: 5832,
+  1818→        dueDate: null,
+  1819→        notes: 'Draft - pending client approval before sending.',
+  1820→        organizationId: org.id,
+  1821→        createdAt: new Date(now.getTime() - 2 * dayMs),
+  1822→      },
+  1823→    }),
+  1824→  ])
+  1825→  console.log(`✅ Created ${invoices.length} invoices`)
+  1826→
+  1827→  // ============================================
+  1828→  // 14. Time Entries (12)
+  1829→  // ============================================
+  1830→  const timeEntries = await Promise.all([
+  1831→    prisma.timeEntry.create({
+  1832→      data: {
+  1833→        description: 'Drafted TechCorp case study carousel copy',
+  1834→        hours: 3.5,
+  1835→        billable: true,
+  1836→        date: new Date(now.getTime() - 1 * dayMs),
+  1837→        userId: priya.id,
+  1838→        clientId: techcorp.id,
+  1839→        campaignId: techcorpCampaign.id,
+  1840→        contentId: contentItems[10].id,
+  1841→        organizationId: org.id,
+  1842→      },
+  1843→    }),
+  1844→    prisma.timeEntry.create({
+  1845→      data: {
+  1846→        description: 'Designed FashionHub brand story carousel slides',
+  1847→        hours: 5,
+  1848→        billable: true,
+  1849→        date: new Date(now.getTime() - 1 * dayMs),
+  1850→        userId: alex.id,
+  1851→        clientId: fashionhub.id,
+  1852→        campaignId: fashionCampaign.id,
+  1853→        contentId: contentItems[5].id,
+  1854→        organizationId: org.id,
+  1855→      },
+  1856→    }),
+  1857→    prisma.timeEntry.create({
+  1858→      data: {
+  1859→        description: 'Edited TechCorp platform demo video',
+  1860→        hours: 6,
+  1861→        billable: true,
+  1862→        date: new Date(now.getTime() - 2 * dayMs),
+  1863→        userId: david.id,
+  1864→        clientId: techcorp.id,
+  1865→        campaignId: techcorpCampaign.id,
+  1866→        contentId: contentItems[8].id,
+  1867→        organizationId: org.id,
+  1868→      },
+  1869→    }),
+  1870→    prisma.timeEntry.create({
+  1871→      data: {
+  1872→        description: 'Internal team standup and planning meeting',
+  1873→        hours: 1,
+  1874→        billable: false,
+  1875→        date: new Date(now.getTime() - 2 * dayMs),
+  1876→        userId: sarah.id,
+  1877→        organizationId: org.id,
+  1878→      },
+  1879→    }),
+  1880→    prisma.timeEntry.create({
+  1881→      data: {
+  1882→        description: 'Created FashionHub summer sale graphics',
+  1883→        hours: 4,
+  1884→        billable: true,
+  1885→        date: new Date(now.getTime() - 3 * dayMs),
+  1886→        userId: luna.id,
+  1887→        clientId: fashionhub.id,
+  1888→        campaignId: fashionCampaign.id,
+  1889→        contentId: contentItems[15].id,
+  1890→        organizationId: org.id,
+  1891→      },
+  1892→    }),
+  1893→    prisma.timeEntry.create({
+  1894→      data: {
+  1895→        description: 'Reviewed and approved pending content items',
+  1896→        hours: 2,
+  1897→        billable: false,
+  1898→        date: new Date(now.getTime() - 3 * dayMs),
+  1899→        userId: sarah.id,
+  1900→        organizationId: org.id,
+  1901→      },
+  1902→    }),
+  1903→    prisma.timeEntry.create({
+  1904→      data: {
+  1905→        description: 'Scheduled and published Instagram posts for TechCorp',
+  1906→        hours: 2.5,
+  1907→        billable: true,
+  1908→        date: new Date(now.getTime() - 4 * dayMs),
+  1909→        userId: alex.id,
+  1910→        clientId: techcorp.id,
+  1911→        organizationId: org.id,
+  1912→      },
+  1913→    }),
+  1914→    prisma.timeEntry.create({
+  1915→      data: {
+  1916→        description: 'Wrote FoodVibe recipe card captions',
+  1917→        hours: 3,
+  1918→        billable: true,
+  1919→        date: new Date(now.getTime() - 4 * dayMs),
+  1920→        userId: priya.id,
+  1921→        clientId: foodvibe.id,
+  1922→        campaignId: foodvibeCampaign.id,
+  1923→        contentId: contentItems[2].id,
+  1924→        organizationId: org.id,
+  1925→      },
+  1926→    }),
+  1927→    prisma.timeEntry.create({
+  1928→      data: {
+  1929→        description: 'Designed AutoDrive EV comparison chart',
+  1930→        hours: 4.5,
+  1931→        billable: true,
+  1932→        date: new Date(now.getTime() - 5 * dayMs),
+  1933→        userId: luna.id,
+  1934→        clientId: autodrive.id,
+  1935→        campaignId: autodriveCampaign.id,
+  1936→        contentId: contentItems[7].id,
+  1937→        organizationId: org.id,
+  1938→      },
+  1939→    }),
+  1940→    prisma.timeEntry.create({
+  1941→      data: {
+  1942→        description: 'Client call with TechCorp marketing team',
+  1943→        hours: 1.5,
+  1944→        billable: true,
+  1945→        date: new Date(now.getTime() - 5 * dayMs),
+  1946→        userId: marcus.id,
+  1947→        clientId: techcorp.id,
+  1948→        organizationId: org.id,
+  1949→      },
+  1950→    }),
+  1951→    prisma.timeEntry.create({
+  1952→      data: {
+  1953→        description: 'WellnessCo brand guideline review',
+  1954→        hours: 2,
+  1955→        billable: false,
+  1956→        date: new Date(now.getTime() - 6 * dayMs),
+  1957→        userId: jake.id,
+  1958→        clientId: wellnessco.id,
+  1959→        organizationId: org.id,
+  1960→      },
+  1961→    }),
+  1962→    prisma.timeEntry.create({
+  1963→      data: {
+  1964→        description: 'Edited FoodVibe Kitchen Stories episode 3',
+  1965→        hours: 5.5,
+  1966→        billable: true,
+  1967→        date: new Date(now.getTime() - 6 * dayMs),
+  1968→        userId: david.id,
+  1969→        clientId: foodvibe.id,
+  1970→        campaignId: foodvibeCampaign.id,
+  1971→        contentId: contentItems[9].id,
+  1972→        organizationId: org.id,
+  1973→      },
+  1974→    }),
+  1975→  ])
+  1976→  console.log(`✅ Created ${timeEntries.length} time entries`)
+  1977→
+  1978→  // ============================================
+  1979→  // 15. Assets (10)
+  1980→  // ============================================
+  1981→  const assets = await Promise.all([
+  1982→    prisma.asset.create({
+  1983→      data: {
+  1984→        name: 'TechCorp-Brand-Guide-2025.pdf',
+  1985→        type: 'brand-guide',
+  1986→        url: '/assets/techcorp-brand-guide-2025.pdf',
+  1987→        thumbnailUrl: null,
+  1988→        size: 4500000,
+  1989→        mimeType: 'application/pdf',
+  1990→        tags: 'brand,guidelines,techcorp',
+  1991→        folder: '/TechCorp/Brand',
+  1992→        metadata: JSON.stringify({ pages: 24 }),
+  1993→        uploadedById: jake.id,
+  1994→        clientId: techcorp.id,
+  1995→        organizationId: org.id,
+  1996→      },
+  1997→    }),
+  1998→    prisma.asset.create({
+  1999→      data: {
+  2000→        name: 'FashionHub-Summer-Campaign-Template.psd',
+
+[showing lines 1-2000 of 3682; use offset=2001 with limit to continue reading]

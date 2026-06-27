@@ -6,6 +6,8 @@ async function main() {
   console.log('🌱 Seeding database...')
 
   // Clear existing data in correct order (respecting foreign keys)
+  await prisma.assetIssuance.deleteMany()
+  await prisma.iTAsset.deleteMany()
   await prisma.purchaseOrderItem.deleteMany()
   await prisma.purchaseOrder.deleteMany()
   await prisma.stockMovement.deleteMany()
@@ -3633,6 +3635,513 @@ async function main() {
   ])
   console.log(`✅ Created ${purchaseOrders.length} purchase orders`)
 
+  // ============================================
+  // 22. IT Assets (18 total)
+  // ============================================
+  const itAssets = await Promise.all([
+    // Laptops (3)
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-LAP-001',
+        name: 'MacBook Pro 14" M3',
+        category: 'laptop',
+        brand: 'Apple',
+        model: 'MacBook Pro 14 M3',
+        serialNumber: 'APL-MBP14-2024-001',
+        specifications: JSON.stringify({ ram: '18GB', storage: '512GB SSD', cpu: 'Apple M3 Pro', screenSize: '14.2"', color: 'Space Black' }),
+        purchaseDate: new Date('2024-03-15'),
+        purchaseCost: 2399.00,
+        warrantyExpiry: new Date('2027-03-15'),
+        vendor: 'Apple Store',
+        invoiceNumber: 'INV-APL-2024-001',
+        condition: 'good',
+        status: 'issued',
+        assignedToId: users[0].id, // Sarah Chen
+        location: 'Office A - Desk 1',
+        notes: 'Primary workstation for Creative Director',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-LAP-002',
+        name: 'Dell XPS 15',
+        category: 'laptop',
+        brand: 'Dell',
+        model: 'XPS 15 9530',
+        serialNumber: 'DELL-XPS15-2024-002',
+        specifications: JSON.stringify({ ram: '32GB', storage: '1TB SSD', cpu: 'Intel i9-13900H', screenSize: '15.6" OLED', color: 'Platinum' }),
+        purchaseDate: new Date('2024-01-20'),
+        purchaseCost: 1899.00,
+        warrantyExpiry: new Date('2027-01-20'),
+        vendor: 'Dell Technologies',
+        invoiceNumber: 'INV-DELL-2024-001',
+        condition: 'good',
+        status: 'issued',
+        assignedToId: users[1].id, // Marcus Williams
+        location: 'Office B - Desk 3',
+        notes: 'Development workstation',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-LAP-003',
+        name: 'ThinkPad X1 Carbon',
+        category: 'laptop',
+        brand: 'Lenovo',
+        model: 'ThinkPad X1 Carbon Gen 11',
+        serialNumber: 'LEN-X1C-2024-003',
+        specifications: JSON.stringify({ ram: '16GB', storage: '512GB SSD', cpu: 'Intel i7-1365U', screenSize: '14"', color: 'Black' }),
+        purchaseDate: new Date('2024-02-10'),
+        purchaseCost: 1649.00,
+        warrantyExpiry: new Date('2027-02-10'),
+        vendor: 'Lenovo Direct',
+        invoiceNumber: 'INV-LEN-2024-001',
+        condition: 'good',
+        status: 'issued',
+        assignedToId: users[2].id, // Priya Sharma
+        location: 'Remote',
+        notes: 'Remote work laptop',
+        organizationId: org.id,
+      },
+    }),
+    // Desktops (2)
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-DKT-001',
+        name: 'iMac 24"',
+        category: 'desktop',
+        brand: 'Apple',
+        model: 'iMac 24" M3',
+        serialNumber: 'APL-IMAC-2024-001',
+        specifications: JSON.stringify({ ram: '24GB', storage: '512GB SSD', cpu: 'Apple M3', screenSize: '24" 4.5K', color: 'Blue' }),
+        purchaseDate: new Date('2024-04-01'),
+        purchaseCost: 1499.00,
+        warrantyExpiry: new Date('2027-04-01'),
+        vendor: 'Apple Store',
+        invoiceNumber: 'INV-APL-2024-002',
+        condition: 'new',
+        status: 'available',
+        assignedToId: null,
+        location: 'Store Room',
+        notes: 'Spare desktop for new hires',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-DKT-002',
+        name: 'Dell OptiPlex',
+        category: 'desktop',
+        brand: 'Dell',
+        model: 'OptiPlex 7010 Micro',
+        serialNumber: 'DELL-OPT-2023-001',
+        specifications: JSON.stringify({ ram: '16GB', storage: '256GB SSD', cpu: 'Intel i5-13500T' }),
+        purchaseDate: new Date('2023-08-15'),
+        purchaseCost: 999.00,
+        warrantyExpiry: new Date('2026-08-15'),
+        vendor: 'Dell Technologies',
+        invoiceNumber: 'INV-DELL-2023-003',
+        condition: 'fair',
+        status: 'maintenance',
+        assignedToId: null,
+        location: 'IT Workshop',
+        notes: 'Fan replacement in progress',
+        organizationId: org.id,
+      },
+    }),
+    // Monitors (2)
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-MON-001',
+        name: 'LG UltraFine 27"',
+        category: 'monitor',
+        brand: 'LG',
+        model: 'UltraFine 27MD5KL-B',
+        serialNumber: 'LG-UF27-2024-001',
+        specifications: JSON.stringify({ screenSize: '27"', resolution: '5K', panelType: 'IPS', ports: 'Thunderbolt 3, USB-C' }),
+        purchaseDate: new Date('2024-03-15'),
+        purchaseCost: 449.00,
+        warrantyExpiry: new Date('2027-03-15'),
+        vendor: 'B&H Photo',
+        invoiceNumber: 'INV-BH-2024-001',
+        condition: 'new',
+        status: 'available',
+        assignedToId: null,
+        location: 'Store Room',
+        notes: 'External monitor for MacBook setup',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-MON-002',
+        name: 'Dell U2723QE',
+        category: 'monitor',
+        brand: 'Dell',
+        model: 'UltraSharp U2723QE',
+        serialNumber: 'DELL-U27-2024-002',
+        specifications: JSON.stringify({ screenSize: '27"', resolution: '4K', panelType: 'IPS Black', ports: 'USB-C, HDMI, DP' }),
+        purchaseDate: new Date('2024-02-01'),
+        purchaseCost: 519.00,
+        warrantyExpiry: new Date('2027-02-01'),
+        vendor: 'Dell Technologies',
+        invoiceNumber: 'INV-DELL-2024-002',
+        condition: 'good',
+        status: 'available',
+        assignedToId: null,
+        location: 'Office B - Shelf',
+        notes: 'USB-C hub monitor',
+        organizationId: org.id,
+      },
+    }),
+    // Keyboards (3)
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-KEY-001',
+        name: 'Apple Magic Keyboard',
+        category: 'keyboard',
+        brand: 'Apple',
+        model: 'Magic Keyboard with Touch ID',
+        serialNumber: 'APL-MK-2024-001',
+        specifications: JSON.stringify({ layout: 'US', connection: 'Bluetooth/USB-C', features: 'Touch ID, Numeric Keypad' }),
+        purchaseDate: new Date('2024-03-15'),
+        purchaseCost: 99.00,
+        warrantyExpiry: new Date('2026-03-15'),
+        vendor: 'Apple Store',
+        invoiceNumber: 'INV-APL-2024-003',
+        condition: 'good',
+        status: 'issued',
+        assignedToId: users[4].id, // Luna Rodriguez
+        location: 'Office C - Desk 2',
+        notes: 'With Touch ID for secure login',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-KEY-002',
+        name: 'Logitech MX Keys',
+        category: 'keyboard',
+        brand: 'Logitech',
+        model: 'MX Keys S',
+        serialNumber: 'LOG-MXK-2024-001',
+        specifications: JSON.stringify({ layout: 'US', connection: 'Bluetooth/USB Receiver', features: 'Backlit, Multi-device' }),
+        purchaseDate: new Date('2024-01-10'),
+        purchaseCost: 119.00,
+        warrantyExpiry: new Date('2026-01-10'),
+        vendor: 'Amazon',
+        invoiceNumber: 'INV-AMZ-2024-001',
+        condition: 'good',
+        status: 'available',
+        assignedToId: null,
+        location: 'Store Room',
+        notes: 'Spare keyboard',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-KEY-003',
+        name: 'Keychron K2',
+        category: 'keyboard',
+        brand: 'Keychron',
+        model: 'K2 Wireless Mechanical',
+        serialNumber: 'KC-K2-2024-001',
+        specifications: JSON.stringify({ layout: '84-key', connection: 'Bluetooth/USB-C', switchType: 'Gateron Red', features: 'RGB Backlit' }),
+        purchaseDate: new Date('2024-05-01'),
+        purchaseCost: 79.00,
+        warrantyExpiry: new Date('2025-05-01'),
+        vendor: 'Keychron Direct',
+        invoiceNumber: 'INV-KC-2024-001',
+        condition: 'new',
+        status: 'available',
+        assignedToId: null,
+        location: 'Store Room',
+        notes: 'Mechanical keyboard for developers',
+        organizationId: org.id,
+      },
+    }),
+    // Mice (3)
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-MSE-001',
+        name: 'Logitech MX Master 3S',
+        category: 'mouse',
+        brand: 'Logitech',
+        model: 'MX Master 3S',
+        serialNumber: 'LOG-MXM-2024-001',
+        specifications: JSON.stringify({ connection: 'Bluetooth/USB Receiver', sensor: '8000 DPI', features: 'MagSpeed scroll, Multi-device', color: 'Graphite' }),
+        purchaseDate: new Date('2024-03-15'),
+        purchaseCost: 99.00,
+        warrantyExpiry: new Date('2026-03-15'),
+        vendor: 'Amazon',
+        invoiceNumber: 'INV-AMZ-2024-002',
+        condition: 'good',
+        status: 'issued',
+        assignedToId: users[0].id, // Sarah Chen
+        location: 'Office A - Desk 1',
+        notes: 'Paired with MacBook Pro',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-MSE-002',
+        name: 'Apple Magic Mouse',
+        category: 'mouse',
+        brand: 'Apple',
+        model: 'Magic Mouse',
+        serialNumber: 'APL-MM-2024-001',
+        specifications: JSON.stringify({ connection: 'Bluetooth/USB-C', features: 'Multi-Touch surface', color: 'White' }),
+        purchaseDate: new Date('2024-04-01'),
+        purchaseCost: 79.00,
+        warrantyExpiry: new Date('2026-04-01'),
+        vendor: 'Apple Store',
+        invoiceNumber: 'INV-APL-2024-004',
+        condition: 'new',
+        status: 'available',
+        assignedToId: null,
+        location: 'Store Room',
+        notes: 'Spare mouse',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-MSE-003',
+        name: 'Logitech G502',
+        category: 'mouse',
+        brand: 'Logitech',
+        model: 'G502 HERO',
+        serialNumber: 'LOG-G502-2024-001',
+        specifications: JSON.stringify({ connection: 'USB Wired', sensor: '25600 DPI', features: '11 programmable buttons, RGB', weight: '121g' }),
+        purchaseDate: new Date('2024-06-15'),
+        purchaseCost: 69.00,
+        warrantyExpiry: new Date('2026-06-15'),
+        vendor: 'Amazon',
+        invoiceNumber: 'INV-AMZ-2024-003',
+        condition: 'good',
+        status: 'available',
+        assignedToId: null,
+        location: 'Store Room',
+        notes: 'Gaming mouse, optional use for design work',
+        organizationId: org.id,
+      },
+    }),
+    // Headphones (2)
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-HDP-001',
+        name: 'Sony WH-1000XM5',
+        category: 'headphone',
+        brand: 'Sony',
+        model: 'WH-1000XM5',
+        serialNumber: 'SNY-XM5-2024-001',
+        specifications: JSON.stringify({ type: 'Over-ear', connection: 'Bluetooth/3.5mm', features: 'ANC, 30hr battery', color: 'Black' }),
+        purchaseDate: new Date('2024-02-20'),
+        purchaseCost: 349.00,
+        warrantyExpiry: new Date('2026-02-20'),
+        vendor: 'Best Buy',
+        invoiceNumber: 'INV-BBY-2024-001',
+        condition: 'good',
+        status: 'issued',
+        assignedToId: users[3].id, // Jake Morrison
+        location: 'Office D - Desk 1',
+        notes: 'Noise cancelling for focused work',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-HDP-002',
+        name: 'AirPods Pro',
+        category: 'headphone',
+        brand: 'Apple',
+        model: 'AirPods Pro 2nd Gen',
+        serialNumber: 'APL-APP-2024-001',
+        specifications: JSON.stringify({ type: 'In-ear', connection: 'Bluetooth', features: 'ANC, Spatial Audio, MagSafe case' }),
+        purchaseDate: new Date('2024-05-10'),
+        purchaseCost: 249.00,
+        warrantyExpiry: new Date('2025-05-10'),
+        vendor: 'Apple Store',
+        invoiceNumber: 'INV-APL-2024-005',
+        condition: 'good',
+        status: 'available',
+        assignedToId: null,
+        location: 'IT Cabinet',
+        notes: 'For meetings and calls',
+        organizationId: org.id,
+      },
+    }),
+    // USB/Storage (3)
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-USB-001',
+        name: 'Samsung T7 1TB',
+        category: 'usb',
+        brand: 'Samsung',
+        model: 'Portable SSD T7',
+        serialNumber: 'SAM-T7-2024-001',
+        specifications: JSON.stringify({ capacity: '1TB', interface: 'USB 3.2 Gen 2', readSpeed: '1050 MB/s', color: 'Indigo Blue' }),
+        purchaseDate: new Date('2024-01-15'),
+        purchaseCost: 89.00,
+        warrantyExpiry: new Date('2027-01-15'),
+        vendor: 'Amazon',
+        invoiceNumber: 'INV-AMZ-2024-004',
+        condition: 'good',
+        status: 'available',
+        assignedToId: null,
+        location: 'IT Cabinet',
+        notes: 'External SSD for backups',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-USB-002',
+        name: 'SanDisk 128GB',
+        category: 'usb',
+        brand: 'SanDisk',
+        model: 'Ultra Flair USB 3.0',
+        serialNumber: 'SND-UF-2024-001',
+        specifications: JSON.stringify({ capacity: '128GB', interface: 'USB 3.0', readSpeed: '150 MB/s' }),
+        purchaseDate: new Date('2024-03-01'),
+        purchaseCost: 19.00,
+        warrantyExpiry: new Date('2027-03-01'),
+        vendor: 'Amazon',
+        invoiceNumber: 'INV-AMZ-2024-005',
+        condition: 'new',
+        status: 'available',
+        assignedToId: null,
+        location: 'IT Cabinet',
+        notes: 'USB flash drive for file transfers',
+        organizationId: org.id,
+      },
+    }),
+    prisma.iTAsset.create({
+      data: {
+        assetTag: 'IT-USB-003',
+        name: 'Kingston 64GB',
+        category: 'usb',
+        brand: 'Kingston',
+        model: 'DataTraveler 100 G3',
+        serialNumber: 'KNG-DT-2024-001',
+        specifications: JSON.stringify({ capacity: '64GB', interface: 'USB 3.0', readSpeed: '100 MB/s' }),
+        purchaseDate: new Date('2024-04-10'),
+        purchaseCost: 12.00,
+        warrantyExpiry: new Date('2027-04-10'),
+        vendor: 'Amazon',
+        invoiceNumber: 'INV-AMZ-2024-006',
+        condition: 'new',
+        status: 'available',
+        assignedToId: null,
+        location: 'IT Cabinet',
+        notes: 'Budget USB drive',
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${itAssets.length} IT assets`)
+
+  // ============================================
+  // 23. Asset Issuances (6 total)
+  // ============================================
+  const assetIssuances = await Promise.all([
+    // MacBook Pro issued to Sarah Chen
+    prisma.assetIssuance.create({
+      data: {
+        assetId: itAssets[0].id, // IT-LAP-001 MacBook Pro
+        issuedToId: users[0].id, // Sarah Chen
+        issuedById: users[0].id, // Self-issued (admin)
+        issueDate: new Date('2024-03-16'),
+        expectedReturnDate: null,
+        issueCondition: 'new',
+        purpose: 'Primary workstation',
+        notes: 'Creative Director daily use',
+        status: 'issued',
+        organizationId: org.id,
+      },
+    }),
+    // Dell XPS issued to Marcus Williams
+    prisma.assetIssuance.create({
+      data: {
+        assetId: itAssets[1].id, // IT-LAP-002 Dell XPS
+        issuedToId: users[1].id, // Marcus Williams
+        issuedById: users[0].id, // Sarah Chen (admin)
+        issueDate: new Date('2024-01-25'),
+        expectedReturnDate: null,
+        issueCondition: 'new',
+        purpose: 'Development workstation',
+        notes: 'Senior Developer daily use',
+        status: 'issued',
+        organizationId: org.id,
+      },
+    }),
+    // ThinkPad issued to Priya Sharma
+    prisma.assetIssuance.create({
+      data: {
+        assetId: itAssets[2].id, // IT-LAP-003 ThinkPad
+        issuedToId: users[2].id, // Priya Sharma
+        issuedById: users[0].id, // Sarah Chen (admin)
+        issueDate: new Date('2024-02-15'),
+        expectedReturnDate: null,
+        issueCondition: 'new',
+        purpose: 'Remote work',
+        notes: 'Team Lead remote setup',
+        status: 'issued',
+        organizationId: org.id,
+      },
+    }),
+    // Logitech MX Master issued to Sarah Chen
+    prisma.assetIssuance.create({
+      data: {
+        assetId: itAssets[10].id, // IT-MSE-001 MX Master
+        issuedToId: users[0].id, // Sarah Chen
+        issuedById: users[0].id, // Self-issued
+        issueDate: new Date('2024-03-16'),
+        expectedReturnDate: null,
+        issueCondition: 'new',
+        purpose: 'Ergonomic pointing device',
+        notes: 'Paired with MacBook Pro',
+        status: 'issued',
+        organizationId: org.id,
+      },
+    }),
+    // Sony headphones issued to Jake Morrison
+    prisma.assetIssuance.create({
+      data: {
+        assetId: itAssets[13].id, // IT-HDP-001 Sony WH-1000XM5
+        issuedToId: users[3].id, // Jake Morrison
+        issuedById: users[0].id, // Sarah Chen (admin)
+        issueDate: new Date('2024-02-25'),
+        expectedReturnDate: null,
+        issueCondition: 'new',
+        purpose: 'Focus work and meetings',
+        notes: 'Team Lead audio equipment',
+        status: 'issued',
+        organizationId: org.id,
+      },
+    }),
+    // Apple Magic Keyboard issued to Luna Rodriguez
+    prisma.assetIssuance.create({
+      data: {
+        assetId: itAssets[7].id, // IT-KEY-001 Apple Magic Keyboard
+        issuedToId: users[4].id, // Luna Rodriguez
+        issuedById: users[0].id, // Sarah Chen (admin)
+        issueDate: new Date('2024-03-20'),
+        expectedReturnDate: null,
+        issueCondition: 'new',
+        purpose: 'Daily work',
+        notes: 'Content Creator keyboard',
+        status: 'issued',
+        organizationId: org.id,
+      },
+    }),
+  ])
+  console.log(`✅ Created ${assetIssuances.length} asset issuances`)
+
   console.log('🎉 Seeding complete!')
   console.log({
     organization: 1,
@@ -3668,6 +4177,8 @@ async function main() {
     stockMovements: stockMovements.length,
     vendors: vendors.length,
     purchaseOrders: purchaseOrders.length,
+    itAssets: itAssets.length,
+    assetIssuances: assetIssuances.length,
   })
 }
 

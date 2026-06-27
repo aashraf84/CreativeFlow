@@ -46,6 +46,7 @@ model Organization {
   purchaseOrders PurchaseOrder[]
   vendors      Vendor[]
   warehouses   Warehouse[]
+  itAssets     ITAsset[]
 }
 
 model User {
@@ -73,6 +74,9 @@ model User {
   notifications   Notification[] @relation("NotificationUser")
   employee        Employee?    @relation("EmployeeUser")
   expensesSubmitted Expense[] @relation("ExpenseSubmitter")
+  itAssets        ITAsset[]    @relation("ITAssetAssignee")
+  issuancesReceived AssetIssuance[] @relation("AssetIssuanceRecipient")
+  issuancesIssued   AssetIssuance[] @relation("AssetIssuanceIssuer")
 
   @@index([organizationId])
 }
@@ -830,4 +834,67 @@ model PurchaseOrderItem {
   product       Product       @relation(fields: [productId], references: [id])
 
   @@index([purchaseOrderId])
+}
+
+// ─── IT Asset Management ───────────────────────────────────────────────────────
+
+model ITAsset {
+  id              String   @id @default(cuid())
+  assetTag        String   @unique  // e.g. "IT-LAP-001", "IT-KEY-042"
+  name            String   // e.g. "MacBook Pro 14 inch", "Logitech MX Master 3S"
+  category        String   // laptop, desktop, monitor, keyboard, mouse, headphone, usb, webcam, dock, cable, adapter, tablet, phone, printer, router, other
+  brand           String?  // Apple, Dell, Logitech, etc.
+  model           String?  // "MacBook Pro 14 M3", "MX Master 3S"
+  serialNumber    String?
+  specifications  String?  // JSON: { ram, storage, cpu, screen_size, color, etc. }
+  purchaseDate    DateTime?
+  purchaseCost    Float?
+  warrantyExpiry  DateTime?
+  vendor          String?
+  invoiceNumber   String?
+  condition       String   @default("new") // new, good, fair, damaged, retired
+  status          String   @default("available") // available, issued, maintenance, retired, lost
+  assignedToId    String?  // userId currently holding the asset
+  location        String?  // "Office A", "Remote", "Store Room"
+  notes           String?
+  imageUrl        String?
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  assignedTo      User?         @relation("ITAssetAssignee", fields: [assignedToId], references: [id])
+  issuances       AssetIssuance[]
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([status])
+  @@index([assignedToId])
+}
+
+model AssetIssuance {
+  id              String   @id @default(cuid())
+  assetId         String
+  issuedToId      String   // userId receiving the asset
+  issuedById      String   // userId (IT admin) issuing the asset
+  issueDate       DateTime @default(now())
+  expectedReturnDate DateTime?
+  actualReturnDate DateTime?
+  returnCondition String?  // condition when returned
+  issueCondition  String?  // condition when issued
+  purpose         String?  // "Daily work", "Project X", "Remote work"
+  notes           String?
+  status          String   @default("issued") // issued, returned, overdue, lost
+  organizationId  String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  asset           ITAsset  @relation(fields: [assetId], references: [id])
+  issuedTo        User     @relation("AssetIssuanceRecipient", fields: [issuedToId], references: [id])
+  issuedBy        User     @relation("AssetIssuanceIssuer", fields: [issuedById], references: [id])
+
+  @@index([organizationId])
+  @@index([assetId])
+  @@index([issuedToId])
+  @@index([status])
 }

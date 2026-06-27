@@ -30,6 +30,7 @@ import {
   Package,
   ShoppingCart,
   Store,
+  Monitor,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -75,6 +76,7 @@ const inventoryNav: NavItem[] = [
   { id: "products", label: "Products", icon: Package },
   { id: "purchaseOrders", label: "Purchase Orders", icon: ShoppingCart },
   { id: "vendors", label: "Vendors", icon: Store },
+  { id: "itAssets", label: "IT Assets", icon: Monitor },
 ];
 
 const insightNav: NavItem[] = [

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 // Types for the ERP
-export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers' | 'employees' | 'payroll' | 'recruitment' | 'expenses' | 'financeAccounts' | 'products' | 'purchaseOrders' | 'vendors'
+export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers' | 'employees' | 'payroll' | 'recruitment' | 'expenses' | 'financeAccounts' | 'products' | 'purchaseOrders' | 'vendors' | 'itAssets'
 
 export type ContentStage = 'idea' | 'design' | 'edit' | 'review' | 'approve' | 'disseminate' | 'archived'
 export type ContentPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -508,6 +508,55 @@ export interface PurchaseOrder {
   createdAt: string
 }
 
+export interface ITAsset {
+  id: string
+  assetTag: string
+  name: string
+  category: string
+  brand: string | null
+  model: string | null
+  serialNumber: string | null
+  specifications: string | null
+  purchaseDate: string | null
+  purchaseCost: number | null
+  warrantyExpiry: string | null
+  vendor: string | null
+  invoiceNumber: string | null
+  condition: string
+  status: string
+  assignedToId: string | null
+  location: string | null
+  notes: string | null
+  imageUrl: string | null
+  organizationId: string
+  createdAt: string
+  updatedAt: string
+  assignedTo: User | null
+  issuances: AssetIssuance[]
+  _count?: { issuances: number }
+}
+
+export interface AssetIssuance {
+  id: string
+  assetId: string
+  issuedToId: string
+  issuedById: string
+  issueDate: string
+  expectedReturnDate: string | null
+  actualReturnDate: string | null
+  returnCondition: string | null
+  issueCondition: string | null
+  purpose: string | null
+  notes: string | null
+  status: string
+  organizationId: string
+  createdAt: string
+  updatedAt: string
+  asset: ITAsset
+  issuedTo: User
+  issuedBy: User
+}
+
 export interface DashboardData {
   totalContent: number
   contentByStage: Record<ContentStage, number>
@@ -570,6 +619,8 @@ interface ERPStore {
   stockMovements: StockMovement[]
   vendors: Vendor[]
   purchaseOrders: PurchaseOrder[]
+  itAssets: ITAsset[]
+  assetIssuances: AssetIssuance[]
 
   // Loading states
   isLoading: boolean
@@ -608,6 +659,8 @@ interface ERPStore {
   setStockMovements: (data: StockMovement[]) => void
   setVendors: (data: Vendor[]) => void
   setPurchaseOrders: (data: PurchaseOrder[]) => void
+  setItAssets: (data: ITAsset[]) => void
+  setAssetIssuances: (data: AssetIssuance[]) => void
 
   // Modals
   showCreateContent: boolean
@@ -664,6 +717,8 @@ export const useERPStore = create<ERPStore>((set) => ({
   stockMovements: [],
   vendors: [],
   purchaseOrders: [],
+  itAssets: [],
+  assetIssuances: [],
 
   // Loading
   isLoading: false,
@@ -702,6 +757,8 @@ export const useERPStore = create<ERPStore>((set) => ({
   setStockMovements: (data) => set({ stockMovements: data }),
   setVendors: (data) => set({ vendors: data }),
   setPurchaseOrders: (data) => set({ purchaseOrders: data }),
+  setItAssets: (data) => set({ itAssets: data }),
+  setAssetIssuances: (data) => set({ assetIssuances: data }),
 
   // Modals
   showCreateContent: false,

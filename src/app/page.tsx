@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder } from "@/lib/store";
+import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder, type ITAsset, type AssetIssuance } from "@/lib/store";
 import { Sidebar } from "@/components/erp/sidebar";
 import { Header } from "@/components/erp/header";
 import { DashboardView } from "@/components/erp/dashboard-view";
@@ -29,6 +29,7 @@ import { FinanceAccountsView } from "@/components/erp/finance-accounts-view";
 import { ProductsView } from "@/components/erp/products-view";
 import { PurchaseOrdersView } from "@/components/erp/purchase-orders-view";
 import { VendorsView } from "@/components/erp/vendors-view";
+import { ITAssetsView } from "@/components/erp/it-assets-view";
 import { CreateContentModal } from "@/components/erp/create-content-modal";
 import { CreatePostModal } from "@/components/erp/create-post-modal";
 import { ContentDetailModal } from "@/components/erp/content-detail-modal";
@@ -60,6 +61,7 @@ const viewComponents: Record<ActiveView, React.ComponentType> = {
   products: ProductsView,
   purchaseOrders: PurchaseOrdersView,
   vendors: VendorsView,
+  itAssets: ITAssetsView,
 };
 
 // Helper to safely extract data from various API response formats
@@ -79,7 +81,7 @@ export default function ERPPage() {
     setInboxMessages, setInfluencers, setBrandKits,
     setDepartments, setEmployees, setLeaveRequests, setPayrollRuns, setJobPostings,
     setExpenses, setFinanceAccounts, setTaxRates, setProducts, setWarehouses,
-    setStockMovements, setVendors, setPurchaseOrders,
+    setStockMovements, setVendors, setPurchaseOrders, setItAssets, setAssetIssuances,
   } = useERPStore();
   const [seeded, setSeeded] = useState(false);
 
@@ -101,6 +103,7 @@ export default function ERPPage() {
         departmentsRes, employeesRes, leaveRequestsRes, payrollRes,
         jobPostingsRes, expensesRes, financeAccountsRes, taxRatesRes,
         productsRes, warehousesRes, stockMovementsRes, vendorsRes, purchaseOrdersRes,
+        itAssetsRes, assetIssuancesRes,
       ] = await Promise.all([
         fetch("/api/dashboard"),
         fetch("/api/contents"),
@@ -132,6 +135,8 @@ export default function ERPPage() {
         fetch("/api/stock-movements"),
         fetch("/api/vendors"),
         fetch("/api/purchase-orders"),
+        fetch("/api/it-assets"),
+        fetch("/api/asset-issuances"),
       ]);
 
       const [
@@ -142,6 +147,7 @@ export default function ERPPage() {
         departmentsJson, employeesJson, leaveRequestsJson, payrollJson,
         jobPostingsJson, expensesJson, financeAccountsJson, taxRatesJson,
         productsJson, warehousesJson, stockMovementsJson, vendorsJson, purchaseOrdersJson,
+        itAssetsJson, assetIssuancesJson,
       ] = await Promise.all([
         dashboardRes.json(), contentsRes.json(), postsRes.json(),
         teamsRes.json(), accountsRes.json(), campaignsRes.json(),
@@ -155,6 +161,7 @@ export default function ERPPage() {
         financeAccountsRes.json(), taxRatesRes.json(),
         productsRes.json(), warehousesRes.json(), stockMovementsRes.json(),
         vendorsRes.json(), purchaseOrdersRes.json(),
+        itAssetsRes.json(), assetIssuancesRes.json(),
       ]);
 
       // Dashboard - map API response to store format
@@ -310,6 +317,14 @@ export default function ERPPage() {
       // Purchase Orders
       const purchaseOrdersData = purchaseOrdersJson?.data || (Array.isArray(purchaseOrdersJson) ? purchaseOrdersJson : []);
       if (Array.isArray(purchaseOrdersData)) setPurchaseOrders(purchaseOrdersData as PurchaseOrder[]);
+
+      // IT Assets
+      const itAssetsData = itAssetsJson?.data || (Array.isArray(itAssetsJson) ? itAssetsJson : []);
+      if (Array.isArray(itAssetsData)) setItAssets(itAssetsData as ITAsset[]);
+
+      // Asset Issuances
+      const assetIssuancesData = assetIssuancesJson?.data || (Array.isArray(assetIssuancesJson) ? assetIssuancesJson : []);
+      if (Array.isArray(assetIssuancesData)) setAssetIssuances(assetIssuancesData as AssetIssuance[]);
 
       // Set current user
       setCurrentUser({

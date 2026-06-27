@@ -63,3 +63,87 @@ Built 3 comprehensive, professional HR views for VortexERP with emerald/teal col
 
 ## Data Counts
 - 6 departments, 14 employees, 8 leave requests, 3 payroll runs (35 items), 8 job postings
+
+---
+
+## Task 2: IT Asset Management Module
+**Date**: 2025-03-04
+**Status**: Completed
+
+### Summary
+Added IT Asset Management module to VortexERP with full CRUD API routes, seed data, store integration, sidebar navigation, and page routing.
+
+### Files Created
+1. **`src/app/api/it-assets/route.ts`** - GET (list with filters: category, status, assignedToId, search) + POST (create with assetTag uniqueness check)
+2. **`src/app/api/it-assets/[id]/route.ts`** - PUT (update with auto status change on assign/unassign) + DELETE (cascading delete of issuances)
+3. **`src/app/api/it-assets/[id]/issue/route.ts`** - POST (issue asset to user, creates AssetIssuance, updates ITAsset status to "issued")
+4. **`src/app/api/it-assets/[id]/return/route.ts`** - POST (return asset, updates AssetIssuance with return date/condition, resets ITAsset to "available")
+5. **`src/app/api/asset-issuances/route.ts`** - GET (list with filters: status, issuedToId, assetId)
+6. **`src/components/erp/it-assets-view.tsx`** - Stub component for IT Assets view
+
+### Files Modified
+1. **`prisma/seed.ts`** - Added 18 IT assets (3 laptops, 2 desktops, 2 monitors, 3 keyboards, 3 mice, 2 headphones, 3 USB/storage) and 6 asset issuances; added deletion of AssetIssuance and ITAsset records at start
+2. **`src/lib/store.ts`** - Added ITAsset and AssetIssuance interfaces; added 'itAssets' to ActiveView type; added itAssets/assetIssuances state and setters
+3. **`src/components/erp/sidebar.tsx`** - Added "IT Assets" nav item with Monitor icon in Inventory section, after Vendors
+4. **`src/app/page.tsx`** - Added ITAssetsView import, added to viewComponents map, added data fetching for /api/it-assets and /api/asset-issuances
+
+### Seed Data
+- 18 IT assets across 7 categories (laptop, desktop, monitor, keyboard, mouse, headphone, usb)
+- 6 issuances: MacBook Pro→Sarah Chen, Dell XPS→Marcus Williams, ThinkPad→Priya Sharma, MX Master→Sarah Chen, Sony headphones→Jake Morrison, Magic Keyboard→Luna Rodriguez
+- Status mix: 6 issued, 11 available, 1 maintenance
+- Condition mix: 8 new, 9 good, 1 fair
+
+### Verification
+- `bun run db:push` - Database already in sync
+- `bun run seed` - All 18 IT assets and 6 issuances created successfully
+- `bun run lint` - No errors
+
+## Task 3: IT Asset Management View
+
+### What was done:
+1. **Updated API routes** to include full issuances with user details:
+   - `GET /api/it-assets` - Added `issuances` include with `issuedTo` and `issuedBy` user relations
+   - `PUT /api/it-assets/[id]` - Added same issuances include for consistent responses
+
+2. **Built comprehensive `ITAssetsView` component** (`src/components/erp/it-assets-view.tsx`) with:
+   - **6 KPI cards**: Total Assets, Available, Issued, In Maintenance, Total Value, Warranty Expiring (within 30 days)
+   - **Category filter tabs**: All, Laptop, Desktop, Monitor, Keyboard, Mouse, Headphone, USB/Storage, Other
+   - **Two main sub-tabs**: "Asset Inventory" and "Issuance Records"
+   - **Asset Inventory tab**:
+     - Search bar (by name, asset tag, serial number, brand, model)
+     - Status filter buttons: All, Available, Issued, Maintenance, Retired
+     - Grid/List view toggle with animated transitions
+     - Asset Cards with category icons, color-coded bars, status badges, condition dots, assigned user avatars, warranty warnings, and quick action buttons
+     - Asset Rows for list view with compact inline display
+   - **Asset Detail Sheet** (right panel):
+     - Full asset info with category icon, status badge, condition dots
+     - Specifications display (parsed from JSON)
+     - Purchase information (date, cost, vendor, invoice)
+     - Warranty status with expiry countdown bar
+     - Current assignment with user details
+     - Issuance history displayed as a timeline
+     - Action buttons: Issue, Return, Mark Maintenance, Retire
+   - **Issue Asset Dialog**: Select user, purpose, expected return date, issue condition, notes
+   - **Return Asset Dialog**: Return condition dropdown, notes
+   - **Add Asset Dialog**: Full form with auto-generated asset tag, category select, brand/model, serial number, specifications (fields or JSON mode), purchase info, warranty, location, condition, notes
+   - **Issuance Records tab**: Full table with asset info, issued to/by, dates, status badges, overdue highlighting, return/view actions
+   - Category icon mapping with 14+ lucide icons
+   - Category color mapping with emerald/slate/cyan/violet/amber/rose/teal/gray
+   - Proper empty states for both tabs
+   - Smooth framer-motion animations with staggered reveals
+   - Responsive design (mobile-first with grid breakpoints)
+
+3. **Lint passed** with zero errors after fixing react-hooks/static-components rule (using `React.createElement` for dynamic icons instead of JSX component variables)
+
+### Files modified:
+- `src/app/api/it-assets/route.ts` - Added issuances include
+- `src/app/api/it-assets/[id]/route.ts` - Added issuances include
+- `src/components/erp/it-assets-view.tsx` - Complete rewrite from placeholder to full component
+
+### Key design decisions:
+- Used emerald/teal as primary colors throughout (no blue/indigo)
+- Category colors follow spec: laptop=emerald, desktop=slate, monitor=cyan, keyboard=violet, mouse=amber, headphone=rose, usb=teal, other=gray
+- Dynamic icons rendered via `React.createElement` to satisfy lint rules
+- Warranty indicators show days left with color-coded warnings
+- Overdue issuances highlighted with rose background in table
+- Asset tags auto-suggested based on category prefix (IT-LAP-XXX, IT-DST-XXX, etc.)
