@@ -1,0 +1,1011 @@
+     1→"use client"
+     2→
+     3→import React, { useState, useMemo, useCallback } from "react"
+     4→import { useERPStore, type Influencer, type Platform } from "@/lib/store"
+     5→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+     6→import { Button } from "@/components/ui/button"
+     7→import { Badge } from "@/components/ui/badge"
+     8→import { Input } from "@/components/ui/input"
+     9→import { Label } from "@/components/ui/label"
+    10→import { Textarea } from "@/components/ui/textarea"
+    11→import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+    12→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
+    13→import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+    14→import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+    15→import { Progress } from "@/components/ui/progress"
+    16→import { ScrollArea } from "@/components/ui/scroll-area"
+    17→import { Separator } from "@/components/ui/separator"
+    18→import { motion, AnimatePresence } from "framer-motion"
+    19→import {
+    20→  Star,
+    21→  Plus,
+    22→  Search,
+    23→  Mail,
+    24→  Phone,
+    25→  MoreVertical,
+    26→  Grid3X3,
+    27→  List,
+    28→  Users,
+    29→  TrendingUp,
+    30→  Eye,
+    31→  UserCheck,
+    32→  ChevronRight,
+    33→  ExternalLink,
+    34→  Instagram,
+    35→  Twitter,
+    36→  Linkedin,
+    37→  Youtube,
+    38→  MessageCircle,
+    39→  ArrowUpRight,
+    40→  Calendar,
+    41→  DollarSign,
+    42→  FileText,
+    43→  Briefcase,
+    44→  Target,
+    45→  Edit3,
+    46→  Trash2,
+    47→  CheckCircle2,
+    48→  Clock,
+    49→  Send,
+    50→  Handshake,
+    51→  XCircle,
+    52→  Sparkles,
+    53→  BarChart3,
+    54→  UserPlus,
+    55→  Activity,
+    56→} from "lucide-react"
+    57→import {
+    58→  DropdownMenu,
+    59→  DropdownMenuContent,
+    60→  DropdownMenuItem,
+    61→  DropdownMenuTrigger,
+    62→  DropdownMenuSeparator,
+    63→} from "@/components/ui/dropdown-menu"
+    64→import { cn } from "@/lib/utils"
+    65→import { useToast } from "@/hooks/use-toast"
+    66→
+    67→// ── Animation variants ──
+    68→const containerVariants = {
+    69→  hidden: { opacity: 0 },
+    70→  visible: { opacity: 1, transition: { staggerChildren: 0.06, delayChildren: 0.1 } },
+    71→}
+    72→const itemVariants = {
+    73→  hidden: { opacity: 0, y: 12, scale: 0.97 },
+    74→  visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } },
+    75→}
+    76→
+    77→// ── Status config ──
+    78→const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
+    79→  prospect: { label: "Prospect", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300", icon: Eye },
+    80→  contacted: { label: "Contacted", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300", icon: Send },
+    81→  negotiating: { label: "Negotiating", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300", icon: Handshake },
+    82→  active: { label: "Active", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300", icon: UserCheck },
+    83→  completed: { label: "Completed", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300", icon: CheckCircle2 },
+    84→  declined: { label: "Declined", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300", icon: XCircle },
+    85→}
+    86→
+    87→// ── Platform config ──
+    88→const platformConfig: Record<Platform, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
+    89→  instagram: { label: "Instagram", color: "bg-gradient-to-br from-purple-500 to-pink-500 text-white", icon: Instagram },
+    90→  facebook: { label: "Facebook", color: "bg-blue-600 text-white", icon: MessageCircle },
+    91→  twitter: { label: "Twitter", color: "bg-sky-500 text-white", icon: Twitter },
+    92→  linkedin: { label: "LinkedIn", color: "bg-blue-700 text-white", icon: Linkedin },
+    93→  tiktok: { label: "TikTok", color: "bg-slate-900 text-white", icon: Sparkles },
+    94→  youtube: { label: "YouTube", color: "bg-red-600 text-white", icon: Youtube },
+    95→  pinterest: { label: "Pinterest", color: "bg-red-500 text-white", icon: Target },
+    96→  snapchat: { label: "Snapchat", color: "bg-yellow-400 text-black", icon: MessageCircle },
+    97→}
+    98→
+    99→// ── Status timeline ──
+   100→const statusFlow = ["prospect", "contacted", "negotiating", "active", "completed"]
+   101→
+   102→// ── Helper: format follower count ──
+   103→function formatFollowers(count: number): string {
+   104→  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`
+   105→  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`
+   106→  return count.toString()
+   107→}
+   108→
+   109→// ── Helper: initials ──
+   110→function getInitials(name: string): string {
+   111→  return name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase()
+   112→}
+   113→
+   114→// ── Main Component ──
+   115→export function InfluencersView() {
+   116→  const { influencers, clients, campaigns, setInfluencers } = useERPStore()
+   117→  const { toast } = useToast()
+   118→
+   119→  const [search, setSearch] = useState("")
+   120→  const [platformFilter, setPlatformFilter] = useState<string>("all")
+   121→  const [statusFilter, setStatusFilter] = useState<string>("all")
+   122→  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+   123→  const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null)
+   124→  const [showAddDialog, setShowAddDialog] = useState(false)
+   125→
+   126→  // Filter influencers
+   127→  const filteredInfluencers = useMemo(() => {
+   128→    return influencers.filter(inf => {
+   129→      const matchesSearch = !search ||
+   130→        inf.name.toLowerCase().includes(search.toLowerCase()) ||
+   131→        inf.username.toLowerCase().includes(search.toLowerCase()) ||
+   132→        inf.niche?.toLowerCase().includes(search.toLowerCase())
+   133→      const matchesPlatform = platformFilter === "all" || inf.platform === platformFilter
+   134→      const matchesStatus = statusFilter === "all" || inf.status === statusFilter
+   135→      return matchesSearch && matchesPlatform && matchesStatus
+   136→    })
+   137→  }, [influencers, search, platformFilter, statusFilter])
+   138→
+   139→  // KPIs
+   140→  const totalInfluencers = influencers.length
+   141→  const activeCollaborations = influencers.filter(i => i.status === "active").length
+   142→  const avgEngagement = influencers.length > 0
+   143→    ? influencers.reduce((sum, i) => sum + i.engagementRate, 0) / influencers.length
+   144→    : 0
+   145→  const totalReach = influencers.reduce((sum, i) => sum + i.followers, 0)
+   146→
+   147→  // Status counts
+   148→  const statusCounts = useMemo(() => {
+   149→    const counts: Record<string, number> = {}
+   150→    Object.keys(statusConfig).forEach(s => { counts[s] = influencers.filter(i => i.status === s).length })
+   151→    return counts
+   152→  }, [influencers])
+   153→
+   154→  // API helpers
+   155→  const createInfluencer = useCallback(async (data: Record<string, unknown>) => {
+   156→    try {
+   157→      const res = await fetch("/api/influencers", {
+   158→        method: "POST",
+   159→        headers: { "Content-Type": "application/json" },
+   160→        body: JSON.stringify(data),
+   161→      })
+   162→      const json = await res.json()
+   163→      if (json.influencer) {
+   164→        setInfluencers([json.influencer, ...influencers])
+   165→        toast({ title: "Influencer added", description: `${data.name} has been added to your roster.` })
+   166→      }
+   167→    } catch {
+   168→      toast({ title: "Error", description: "Failed to add influencer.", variant: "destructive" })
+   169→    }
+   170→  }, [influencers, setInfluencers, toast])
+   171→
+   172→  const deleteInfluencer = useCallback(async (id: string) => {
+   173→    try {
+   174→      await fetch(`/api/influencers/${id}`, { method: "DELETE" })
+   175→      setInfluencers(influencers.filter(i => i.id !== id))
+   176→      if (selectedInfluencer?.id === id) setSelectedInfluencer(null)
+   177→      toast({ title: "Influencer removed", description: "The influencer has been deleted." })
+   178→    } catch {
+   179→      toast({ title: "Error", description: "Failed to delete influencer.", variant: "destructive" })
+   180→    }
+   181→  }, [influencers, setInfluencers, toast, selectedInfluencer])
+   182→
+   183→  const updateInfluencer = useCallback(async (id: string, data: Record<string, unknown>) => {
+   184→    try {
+   185→      const res = await fetch(`/api/influencers/${id}`, {
+   186→        method: "PUT",
+   187→        headers: { "Content-Type": "application/json" },
+   188→        body: JSON.stringify(data),
+   189→      })
+   190→      const json = await res.json()
+   191→      if (json.influencer) {
+   192→        setInfluencers(influencers.map(i => i.id === id ? json.influencer : i))
+   193→        if (selectedInfluencer?.id === id) setSelectedInfluencer(json.influencer)
+   194→        toast({ title: "Influencer updated", description: "Changes have been saved." })
+   195→      }
+   196→    } catch {
+   197→      toast({ title: "Error", description: "Failed to update influencer.", variant: "destructive" })
+   198→    }
+   199→  }, [influencers, setInfluencers, toast, selectedInfluencer])
+   200→
+   201→  return (
+   202→    <motion.div className="p-4 lg:p-6 space-y-6" variants={containerVariants} initial="hidden" animate="visible">
+   203→      {/* Header */}
+   204→      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+   205→        <div>
+   206→          <h2 className="text-xl font-bold tracking-tight">Influencer CRM</h2>
+   207→          <p className="text-sm text-muted-foreground mt-0.5">Manage influencers, collaborations, and partnerships</p>
+   208→        </div>
+   209→        <Button className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => setShowAddDialog(true)}>
+   210→          <UserPlus className="h-4 w-4" /> Add Influencer
+   211→        </Button>
+   212→      </motion.div>
+   213→
+   214→      {/* KPI Row */}
+   215→      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+   216→        {[
+   217→          { label: "Total Influencers", value: totalInfluencers, icon: Users, gradient: "from-emerald-500 to-emerald-600" },
+   218→          { label: "Active Collaborations", value: activeCollaborations, icon: UserCheck, gradient: "from-teal-500 to-teal-600" },
+   219→          { label: "Avg Engagement", value: `${avgEngagement.toFixed(1)}%`, icon: TrendingUp, gradient: "from-cyan-500 to-cyan-600" },
+   220→          { label: "Total Reach", value: formatFollowers(totalReach), icon: BarChart3, gradient: "from-emerald-600 to-teal-600" },
+   221→        ].map(kpi => {
+   222→          const Icon = kpi.icon
+   223→          return (
+   224→            <motion.div key={kpi.label} variants={itemVariants}>
+   225→              <Card className="shadow-sm border-border/60">
+   226→                <CardContent className="p-4 flex items-center gap-3">
+   227→                  <div className={cn("h-10 w-10 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-sm", kpi.gradient)}>
+   228→                    <Icon className="h-5 w-5 text-white" />
+   229→                  </div>
+   230→                  <div>
+   231→                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">{kpi.label}</p>
+   232→                    <p className="text-xl font-bold tracking-tight">{kpi.value}</p>
+   233→                  </div>
+   234→                </CardContent>
+   235→              </Card>
+   236→            </motion.div>
+   237→          )
+   238→        })}
+   239→      </div>
+   240→
+   241→      {/* Filters Row */}
+   242→      <motion.div variants={itemVariants} className="space-y-3">
+   243→        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+   244→          {/* Search */}
+   245→          <div className="relative flex-1 w-full sm:max-w-xs">
+   246→            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+   247→            <Input placeholder="Search influencers..." className="pl-8 h-9" value={search} onChange={e => setSearch(e.target.value)} />
+   248→          </div>
+   249→
+   250→          {/* View mode toggle */}
+   251→          <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg">
+   252→            <Button variant={viewMode === "grid" ? "default" : "ghost"} size="icon" className="h-7 w-7" onClick={() => setViewMode("grid")}>
+   253→              <Grid3X3 className="h-3.5 w-3.5" />
+   254→            </Button>
+   255→            <Button variant={viewMode === "list" ? "default" : "ghost"} size="icon" className="h-7 w-7" onClick={() => setViewMode("list")}>
+   256→              <List className="h-3.5 w-3.5" />
+   257→            </Button>
+   258→          </div>
+   259→        </div>
+   260→
+   261→        {/* Platform filter */}
+   262→        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+   263→          <Button
+   264→            variant={platformFilter === "all" ? "default" : "outline"}
+   265→            size="sm"
+   266→            className={cn("h-7 text-xs gap-1 shrink-0", platformFilter === "all" && "bg-emerald-600 hover:bg-emerald-700 text-white")}
+   267→            onClick={() => setPlatformFilter("all")}
+   268→          >
+   269→            All Platforms
+   270→          </Button>
+   271→          {(Object.keys(platformConfig) as Platform[]).map(platform => {
+   272→            const cfg = platformConfig[platform]
+   273→            const Icon = cfg.icon
+   274→            return (
+   275→              <Button
+   276→                key={platform}
+   277→                variant={platformFilter === platform ? "default" : "outline"}
+   278→                size="sm"
+   279→                className={cn("h-7 text-xs gap-1 shrink-0", platformFilter === platform && "bg-emerald-600 hover:bg-emerald-700 text-white")}
+   280→                onClick={() => setPlatformFilter(platform)}
+   281→              >
+   282→                <Icon className="h-3 w-3" />
+   283→                {cfg.label}
+   284→              </Button>
+   285→            )
+   286→          })}
+   287→        </div>
+   288→
+   289→        {/* Status filter tabs */}
+   290→        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+   291→          <TabsList className="h-8 flex-wrap">
+   292→            <TabsTrigger value="all" className="text-xs">All ({influencers.length})</TabsTrigger>
+   293→            {Object.entries(statusConfig).map(([key, cfg]) => (
+   294→              <TabsTrigger key={key} value={key} className="text-xs">
+   295→                {cfg.label} ({statusCounts[key] || 0})
+   296→              </TabsTrigger>
+   297→            ))}
+   298→          </TabsList>
+   299→        </Tabs>
+   300→      </motion.div>
+   301→
+   302→      {/* Main Content - Split View */}
+   303→      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+   304→        {/* Influencer Cards */}
+   305→        <div className={cn(selectedInfluencer ? "lg:col-span-2" : "lg:col-span-3")}>
+   306→          <AnimatePresence mode="popLayout">
+   307→            {viewMode === "grid" ? (
+   308→              <motion.div key="grid" className="grid grid-cols-1 sm:grid-cols-2 gap-3" layout>
+   309→                {filteredInfluencers.map(inf => (
+   310→                  <InfluencerCard
+   311→                    key={inf.id}
+   312→                    influencer={inf}
+   313→                    isSelected={selectedInfluencer?.id === inf.id}
+   314→                    onSelect={() => setSelectedInfluencer(inf)}
+   315→                    onDelete={() => deleteInfluencer(inf.id)}
+   316→                    onUpdateStatus={(status) => updateInfluencer(inf.id, { status })}
+   317→                  />
+   318→                ))}
+   319→              </motion.div>
+   320→            ) : (
+   321→              <motion.div key="list" className="space-y-2" layout>
+   322→                {filteredInfluencers.map(inf => (
+   323→                  <InfluencerListItem
+   324→                    key={inf.id}
+   325→                    influencer={inf}
+   326→                    isSelected={selectedInfluencer?.id === inf.id}
+   327→                    onSelect={() => setSelectedInfluencer(inf)}
+   328→                    onDelete={() => deleteInfluencer(inf.id)}
+   329→                    onUpdateStatus={(status) => updateInfluencer(inf.id, { status })}
+   330→                  />
+   331→                ))}
+   332→              </motion.div>
+   333→            )}
+   334→          </AnimatePresence>
+   335→
+   336→          {filteredInfluencers.length === 0 && (
+   337→            <Card className="shadow-sm border-dashed">
+   338→              <CardContent className="py-12 text-center">
+   339→                <Star className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+   340→                <p className="text-sm font-medium text-muted-foreground">No influencers found</p>
+   341→                <p className="text-xs text-muted-foreground/70 mt-1">
+   342→                  {search || platformFilter !== "all" || statusFilter !== "all"
+   343→                    ? "Try adjusting your filters"
+   344→                    : "Add your first influencer to get started"}
+   345→                </p>
+   346→                {!search && platformFilter === "all" && statusFilter === "all" && (
+   347→                  <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => setShowAddDialog(true)}>
+   348→                    <UserPlus className="h-3.5 w-3.5" /> Add Influencer
+   349→                  </Button>
+   350→                )}
+   351→              </CardContent>
+   352→            </Card>
+   353→          )}
+   354→        </div>
+   355→
+   356→        {/* Detail Panel */}
+   357→        {selectedInfluencer && (
+   358→          <motion.div
+   359→            initial={{ opacity: 0, x: 20 }}
+   360→            animate={{ opacity: 1, x: 0 }}
+   361→            exit={{ opacity: 0, x: 20 }}
+   362→            className="space-y-3"
+   363→          >
+   364→            <InfluencerDetailPanel
+   365→              influencer={selectedInfluencer}
+   366→              onUpdateStatus={(status) => updateInfluencer(selectedInfluencer.id, { status })}
+   367→              onDelete={() => deleteInfluencer(selectedInfluencer.id)}
+   368→              onClose={() => setSelectedInfluencer(null)}
+   369→            />
+   370→          </motion.div>
+   371→        )}
+   372→      </div>
+   373→
+   374→      {/* Add Influencer Dialog */}
+   375→      <AddInfluencerDialog
+   376→        open={showAddDialog}
+   377→        onOpenChange={setShowAddDialog}
+   378→        onSubmit={createInfluencer}
+   379→        clients={clients}
+   380→        campaigns={campaigns}
+   381→      />
+   382→    </motion.div>
+   383→  )
+   384→}
+   385→
+   386→// ── Influencer Card (Grid View) ──
+   387→function InfluencerCard({ influencer, isSelected, onSelect, onDelete, onUpdateStatus }: {
+   388→  influencer: Influencer
+   389→  isSelected: boolean
+   390→  onSelect: () => void
+   391→  onDelete: () => void
+   392→  onUpdateStatus: (status: string) => void
+   393→}) {
+   394→  const platCfg = platformConfig[influencer.platform]
+   395→  const statCfg = statusConfig[influencer.status] || statusConfig.prospect
+   396→  const StatusIcon = statCfg.icon
+   397→  const PlatformIcon = platCfg.icon
+   398→
+   399→  return (
+   400→    <motion.div variants={itemVariants} layout>
+   401→      <Card
+   402→        className={cn(
+   403→          "shadow-sm cursor-pointer transition-all hover:shadow-md group",
+   404→          isSelected ? "border-emerald-400 dark:border-emerald-600 ring-1 ring-emerald-400/30" : "border-border/60"
+   405→        )}
+   406→        onClick={onSelect}
+   407→      >
+   408→        <CardContent className="p-4">
+   409→          {/* Header */}
+   410→          <div className="flex items-start gap-3 mb-3">
+   411→            <Avatar className="h-11 w-11 rounded-xl shrink-0">
+   412→              <AvatarFallback className={cn("font-bold text-sm", platCfg.color)}>
+   413→                {getInitials(influencer.name)}
+   414→              </AvatarFallback>
+   415→            </Avatar>
+   416→            <div className="flex-1 min-w-0">
+   417→              <div className="flex items-center gap-2">
+   418→                <h4 className="text-sm font-semibold truncate">{influencer.name}</h4>
+   419→                <div className={cn("h-5 w-5 rounded-full flex items-center justify-center shrink-0", platCfg.color)}>
+   420→                  <PlatformIcon className="h-2.5 w-2.5" />
+   421→                </div>
+   422→              </div>
+   423→              <p className="text-[11px] text-muted-foreground">@{influencer.username}</p>
+   424→            </div>
+   425→            <Badge className={cn("text-[9px] shrink-0", statCfg.color)}>
+   426→              <StatusIcon className="h-2.5 w-2.5 mr-0.5" />
+   427→              {statCfg.label}
+   428→            </Badge>
+   429→          </div>
+   430→
+   431→          {/* Stats */}
+   432→          <div className="grid grid-cols-3 gap-2 mb-3">
+   433→            <div className="text-center p-2 rounded-lg bg-muted/50">
+   434→              <p className="text-sm font-bold">{formatFollowers(influencer.followers)}</p>
+   435→              <p className="text-[9px] text-muted-foreground">Followers</p>
+   436→            </div>
+   437→            <div className="text-center p-2 rounded-lg bg-muted/50">
+   438→              <p className="text-sm font-bold">{influencer.engagementRate.toFixed(1)}%</p>
+   439→              <p className="text-[9px] text-muted-foreground">Engagement</p>
+   440→            </div>
+   441→            <div className="text-center p-2 rounded-lg bg-muted/50">
+   442→              <p className="text-sm font-bold">{influencer.rate ? `$${influencer.rate.toLocaleString()}` : "—"}</p>
+   443→              <p className="text-[9px] text-muted-foreground">Rate</p>
+   444→            </div>
+   445→          </div>
+   446→
+   447→          {/* Engagement bar */}
+   448→          <div className="mb-3">
+   449→            <div className="flex items-center justify-between mb-1">
+   450→              <span className="text-[9px] text-muted-foreground">Engagement Rate</span>
+   451→              <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">{influencer.engagementRate.toFixed(1)}%</span>
+   452→            </div>
+   453→            <Progress value={Math.min(influencer.engagementRate * 10, 100)} className="h-1.5" />
+   454→          </div>
+   455→
+   456→          {/* Niche & Assignments */}
+   457→          <div className="flex flex-wrap items-center gap-1.5">
+   458→            {influencer.niche && (
+   459→              <Badge variant="secondary" className="text-[9px]">{influencer.niche}</Badge>
+   460→            )}
+   461→            {influencer.client && (
+   462→              <Badge variant="outline" className="text-[9px] gap-1">
+   463→                <Briefcase className="h-2.5 w-2.5" /> {influencer.client.name}
+   464→              </Badge>
+   465→            )}
+   466→          </div>
+   467→
+   468→          {/* Quick actions */}
+   469→          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
+   470→            <div className="flex items-center gap-1">
+   471→              {influencer.email && (
+   472→                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => { e.stopPropagation(); window.open(`mailto:${influencer.email}`) }}>
+   473→                  <Mail className="h-3.5 w-3.5" />
+   474→                </Button>
+   475→              )}
+   476→              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onSelect}>
+   477→                <Eye className="h-3.5 w-3.5" />
+   478→              </Button>
+   479→            </div>
+   480→            <DropdownMenu>
+   481→              <DropdownMenuTrigger asChild>
+   482→                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => e.stopPropagation()}>
+   483→                  <MoreVertical className="h-3.5 w-3.5" />
+   484→                </Button>
+   485→              </DropdownMenuTrigger>
+   486→              <DropdownMenuContent align="end" onClick={e => e.stopPropagation()}>
+   487→                {Object.entries(statusConfig).map(([key, cfg]) => (
+   488→                  <DropdownMenuItem key={key} onClick={() => onUpdateStatus(key)} className="text-xs gap-2">
+   489→                    <cfg.icon className="h-3 w-3" /> Mark as {cfg.label}
+   490→                  </DropdownMenuItem>
+   491→                ))}
+   492→                <DropdownMenuSeparator />
+   493→                <DropdownMenuItem className="text-xs text-rose-600 gap-2" onClick={() => onDelete()}>
+   494→                  <Trash2 className="h-3 w-3" /> Remove
+   495→                </DropdownMenuItem>
+   496→              </DropdownMenuContent>
+   497→            </DropdownMenu>
+   498→          </div>
+   499→        </CardContent>
+   500→      </Card>
+   501→    </motion.div>
+   502→  )
+   503→}
+   504→
+   505→// ── Influencer List Item ──
+   506→function InfluencerListItem({ influencer, isSelected, onSelect, onDelete, onUpdateStatus }: {
+   507→  influencer: Influencer
+   508→  isSelected: boolean
+   509→  onSelect: () => void
+   510→  onDelete: () => void
+   511→  onUpdateStatus: (status: string) => void
+   512→}) {
+   513→  const platCfg = platformConfig[influencer.platform]
+   514→  const statCfg = statusConfig[influencer.status] || statusConfig.prospect
+   515→  const StatusIcon = statCfg.icon
+   516→  const PlatformIcon = platCfg.icon
+   517→
+   518→  return (
+   519→    <motion.div variants={itemVariants} layout>
+   520→      <Card
+   521→        className={cn(
+   522→          "shadow-sm cursor-pointer transition-all hover:shadow-md",
+   523→          isSelected ? "border-emerald-400 dark:border-emerald-600 ring-1 ring-emerald-400/30" : "border-border/60"
+   524→        )}
+   525→        onClick={onSelect}
+   526→      >
+   527→        <CardContent className="p-3 flex items-center gap-3">
+   528→          <Avatar className="h-9 w-9 rounded-lg shrink-0">
+   529→            <AvatarFallback className={cn("font-bold text-xs", platCfg.color)}>
+   530→              {getInitials(influencer.name)}
+   531→            </AvatarFallback>
+   532→          </Avatar>
+   533→          <div className="flex-1 min-w-0">
+   534→            <div className="flex items-center gap-2">
+   535→              <h4 className="text-sm font-semibold truncate">{influencer.name}</h4>
+   536→              <div className={cn("h-4 w-4 rounded-full flex items-center justify-center shrink-0", platCfg.color)}>
+   537→                <PlatformIcon className="h-2 w-2" />
+   538→              </div>
+   539→              <span className="text-[11px] text-muted-foreground">@{influencer.username}</span>
+   540→            </div>
+   541→          </div>
+   542→          <div className="hidden sm:flex items-center gap-4 text-xs text-muted-foreground">
+   543→            <span className="font-semibold text-foreground">{formatFollowers(influencer.followers)}</span>
+   544→            <span>{influencer.engagementRate.toFixed(1)}%</span>
+   545→            {influencer.rate && <span>${influencer.rate.toLocaleString()}</span>}
+   546→          </div>
+   547→          <Badge className={cn("text-[9px] shrink-0", statCfg.color)}>
+   548→            <StatusIcon className="h-2.5 w-2.5 mr-0.5" />
+   549→            {statCfg.label}
+   550→          </Badge>
+   551→          <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+   552→        </CardContent>
+   553→      </Card>
+   554→    </motion.div>
+   555→  )
+   556→}
+   557→
+   558→// ── Influencer Detail Panel ──
+   559→function InfluencerDetailPanel({ influencer, onUpdateStatus, onDelete, onClose }: {
+   560→  influencer: Influencer
+   561→  onUpdateStatus: (status: string) => void
+   562→  onDelete: () => void
+   563→  onClose: () => void
+   564→}) {
+   565→  const platCfg = platformConfig[influencer.platform]
+   566→  const statCfg = statusConfig[influencer.status] || statusConfig.prospect
+   567→  const PlatformIcon = platCfg.icon
+   568→  const [notesValue, setNotesValue] = useState(influencer.notes || "")
+   569→
+   570→  const currentStatusIndex = statusFlow.indexOf(influencer.status)
+   571→
+   572→  return (
+   573→    <>
+   574→      {/* Profile Card */}
+   575→      <Card className="shadow-sm border-border/60">
+   576→        <CardHeader className="pb-3">
+   577→          <div className="flex items-start gap-3">
+   578→            <Avatar className="h-14 w-14 rounded-xl shrink-0">
+   579→              <AvatarFallback className={cn("font-bold text-lg", platCfg.color)}>
+   580→                {getInitials(influencer.name)}
+   581→              </AvatarFallback>
+   582→            </Avatar>
+   583→            <div className="flex-1 min-w-0">
+   584→              <div className="flex items-center justify-between">
+   585→                <CardTitle className="text-base">{influencer.name}</CardTitle>
+   586→                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+   587→                  <XCircle className="h-4 w-4" />
+   588→                </Button>
+   589→              </div>
+   590→              <div className="flex items-center gap-2 mt-1">
+   591→                <span className="text-xs text-muted-foreground">@{influencer.username}</span>
+   592→                <div className={cn("h-5 w-5 rounded-full flex items-center justify-center", platCfg.color)}>
+   593→                  <PlatformIcon className="h-2.5 w-2.5" />
+   594→                </div>
+   595→                <Badge className={cn("text-[9px]", statCfg.color)}>
+   596→                  {statCfg.label}
+   597→                </Badge>
+   598→              </div>
+   599→            </div>
+   600→          </div>
+   601→        </CardHeader>
+   602→        <CardContent className="space-y-4 pt-0">
+   603→          {/* Stats Grid */}
+   604→          <div className="grid grid-cols-2 gap-2">
+   605→            <div className="p-2.5 rounded-lg bg-muted/50 text-center">
+   606→              <p className="text-lg font-bold">{formatFollowers(influencer.followers)}</p>
+   607→              <p className="text-[9px] text-muted-foreground uppercase">Followers</p>
+   608→            </div>
+   609→            <div className="p-2.5 rounded-lg bg-muted/50 text-center">
+   610→              <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{influencer.engagementRate.toFixed(1)}%</p>
+   611→              <p className="text-[9px] text-muted-foreground uppercase">Engagement</p>
+   612→            </div>
+   613→          </div>
+   614→
+   615→          {/* Engagement visualization */}
+   616→          <div>
+   617→            <div className="flex items-center justify-between mb-1.5">
+   618→              <span className="text-[10px] text-muted-foreground">Engagement Rate</span>
+   619→              <span className="text-[10px] font-semibold">{influencer.engagementRate.toFixed(1)}%</span>
+   620→            </div>
+   621→            <div className="h-3 rounded-full bg-muted overflow-hidden">
+   622→              <motion.div
+   623→                className={cn(
+   624→                  "h-full rounded-full",
+   625→                  influencer.engagementRate >= 5 ? "bg-emerald-500" :
+   626→                  influencer.engagementRate >= 3 ? "bg-teal-500" :
+   627→                  influencer.engagementRate >= 1 ? "bg-amber-500" : "bg-rose-500"
+   628→                )}
+   629→                initial={{ width: 0 }}
+   630→                animate={{ width: `${Math.min(influencer.engagementRate * 10, 100)}%` }}
+   631→                transition={{ duration: 0.8, ease: "easeOut" }}
+   632→              />
+   633→            </div>
+   634→            <div className="flex justify-between mt-1">
+   635→              <span className="text-[8px] text-muted-foreground">Low</span>
+   636→              <span className="text-[8px] text-muted-foreground">High</span>
+   637→            </div>
+   638→          </div>
+   639→
+   640→          {/* Niche */}
+   641→          {influencer.niche && (
+   642→            <div>
+   643→              <p className="text-[10px] text-muted-foreground mb-1.5">Niche</p>
+   644→              <Badge variant="secondary" className="text-xs">{influencer.niche}</Badge>
+   645→            </div>
+   646→          )}
+   647→
+   648→          {/* Contact */}
+   649→          <div>
+   650→            <p className="text-[10px] text-muted-foreground mb-1.5">Contact</p>
+   651→            <div className="space-y-1.5">
+   652→              {influencer.email && (
+   653→                <div className="flex items-center gap-2 text-xs">
+   654→                  <Mail className="h-3 w-3 text-muted-foreground" />
+   655→                  <a href={`mailto:${influencer.email}`} className="text-emerald-600 hover:underline truncate" onClick={e => e.stopPropagation()}>
+   656→                    {influencer.email}
+   657→                  </a>
+   658→                </div>
+   659→              )}
+   660→              {influencer.phone && (
+   661→                <div className="flex items-center gap-2 text-xs">
+   662→                  <Phone className="h-3 w-3 text-muted-foreground" />
+   663→                  <span>{influencer.phone}</span>
+   664→                </div>
+   665→              )}
+   666→              {!influencer.email && !influencer.phone && (
+   667→                <p className="text-[11px] text-muted-foreground/50">No contact info</p>
+   668→              )}
+   669→            </div>
+   670→          </div>
+   671→
+   672→          {/* Contract Info */}
+   673→          <div>
+   674→            <p className="text-[10px] text-muted-foreground mb-1.5">Contract</p>
+   675→            <div className="space-y-1.5">
+   676→              {influencer.rate && (
+   677→                <div className="flex items-center gap-2 text-xs">
+   678→                  <DollarSign className="h-3 w-3 text-muted-foreground" />
+   679→                  <span>${influencer.rate.toLocaleString()} / post</span>
+   680→                </div>
+   681→              )}
+   682→              {influencer.contractStart && (
+   683→                <div className="flex items-center gap-2 text-xs">
+   684→                  <Calendar className="h-3 w-3 text-muted-foreground" />
+   685→                  <span>{new Date(influencer.contractStart).toLocaleDateString()} — {influencer.contractEnd ? new Date(influencer.contractEnd).toLocaleDateString() : "Ongoing"}</span>
+   686→                </div>
+   687→              )}
+   688→              {!influencer.rate && !influencer.contractStart && (
+   689→                <p className="text-[11px] text-muted-foreground/50">No contract info</p>
+   690→              )}
+   691→            </div>
+   692→          </div>
+   693→
+   694→          {/* Client/Campaign */}
+   695→          {(influencer.client || influencer.campaign) && (
+   696→            <div>
+   697→              <p className="text-[10px] text-muted-foreground mb-1.5">Assignments</p>
+   698→              <div className="space-y-1.5">
+   699→                {influencer.client && (
+   700→                  <div className="flex items-center gap-2 text-xs">
+   701→                    <Briefcase className="h-3 w-3 text-muted-foreground" />
+   702→                    <span>{influencer.client.name}</span>
+   703→                  </div>
+   704→                )}
+   705→                {influencer.campaign && (
+   706→                  <div className="flex items-center gap-2 text-xs">
+   707→                    <Target className="h-3 w-3 text-muted-foreground" />
+   708→                    <span>{influencer.campaign.name}</span>
+   709→                  </div>
+   710→                )}
+   711→              </div>
+   712→            </div>
+   713→          )}
+   714→        </CardContent>
+   715→      </Card>
+   716→
+   717→      {/* Status Timeline */}
+   718→      <Card className="shadow-sm border-border/60">
+   719→        <CardHeader className="pb-2">
+   720→          <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+   721→            <Activity className="h-3.5 w-3.5 text-emerald-600" /> Status Timeline
+   722→          </CardTitle>
+   723→        </CardHeader>
+   724→        <CardContent className="pt-0">
+   725→          <div className="space-y-0">
+   726→            {statusFlow.map((status, index) => {
+   727→              const cfg = statusConfig[status]
+   728→              const Icon = cfg.icon
+   729→              const isCompleted = index <= currentStatusIndex
+   730→              const isCurrent = index === currentStatusIndex
+   731→              const isLast = index === statusFlow.length - 1
+   732→
+   733→              return (
+   734→                <div key={status} className="flex items-start gap-3">
+   735→                  <div className="flex flex-col items-center">
+   736→                    <div className={cn(
+   737→                      "h-6 w-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors",
+   738→                      isCompleted ? "border-emerald-500 bg-emerald-500" : "border-muted-foreground/20 bg-background",
+   739→                      isCurrent && "ring-2 ring-emerald-500/30"
+   740→                    )}>
+   741→                      <Icon className={cn("h-3 w-3", isCompleted ? "text-white" : "text-muted-foreground/40")} />
+   742→                    </div>
+   743→                    {!isLast && (
+   744→                      <div className={cn(
+   745→                        "w-0.5 h-6",
+   746→                        isCompleted && index < currentStatusIndex ? "bg-emerald-500" : "bg-muted-foreground/20"
+   747→                      )} />
+   748→                    )}
+   749→                  </div>
+   750→                  <div className="pb-3">
+   751→                    <p className={cn("text-xs font-medium", isCompleted ? "text-foreground" : "text-muted-foreground/50")}>
+   752→                      {cfg.label}
+   753→                    </p>
+   754→                    {isCurrent && (
+   755→                      <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium">Current</p>
+   756→                    )}
+   757→                  </div>
+   758→                </div>
+   759→              )
+   760→            })}
+   761→          </div>
+   762→
+   763→          {/* Status update dropdown */}
+   764→          <div className="mt-3 pt-3 border-t border-border/50">
+   765→            <p className="text-[10px] text-muted-foreground mb-1.5">Update Status</p>
+   766→            <Select value={influencer.status} onValueChange={onUpdateStatus}>
+   767→              <SelectTrigger className="h-8 text-xs">
+   768→                <SelectValue />
+   769→              </SelectTrigger>
+   770→              <SelectContent>
+   771→                {Object.entries(statusConfig).map(([key, cfg]) => (
+   772→                  <SelectItem key={key} value={key}>
+   773→                    <span className="flex items-center gap-2">
+   774→                      <cfg.icon className="h-3 w-3" /> {cfg.label}
+   775→                    </span>
+   776→                  </SelectItem>
+   777→                ))}
+   778→              </SelectContent>
+   779→            </Select>
+   780→          </div>
+   781→        </CardContent>
+   782→      </Card>
+   783→
+   784→      {/* Notes */}
+   785→      <Card className="shadow-sm border-border/60">
+   786→        <CardHeader className="pb-2">
+   787→          <CardTitle className="text-xs font-semibold flex items-center gap-1.5">
+   788→            <FileText className="h-3.5 w-3.5 text-emerald-600" /> Notes
+   789→          </CardTitle>
+   790→        </CardHeader>
+   791→        <CardContent className="pt-0">
+   792→          <Textarea
+   793→            placeholder="Add notes about this influencer..."
+   794→            className="min-h-[80px] text-xs"
+   795→            value={notesValue}
+   796→            onChange={e => setNotesValue(e.target.value)}
+   797→          />
+   798→          <div className="flex items-center justify-end mt-2">
+   799→            <Button
+   800→              size="sm"
+   801→              variant="outline"
+   802→              className="h-7 text-xs gap-1"
+   803→              onClick={() => {
+   804→                fetch(`/api/influencers/${influencer.id}`, {
+   805→                  method: "PUT",
+   806→                  headers: { "Content-Type": "application/json" },
+   807→                  body: JSON.stringify({ notes: notesValue }),
+   808→                })
+   809→              }}
+   810→            >
+   811→              Save Notes
+   812→            </Button>
+   813→          </div>
+   814→        </CardContent>
+   815→      </Card>
+   816→
+   817→      {/* Actions */}
+   818→      <div className="flex items-center gap-2">
+   819→        {influencer.email && (
+   820→          <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs" onClick={() => window.open(`mailto:${influencer.email}`)}>
+   821→            <Mail className="h-3.5 w-3.5" /> Email
+   822→          </Button>
+   823→        )}
+   824→        <Button variant="outline" size="sm" className="flex-1 gap-1.5 text-xs text-rose-600 hover:text-rose-700" onClick={onDelete}>
+   825→          <Trash2 className="h-3.5 w-3.5" /> Remove
+   826→        </Button>
+   827→      </div>
+   828→    </>
+   829→  )
+   830→}
+   831→
+   832→// ── Add Influencer Dialog ──
+   833→function AddInfluencerDialog({ open, onOpenChange, onSubmit, clients, campaigns }: {
+   834→  open: boolean
+   835→  onOpenChange: (open: boolean) => void
+   836→  onSubmit: (data: Record<string, unknown>) => void
+   837→  clients: { id: string; name: string }[]
+   838→  campaigns: { id: string; name: string; status: string }[]
+   839→}) {
+   840→  const [form, setForm] = useState({
+   841→    name: "",
+   842→    username: "",
+   843→    platform: "instagram" as Platform,
+   844→    followers: "",
+   845→    engagementRate: "",
+   846→    niche: "",
+   847→    email: "",
+   848→    phone: "",
+   849→    status: "prospect",
+   850→    rate: "",
+   851→    clientId: "",
+   852→    campaignId: "",
+   853→    notes: "",
+   854→  })
+   855→
+   856→  const updateField = (field: string, value: string) => {
+   857→    setForm(prev => ({ ...prev, [field]: value }))
+   858→  }
+   859→
+   860→  const handleSubmit = () => {
+   861→    if (!form.name || !form.username) return
+   862→    onSubmit({
+   863→      name: form.name,
+   864→      username: form.username,
+   865→      platform: form.platform,
+   866→      followers: parseInt(form.followers) || 0,
+   867→      engagementRate: parseFloat(form.engagementRate) || 0,
+   868→      niche: form.niche || null,
+   869→      email: form.email || null,
+   870→      phone: form.phone || null,
+   871→      status: form.status,
+   872→      rate: form.rate ? parseFloat(form.rate) : null,
+   873→      clientId: form.clientId || null,
+   874→      campaignId: form.campaignId || null,
+   875→      notes: form.notes || null,
+   876→    })
+   877→    setForm({
+   878→      name: "", username: "", platform: "instagram", followers: "", engagementRate: "",
+   879→      niche: "", email: "", phone: "", status: "prospect", rate: "", clientId: "", campaignId: "", notes: "",
+   880→    })
+   881→    onOpenChange(false)
+   882→  }
+   883→
+   884→  return (
+   885→    <Dialog open={open} onOpenChange={onOpenChange}>
+   886→      <DialogContent className="sm:max-w-lg max-h-[85vh]">
+   887→        <DialogHeader>
+   888→          <DialogTitle className="flex items-center gap-2">
+   889→            <UserPlus className="h-5 w-5 text-emerald-600" /> Add Influencer
+   890→          </DialogTitle>
+   891→          <DialogDescription>Add a new influencer to your CRM</DialogDescription>
+   892→        </DialogHeader>
+   893→        <ScrollArea className="max-h-[60vh] pr-4">
+   894→          <div className="space-y-4 py-2">
+   895→            {/* Basic Info */}
+   896→            <div className="grid grid-cols-2 gap-3">
+   897→              <div>
+   898→                <Label className="text-xs">Full Name *</Label>
+   899→                <Input placeholder="Jane Smith" value={form.name} onChange={e => updateField("name", e.target.value)} className="h-8 text-sm" />
+   900→              </div>
+   901→              <div>
+   902→                <Label className="text-xs">Username *</Label>
+   903→                <Input placeholder="@janesmith" value={form.username} onChange={e => updateField("username", e.target.value)} className="h-8 text-sm" />
+   904→              </div>
+   905→            </div>
+   906→
+   907→            <div className="grid grid-cols-2 gap-3">
+   908→              <div>
+   909→                <Label className="text-xs">Platform</Label>
+   910→                <Select value={form.platform} onValueChange={v => updateField("platform", v)}>
+   911→                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+   912→                  <SelectContent>
+   913→                    {(Object.keys(platformConfig) as Platform[]).map(p => (
+   914→                      <SelectItem key={p} value={p}>{platformConfig[p].label}</SelectItem>
+   915→                    ))}
+   916→                  </SelectContent>
+   917→                </Select>
+   918→              </div>
+   919→              <div>
+   920→                <Label className="text-xs">Status</Label>
+   921→                <Select value={form.status} onValueChange={v => updateField("status", v)}>
+   922→                  <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+   923→                  <SelectContent>
+   924→                    {Object.entries(statusConfig).map(([key, cfg]) => (
+   925→                      <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+   926→                    ))}
+   927→                  </SelectContent>
+   928→                </Select>
+   929→              </div>
+   930→            </div>
+   931→
+   932→            <Separator />
+   933→
+   934→            {/* Stats */}
+   935→            <div className="grid grid-cols-3 gap-3">
+   936→              <div>
+   937→                <Label className="text-xs">Followers</Label>
+   938→                <Input type="number" placeholder="10000" value={form.followers} onChange={e => updateField("followers", e.target.value)} className="h-8 text-sm" />
+   939→              </div>
+   940→              <div>
+   941→                <Label className="text-xs">Engagement %</Label>
+   942→                <Input type="number" step="0.1" placeholder="3.5" value={form.engagementRate} onChange={e => updateField("engagementRate", e.target.value)} className="h-8 text-sm" />
+   943→              </div>
+   944→              <div>
+   945→                <Label className="text-xs">Rate / Post ($)</Label>
+   946→                <Input type="number" placeholder="500" value={form.rate} onChange={e => updateField("rate", e.target.value)} className="h-8 text-sm" />
+   947→              </div>
+   948→            </div>
+   949→
+   950→            <div>
+   951→              <Label className="text-xs">Niche</Label>
+   952→              <Input placeholder="e.g., Fashion, Tech, Fitness" value={form.niche} onChange={e => updateField("niche", e.target.value)} className="h-8 text-sm" />
+   953→            </div>
+   954→
+   955→            <Separator />
+   956→
+   957→            {/* Contact */}
+   958→            <div className="grid grid-cols-2 gap-3">
+   959→              <div>
+   960→                <Label className="text-xs">Email</Label>
+   961→                <Input type="email" placeholder="jane@example.com" value={form.email} onChange={e => updateField("email", e.target.value)} className="h-8 text-sm" />
+   962→              </div>
+   963→              <div>
+   964→                <Label className="text-xs">Phone</Label>
+   965→                <Input placeholder="+1 555-0100" value={form.phone} onChange={e => updateField("phone", e.target.value)} className="h-8 text-sm" />
+   966→              </div>
+   967→            </div>
+   968→
+   969→            <Separator />
+   970→
+   971→            {/* Assignments */}
+   972→            <div className="grid grid-cols-2 gap-3">
+   973→              <div>
+   974→                <Label className="text-xs">Client</Label>
+   975→                <Select value={form.clientId} onValueChange={v => updateField("clientId", v)}>
+   976→                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select client" /></SelectTrigger>
+   977→                  <SelectContent>
+   978→                    {clients.map(c => (
+   979→                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+   980→                    ))}
+   981→                  </SelectContent>
+   982→                </Select>
+   983→              </div>
+   984→              <div>
+   985→                <Label className="text-xs">Campaign</Label>
+   986→                <Select value={form.campaignId} onValueChange={v => updateField("campaignId", v)}>
+   987→                  <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select campaign" /></SelectTrigger>
+   988→                  <SelectContent>
+   989→                    {campaigns.map(c => (
+   990→                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+   991→                    ))}
+   992→                  </SelectContent>
+   993→                </Select>
+   994→              </div>
+   995→            </div>
+   996→
+   997→            <div>
+   998→              <Label className="text-xs">Notes</Label>
+   999→              <Textarea placeholder="Additional notes about this influencer..." value={form.notes} onChange={e => updateField("notes", e.target.value)} className="min-h-[60px] text-sm" />
+  1000→            </div>
+  1001→          </div>
+  1002→        </ScrollArea>
+  1003→        <DialogFooter>
+  1004→          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+  1005→          <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSubmit}>Add Influencer</Button>
+  1006→        </DialogFooter>
+  1007→      </DialogContent>
+  1008→    </Dialog>
+  1009→  )
+  1010→}
+  1011→
