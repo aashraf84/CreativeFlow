@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
   FileText,
   Send,
@@ -43,23 +43,23 @@ import {
   Linkedin,
   AlertCircle,
 } from "lucide-react";
+import { AnimatedCounter } from "@/components/erp/animated-counter";
 
 // ── Animation variants ──────────────────────────────────────────────
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+    transition: { staggerChildren: 0.05, delayChildren: 0.05 },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 16, scale: 0.97 },
+  hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
-    transition: { type: "spring", stiffness: 300, damping: 24 },
+    transition: { duration: 0.5, ease: "easeOut" as const },
   },
 };
 
@@ -196,44 +196,94 @@ interface KPICardData {
 
 function KPICard({ data }: { data: KPICardData }) {
   const Icon = data.icon;
+
+  // ── 3D tilt on hover (subtle, springy) ──
+  const xMotion = useMotionValue(0);
+  const yMotion = useMotionValue(0);
+  const rotateX = useSpring(useTransform(yMotion, [-0.5, 0.5], [6, -6]), {
+    stiffness: 200,
+    damping: 18,
+  });
+  const rotateY = useSpring(useTransform(xMotion, [-0.5, 0.5], [-6, 6]), {
+    stiffness: 200,
+    damping: 18,
+  });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width; // 0..1
+    const py = (e.clientY - rect.top) / rect.height; // 0..1
+    xMotion.set(px - 0.5);
+    yMotion.set(py - 0.5);
+  };
+
+  const handleMouseLeave = () => {
+    xMotion.set(0);
+    yMotion.set(0);
+  };
+
+  const isNumeric = typeof data.value === "number";
+
   return (
     <motion.div variants={itemVariants}>
-      <Card className="relative overflow-hidden glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
-        <CardContent className="p-5">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">
-                {data.title}
-              </p>
-              <div className="mt-2 flex items-baseline gap-2">
-                <h3 className="text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-white tabular-nums">
-                  {typeof data.value === "number" ? data.value.toLocaleString() : data.value}
-                </h3>
-                {data.badge && (
-                  <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-md leading-none ${data.badgeColor}`}>
-                    {data.badge}
-                  </span>
-                )}
-              </div>
-              {data.change !== undefined && (
-                <div className="mt-1.5 flex items-center gap-1">
-                  <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                  <span className={`text-xs font-medium ${data.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                    {Math.abs(data.change)}%
-                  </span>
-                  {data.changeLabel && (
-                    <span className="text-[10px] text-[#86868b] dark:text-[#aeaeb2]">{data.changeLabel}</span>
+      <motion.div
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{ perspective: 1000 }}
+        whileHover={{ scale: 1.03 }}
+        transition={{ type: "spring", stiffness: 300, damping: 22 }}
+      >
+        <Card className="relative overflow-hidden glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <motion.div
+            style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+            className="relative"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">
+                    {data.title}
+                  </p>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <h3 className="text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-white tabular-nums">
+                      {isNumeric ? (
+                        <AnimatedCounter value={data.value as number} duration={1000} />
+                      ) : (
+                        data.value
+                      )}
+                    </h3>
+                    {data.badge && (
+                      <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-md leading-none ${data.badgeColor}`}>
+                        {data.badge}
+                      </span>
+                    )}
+                  </div>
+                  {data.change !== undefined && (
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                      <span className={`text-xs font-medium ${data.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                        {Math.abs(data.change)}%
+                      </span>
+                      {data.changeLabel && (
+                        <span className="text-[10px] text-[#86868b] dark:text-[#aeaeb2]">{data.changeLabel}</span>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-            <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${data.gradient} flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0`}>
-              <Icon className={`h-5 w-5 ${data.iconColor}`} />
-            </div>
-          </div>
-        </CardContent>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent" />
-      </Card>
+                <motion.div
+                  className={`h-10 w-10 rounded-xl bg-gradient-to-br ${data.gradient} flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0`}
+                  style={{ transform: "translateZ(40px)" }}
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                >
+                  <Icon className={`h-5 w-5 ${data.iconColor}`} />
+                </motion.div>
+              </div>
+            </CardContent>
+          </motion.div>
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent" />
+        </Card>
+      </motion.div>
     </motion.div>
   );
 }
@@ -338,16 +388,23 @@ function PipelineConnector({ fromColor, toColor, hasItems }: { fromColor: string
 }
 
 // ── Team Productivity Bar (Enhanced) ────────────────────────────────
-function TeamProductivityBar({ team, completed, pending }: { team: string; completed: number; pending: number }) {
+function TeamProductivityBar({ team, completed, pending, index = 0 }: { team: string; completed: number; pending: number; index?: number }) {
   const total = completed + pending;
   const completedPct = total > 0 ? Math.round((completed / total) * 100) : 0;
   const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
 
   return (
-    <div className="space-y-2">
+    <motion.div
+      className="space-y-2 group"
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.5, delay: index * 0.08, ease: "easeOut" }}
+      whileHover={{ scale: 1.01 }}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm shadow-emerald-500/20 transition-shadow group-hover:shadow-md group-hover:shadow-emerald-500/40">
             <Users className="h-3.5 w-3.5 text-white" />
           </div>
           <span className="text-sm font-medium text-foreground truncate">{team}</span>
@@ -361,16 +418,21 @@ function TeamProductivityBar({ team, completed, pending }: { team: string; compl
       </div>
       <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
         <motion.div
-          className="bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-l-full"
+          className="bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-l-full relative"
           initial={{ width: 0 }}
-          animate={{ width: `${completedPct}%` }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        />
+          whileInView={{ width: `${completedPct}%` }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: index * 0.08 + 0.2, ease: "easeOut" }}
+        >
+          {/* Subtle glow on hover */}
+          <span className="absolute inset-0 rounded-l-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[0_0_10px_2px_rgba(16,185,129,0.6)]" />
+        </motion.div>
         <motion.div
           className="bg-gradient-to-r from-amber-400 to-amber-300 dark:from-amber-500 dark:to-amber-400"
           initial={{ width: 0 }}
-          animate={{ width: `${pendingPct}%` }}
-          transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+          whileInView={{ width: `${pendingPct}%` }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, delay: index * 0.08 + 0.35, ease: "easeOut" }}
         />
       </div>
       {/* Mini sparkline-style indicator */}
@@ -380,18 +442,23 @@ function TeamProductivityBar({ team, completed, pending }: { team: string; compl
           const height = Math.round((Math.sin(i * 0.8 + completed * 0.3) * 0.5 + 0.5) * 12 + 4);
           const isCompleted = i < Math.round((completedPct / 100) * 8);
           return (
-            <div
+            <motion.div
               key={i}
               className="flex-1 rounded-sm"
+              initial={{ scaleY: 0, opacity: 0 }}
+              whileInView={{ scaleY: 1, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: index * 0.08 + i * 0.04 + 0.5, ease: "easeOut" }}
               style={{
                 height: `${height}px`,
                 backgroundColor: isCompleted ? "#10b981" : "#f59e0b30",
+                transformOrigin: "bottom",
               }}
             />
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -866,12 +933,13 @@ export function DashboardView() {
                 </div>
               ) : (
                 <div className="space-y-5">
-                  {teamData.map((t) => (
+                  {teamData.map((t, idx) => (
                     <TeamProductivityBar
                       key={t.team}
                       team={t.team}
                       completed={t.completed}
                       pending={t.pending}
+                      index={idx}
                     />
                   ))}
                 </div>
@@ -906,26 +974,40 @@ export function DashboardView() {
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
-                  {platformData.map((p) => {
+                  {platformData.map((p, pIdx) => {
                     const PIcon = PLATFORM_ICONS[p.platform.toLowerCase()] || Globe;
                     const barWidth = Math.round((p.posts / maxPosts) * 100);
                     return (
-                      <div
+                      <motion.div
                         key={p.platform}
-                        className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors border-l-2"
+                        className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors border-l-2 group relative overflow-hidden"
                         style={{ borderLeftColor: p.color }}
+                        initial={{ opacity: 0, x: -16 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true, margin: "-30px" }}
+                        transition={{ duration: 0.5, delay: pIdx * 0.08, ease: "easeOut" }}
+                        whileHover={{ scale: 1.015 }}
                       >
+                        {/* Hover glow */}
+                        <span
+                          className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          style={{
+                            background: `radial-gradient(120px 60px at 10% 50%, ${p.color}20, transparent 70%)`,
+                          }}
+                        />
                         <div
-                          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
+                          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
                           style={{ backgroundColor: p.color + "15" }}
                         >
                           <PIcon className="h-4 w-4" style={{ color: p.color }} />
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 relative">
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-sm font-medium text-foreground">{p.label}</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-foreground tabular-nums">{p.posts} posts</span>
+                              <span className="text-xs font-semibold text-foreground tabular-nums">
+                                <AnimatedCounter value={p.posts} duration={900} /> posts
+                              </span>
                               <span className="text-[10px] text-muted-foreground tabular-nums">
                                 {p.engagement.toLocaleString()} eng
                               </span>
@@ -933,15 +1015,21 @@ export function DashboardView() {
                           </div>
                           <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
                             <motion.div
-                              className="h-full rounded-full"
+                              className="h-full rounded-full relative"
                               style={{ backgroundColor: p.color }}
                               initial={{ width: 0 }}
-                              animate={{ width: `${barWidth}%` }}
-                              transition={{ duration: 0.6, ease: "easeOut" }}
-                            />
+                              whileInView={{ width: `${barWidth}%` }}
+                              viewport={{ once: true }}
+                              transition={{ duration: 0.8, delay: pIdx * 0.08 + 0.2, ease: "easeOut" }}
+                            >
+                              <span
+                                className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                style={{ boxShadow: `0 0 10px 2px ${p.color}99` }}
+                              />
+                            </motion.div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>

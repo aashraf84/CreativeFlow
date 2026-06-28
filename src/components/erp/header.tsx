@@ -81,14 +81,8 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-30 h-14 glass-toolbar border-b border-black/5 dark:border-white/5 flex items-center justify-between px-4 lg:px-6 gap-4">
-      {/* Left: Traffic lights + Page title */}
+      {/* Left: Page title */}
       <div className="flex items-center gap-4 min-w-0">
-        {/* macOS traffic light dots — purely decorative */}
-        <div className="hidden sm:flex items-center gap-2 mr-1 shrink-0">
-          <span className="traffic-light" style={{ backgroundColor: "#ff5f57" }} />
-          <span className="traffic-light" style={{ backgroundColor: "#febc2e" }} />
-          <span className="traffic-light" style={{ backgroundColor: "#28c840" }} />
-        </div>
         <div className="flex items-center gap-3 min-w-0">
           <h2 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-white truncate">
             {viewLabels[activeView]}

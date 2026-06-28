@@ -31,6 +31,7 @@ import {
   ShoppingCart,
   Store,
   Monitor,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -83,6 +84,7 @@ const inventoryNav: NavItem[] = [
 const insightNav: NavItem[] = [
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "automation", label: "Automation", icon: Zap, badge: "Pro" },
+  { id: "reports", label: "Reports", icon: FileText },
   { id: "archive", label: "Archive", icon: Archive },
 ];
 

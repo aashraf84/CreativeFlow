@@ -275,3 +275,264 @@
     box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
   }
 }
+
+/* ───────────────────────────────────────────────────────────────────
+   Professional Reports — Letter-size document styles
+   ─────────────────────────────────────────────────────────────────── */
+.reports-root {
+  min-height: 0;
+}
+
+.report-preview-wrapper {
+  /* Subtle paper background tone so the white page stands out */
+  background-image:
+    radial-gradient(rgba(0, 0, 0, 0.025) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.report-document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.report-page {
+  /* US Letter size — 8.5" × 11" */
+  width: 8.5in;
+  min-height: 11in;
+  padding: 0.75in;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    "Inter", system-ui, sans-serif;
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* Ensure the page scales down on smaller screens */
+  max-width: 100%;
+}
+
+/* Header (left: company, center: title, right: date) */
+.report-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 0.4rem;
+}
+
+.report-title {
+  font-family: Georgia, "Times New Roman", "Cambria", serif;
+  font-size: 18pt;
+  font-weight: 700;
+  text-align: center;
+  color: #064e3b;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.report-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #94a3b8 20%, #94a3b8 80%, transparent);
+  margin: 0.5rem 0 0.75rem;
+}
+
+.report-footer-divider {
+  margin: 0.75rem 0 0.5rem;
+}
+
+.report-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  gap: 1rem;
+  /* Push to bottom of letter page */
+  margin-top: auto;
+  padding-top: 0.25rem;
+}
+.report-footer > :nth-child(2) {
+  text-align: center;
+}
+.report-footer > :nth-child(3) {
+  text-align: right;
+}
+
+.report-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-top: 0.25rem;
+}
+
+.report-intro {
+  font-size: 10pt;
+  line-height: 1.5;
+  color: #334155;
+  margin-bottom: 0.5rem;
+}
+
+.report-section-heading {
+  font-family: Georgia, "Times New Roman", "Cambria", serif;
+  font-size: 13pt;
+  font-weight: 700;
+  color: #064e3b;
+  border-bottom: 1.5px solid #d1d5db;
+  padding-bottom: 0.25rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.005em;
+}
+
+.report-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.report-summary-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.55rem 0.7rem;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5pt;
+  table-layout: fixed;
+}
+
+.report-table th,
+.report-table td {
+  padding: 0.35rem 0.5rem;
+  vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.report-th {
+  text-align: left;
+  font-weight: 700;
+  color: #064e3b;
+  background: #ecfdf5;
+  border-bottom: 1.5px solid #10b981;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.report-th-num,
+.report-td-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  font-family: "SF Mono", "Menlo", "Consolas", ui-monospace, monospace;
+}
+
+.report-td {
+  color: #1e293b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.report-row-alt {
+  background: #f8fafc;
+}
+
+.report-totals-row {
+  border-top: 2px solid #064e3b;
+}
+
+.report-td-total {
+  font-weight: 700;
+  color: #064e3b;
+  background: #ecfdf5;
+}
+
+.report-net-income-row {
+  margin-top: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.7rem;
+  background: #ecfdf5;
+  border: 1.5px solid #10b981;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 11pt;
+  font-family: Georgia, "Times New Roman", serif;
+  color: #064e3b;
+}
+
+.report-empty {
+  font-size: 9.5pt;
+  color: #64748b;
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
+.report-note {
+  font-size: 9pt;
+  color: #475569;
+  line-height: 1.5;
+  background: #f8fafc;
+  border-left: 3px solid #10b981;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0 4px 4px 0;
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Print styles — letter format with proper margins
+   ─────────────────────────────────────────────────────────────────── */
+@page {
+  size: letter;
+  margin: 0.75in;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  /* Hide everything outside the active report document */
+  body * {
+    visibility: hidden;
+  }
+
+  .report-document,
+  .report-document * {
+    visibility: visible;
+  }
+
+  .report-document {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+  }
+
+  .report-page {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0;
+    width: 100%;
+    min-height: auto;
+    page-break-after: always;
+    break-after: page;
+  }
+  .report-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  /* Disable interactive chrome while printing */
+  .print\:hidden {
+    display: none !important;
+  }
+}

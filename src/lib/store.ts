@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 // Types for the ERP
-export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers' | 'employees' | 'payroll' | 'recruitment' | 'expenses' | 'financeAccounts' | 'products' | 'purchaseOrders' | 'vendors' | 'itAssets'
+export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers' | 'employees' | 'payroll' | 'recruitment' | 'expenses' | 'financeAccounts' | 'products' | 'purchaseOrders' | 'vendors' | 'itAssets' | 'reports'
 
 export type ContentStage = 'idea' | 'design' | 'edit' | 'review' | 'approve' | 'disseminate' | 'archived'
 export type ContentPriority = 'low' | 'medium' | 'high' | 'urgent'

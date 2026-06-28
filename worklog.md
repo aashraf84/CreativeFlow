@@ -1163,3 +1163,116 @@ The task listed `attendance-view.tsx` as a target, but no such file exists in th
 - ✅ Generous border radius: `rounded-xl` for inputs/buttons, `rounded-2xl` for cards, `rounded-full` for pills.
 - ✅ SF Pro font stack via `-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Inter", system-ui, sans-serif`.
 - ✅ Dark mode works throughout via `dark:` prefixes and OKLCH dark tokens.
+
+---
+
+# Task 2: Animated Dashboard + Professional Reports Module
+
+## Agent: full-stack-developer
+## Date: 2026-06-28
+
+## Summary
+Implemented two major enhancements:
+- **Part A:** Animated the dashboard — KPI cards now count up from 0 with an ease-out curve, charts animate on scroll with staggered delays, and KPI cards have a subtle 3D tilt on hover. A reusable `AnimatedCounter` component was extracted.
+- **Part B:** Added a full **Reports** module with seven professional letter-size report templates (Financial Summary, Balance Sheet, P&L, Trial Balance, Employee Directory, Attendance Summary, Inventory), a macOS-glass report selector sidebar, an Export-PDF (print) feature gated by a new `usePermissions` hook for demo mode, and two new API endpoints for employee and attendance report data.
+
+## Changes Made
+
+### Part A — Animated Dashboard
+
+#### New file: `/home/z/my-project/src/components/erp/animated-counter.tsx`
+- Created a reusable `AnimatedCounter` component that animates from 0 → `value` over a configurable duration (default ~1s).
+- Uses `requestAnimationFrame` + `easeOutCubic` so the count slows down near the end.
+- Formats via `Intl.NumberFormat` for thousands separators during the animation.
+- Supports `prefix`, `suffix`, `decimals`, `locale`, and `className` props.
+- Re-animates from the previously displayed value when `value` changes (no snap-back).
+- All `setState` calls happen inside the rAF callback to avoid React's "set-state-in-effect" warning.
+
+#### Modified: `/home/z/my-project/src/components/erp/dashboard-view.tsx`
+1. **Imports**: added `useMotionValue`, `useSpring`, `useTransform` from `framer-motion`, and imported `AnimatedCounter`.
+2. **Container/Item variants** (lines 48–64): updated `staggerChildren` to `0.05` and `itemVariants` to `{ opacity: 0, y: 20 } → { opacity: 1, y: 0 }` with `ease: "easeOut"` (cast `as const` for framer-motion's strict `Variants` type).
+3. **`KPICard`** (lines ~198–290): rewritten to:
+   - Render numbers via `<AnimatedCounter value={...} />` for the count-up effect.
+   - Add a 3D tilt on hover using `useMotionValue` + `useSpring` + `useTransform` (rotateX/rotateY based on cursor position).
+   - Wrap the gradient icon in a `motion.div` with `transform: "translateZ(40px)"` so the icon pops above the card plane and has its own spring scale/rotate on hover.
+   - `whileHover={{ scale: 1.03 }}` on the outer wrapper for a subtle lift.
+4. **`TeamProductivityBar`** (lines ~391–464): rewritten to accept an `index` prop and:
+   - Stagger entrance via `whileInView` with `delay: index * 0.08`.
+   - Bars animate width via `whileInView` (instead of `animate`) so they trigger on scroll.
+   - Added a subtle emerald glow overlay on the completed bar that appears on hover (`group-hover:opacity-100`).
+   - Sparkline bars now `scaleY` in with staggered delays.
+5. **`PlatformActivity` bars** (lines ~977–1036): refactored to:
+   - Wrap each row in a `motion.div` with `initial={{ opacity: 0, x: -16 }}` + `whileInView` + per-index stagger.
+   - Posts count uses `<AnimatedCounter value={p.posts} />`.
+   - Bars animate width via `whileInView` with `duration: 0.8` + per-index delay.
+   - Added a radial-gradient glow that fades in on hover, plus a `box-shadow` glow on the bar itself.
+6. Team productivity render loop now passes `index={idx}` to each `TeamProductivityBar`.
+
+All existing data/logic (KPI computations, dashboard JSON mapping, pipeline rendering) was kept intact.
+
+### Part B — Reports Module
+
+#### 1. Modified `/home/z/my-project/src/lib/store.ts`
+- Added `'reports'` to the `ActiveView` union type.
+
+#### 2. Modified `/home/z/my-project/src/components/erp/sidebar.tsx`
+- Imported `FileText` from `lucide-react`.
+- Added `{ id: "reports", label: "Reports", icon: FileText }` to `insightNav` (INSIGHTS section), placed between Automation and Archive.
+
+#### 3. New file: `/home/z/my-project/src/hooks/use-permissions.ts`
+- Created a lightweight `usePermissions` hook returning `{ isDemoMode, canExport, canEdit, role }`.
+- Defaults to `isDemoMode: true` in the sandbox (when `NEXT_PUBLIC_DEMO_MODE` is unset); production deployments can opt out by setting `NEXT_PUBLIC_DEMO_MODE=false`.
+- Used by the Reports view to guard the Export PDF button in demo mode.
+
+#### 4. New file: `/home/z/my-project/src/components/erp/reports-view.tsx`
+- Split-pane layout: macOS-glass report selector sidebar (left) + letter-size report preview area (right).
+- **Report catalog** (7 reports grouped into Financial / People / Inventory):
+  1. Financial Summary — derived from `/api/financial-reports?type=overview` (falls back to invoices+expenses from the store).
+  2. Balance Sheet — `/api/financial-reports?type=balance-sheet`.
+  3. Profit & Loss Statement — `/api/financial-reports?type=pnl`.
+  4. Trial Balance — `/api/financial-reports?type=trial-balance`.
+  5. Employee Directory — `/api/reports/employees` (new).
+  6. Attendance Summary — `/api/reports/attendance` (new).
+  7. Inventory Report — derived locally from store `products` + `warehouses`.
+- **Letter-page format**: each report renders inside a `LetterPage` component styled with `width: 8.5in; min-height: 11in; padding: 0.75in`.
+- **Header** (3-column grid): Vortex Digital logo + name on the left, serif-font title centered, "Generated" timestamp on the right, followed by a gradient horizontal rule.
+- **Footer**: "Confidential" left, company tagline centered, "Page X of Y" right, gradient rule above, pushed to the bottom via `margin-top: auto`.
+- **Body**: serif `ReportSectionHeading`, `SummaryCard` KPI grid at the top, `ReportTable` with alternating row colors, tabular-nums + monospace for numeric columns, emerald-accented totals row, and a `report-note` callout box.
+- **Reusables**: `ReportTable` (handles headers, rows, totals, numeric alignment, alternating rows), `SummaryCard`, `EmptyReport`, `ReportSkeleton` (loading state).
+- **Export PDF**: `window.print()` triggered by an emerald-gradient button. In demo mode the button is disabled and labeled "Export Locked" with a `Lock` icon; a banner explains the restriction.
+- **Animations**: container/item variants for stagger-fade-in; `AnimatePresence mode="wait"` for cross-fade between reports; macOS glass styling on the selector; subtle paper-tone background on the preview wrapper so the white page stands out.
+- Uses Zustand store data (`products`, `warehouses`, `employees`, `leaveRequests`, `expenses`, `invoices`) as fallbacks when API data hasn't loaded.
+
+#### 5. Modified `/home/z/my-project/src/app/page.tsx`
+- Imported `ReportsView` from `@/components/erp/reports-view`.
+- Added `reports: ReportsView` to the `viewComponents` map.
+
+#### 6. New file: `/home/z/my-project/src/app/api/reports/employees/route.ts`
+- `GET /api/reports/employees` returns `{ employees, total, byStatus, byDepartment, byEmploymentType }`.
+- Includes `department` and `user` relations.
+- Pre-computes summary breakdowns so the client can render the directory + KPI cards in a single pass.
+
+#### 7. New file: `/home/z/my-project/src/app/api/reports/attendance/route.ts`
+- `GET /api/reports/attendance` returns `{ employees, totals }` where each employee has `presentDays`, `absentDays`, `leaveDays`, `lateDays`, `attendanceRate`, `totalLeaveRequests`, `pendingLeaveRequests`, `approvedLeaveRequests`.
+- Derives a realistic monthly attendance profile from existing `leaveRequest` records plus a deterministic per-employee pattern (no new DB table needed).
+- `totals` includes `totalEmployees`, `avgAttendanceRate`, `totalLeaveDays`, `totalPendingLeaves`, `totalWorkDays`.
+
+#### 8. Modified `/home/z/my-project/src/app/globals.css`
+- Added a complete `.report-*` design system: `.report-page`, `.report-header`, `.report-title` (serif Georgia), `.report-divider`, `.report-footer`, `.report-body`, `.report-intro`, `.report-section-heading`, `.report-summary-grid`, `.report-summary-card`, `.report-table` (with `.report-th`/`.report-td`/`.report-th-num`/`.report-td-num`/`.report-row-alt`/`.report-totals-row`/`.report-td-total`), `.report-net-income-row`, `.report-empty`, `.report-note`.
+- Numeric columns use `font-variant-numeric: tabular-nums` + SF Mono font for alignment.
+- **Print CSS** (`@media print`): `@page { size: letter; margin: 0.75in; }`, hides everything except `.report-document` via `visibility`, removes shadows/borders, forces `page-break-after: always` between pages.
+- `.report-preview-wrapper` gets a subtle dotted paper background.
+
+## Verification
+- ✅ `bun run lint` passes with **0 errors, 0 warnings**.
+- ✅ All existing data/logic in `dashboard-view.tsx` is intact — only animation wrappers and the `AnimatedCounter` were added.
+- ✅ Reports module uses only existing store data + the existing `/api/financial-reports` endpoints plus the two new `/api/reports/*` endpoints.
+- ✅ Demo-mode guard on Export PDF works via `usePermissions()` hook.
+- ✅ Letter-size format (8.5" × 11") is visible on screen with page boundaries (paper-tone background) and renders correctly when printed.
+- ✅ Responsive: report selector collapses below the preview on mobile; letter page scales via `max-width: 100%`.
+
+## How to Verify
+1. Navigate to **Dashboard** — KPI cards count up on first render; hover to see the 3D tilt; scroll down to see the Platform Activity and Team Performance bars animate in with stagger.
+2. Navigate to **Insights → Reports** in the sidebar.
+3. Click any of the 7 reports in the left selector — the letter-size page renders on the right with header, summary KPIs, table(s), and footer.
+4. Click **Export PDF** (locked in demo mode — set `NEXT_PUBLIC_DEMO_MODE=false` to enable `window.print()`).

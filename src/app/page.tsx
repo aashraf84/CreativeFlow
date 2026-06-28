@@ -30,6 +30,7 @@ import { ProductsView } from "@/components/erp/products-view";
 import { PurchaseOrdersView } from "@/components/erp/purchase-orders-view";
 import { VendorsView } from "@/components/erp/vendors-view";
 import { ITAssetsView } from "@/components/erp/it-assets-view";
+import { ReportsView } from "@/components/erp/reports-view";
 import { CreateContentModal } from "@/components/erp/create-content-modal";
 import { CreatePostModal } from "@/components/erp/create-post-modal";
 import { ContentDetailModal } from "@/components/erp/content-detail-modal";
@@ -62,6 +63,7 @@ const viewComponents: Record<ActiveView, React.ComponentType> = {
   purchaseOrders: PurchaseOrdersView,
   vendors: VendorsView,
   itAssets: ITAssetsView,
+  reports: ReportsView,
 };
 
 // Helper to safely extract data from various API response formats
