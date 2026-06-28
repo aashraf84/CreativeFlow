@@ -1,0 +1,802 @@
+$ set -a && . ./.env && set +a && next dev -p 3000 2>&1 | tee dev.log
+▲ Next.js 16.1.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://21.0.5.215:3000
+- Environments: .env
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 1016ms
+○ Compiling / ...
+ GET / 200 in 9.4s (compile: 8.8s, render: 587ms)
+✓ VortexERP - Social Media Agency Management Platform
+  http://localhost:3000/
+Seed error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__4e5a72e8._.js:73:169
+
+  70 async function GET() {
+  71     try {
+  72         // Check if data already exists - skip seeding if so
+→ 73         const existingOrg = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/seed/route.ts:7:47)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/seed/route.ts:7:25)
+   5 |   try {
+   6 |     // Check if data already exists - skip seeding if so
+>  7 |     const existingOrg = await db.organization.findFirst()
+     |                                               ^
+   8 |     const existingApprovals = existingOrg ? await db.approval.count({ where: { organizationId: existingOrg.id } }) : 0
+   9 |     const existingDisseminators = existingOrg ? await db.disseminator.count({ where: { organizationId: existingOrg.id } }) : 0
+  10 |     const existingCommContacts = existingOrg ? await db.communicationContact.count({ where: { organizationId: existingOrg.id } }) : 0 {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+ GET /api/seed 500 in 939ms (compile: 472ms, render: 467ms)
+Posts GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__4bf7d030._.js:81:161
+
+  78 const contentId = searchParams.get('contentId');
+  79 const page = parseInt(searchParams.get('page') || '1');
+  80 const limit = parseInt(searchParams.get('limit') || '50');
+→ 81 const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/posts/route.ts:14:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/posts/route.ts:14:17)
+  12 |     const limit = parseInt(searchParams.get('limit') || '50')
+  13 |
+> 14 |     const org = await db.organization.findFirst()
+     |                                       ^
+  15 |     if (!org) {
+  16 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  17 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Teams GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__f84b035e._.js:72:161
+
+  69 ;
+  70 async function GET() {
+  71     try {
+→ 72         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/teams/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/teams/route.ts:6:17)
+  4 | export async function GET() {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Social Accounts GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__04b6dd81._.js:72:161
+
+  69 ;
+  70 async function GET() {
+  71     try {
+→ 72         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/social-accounts/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/social-accounts/route.ts:6:17)
+  4 | export async function GET() {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Campaigns GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__2f64153e._.js:75:161
+
+  72 const { searchParams } = new URL(request.url);
+  73 const status = searchParams.get('status');
+  74 const clientId = searchParams.get('clientId');
+→ 75 const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/campaigns/route.ts:10:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/campaigns/route.ts:10:17)
+   8 |     const clientId = searchParams.get('clientId')
+   9 |
+> 10 |     const org = await db.organization.findFirst()
+     |                                       ^
+  11 |     if (!org) {
+  12 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  13 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Dashboard error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__d8bfabdd._.js:73:161
+
+  70 async function GET() {
+  71     try {
+  72         // Get the first organization (Vortex Digital)
+→ 73         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/dashboard/route.ts:7:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/dashboard/route.ts:7:17)
+   5 |   try {
+   6 |     // Get the first organization (Vortex Digital)
+>  7 |     const org = await db.organization.findFirst()
+     |                                       ^
+   8 |     if (!org) {
+   9 |       return NextResponse.json({ error: 'No organization found. Please seed the database.' }, { status: 404 })
+  10 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Contents GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__86e8860a._.js:84:161
+
+  81 const search = searchParams.get('search');
+  82 const page = parseInt(searchParams.get('page') || '1');
+  83 const limit = parseInt(searchParams.get('limit') || '50');
+→ 84 const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/contents/route.ts:17:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/contents/route.ts:17:17)
+  15 |     const limit = parseInt(searchParams.get('limit') || '50')
+  16 |
+> 17 |     const org = await db.organization.findFirst()
+     |                                       ^
+  18 |     if (!org) {
+  19 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  20 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+ GET /api/posts 500 in 1275ms (compile: 164ms, render: 1110ms)
+ GET /api/teams 500 in 1273ms (compile: 199ms, render: 1074ms)
+ GET /api/social-accounts 500 in 1273ms (compile: 230ms, render: 1042ms)
+ GET /api/campaigns 500 in 1272ms (compile: 262ms, render: 1010ms)
+ GET /api/dashboard 500 in 1277ms (compile: 299ms, render: 978ms)
+ GET /api/contents 500 in 1276ms (compile: 330ms, render: 945ms)
+Posts GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__4bf7d030._.js:81:161
+
+  78 const contentId = searchParams.get('contentId');
+  79 const page = parseInt(searchParams.get('page') || '1');
+  80 const limit = parseInt(searchParams.get('limit') || '50');
+→ 81 const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/posts/route.ts:14:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/posts/route.ts:14:17)
+  12 |     const limit = parseInt(searchParams.get('limit') || '50')
+  13 |
+> 14 |     const org = await db.organization.findFirst()
+     |                                       ^
+  15 |     if (!org) {
+  16 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  17 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+ GET /api/posts 500 in 109ms (compile: 5ms, render: 104ms)
+Clients GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__0dce58a4._.js:72:161
+
+  69 ;
+  70 async function GET() {
+  71     try {
+→ 72         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/clients/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/clients/route.ts:6:17)
+  4 | export async function GET() {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Automation GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__a7ae824c._.js:74:161
+
+  71 ;
+  72 async function GET() {
+  73     try {
+→ 74         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/automation/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/automation/route.ts:6:17)
+  4 | export async function GET() {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Calendar GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__1a00581f._.js:75:161
+
+  72 const { searchParams } = new URL(request.url);
+  73 const startDate = searchParams.get('startDate');
+  74 const endDate = searchParams.get('endDate');
+→ 75 const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/calendar/route.ts:10:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/calendar/route.ts:10:17)
+   8 |     const endDate = searchParams.get('endDate')
+   9 |
+> 10 |     const org = await db.organization.findFirst()
+     |                                       ^
+  11 |     if (!org) {
+  12 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  13 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Approvals GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__9e84af21._.js:74:161
+
+  71 ;
+  72 async function GET(request) {
+  73     try {
+→ 74         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/approvals/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/approvals/route.ts:6:17)
+  4 | export async function GET(request: Request) {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+TimeEntries GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__66a04c15._.js:74:161
+
+  71 ;
+  72 async function GET(request) {
+  73     try {
+→ 74         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/time-entries/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/time-entries/route.ts:6:17)
+  4 | export async function GET(request: Request) {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Invoices GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__3f05947f._.js:74:161
+
+  71 ;
+  72 async function GET(request) {
+  73     try {
+→ 74         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/invoices/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/invoices/route.ts:6:17)
+  4 | export async function GET(request: Request) {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+ GET /api/clients 500 in 1146ms (compile: 144ms, render: 1002ms)
+ GET /api/automation 500 in 1145ms (compile: 176ms, render: 970ms)
+ GET /api/calendar 500 in 1145ms (compile: 201ms, render: 944ms)
+ GET /api/approvals 500 in 1144ms (compile: 226ms, render: 918ms)
+ GET /api/time-entries 500 in 1033ms (compile: 139ms, render: 894ms)
+ GET /api/invoices 500 in 1144ms (compile: 276ms, render: 868ms)
+Teams GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__f84b035e._.js:72:161
+
+  69 ;
+  70 async function GET() {
+  71     try {
+→ 72         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/teams/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/teams/route.ts:6:17)
+  4 | export async function GET() {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Social Accounts GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__04b6dd81._.js:72:161
+
+  69 ;
+  70 async function GET() {
+  71     try {
+→ 72         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/social-accounts/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/social-accounts/route.ts:6:17)
+  4 | export async function GET() {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Campaigns GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__2f64153e._.js:75:161
+
+  72 const { searchParams } = new URL(request.url);
+  73 const status = searchParams.get('status');
+  74 const clientId = searchParams.get('clientId');
+→ 75 const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/campaigns/route.ts:10:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/campaigns/route.ts:10:17)
+   8 |     const clientId = searchParams.get('clientId')
+   9 |
+> 10 |     const org = await db.organization.findFirst()
+     |                                       ^
+  11 |     if (!org) {
+  12 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  13 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Dashboard error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__d8bfabdd._.js:73:161
+
+  70 async function GET() {
+  71     try {
+  72         // Get the first organization (Vortex Digital)
+→ 73         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/dashboard/route.ts:7:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/dashboard/route.ts:7:17)
+   5 |   try {
+   6 |     // Get the first organization (Vortex Digital)
+>  7 |     const org = await db.organization.findFirst()
+     |                                       ^
+   8 |     if (!org) {
+   9 |       return NextResponse.json({ error: 'No organization found. Please seed the database.' }, { status: 404 })
+  10 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Contents GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__86e8860a._.js:84:161
+
+  81 const search = searchParams.get('search');
+  82 const page = parseInt(searchParams.get('page') || '1');
+  83 const limit = parseInt(searchParams.get('limit') || '50');
+→ 84 const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/contents/route.ts:17:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/contents/route.ts:17:17)
+  15 |     const limit = parseInt(searchParams.get('limit') || '50')
+  16 |
+> 17 |     const org = await db.organization.findFirst()
+     |                                       ^
+  18 |     if (!org) {
+  19 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  20 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+ GET /api/teams 500 in 593ms (compile: 4ms, render: 589ms)
+ GET /api/social-accounts 500 in 592ms (compile: 7ms, render: 585ms)
+ GET /api/campaigns 500 in 592ms (compile: 10ms, render: 582ms)
+ GET /api/dashboard 500 in 591ms (compile: 13ms, render: 579ms)
+ GET /api/contents 500 in 591ms (compile: 16ms, render: 575ms)
+Notifications GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__b11132a4._.js:74:161
+
+  71 ;
+  72 async function GET(request) {
+  73     try {
+→ 74         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/notifications/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/notifications/route.ts:6:17)
+  4 | export async function GET(request: Request) {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Inbox GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__48388e50._.js:72:161
+
+  69 ;
+  70 async function GET(request) {
+  71     try {
+→ 72         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/inbox/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/inbox/route.ts:6:17)
+  4 | export async function GET(request: Request) {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Influencers GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__43df5143._.js:81:161
+
+  78 }
+  79 async function GET(request) {
+  80     try {
+→ 81         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/influencers/route.ts:14:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/influencers/route.ts:14:17)
+  12 | export async function GET(request: Request) {
+  13 |   try {
+> 14 |     const org = await db.organization.findFirst()
+     |                                       ^
+  15 |     if (!org) {
+  16 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  17 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+BrandKit GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__45c9e9a1._.js:74:161
+
+  71 ;
+  72 async function GET(request) {
+  73     try {
+→ 74         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/brand-kit/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/brand-kit/route.ts:6:17)
+  4 | export async function GET(request: Request) {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Assets GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__eec31280._.js:74:161
+
+  71 ;
+  72 async function GET(request) {
+  73     try {
+→ 74         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/assets/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/assets/route.ts:6:17)
+  4 | export async function GET(request: Request) {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+Departments GET error: Error [PrismaClientInitializationError]: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst()` invocation in
+/home/z/my-project/.next/dev/server/chunks/[root-of-the-server]__22a9be2c._.js:74:161
+
+  71 ;
+  72 async function GET(request) {
+  73     try {
+→ 74         const org = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["db"].organization.findFirst(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   | 
+ 6 |   provider  = "postgresql"
+ 7 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src/app/api/departments/route.ts:6:39)
+    at <unknown> (-->  schema.prisma:7)
+    at async GET (src/app/api/departments/route.ts:6:17)
+  4 | export async function GET(request: Request) {
+  5 |   try {
+> 6 |     const org = await db.organization.findFirst()
+    |                                       ^
+  7 |     if (!org) {
+  8 |       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+  9 |     } {
+  clientVersion: '6.19.2',
+  errorCode: undefined,
+  retryable: undefined
+}
+ GET /api/notifications 500 in 902ms (compile: 125ms, render: 777ms)
+ GET /api/inbox 500 in 902ms (compile: 148ms, render: 754ms)
+ GET /api/influencers 500 in 901ms (compile: 168ms, render: 733ms)
+ GET /api/brand-kit 500 in 901ms (compile: 188ms, render: 713ms)
+ GET /api/assets 500 in 903ms (compile: 209ms, render: 694ms)
+ GET /api/departments 500 in 901ms (compile: 227ms, render: 674ms)
+- heading "VortexERP" [level=1, ref=e2]
+- button "Dashboard" [ref=e5]
+- button "Content Pipeline" [ref=e6]
+- button "Dissemination Live" [ref=e7]
+- button "Calendar" [ref=e8]
+- button "Inbox New" [ref=e9]
+- button "Approvals" [ref=e10]
+- button "Teams" [ref=e11]
+- button "Social Accounts" [ref=e12]
+- button "Clients & Campaigns" [ref=e13]

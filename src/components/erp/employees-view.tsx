@@ -103,11 +103,11 @@ function AddEmployeeDialog({ departments }: { departments: { id: string; name: s
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+        <Button className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white gap-2 rounded-full shadow-md shadow-emerald-500/25">
           <Plus className="h-4 w-4" /> Add Employee
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] glass border border-black/5 dark:border-white/10 shadow-macos-lg rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Add New Employee</DialogTitle>
         </DialogHeader>
@@ -166,8 +166,8 @@ function AddEmployeeDialog({ departments }: { departments: { id: string; name: s
             </div>
           </div>
           <DialogFooter>
-            <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-            <Button type="submit" disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <DialogClose asChild><Button type="button" variant="outline" className="rounded-lg">Cancel</Button></DialogClose>
+            <Button type="submit" disabled={loading} className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg">
               {loading ? "Adding..." : "Add Employee"}
             </Button>
           </DialogFooter>
@@ -196,18 +196,18 @@ function EmployeeDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[480px] overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-[480px] overflow-y-auto glass border-l border-black/5 dark:border-white/10">
         <SheetHeader className="pb-4">
           <SheetTitle className="sr-only">Employee Details</SheetTitle>
         </SheetHeader>
         <div className="space-y-6">
           {/* Profile header */}
           <div className="flex flex-col items-center text-center">
-            <div className={`h-20 w-20 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-2xl font-bold shadow-lg`}>
+            <div className={`h-20 w-20 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-2xl font-bold shadow-md shadow-emerald-500/20 ring-4 ring-white/40 dark:ring-white/5`}>
               {getInitials(employee.firstName, employee.lastName)}
             </div>
-            <h2 className="mt-3 text-xl font-bold">{employee.firstName} {employee.lastName}</h2>
-            <p className="text-sm text-muted-foreground">{employee.position}</p>
+            <h2 className="mt-3 text-xl font-bold text-[#1d1d1f] dark:text-white">{employee.firstName} {employee.lastName}</h2>
+            <p className="text-sm text-[#86868b] dark:text-[#aeaeb2]">{employee.position}</p>
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="outline" className={`text-xs ${statusCfg.bg} ${statusCfg.color} border`}>
                 {statusCfg.label}
@@ -222,7 +222,7 @@ function EmployeeDetailSheet({
 
           {/* Contact info */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Contact Information</h3>
+            <h3 className="text-[11px] font-semibold text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-[0.08em]">Contact Information</h3>
             <div className="space-y-2">
               <div className="flex items-center gap-3 text-sm">
                 <Mail className="h-4 w-4 text-muted-foreground" />
@@ -247,31 +247,31 @@ function EmployeeDetailSheet({
 
           {/* Employment info */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Employment Details</h3>
+            <h3 className="text-[11px] font-semibold text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-[0.08em]">Employment Details</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border p-3">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <div className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3">
+                <div className="flex items-center gap-2 text-xs text-[#86868b] dark:text-[#aeaeb2] mb-1">
                   <Briefcase className="h-3 w-3" /> Department
                 </div>
-                <p className="text-sm font-medium">{employee.department?.name}</p>
+                <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">{employee.department?.name}</p>
               </div>
-              <div className="rounded-lg border p-3">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <div className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3">
+                <div className="flex items-center gap-2 text-xs text-[#86868b] dark:text-[#aeaeb2] mb-1">
                   <Calendar className="h-3 w-3" /> Hire Date
                 </div>
-                <p className="text-sm font-medium">{formatDate(employee.hireDate)}</p>
+                <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">{formatDate(employee.hireDate)}</p>
               </div>
-              <div className="rounded-lg border p-3">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <div className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3">
+                <div className="flex items-center gap-2 text-xs text-[#86868b] dark:text-[#aeaeb2] mb-1">
                   <DollarSign className="h-3 w-3" /> Salary
                 </div>
-                <p className="text-sm font-medium">{employee.salary ? formatCurrency(employee.salary, employee.salaryCurrency) : "N/A"}</p>
+                <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">{employee.salary ? formatCurrency(employee.salary, employee.salaryCurrency) : "N/A"}</p>
               </div>
-              <div className="rounded-lg border p-3">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <div className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3">
+                <div className="flex items-center gap-2 text-xs text-[#86868b] dark:text-[#aeaeb2] mb-1">
                   <Shield className="h-3 w-3" /> Employee ID
                 </div>
-                <p className="text-sm font-medium">{employee.employeeId}</p>
+                <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">{employee.employeeId}</p>
               </div>
             </div>
           </div>
@@ -280,7 +280,7 @@ function EmployeeDetailSheet({
 
           {/* Leave Balance */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Leave Balance</h3>
+            <h3 className="text-[11px] font-semibold text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-[0.08em]">Leave Balance</h3>
             <div className="grid grid-cols-3 gap-2">
               {["vacation", "sick", "personal"].map((type) => {
                 const used = empLeaves
@@ -288,10 +288,10 @@ function EmployeeDetailSheet({
                   .reduce((sum, l) => sum + l.days, 0)
                 const total = type === "vacation" ? 20 : type === "sick" ? 10 : 5
                 return (
-                  <div key={type} className="rounded-lg border p-3 text-center">
-                    <p className="text-xs text-muted-foreground capitalize mb-1">{type}</p>
-                    <p className="text-lg font-bold text-emerald-600">{total - used}</p>
-                    <p className="text-xs text-muted-foreground">{used} used</p>
+                  <div key={type} className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3 text-center">
+                    <p className="text-xs text-[#86868b] dark:text-[#aeaeb2] capitalize mb-1">{type}</p>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{total - used}</p>
+                    <p className="text-xs text-[#86868b] dark:text-[#aeaeb2]">{used} used</p>
                   </div>
                 )
               })}
@@ -303,7 +303,7 @@ function EmployeeDetailSheet({
           {/* Emergency Contact */}
           {employee.emergencyContact && (
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Emergency Contact</h3>
+              <h3 className="text-[11px] font-semibold text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-[0.08em]">Emergency Contact</h3>
               <div className="flex items-center gap-3 text-sm">
                 <Heart className="h-4 w-4 text-red-400" />
                 <span>{employee.emergencyContact}</span>
@@ -314,7 +314,7 @@ function EmployeeDetailSheet({
           {/* Bank Details */}
           {employee.bankAccount && (
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Bank Details</h3>
+              <h3 className="text-[11px] font-semibold text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-[0.08em]">Bank Details</h3>
               <div className="flex items-center gap-3 text-sm">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <span>Account: {employee.bankAccount}</span>
@@ -369,15 +369,15 @@ export function EmployeesView() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-[1600px] mx-auto">
+    <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Employee Directory</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your organization&apos;s workforce</p>
+          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white">Employee Directory</h1>
+          <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] mt-1">Manage your organization&apos;s workforce</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2 text-muted-foreground">
+          <Button variant="outline" size="sm" className="gap-2 text-[#424245] dark:text-[#aeaeb2] rounded-lg">
             <Download className="h-4 w-4" /> Export
           </Button>
           <AddEmployeeDialog departments={departments.map((d) => ({ id: d.id, name: d.name }))} />
@@ -398,12 +398,12 @@ export function EmployeesView() {
           { label: "Departments", value: deptCount, icon: Building2, color: "text-cyan-600", bg: "bg-cyan-50" },
         ].map((kpi) => (
           <motion.div key={kpi.label} variants={itemVariants}>
-            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
-                    <p className="text-2xl font-bold mt-1">{kpi.value}</p>
+                    <p className="text-[11px] text-[#86868b] dark:text-[#aeaeb2] font-medium uppercase tracking-wide">{kpi.label}</p>
+                    <p className="text-3xl font-bold mt-1 text-[#1d1d1f] dark:text-white tabular-nums">{kpi.value}</p>
                   </div>
                   <div className={`h-10 w-10 rounded-xl ${kpi.bg} flex items-center justify-center`}>
                     <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
@@ -420,12 +420,12 @@ export function EmployeesView() {
         {/* Search + Status Filter */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#86868b] dark:text-[#aeaeb2]" />
             <Input
               placeholder="Search by name or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 rounded-full bg-black/[0.04] dark:bg-white/[0.06] border-transparent focus-visible:ring-2 focus-visible:ring-emerald-500/40"
             />
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -441,7 +441,7 @@ export function EmployeesView() {
                 variant={statusFilter === s.key ? "default" : "outline"}
                 size="sm"
                 onClick={() => setStatusFilter(s.key)}
-                className={statusFilter === s.key ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+                className={`rounded-full ${statusFilter === s.key ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0" : ""}`}
               >
                 {s.label}
               </Button>
@@ -456,7 +456,7 @@ export function EmployeesView() {
               variant={deptFilter === "all" ? "default" : "outline"}
               size="sm"
               onClick={() => setDeptFilter("all")}
-              className={deptFilter === "all" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+              className={`rounded-full ${deptFilter === "all" ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0" : ""}`}
             >
               All Departments
             </Button>
@@ -466,11 +466,11 @@ export function EmployeesView() {
                 variant={deptFilter === dept.id ? "default" : "outline"}
                 size="sm"
                 onClick={() => setDeptFilter(dept.id)}
-                className={deptFilter === dept.id ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+                className={`rounded-full ${deptFilter === dept.id ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0" : ""}`}
               >
                 {dept.name}
                 {dept._count && (
-                  <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                  <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0 rounded-full">
                     {dept._count.employees}
                   </Badge>
                 )}
@@ -482,11 +482,11 @@ export function EmployeesView() {
 
       {/* Employee Grid */}
       {filteredEmployees.length === 0 ? (
-        <Card className="border-dashed">
+        <Card className="border-dashed glass border border-black/5 dark:border-white/10 rounded-2xl">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Users className="h-12 w-12 text-muted-foreground/40 mb-4" />
-            <p className="text-lg font-medium text-muted-foreground">No employees found</p>
-            <p className="text-sm text-muted-foreground/70 mt-1">Try adjusting your search or filters</p>
+            <Users className="h-12 w-12 text-[#86868b]/40 dark:text-[#aeaeb2]/40 mb-4" />
+            <p className="text-lg font-medium text-[#86868b] dark:text-[#aeaeb2]">No employees found</p>
+            <p className="text-sm text-[#86868b]/70 dark:text-[#aeaeb2]/70 mt-1">Try adjusting your search or filters</p>
           </CardContent>
         </Card>
       ) : (
@@ -510,7 +510,7 @@ export function EmployeesView() {
                   className="cursor-pointer"
                   onClick={() => handleSelectEmployee(emp)}
                 >
-                  <Card className="border-0 shadow-sm hover:shadow-md transition-all hover:border-emerald-200 group">
+                  <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl group">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm`}>
@@ -518,23 +518,23 @@ export function EmployeesView() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-sm truncate group-hover:text-emerald-700 transition-colors">
+                            <h3 className="font-semibold text-sm truncate group-hover:text-emerald-700 transition-colors text-[#1d1d1f] dark:text-white">
                               {emp.firstName} {emp.lastName}
                             </h3>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <ChevronRight className="h-4 w-4 text-[#86868b] dark:text-[#aeaeb2] opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
-                          <p className="text-xs text-muted-foreground truncate">{emp.position}</p>
+                          <p className="text-xs text-[#86868b] dark:text-[#aeaeb2] truncate">{emp.position}</p>
                           <div className="flex items-center gap-1.5 mt-2">
-                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusCfg.bg} ${statusCfg.color} border`}>
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusCfg.bg} ${statusCfg.color} border rounded-full`}>
                               {statusCfg.label}
                             </Badge>
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-muted/50">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-black/5 dark:bg-white/10 rounded-full border-0">
                               {emp.department?.name}
                             </Badge>
                           </div>
                         </div>
                       </div>
-                      <div className="mt-3 pt-3 border-t flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between text-xs text-[#86868b] dark:text-[#aeaeb2]">
                         <div className="flex items-center gap-1.5">
                           <Mail className="h-3 w-3" />
                           <span className="truncate max-w-[160px]">{emp.email}</span>

@@ -41,82 +41,237 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* ── macOS 27 (Tahoe) Liquid Glass Design Tokens ── */
+  --font-sf: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", "Inter", system-ui, sans-serif;
 }
 
+/* ───────────────────────────────────────────────────────────────────
+   macOS 27 (Tahoe) - Liquid Glass Design System
+   ─────────────────────────────────────────────────────────────────── */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Base radius bumped for that signature Tahoe roundness */
+  --radius: 0.875rem;
+
+  /* Window / Canvas backgrounds — soft, off-white like macOS light mode */
+  --background: oklch(0.97 0.003 240);
+  --foreground: oklch(0.18 0.01 240);
+
+  /* Translucent card surfaces (works over vibrancy) */
+  --card: oklch(1 0 0 / 0.72);
+  --card-foreground: oklch(0.18 0.01 240);
+
+  --popover: oklch(1 0 0 / 0.92);
+  --popover-foreground: oklch(0.18 0.01 240);
+
+  /* Emerald system accent — Apple green */
+  --primary: oklch(0.72 0.19 155);
+  --primary-foreground: oklch(0.99 0.02 155);
+
+  --secondary: oklch(0.95 0.005 240);
+  --secondary-foreground: oklch(0.25 0.01 240);
+
+  --muted: oklch(0.94 0.004 240);
+  --muted-foreground: oklch(0.52 0.01 240);
+
+  --accent: oklch(0.95 0.01 160);
+  --accent-foreground: oklch(0.32 0.12 160);
+
+  --destructive: oklch(0.62 0.24 27);
+  --border: oklch(0.88 0.005 240 / 0.7);
+  --input: oklch(0.92 0.004 240 / 0.7);
+  --ring: oklch(0.72 0.19 155 / 0.45);
+
+  /* Chart colors — emerald/teal/cyan forward */
+  --chart-1: oklch(0.72 0.19 155);
+  --chart-2: oklch(0.7 0.14 180);
+  --chart-3: oklch(0.68 0.13 200);
+  --chart-4: oklch(0.75 0.16 95);
+  --chart-5: oklch(0.7 0.18 145);
+
+  /* Sidebar — Tahoe vibrancy material */
+  --sidebar: oklch(0.97 0.005 250 / 0.6);
+  --sidebar-foreground: oklch(0.18 0.01 240);
+  --sidebar-primary: oklch(0.72 0.19 155);
+  --sidebar-primary-foreground: oklch(0.99 0.02 155);
+  --sidebar-accent: oklch(0.9 0.005 240 / 0.6);
+  --sidebar-accent-foreground: oklch(0.18 0.01 240);
+  --sidebar-border: oklch(0.88 0.005 240 / 0.5);
+  --sidebar-ring: oklch(0.72 0.19 155 / 0.45);
+
+  /* Tahoe-specific custom tokens */
+  --macos-bg: #f5f5f7;
+  --macos-card: rgba(255, 255, 255, 0.72);
+  --macos-sidebar: rgba(235, 235, 245, 0.6);
+  --macos-toolbar: rgba(255, 255, 255, 0.7);
+  --macos-accent: #34c759;
+  --macos-accent-secondary: #30d158;
+  --macos-text: #1d1d1f;
+  --macos-muted: #86868b;
+  --macos-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --macos-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.06), 0 16px 48px rgba(0, 0, 0, 0.08);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.16 0.005 240);
+  --foreground: oklch(0.97 0.005 240);
+
+  --card: oklch(0.22 0.005 240 / 0.7);
+  --card-foreground: oklch(0.97 0.005 240);
+
+  --popover: oklch(0.22 0.005 240 / 0.92);
+  --popover-foreground: oklch(0.97 0.005 240);
+
+  --primary: oklch(0.78 0.18 155);
+  --primary-foreground: oklch(0.16 0.01 240);
+
+  --secondary: oklch(0.27 0.005 240);
+  --secondary-foreground: oklch(0.97 0.005 240);
+
+  --muted: oklch(0.26 0.005 240);
+  --muted-foreground: oklch(0.68 0.008 240);
+
+  --accent: oklch(0.3 0.04 160);
+  --accent-foreground: oklch(0.85 0.14 160);
+
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.78 0.18 155 / 0.5);
+
+  --chart-1: oklch(0.74 0.18 155);
+  --chart-2: oklch(0.7 0.14 180);
+  --chart-3: oklch(0.68 0.13 200);
+  --chart-4: oklch(0.75 0.16 95);
+  --chart-5: oklch(0.7 0.18 145);
+
+  --sidebar: oklch(0.18 0.005 240 / 0.6);
+  --sidebar-foreground: oklch(0.97 0.005 240);
+  --sidebar-primary: oklch(0.78 0.18 155);
+  --sidebar-primary-foreground: oklch(0.16 0.01 240);
+  --sidebar-accent: oklch(0.28 0.005 240 / 0.6);
+  --sidebar-accent-foreground: oklch(0.97 0.005 240);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.78 0.18 155 / 0.5);
+
+  --macos-bg: #1c1c1e;
+  --macos-card: rgba(44, 44, 46, 0.72);
+  --macos-sidebar: rgba(28, 28, 30, 0.6);
+  --macos-toolbar: rgba(28, 28, 30, 0.7);
+  --macos-accent: #30d158;
+  --macos-accent-secondary: #34c759;
+  --macos-text: #ffffff;
+  --macos-muted: #aeaeb2;
+  --macos-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --macos-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sf);
+    letter-spacing: -0.011em;
+    background-color: var(--macos-bg);
+  }
+
+  /* Headings inherit SF Pro Display weight */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+    font-feature-settings: "ss01", "cv01";
+  }
+
+  /* Tahoe text selection — emerald highlight */
+  ::selection {
+    background-color: oklch(0.72 0.19 155 / 0.25);
+    color: inherit;
+  }
+
+  /* ── macOS-style thin auto-hiding scrollbars ── */
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: oklch(0.5 0.005 240 / 0.25);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: oklch(0.4 0.005 240 / 0.45);
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.5 0.005 240 / 0.3) transparent;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Tahoe "Liquid Glass" Utility Components
+   ─────────────────────────────────────────────────────────────────── */
+@layer components {
+  /* Frosted glass material — used by sidebar, header, cards */
+  .glass {
+    background-color: var(--macos-card);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+  .glass-sidebar {
+    background-color: var(--macos-sidebar);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+  .glass-toolbar {
+    background-color: var(--macos-toolbar);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  /* Soft Tahoe shadow utilities */
+  .shadow-macos {
+    box-shadow: var(--macos-shadow);
+  }
+  .shadow-macos-lg {
+    box-shadow: var(--macos-shadow-lg);
+  }
+
+  /* Subtle hover elevation */
+  .hover-lift {
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.22s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px) scale(1.005);
+    box-shadow: var(--macos-shadow-lg);
+  }
+
+  /* Traffic light dot (macOS window control) */
+  .traffic-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    display: inline-block;
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
   }
 }

@@ -340,17 +340,17 @@ export function InvoicingView() {
 
   // ── Render ─────────────────────────────────────────────────────────
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
         {/* ── Header ──────────────────────────────────────────────────── */}
         <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Invoicing & Billing</h1>
-            <p className="text-muted-foreground text-sm mt-1">Manage invoices, track payments, and monitor revenue</p>
+            <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white">Invoicing & Billing</h1>
+            <p className="text-[#86868b] dark:text-[#aeaeb2] text-sm mt-1">Manage invoices, track payments, and monitor revenue</p>
           </div>
           <Button
             onClick={() => { resetForm(); setShowCreateDialog(true) }}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white gap-2 rounded-full shadow-md shadow-emerald-500/25 border-0"
           >
             <Plus className="h-4 w-4" /> Create Invoice
           </Button>
@@ -358,12 +358,12 @@ export function InvoicingView() {
 
         {/* ── KPI Row ─────────────────────────────────────────────────── */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-l-4 border-l-emerald-500">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl border-l-4 border-l-emerald-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Revenue</p>
-                  <p className="text-2xl font-bold mt-1">{formatCurrency(totalRevenue)}</p>
+                  <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">Total Revenue</p>
+                  <p className="text-3xl font-bold mt-1 text-[#1d1d1f] dark:text-white tabular-nums">{formatCurrency(totalRevenue)}</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
                   <DollarSign className="h-5 w-5 text-emerald-600" />
@@ -372,12 +372,12 @@ export function InvoicingView() {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-teal-500">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl border-l-4 border-l-teal-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Paid</p>
-                  <p className="text-2xl font-bold mt-1">{formatCurrency(paidRevenue)}</p>
+                  <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">Paid</p>
+                  <p className="text-3xl font-bold mt-1 text-[#1d1d1f] dark:text-white tabular-nums">{formatCurrency(paidRevenue)}</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
                   <CheckCircle2 className="h-5 w-5 text-teal-600" />
@@ -386,12 +386,12 @@ export function InvoicingView() {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-amber-500">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl border-l-4 border-l-amber-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Outstanding</p>
-                  <p className="text-2xl font-bold mt-1">{formatCurrency(outstandingRevenue)}</p>
+                  <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">Outstanding</p>
+                  <p className="text-3xl font-bold mt-1 text-[#1d1d1f] dark:text-white tabular-nums">{formatCurrency(outstandingRevenue)}</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-amber-600" />
@@ -400,12 +400,12 @@ export function InvoicingView() {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-rose-500">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl border-l-4 border-l-rose-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Overdue</p>
-                  <p className="text-2xl font-bold mt-1">{formatCurrency(overdueRevenue)}</p>
+                  <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">Overdue</p>
+                  <p className="text-3xl font-bold mt-1 text-[#1d1d1f] dark:text-white tabular-nums">{formatCurrency(overdueRevenue)}</p>
                   {overdueCount > 0 && (
                     <p className="text-xs text-rose-600 mt-0.5">{overdueCount} invoice{overdueCount !== 1 ? "s" : ""}</p>
                   )}
@@ -420,9 +420,9 @@ export function InvoicingView() {
 
         {/* ── Revenue Chart ───────────────────────────────────────────── */}
         <motion.div variants={itemVariants}>
-          <Card>
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">Monthly Revenue</CardTitle>
+              <CardTitle className="text-base font-semibold text-[#1d1d1f] dark:text-white">Monthly Revenue</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <ChartContainer config={revenueChartConfig} className="h-[220px] w-full">
@@ -441,7 +441,7 @@ export function InvoicingView() {
         {/* ── Tabs ────────────────────────────────────────────────────── */}
         <motion.div variants={itemVariants}>
           <Tabs defaultValue="invoices" className="space-y-4">
-            <TabsList className="bg-muted/50">
+            <TabsList className="bg-black/[0.04] dark:bg-white/[0.06]">
               <TabsTrigger value="invoices" className="gap-2">
                 <Receipt className="h-4 w-4" /> Invoices
               </TabsTrigger>
@@ -495,7 +495,7 @@ export function InvoicingView() {
 
               {/* Invoice List */}
               {filteredInvoices.length === 0 ? (
-                <Card>
+                <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
                   <CardContent className="py-16 text-center">
                     <FileText className="h-12 w-12 mx-auto text-muted-foreground/40" />
                     <p className="text-muted-foreground mt-4 font-medium">No invoices found</p>
@@ -505,7 +505,7 @@ export function InvoicingView() {
                     {invoices.length === 0 && (
                       <Button
                         onClick={() => { resetForm(); setShowCreateDialog(true) }}
-                        className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                        className="mt-4 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white gap-2"
                       >
                         <Plus className="h-4 w-4" /> Create Invoice
                       </Button>
@@ -543,7 +543,7 @@ export function InvoicingView() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -8 }}
                         >
-                          <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setExpandedInvoiceId(isExpanded ? null : invoice.id)}>
+                          <Card className="glass border border-black/5 dark:border-white/10 hover:shadow-macos-lg hover-lift transition-all cursor-pointer rounded-2xl" onClick={() => setExpandedInvoiceId(isExpanded ? null : invoice.id)}>
                             <CardContent className="p-4">
                               {/* Desktop Row */}
                               <div className="hidden md:grid md:grid-cols-[1fr_1fr_0.8fr_0.7fr_0.7fr_0.8fr_44px] gap-4 items-center">
@@ -637,7 +637,7 @@ export function InvoicingView() {
                                       <div className="border rounded-lg overflow-hidden">
                                         <table className="w-full text-sm">
                                           <thead>
-                                            <tr className="bg-muted/50">
+                                            <tr className="bg-black/[0.04] dark:bg-white/[0.06]">
                                               <th className="text-left p-2 font-medium">Description</th>
                                               <th className="text-right p-2 font-medium">Qty</th>
                                               <th className="text-right p-2 font-medium">Rate</th>
@@ -666,7 +666,7 @@ export function InvoicingView() {
                                         </Button>
                                       )}
                                       {(invoice.status === "sent" || invoice.status === "overdue") && (
-                                        <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1" onClick={(e) => { e.stopPropagation(); handleUpdateInvoiceStatus(invoice.id, "paid") }}>
+                                        <Button size="sm" className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white gap-1" onClick={(e) => { e.stopPropagation(); handleUpdateInvoiceStatus(invoice.id, "paid") }}>
                                           <CheckCircle2 className="h-3.5 w-3.5" /> Mark Paid
                                         </Button>
                                       )}
@@ -706,21 +706,21 @@ export function InvoicingView() {
                     <p className="text-xs text-muted-foreground">Non-Billable</p>
                   </div>
                 </div>
-                <Button onClick={() => { resetTimeForm(); setShowAddTimeDialog(true) }} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
+                <Button onClick={() => { resetTimeForm(); setShowAddTimeDialog(true) }} className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white gap-2">
                   <Plus className="h-4 w-4" /> Add Time Entry
                 </Button>
               </div>
 
               {/* Weekly Summary by User */}
               {weeklyTimeSummary.byUser.length > 0 && (
-                <Card>
+                <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-semibold">Weekly Summary by Team Member</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {weeklyTimeSummary.byUser.map((u) => (
-                        <div key={u.name} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                        <div key={u.name} className="flex items-center gap-2 p-2 rounded-lg bg-black/[0.04] dark:bg-white/[0.06]">
                           <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
                             <User className="h-4 w-4 text-emerald-600" />
                           </div>
@@ -737,7 +737,7 @@ export function InvoicingView() {
 
               {/* Time Entries Table */}
               {timeEntries.length === 0 ? (
-                <Card>
+                <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
                   <CardContent className="py-16 text-center">
                     <Timer className="h-12 w-12 mx-auto text-muted-foreground/40" />
                     <p className="text-muted-foreground mt-4 font-medium">No time entries yet</p>
@@ -745,11 +745,11 @@ export function InvoicingView() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card>
+                <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
                   <CardContent className="p-0">
                     <ScrollArea className="max-h-[480px]">
                       <table className="w-full text-sm">
-                        <thead className="bg-muted/50 sticky top-0">
+                        <thead className="bg-black/[0.04] dark:bg-white/[0.06] sticky top-0">
                           <tr>
                             <th className="text-left p-3 font-medium">User</th>
                             <th className="text-left p-3 font-medium">Description</th>
@@ -761,7 +761,7 @@ export function InvoicingView() {
                         </thead>
                         <tbody>
                           {timeEntries.slice(0, 20).map((entry) => (
-                            <tr key={entry.id} className="border-t hover:bg-muted/30 transition-colors">
+                            <tr key={entry.id} className="border-t hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors">
                               <td className="p-3">
                                 <div className="flex items-center gap-2">
                                   <div className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -849,7 +849,7 @@ export function InvoicingView() {
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-muted/50">
+                    <tr className="bg-black/[0.04] dark:bg-white/[0.06]">
                       <th className="text-left p-2 font-medium">Description</th>
                       <th className="text-right p-2 font-medium w-20">Qty</th>
                       <th className="text-right p-2 font-medium w-28">Rate</th>
@@ -902,7 +902,7 @@ export function InvoicingView() {
             </div>
 
             {/* Totals */}
-            <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+            <div className="bg-black/[0.03] dark:bg-white/[0.04] rounded-xl p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
                 <span className="font-medium">{formatCurrency(formSubtotal)}</span>
@@ -956,7 +956,7 @@ export function InvoicingView() {
             <Button variant="outline" onClick={() => handleCreateInvoice("draft")} disabled={!formClientId} className="gap-1">
               <FileText className="h-4 w-4" /> Save as Draft
             </Button>
-            <Button onClick={() => handleCreateInvoice("sent")} disabled={!formClientId} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
+            <Button onClick={() => handleCreateInvoice("sent")} disabled={!formClientId} className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white gap-1">
               <Send className="h-4 w-4" /> Send
             </Button>
           </DialogFooter>
@@ -1026,7 +1026,7 @@ export function InvoicingView() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddTimeDialog(false)}>Cancel</Button>
-            <Button onClick={handleAddTimeEntry} disabled={!timeFormDescription} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Button onClick={handleAddTimeEntry} disabled={!timeFormDescription} className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white">
               Add Entry
             </Button>
           </DialogFooter>

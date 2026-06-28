@@ -198,15 +198,15 @@ function KPICard({ data }: { data: KPICardData }) {
   const Icon = data.icon;
   return (
     <motion.div variants={itemVariants}>
-      <Card className="relative overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200 border-border/60">
+      <Card className="relative overflow-hidden glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
         <CardContent className="p-5">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">
                 {data.title}
               </p>
               <div className="mt-2 flex items-baseline gap-2">
-                <h3 className="text-2xl font-bold tracking-tight text-foreground">
+                <h3 className="text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-white tabular-nums">
                   {typeof data.value === "number" ? data.value.toLocaleString() : data.value}
                 </h3>
                 {data.badge && (
@@ -222,17 +222,17 @@ function KPICard({ data }: { data: KPICardData }) {
                     {Math.abs(data.change)}%
                   </span>
                   {data.changeLabel && (
-                    <span className="text-[10px] text-muted-foreground">{data.changeLabel}</span>
+                    <span className="text-[10px] text-[#86868b] dark:text-[#aeaeb2]">{data.changeLabel}</span>
                   )}
                 </div>
               )}
             </div>
-            <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${data.gradient} flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0`}>
+            <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${data.gradient} flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0`}>
               <Icon className={`h-5 w-5 ${data.iconColor}`} />
             </div>
           </div>
         </CardContent>
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent" />
       </Card>
     </motion.div>
   );
@@ -559,7 +559,7 @@ export function DashboardView() {
 
   return (
     <motion.div
-      className="p-4 lg:p-6 space-y-6"
+      className="p-6 space-y-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -567,14 +567,14 @@ export function DashboardView() {
       {/* ── Section Header ── */}
       <motion.div variants={itemVariants} className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">
+          <h2 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white">
             Dashboard Overview
           </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] mt-1">
             Work metrics &amp; pipeline performance
           </p>
         </div>
-        <Badge variant="secondary" className="text-[10px] font-medium gap-1">
+        <Badge variant="secondary" className="text-[10px] font-semibold gap-1.5 rounded-full bg-black/5 dark:bg-white/10 px-3 py-1">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           Live
         </Badge>
@@ -589,17 +589,17 @@ export function DashboardView() {
 
       {/* ── Row 2: Animated Pipeline Workflow (HERO SECTION) ── */}
       <motion.div variants={itemVariants}>
-        <Card className="shadow-sm border-border/60 overflow-hidden">
+        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos overflow-hidden rounded-2xl">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-semibold">Content Pipeline</CardTitle>
-                <CardDescription className="text-xs mt-0.5">
+                <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Content Pipeline</CardTitle>
+                <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
                   Workflow stages &mdash; click any stage to view details
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px] gap-1 border-emerald-200 dark:border-emerald-800">
+                <Badge variant="outline" className="text-[10px] gap-1 border-emerald-200 dark:border-emerald-800 rounded-full">
                   <Workflow className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                   {dashboard.totalContent} items
                 </Badge>
@@ -710,12 +710,12 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Tasks & Dissemination Queue */}
         <motion.div variants={itemVariants}>
-          <Card className="shadow-sm border-border/60 h-full">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-semibold">Tasks &amp; Dissemination Queue</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
+                  <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Tasks &amp; Dissemination Queue</CardTitle>
+                  <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
                     Active tasks requiring attention
                   </CardDescription>
                 </div>
@@ -838,23 +838,23 @@ export function DashboardView() {
 
         {/* Right: Team Performance (Enhanced) */}
         <motion.div variants={itemVariants}>
-          <Card className="shadow-sm border-border/60 h-full">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-semibold">Team Performance</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
+                  <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Team Performance</CardTitle>
+                  <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
                     Completed vs pending tasks
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
                   <div className="flex items-center gap-1.5">
                     <div className="h-2 w-2 rounded-sm bg-gradient-to-r from-emerald-500 to-emerald-400" />
-                    <span className="text-muted-foreground">Done</span>
+                    <span className="text-[#86868b] dark:text-[#aeaeb2]">Done</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <div className="h-2 w-2 rounded-sm bg-gradient-to-r from-amber-400 to-amber-300" />
-                    <span className="text-muted-foreground">Pending</span>
+                    <span className="text-[#86868b] dark:text-[#aeaeb2]">Pending</span>
                   </div>
                 </div>
               </div>
@@ -885,12 +885,12 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Platform Activity (CSS-based) */}
         <motion.div variants={itemVariants}>
-          <Card className="shadow-sm border-border/60 h-full">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-semibold">Platform Activity</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
+                  <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Platform Activity</CardTitle>
+                  <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
                     Posts &amp; engagement by platform
                   </CardDescription>
                 </div>
@@ -952,12 +952,12 @@ export function DashboardView() {
 
         {/* Right: Recent Activity Feed (Enhanced) */}
         <motion.div variants={itemVariants}>
-          <Card className="shadow-sm border-border/60 h-full">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-sm font-semibold">Recent Activity</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
+                  <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Recent Activity</CardTitle>
+                  <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
                     Latest actions across the platform
                   </CardDescription>
                 </div>
@@ -1029,11 +1029,11 @@ export function DashboardView() {
 
       {/* ── Row 5: Quick Actions Bar ── */}
       <motion.div variants={itemVariants}>
-        <Card className="shadow-sm border-border/60">
+        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
+              <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Quick Actions</h3>
             </div>
             <div className="flex flex-wrap gap-2">
               {quickActions.map((action) => {
@@ -1062,7 +1062,7 @@ export function DashboardView() {
 // ── Loading Skeleton ────────────────────────────────────────────────
 function DashboardSkeleton() {
   return (
-    <div className="p-4 lg:p-6 space-y-6 animate-in fade-in duration-300">
+    <div className="p-6 space-y-6 animate-in fade-in duration-300">
       {/* Header skeleton */}
       <div className="flex items-center justify-between">
         <div className="space-y-2">
@@ -1074,7 +1074,7 @@ function DashboardSkeleton() {
       {/* KPI cards skeleton (6 cards) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="shadow-sm border-border/60">
+          <Card key={i} className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-2 flex-1">
@@ -1090,7 +1090,7 @@ function DashboardSkeleton() {
       </div>
 
       {/* Pipeline skeleton */}
-      <Card className="shadow-sm border-border/60">
+      <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="space-y-1.5">
@@ -1127,7 +1127,7 @@ function DashboardSkeleton() {
       {/* Row 3 skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {Array.from({ length: 2 }).map((_, i) => (
-          <Card key={i} className="shadow-sm border-border/60">
+          <Card key={i} className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
@@ -1150,7 +1150,7 @@ function DashboardSkeleton() {
 
       {/* Row 4 skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="shadow-sm border-border/60">
+        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1.5">
@@ -1168,7 +1168,7 @@ function DashboardSkeleton() {
             </div>
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-border/60">
+        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1.5">
@@ -1189,7 +1189,7 @@ function DashboardSkeleton() {
       </div>
 
       {/* Quick actions skeleton */}
-      <Card className="shadow-sm border-border/60">
+      <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
         <CardContent className="p-4">
           <Skeleton className="h-4 w-28 mb-3" />
           <div className="flex flex-wrap gap-2">

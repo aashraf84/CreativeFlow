@@ -421,13 +421,13 @@ export function FinanceAccountsView() {
   // RENDER
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <motion.div variants={containerVariants} initial="hidden" animate="visible">
         <motion.div variants={itemVariants} className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2"><Landmark className="h-6 w-6 text-emerald-600" />Finance & Accounts</h1>
-            <p className="text-sm text-muted-foreground mt-1">Chart of accounts, journal entries, and financial reporting</p>
+            <h1 className="text-2xl font-bold flex items-center gap-2 text-[#1d1d1f] dark:text-white"><Landmark className="h-6 w-6 text-emerald-600" />Finance & Accounts</h1>
+            <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] mt-1">Chart of accounts, journal entries, and financial reporting</p>
           </div>
         </motion.div>
 
@@ -440,13 +440,13 @@ export function FinanceAccountsView() {
             { label: "Total Revenue", value: kpis.totalRevenue, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
             { label: "Total Expenses", value: kpis.totalExpenses, icon: TrendingDown, color: "text-red-600", bg: "bg-red-50" },
           ].map((kpi) => (
-            <Card key={kpi.label} className="border-0 shadow-sm">
+            <Card key={kpi.label} className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${kpi.bg}`}><kpi.icon className={`h-4 w-4 ${kpi.color}`} /></div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                    <p className="text-lg font-bold">{formatCurrency(kpi.value)}</p>
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">{kpi.label}</p>
+                    <p className="text-lg font-bold text-[#1d1d1f] dark:text-white truncate">{formatCurrency(kpi.value)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -457,19 +457,19 @@ export function FinanceAccountsView() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1">
-          <TabsTrigger value="chart-of-accounts" className="text-xs">Chart of Accounts</TabsTrigger>
-          <TabsTrigger value="general-ledger" className="text-xs">General Ledger</TabsTrigger>
-          <TabsTrigger value="journal-entries" className="text-xs">Journal Entries</TabsTrigger>
-          <TabsTrigger value="trial-balance" className="text-xs">Trial Balance</TabsTrigger>
-          <TabsTrigger value="balance-sheet" className="text-xs">Balance Sheet</TabsTrigger>
-          <TabsTrigger value="pnl" className="text-xs">P&L Statement</TabsTrigger>
-          <TabsTrigger value="tax-rates" className="text-xs">Tax Rates</TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-black/[0.04] dark:bg-white/[0.06] p-1 rounded-xl">
+          <TabsTrigger value="chart-of-accounts" className="text-xs rounded-lg">Chart of Accounts</TabsTrigger>
+          <TabsTrigger value="general-ledger" className="text-xs rounded-lg">General Ledger</TabsTrigger>
+          <TabsTrigger value="journal-entries" className="text-xs rounded-lg">Journal Entries</TabsTrigger>
+          <TabsTrigger value="trial-balance" className="text-xs rounded-lg">Trial Balance</TabsTrigger>
+          <TabsTrigger value="balance-sheet" className="text-xs rounded-lg">Balance Sheet</TabsTrigger>
+          <TabsTrigger value="pnl" className="text-xs rounded-lg">P&L Statement</TabsTrigger>
+          <TabsTrigger value="tax-rates" className="text-xs rounded-lg">Tax Rates</TabsTrigger>
         </TabsList>
 
         {/* ── Tab 1: Chart of Accounts ──────────────────────────── */}
         <TabsContent value="chart-of-accounts">
-          <Card className="border-0 shadow-sm">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle className="text-base">Chart of Accounts</CardTitle>
@@ -478,13 +478,13 @@ export function FinanceAccountsView() {
                     <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                     <Input placeholder="Search accounts..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-48 h-8 text-xs" />
                   </div>
-                  <Button size="sm" onClick={openAddAccount} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"><Plus className="h-3.5 w-3.5 mr-1" />Add Account</Button>
+                  <Button size="sm" onClick={openAddAccount} className="h-8 text-xs rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0"><Plus className="h-3.5 w-3.5 mr-1" />Add Account</Button>
                 </div>
               </div>
               {/* Type pills */}
               <div className="flex gap-1 mt-2 flex-wrap">
                 {ACCOUNT_TYPES.map((t) => (
-                  <Button key={t} size="sm" variant={typeFilter === t ? "default" : "outline"} onClick={() => setTypeFilter(t)} className={`h-7 text-xs ${typeFilter === t ? "bg-emerald-600 hover:bg-emerald-700" : ""}`}>
+                  <Button key={t} size="sm" variant={typeFilter === t ? "default" : "outline"} onClick={() => setTypeFilter(t)} className={`h-7 text-xs rounded-full ${typeFilter === t ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0" : ""}`}>
                     {t}
                   </Button>
                 ))}
@@ -493,7 +493,7 @@ export function FinanceAccountsView() {
             <CardContent className="p-0">
               <div className="overflow-x-auto max-h-[60vh] overflow-y-auto">
                 <table className="w-full text-xs">
-                  <thead className="bg-muted/50 sticky top-0">
+                  <thead className="bg-black/[0.03] dark:bg-white/[0.04] sticky top-0">
                     <tr>
                       <th className="text-left p-2.5 font-medium">Code</th>
                       <th className="text-left p-2.5 font-medium">Name</th>
@@ -522,7 +522,7 @@ export function FinanceAccountsView() {
                       const cfg = ACCOUNT_TYPE_CONFIG[parent.type]
                       return (
                         <React.Fragment key={parent.id}>
-                          <tr className="border-b hover:bg-muted/30 cursor-pointer" onClick={() => toggleExpand(parent.id)}>
+                          <tr className="border-b border-black/5 dark:border-white/5 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] cursor-pointer" onClick={() => toggleExpand(parent.id)}>
                             <td className="p-2.5 font-bold">{parent.code}</td>
                             <td className="p-2.5 font-bold flex items-center gap-1">
                               {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
@@ -576,7 +576,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 2: General Ledger ─────────────────────────────── */}
         <TabsContent value="general-ledger">
-          <Card className="border-0 shadow-sm">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><BookOpen className="h-4 w-4 text-emerald-600" />General Ledger</CardTitle>
@@ -600,7 +600,7 @@ export function FinanceAccountsView() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-muted/50">
+                    <thead className="bg-black/[0.03] dark:bg-white/[0.04]">
                       <tr>
                         <th className="text-left p-2.5 font-medium">Date</th>
                         <th className="text-left p-2.5 font-medium">JE #</th>
@@ -620,7 +620,7 @@ export function FinanceAccountsView() {
                           if (isDebitNormal) runningBalance += line.debit - line.credit
                           else runningBalance += line.credit - line.debit
                           return (
-                            <tr key={line.id} className="border-b hover:bg-muted/30">
+                            <tr key={line.id} className="border-b hover:bg-black/[0.03] dark:hover:bg-white/[0.04]">
                               <td className="p-2.5">{line.jeDate ? format(new Date(line.jeDate), "MMM dd, yyyy") : ""}</td>
                               <td className="p-2.5 font-medium text-emerald-700">{line.jeNumber}</td>
                               <td className="p-2.5">{line.jeDescription}</td>
@@ -642,11 +642,11 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 3: Journal Entries ────────────────────────────── */}
         <TabsContent value="journal-entries">
-          <Card className="border-0 shadow-sm">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-emerald-600" />Journal Entries</CardTitle>
-                <Button size="sm" onClick={openAddJEntry} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"><Plus className="h-3.5 w-3.5 mr-1" />New Entry</Button>
+                <Button size="sm" onClick={openAddJEntry} className="h-8 text-xs rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0"><Plus className="h-3.5 w-3.5 mr-1" />New Entry</Button>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 <Select value={jeStatusFilter} onValueChange={setJeStatusFilter}>
@@ -691,7 +691,7 @@ export function FinanceAccountsView() {
                   const isExpanded = expandedJEntries.has(entry.id)
                   return (
                     <motion.div key={entry.id} layout className="border-b">
-                      <div className="flex items-center gap-3 p-3 hover:bg-muted/30 cursor-pointer" onClick={() => toggleJEntryExpand(entry.id)}>
+                      <div className="flex items-center gap-3 p-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] cursor-pointer" onClick={() => toggleJEntryExpand(entry.id)}>
                         <div className="flex-shrink-0">{isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</div>
                         <div className="flex-1 min-w-0 grid grid-cols-2 md:grid-cols-5 gap-2 items-center">
                           <div><p className="font-medium text-xs text-emerald-700">{entry.number}</p><p className="text-[10px] text-muted-foreground">{format(new Date(entry.date), "MMM dd, yyyy")}</p></div>
@@ -709,7 +709,7 @@ export function FinanceAccountsView() {
                           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                             <div className="px-4 pb-3">
                               <table className="w-full text-xs">
-                                <thead className="bg-muted/30">
+                                <thead className="bg-black/[0.03] dark:bg-white/[0.04]">
                                   <tr><th className="text-left p-2 font-medium">Account</th><th className="text-left p-2 font-medium">Description</th><th className="text-right p-2 font-medium">Debit</th><th className="text-right p-2 font-medium">Credit</th></tr>
                                 </thead>
                                 <tbody>
@@ -740,7 +740,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 4: Trial Balance ──────────────────────────────── */}
         <TabsContent value="trial-balance">
-          <Card className="border-0 shadow-sm">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4 text-emerald-600" />Trial Balance</CardTitle>
@@ -761,12 +761,12 @@ export function FinanceAccountsView() {
               ) : reportData ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
-                    <thead className="bg-muted/50">
+                    <thead className="bg-black/[0.03] dark:bg-white/[0.04]">
                       <tr><th className="text-left p-2.5 font-medium">Account Code</th><th className="text-left p-2.5 font-medium">Account Name</th><th className="text-left p-2.5 font-medium">Type</th><th className="text-right p-2.5 font-medium">Debit Total</th><th className="text-right p-2.5 font-medium">Credit Total</th></tr>
                     </thead>
                     <tbody>
                       {(reportData.accounts as { code: string; name: string; type: string; debitTotal: number; creditTotal: number }[] || []).map((a) => (
-                        <tr key={a.code} className="border-b hover:bg-muted/30">
+                        <tr key={a.code} className="border-b hover:bg-black/[0.03] dark:hover:bg-white/[0.04]">
                           <td className="p-2.5 font-medium">{a.code}</td>
                           <td className="p-2.5">{a.name}</td>
                           <td className="p-2.5"><Badge variant="outline" className="text-[10px] capitalize">{a.type}</Badge></td>
@@ -801,7 +801,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 5: Balance Sheet ──────────────────────────────── */}
         <TabsContent value="balance-sheet">
-          <Card className="border-0 shadow-sm">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><Landmark className="h-4 w-4 text-emerald-600" />Balance Sheet</CardTitle>
@@ -823,7 +823,7 @@ export function FinanceAccountsView() {
                     <h3 className="text-sm font-bold text-emerald-700 mb-2 flex items-center gap-1"><Wallet className="h-4 w-4" />ASSETS</h3>
                     <div className="space-y-1">
                       {(reportData.assets as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
-                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-black/[0.04] dark:bg-white/[0.06] rounded-lg"}`}>
                           <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
                         </div>
                       ))}
@@ -838,7 +838,7 @@ export function FinanceAccountsView() {
                     <h3 className="text-sm font-bold text-amber-700 mb-2 flex items-center gap-1"><CreditCard className="h-4 w-4" />LIABILITIES</h3>
                     <div className="space-y-1">
                       {(reportData.liabilities as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
-                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-black/[0.04] dark:bg-white/[0.06] rounded-lg"}`}>
                           <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
                         </div>
                       ))}
@@ -853,7 +853,7 @@ export function FinanceAccountsView() {
                     <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><PiggyBank className="h-4 w-4" />EQUITY</h3>
                     <div className="space-y-1">
                       {(reportData.equity as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
-                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-black/[0.04] dark:bg-white/[0.06] rounded-lg"}`}>
                           <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
                         </div>
                       ))}
@@ -865,7 +865,7 @@ export function FinanceAccountsView() {
 
                   {/* VALIDATION */}
                   <div className="border-t pt-4 space-y-2">
-                    <div className="flex justify-between text-sm font-bold p-2 bg-muted/30 rounded">
+                    <div className="flex justify-between text-sm font-bold p-2 bg-black/[0.04] dark:bg-white/[0.06] rounded-lg">
                       <span>Total Liabilities + Equity</span><span>{formatCurrency(reportData.totalLiabilitiesAndEquity as number || 0)}</span>
                     </div>
                     {reportData.isBalanced ? (
@@ -884,7 +884,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 6: P&L Statement ──────────────────────────────── */}
         <TabsContent value="pnl">
-          <Card className="border-0 shadow-sm">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><Calculator className="h-4 w-4 text-emerald-600" />Profit & Loss Statement</CardTitle>
@@ -906,7 +906,7 @@ export function FinanceAccountsView() {
                     <h3 className="text-sm font-bold text-green-700 mb-2 flex items-center gap-1"><TrendingUp className="h-4 w-4" />REVENUE</h3>
                     <div className="space-y-1">
                       {(reportData.revenue as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
-                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-black/[0.04] dark:bg-white/[0.06] rounded-lg"}`}>
                           <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
                         </div>
                       ))}
@@ -921,7 +921,7 @@ export function FinanceAccountsView() {
                     <h3 className="text-sm font-bold text-red-700 mb-2 flex items-center gap-1"><TrendingDown className="h-4 w-4" />EXPENSES</h3>
                     <div className="space-y-1">
                       {(reportData.expenses as { code: string; name: string; balance: number; parentId: string | null }[] || []).map((a) => (
-                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-muted/30 rounded"}`}>
+                        <div key={a.code} className={`flex justify-between text-xs p-1.5 ${a.parentId ? "pl-6" : "font-medium bg-black/[0.04] dark:bg-white/[0.06] rounded-lg"}`}>
                           <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
                         </div>
                       ))}
@@ -950,11 +950,11 @@ export function FinanceAccountsView() {
                         <div className="space-y-2">
                           <div>
                             <div className="flex justify-between text-xs mb-1"><span>Revenue</span><span className="font-medium">{formatCurrency(rev)}</span></div>
-                            <div className="h-6 bg-muted/30 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${(rev / max) * 100}%` }} /></div>
+                            <div className="h-6 bg-black/[0.04] dark:bg-white/[0.06] rounded-lg-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${(rev / max) * 100}%` }} /></div>
                           </div>
                           <div>
                             <div className="flex justify-between text-xs mb-1"><span>Expenses</span><span className="font-medium">{formatCurrency(exp)}</span></div>
-                            <div className="h-6 bg-muted/30 rounded-full overflow-hidden"><div className="h-full bg-red-400 rounded-full transition-all" style={{ width: `${(exp / max) * 100}%` }} /></div>
+                            <div className="h-6 bg-black/[0.04] dark:bg-white/[0.06] rounded-lg-full overflow-hidden"><div className="h-full bg-red-400 rounded-full transition-all" style={{ width: `${(exp / max) * 100}%` }} /></div>
                           </div>
                         </div>
                       )
@@ -970,17 +970,17 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 7: Tax Rates ──────────────────────────────────── */}
         <TabsContent value="tax-rates">
-          <Card className="border-0 shadow-sm">
+          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><Percent className="h-4 w-4 text-emerald-600" />Tax Rates</CardTitle>
-                <Button size="sm" onClick={openAddTax} className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700"><Plus className="h-3.5 w-3.5 mr-1" />Add Tax Rate</Button>
+                <Button size="sm" onClick={openAddTax} className="h-8 text-xs rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0"><Plus className="h-3.5 w-3.5 mr-1" />Add Tax Rate</Button>
               </div>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
-                  <thead className="bg-muted/50">
+                  <thead className="bg-black/[0.03] dark:bg-white/[0.04]">
                     <tr>
                       <th className="text-left p-2.5 font-medium">Name</th>
                       <th className="text-left p-2.5 font-medium">Rate</th>
@@ -991,7 +991,7 @@ export function FinanceAccountsView() {
                   </thead>
                   <tbody>
                     {taxRates.map((t) => (
-                      <tr key={t.id} className="border-b hover:bg-muted/30">
+                      <tr key={t.id} className="border-b hover:bg-black/[0.03] dark:hover:bg-white/[0.04]">
                         <td className="p-2.5 font-medium">{t.name}</td>
                         <td className="p-2.5">{t.rate}%</td>
                         <td className="p-2.5"><Badge variant="outline" className="text-[10px] capitalize">{t.type}</Badge></td>
@@ -1052,7 +1052,7 @@ export function FinanceAccountsView() {
             {!editingAccount && <div><Label className="text-xs">Opening Balance</Label><Input type="number" value={accountForm.balance} onChange={(e) => setAccountForm({ ...accountForm, balance: parseFloat(e.target.value) || 0 })} className="h-8 text-xs" /></div>}
             <div className="flex items-center gap-2"><Switch checked={accountForm.isActive} onCheckedChange={(v) => setAccountForm({ ...accountForm, isActive: v })} /><Label className="text-xs">Active</Label></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowAccountDialog(false)} className="text-xs">Cancel</Button><Button onClick={saveAccount} className="text-xs bg-emerald-600 hover:bg-emerald-700">{editingAccount ? "Update" : "Create"}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowAccountDialog(false)} className="text-xs rounded-lg">Cancel</Button><Button onClick={saveAccount} className="text-xs rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0">{editingAccount ? "Update" : "Create"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -1097,7 +1097,7 @@ export function FinanceAccountsView() {
             </div>
 
             {/* Totals */}
-            <div className="flex items-center justify-between bg-muted/30 p-3 rounded mt-2">
+            <div className="flex items-center justify-between bg-black/[0.03] dark:bg-white/[0.04] p-3 rounded-xl mt-2">
               <div className="flex gap-6">
                 <div><span className="text-xs text-muted-foreground">Total Debit: </span><span className="text-xs font-bold">{formatCurrency(jEntryForm.lines.reduce((s, l) => s + (l.debit || 0), 0))}</span></div>
                 <div><span className="text-xs text-muted-foreground">Total Credit: </span><span className="text-xs font-bold">{formatCurrency(jEntryForm.lines.reduce((s, l) => s + (l.credit || 0), 0))}</span></div>
@@ -1112,7 +1112,7 @@ export function FinanceAccountsView() {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowJEntryDialog(false)} className="text-xs">Cancel</Button>
             <Button onClick={() => saveJEntry(false)} variant="outline" className="text-xs">Save as Draft</Button>
-            <Button onClick={() => saveJEntry(true)} className="text-xs bg-emerald-600 hover:bg-emerald-700">Post</Button>
+            <Button onClick={() => saveJEntry(true)} className="text-xs rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0">Post</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1134,7 +1134,7 @@ export function FinanceAccountsView() {
             </div>
             <div className="flex items-center gap-2"><Switch checked={taxForm.isActive} onCheckedChange={(v) => setTaxForm({ ...taxForm, isActive: v })} /><Label className="text-xs">Active</Label></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowTaxDialog(false)} className="text-xs">Cancel</Button><Button onClick={saveTaxRate} className="text-xs bg-emerald-600 hover:bg-emerald-700">{editingTax ? "Update" : "Create"}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowTaxDialog(false)} className="text-xs rounded-lg">Cancel</Button><Button onClick={saveTaxRate} className="text-xs rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0">{editingTax ? "Update" : "Create"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

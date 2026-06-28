@@ -178,13 +178,13 @@ function KPICard({ icon: Icon, label, value, sub, colorClass }: {
 }) {
   return (
     <motion.div variants={itemVariants}>
-      <Card className="relative overflow-hidden border-0 shadow-sm hover:shadow-md transition-shadow">
+      <Card className="relative overflow-hidden glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
         <CardContent className="p-4">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-              <p className="text-2xl font-bold tracking-tight">{value}</p>
-              {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+              <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wider">{label}</p>
+              <p className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white tabular-nums">{value}</p>
+              {sub && <p className="text-xs text-[#86868b] dark:text-[#aeaeb2]">{sub}</p>}
             </div>
             <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${colorClass}`}>
               <Icon className="h-4.5 w-4.5" />
@@ -442,7 +442,7 @@ function AddAssetDialog({ open, onOpenChange, users }: {
           </div>
           <DialogFooter className="pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="h-9">Cancel</Button>
-            <Button type="submit" disabled={loading} className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Button type="submit" disabled={loading} className="h-9 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white">
               {loading ? "Adding..." : "Add Asset"}
             </Button>
           </DialogFooter>
@@ -510,7 +510,7 @@ function IssueAssetDialog({ asset, open, onOpenChange, users }: {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border">
             {React.createElement(getCategoryIcon(asset.category), { className: "h-5 w-5 text-emerald-600" })}
             <div>
               <p className="text-sm font-medium">{asset.name}</p>
@@ -538,7 +538,7 @@ function IssueAssetDialog({ asset, open, onOpenChange, users }: {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium">Issue Condition</Label>
-            <div className="h-9 px-3 rounded-md border bg-muted/30 flex items-center text-sm text-muted-foreground">
+            <div className="h-9 px-3 rounded-md border bg-black/[0.03] dark:bg-white/[0.04] flex items-center text-sm text-muted-foreground">
               Current: {CONDITION_CONFIG[asset.condition]?.label || asset.condition}
             </div>
           </div>
@@ -604,7 +604,7 @@ function ReturnAssetDialog({ asset, open, onOpenChange }: {
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border">
             {React.createElement(getCategoryIcon(asset.category), { className: "h-5 w-5 text-emerald-600" })}
             <div>
               <p className="text-sm font-medium">{asset.name}</p>
@@ -636,7 +636,7 @@ function ReturnAssetDialog({ asset, open, onOpenChange }: {
         </div>
         <DialogFooter className="pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="h-9">Cancel</Button>
-          <Button onClick={handleReturn} disabled={loading} className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={handleReturn} disabled={loading} className="h-9 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white">
             {loading ? "Processing..." : "Return Asset"}
           </Button>
         </DialogFooter>
@@ -722,19 +722,19 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
         <div className="space-y-6">
           {/* Quick Info */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-lg border bg-muted/30">
+            <div className="p-3 rounded-lg border bg-black/[0.03] dark:bg-white/[0.04]">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Category</p>
               <p className={`text-sm font-medium ${catColor.text}`}>{asset.category.charAt(0).toUpperCase() + asset.category.slice(1)}</p>
             </div>
-            <div className="p-3 rounded-lg border bg-muted/30">
+            <div className="p-3 rounded-lg border bg-black/[0.03] dark:bg-white/[0.04]">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Condition</p>
               <ConditionDots condition={asset.condition} />
             </div>
-            <div className="p-3 rounded-lg border bg-muted/30">
+            <div className="p-3 rounded-lg border bg-black/[0.03] dark:bg-white/[0.04]">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Brand / Model</p>
               <p className="text-sm font-medium">{asset.brand || "—"} {asset.model || ""}</p>
             </div>
-            <div className="p-3 rounded-lg border bg-muted/30">
+            <div className="p-3 rounded-lg border bg-black/[0.03] dark:bg-white/[0.04]">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Serial Number</p>
               <p className="text-sm font-mono">{asset.serialNumber || "—"}</p>
             </div>
@@ -746,7 +746,7 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Specifications</h4>
               <div className="space-y-1.5">
                 {Object.entries(specs).map(([key, val]) => (
-                  <div key={key} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+                  <div key={key} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-black/[0.03] dark:bg-white/[0.04]">
                     <span className="text-xs text-muted-foreground">{key}</span>
                     <span className="text-xs font-medium">{val}</span>
                   </div>
@@ -759,22 +759,22 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Purchase Information</h4>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+              <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-black/[0.03] dark:bg-white/[0.04]">
                 <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Calendar className="h-3 w-3" /> Purchase Date</span>
                 <span className="text-xs font-medium">{formatDate(asset.purchaseDate)}</span>
               </div>
-              <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+              <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-black/[0.03] dark:bg-white/[0.04]">
                 <span className="text-xs text-muted-foreground flex items-center gap-1.5"><DollarSign className="h-3 w-3" /> Cost</span>
                 <span className="text-xs font-medium">{formatCurrency(asset.purchaseCost)}</span>
               </div>
               {asset.vendor && (
-                <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-black/[0.03] dark:bg-white/[0.04]">
                   <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Building2 className="h-3 w-3" /> Vendor</span>
                   <span className="text-xs font-medium">{asset.vendor}</span>
                 </div>
               )}
               {asset.invoiceNumber && (
-                <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/30">
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-md bg-black/[0.03] dark:bg-white/[0.04]">
                   <span className="text-xs text-muted-foreground flex items-center gap-1.5"><FileText className="h-3 w-3" /> Invoice</span>
                   <span className="text-xs font-medium font-mono">{asset.invoiceNumber}</span>
                 </div>
@@ -785,7 +785,7 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
           {/* Warranty */}
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Warranty Status</h4>
-            <div className="p-3 rounded-lg border bg-muted/30">
+            <div className="p-3 rounded-lg border bg-black/[0.03] dark:bg-white/[0.04]">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Expiry Date</span>
                 <span className="text-xs font-medium">{formatDate(asset.warrantyExpiry)}</span>
@@ -810,7 +810,7 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
           {asset.location && (
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Location</h4>
-              <div className="p-3 rounded-lg border bg-muted/30">
+              <div className="p-3 rounded-lg border bg-black/[0.03] dark:bg-white/[0.04]">
                 <span className="text-sm">{asset.location}</span>
               </div>
             </div>
@@ -892,7 +892,7 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
           {asset.notes && (
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notes</h4>
-              <div className="p-3 rounded-lg border bg-muted/30">
+              <div className="p-3 rounded-lg border bg-black/[0.03] dark:bg-white/[0.04]">
                 <p className="text-sm text-muted-foreground">{asset.notes}</p>
               </div>
             </div>
@@ -908,7 +908,7 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
               </Button>
             )}
             {asset.status === "issued" && (
-              <Button onClick={onReturn} className="h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs" disabled={actionLoading}>
+              <Button onClick={onReturn} className="h-9 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs" disabled={actionLoading}>
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Return Asset
               </Button>
             )}
@@ -939,7 +939,7 @@ function AssetCard({ asset, onClick, onIssue, onReturn }: {
   return (
     <motion.div variants={itemVariants}>
       <Card
-        className="group cursor-pointer border hover:shadow-lg transition-all duration-200 hover:border-emerald-200 relative overflow-hidden"
+        className="group cursor-pointer glass border border-black/5 dark:border-white/10 hover:shadow-macos-lg transition-all duration-200 hover:border-emerald-300/40 dark:hover:border-emerald-500/30 relative overflow-hidden rounded-2xl"
         onClick={onClick}
       >
         {/* Top color bar */}
@@ -1027,7 +1027,7 @@ function AssetRow({ asset, onClick, onIssue, onReturn }: {
   return (
     <motion.div variants={itemVariants}>
       <div
-        className="flex items-center gap-4 p-3 rounded-lg border hover:bg-muted/30 hover:border-emerald-200 cursor-pointer transition-all group"
+        className="flex items-center gap-4 p-3 rounded-xl glass border border-black/5 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] hover:border-emerald-300/40 dark:hover:border-emerald-500/30 cursor-pointer transition-all group"
         onClick={onClick}
       >
         <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${catColor.icon}`}>
@@ -1191,10 +1191,10 @@ export function ITAssetsView() {
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">IT Asset Management</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Track, issue, and manage your organization&apos;s IT assets</p>
+            <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white">IT Asset Management</h1>
+            <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] mt-0.5">Track, issue, and manage your organization&apos;s IT assets</p>
           </div>
-          <Button onClick={() => setAddOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white h-9 gap-1.5">
+          <Button onClick={() => setAddOpen(true)} className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white h-9 gap-1.5 rounded-full shadow-md shadow-emerald-500/25 border-0">
             <Plus className="h-4 w-4" /> Add Asset
           </Button>
         </div>
@@ -1223,7 +1223,7 @@ export function ITAssetsView() {
               key={cat}
               size="sm"
               variant={categoryTab === cat ? "default" : "ghost"}
-              className={`h-8 text-xs whitespace-nowrap shrink-0 ${categoryTab === cat ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+              className={`h-8 text-xs whitespace-nowrap shrink-0 rounded-full ${categoryTab === cat ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0" : ""}`}
               onClick={() => setCategoryTab(cat)}
             >
               {cat}
@@ -1269,7 +1269,7 @@ export function ITAssetsView() {
                       key={s}
                       size="sm"
                       variant={statusFilter === s ? "default" : "outline"}
-                      className={`h-8 text-xs ${statusFilter === s ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+                      className={`h-8 text-xs rounded-full ${statusFilter === s ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0" : ""}`}
                       onClick={() => setStatusFilter(s)}
                     >
                       {s}
@@ -1278,10 +1278,10 @@ export function ITAssetsView() {
                 </div>
                 <Separator orientation="vertical" className="h-6" />
                 <div className="flex items-center gap-1 border rounded-md p-0.5">
-                  <Button size="sm" variant={viewMode === "grid" ? "default" : "ghost"} className={`h-7 w-7 p-0 ${viewMode === "grid" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`} onClick={() => setViewMode("grid")}>
+                  <Button size="sm" variant={viewMode === "grid" ? "default" : "ghost"} className={`h-7 w-7 p-0 rounded-md ${viewMode === "grid" ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0" : ""}`} onClick={() => setViewMode("grid")}>
                     <LayoutGrid className="h-3.5 w-3.5" />
                   </Button>
-                  <Button size="sm" variant={viewMode === "list" ? "default" : "ghost"} className={`h-7 w-7 p-0 ${viewMode === "list" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`} onClick={() => setViewMode("list")}>
+                  <Button size="sm" variant={viewMode === "list" ? "default" : "ghost"} className={`h-7 w-7 p-0 rounded-md ${viewMode === "list" ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white border-0" : ""}`} onClick={() => setViewMode("list")}>
                     <List className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -1299,7 +1299,7 @@ export function ITAssetsView() {
 
             {/* Asset Grid / List */}
             {filteredAssets.length === 0 ? (
-              <Card className="border-dashed">
+              <Card className="border-dashed glass border border-black/5 dark:border-white/10 rounded-2xl">
                 <CardContent className="py-16 text-center">
                   <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-sm font-medium text-muted-foreground">No assets found</p>
@@ -1307,7 +1307,7 @@ export function ITAssetsView() {
                     {search ? "Try adjusting your search or filters" : "Add your first IT asset to get started"}
                   </p>
                   {!search && (
-                    <Button onClick={() => setAddOpen(true)} className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs">
+                    <Button onClick={() => setAddOpen(true)} className="mt-4 bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white h-8 text-xs">
                       <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Asset
                     </Button>
                   )}
@@ -1378,7 +1378,7 @@ export function ITAssetsView() {
                     key={f.key}
                     size="sm"
                     variant={issuanceStatusFilter === f.key ? "default" : "outline"}
-                    className={`h-7 text-xs ${issuanceStatusFilter === f.key ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
+                    className={`h-7 text-xs ${issuanceStatusFilter === f.key ? "bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white" : ""}`}
                     onClick={() => setIssuanceStatusFilter(f.key)}
                   >
                     {f.label}
@@ -1389,7 +1389,7 @@ export function ITAssetsView() {
             </div>
 
             {filteredIssuances.length === 0 ? (
-              <Card className="border-dashed">
+              <Card className="border-dashed glass border border-black/5 dark:border-white/10 rounded-2xl">
                 <CardContent className="py-16 text-center">
                   <ArrowRightLeft className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-sm font-medium text-muted-foreground">No issuance records found</p>
@@ -1401,7 +1401,7 @@ export function ITAssetsView() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-muted/50 border-b">
+                      <tr className="bg-black/[0.04] dark:bg-white/[0.06] border-b">
                         <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Asset</th>
                         <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Issued To</th>
                         <th className="text-left py-3 px-4 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Issued By</th>
@@ -1421,7 +1421,7 @@ export function ITAssetsView() {
                         return (
                           <tr
                             key={issuance.id}
-                            className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${effectiveStatus === "overdue" ? "bg-rose-50/50" : ""}`}
+                            className={`border-b last:border-0 hover:bg-black/[0.03] dark:bg-white/[0.04] transition-colors ${effectiveStatus === "overdue" ? "bg-rose-50/50" : ""}`}
                           >
                             <td className="py-3 px-4">
                               {asset ? (

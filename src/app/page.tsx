@@ -421,19 +421,19 @@ export default function ERPPage() {
   const ActiveViewComponent = viewComponents[activeView];
 
   return (
-    <div className="min-h-screen flex bg-muted/30">
+    <div className="min-h-screen flex bg-[#f5f5f7] dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-white antialiased selection:bg-emerald-500/25">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative">
         <Header />
         <main className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center h-full min-h-[60vh]">
               <div className="flex flex-col items-center gap-4">
                 <div className="relative h-12 w-12">
-                  <div className="absolute inset-0 rounded-full border-4 border-muted-foreground/20" />
+                  <div className="absolute inset-0 rounded-full border-4 border-black/10 dark:border-white/10" />
                   <div className="absolute inset-0 rounded-full border-4 border-t-emerald-500 animate-spin" />
                 </div>
-                <p className="text-sm text-muted-foreground font-medium">Loading VortexERP...</p>
+                <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] font-medium">Loading VortexERP…</p>
               </div>
             </div>
           ) : (
@@ -443,7 +443,7 @@ export default function ERPPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.22, ease: [0.34, 1.56, 0.64, 1] }}
                 className="h-full"
               >
                 <ActiveViewComponent />

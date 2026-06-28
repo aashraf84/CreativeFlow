@@ -168,19 +168,19 @@ export function ProductsView() {
   }, [])
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Products & Stock</h1>
-          <p className="text-muted-foreground text-sm">Manage inventory, stock levels and movements</p>
+          <h1 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white">Products & Stock</h1>
+          <p className="text-[#86868b] dark:text-[#aeaeb2] text-sm">Manage inventory, stock levels and movements</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowStockMovement(true)}>
+          <Button variant="outline" size="sm" onClick={() => setShowStockMovement(true)} className="rounded-lg">
             <ArrowRightLeft className="h-4 w-4 mr-1.5" />
             Stock Movement
           </Button>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowAddProduct(true)}>
+          <Button size="sm" className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-full shadow-md shadow-emerald-500/25 border-0" onClick={() => setShowAddProduct(true)}>
             <Plus className="h-4 w-4 mr-1.5" />
             Add Product
           </Button>
@@ -196,14 +196,14 @@ export function ProductsView() {
           { label: "Warehouses", value: warehouses.length, icon: Warehouse, color: "text-emerald-600", bg: "bg-emerald-50" },
         ].map((kpi) => (
           <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <Card>
+            <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground font-medium">{kpi.label}</p>
-                    <p className="text-2xl font-bold mt-1">{kpi.value}</p>
+                    <p className="text-[11px] text-[#86868b] dark:text-[#aeaeb2] font-medium uppercase tracking-wide">{kpi.label}</p>
+                    <p className="text-3xl font-bold mt-1 text-[#1d1d1f] dark:text-white tabular-nums">{kpi.value}</p>
                   </div>
-                  <div className={`h-10 w-10 rounded-lg ${kpi.bg} flex items-center justify-center`}>
+                  <div className={`h-10 w-10 rounded-xl ${kpi.bg} flex items-center justify-center`}>
                     <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
                   </div>
                 </div>
@@ -216,9 +216,9 @@ export function ProductsView() {
       {/* Low Stock Alert */}
       {lowStockProducts.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="border-amber-200 bg-amber-50/50">
+          <Card className="glass border border-amber-200/60 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-900/10 rounded-2xl shadow-macos">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4" />
                 Low Stock Alerts ({lowStockProducts.length})
               </CardTitle>
@@ -288,9 +288,9 @@ export function ProductsView() {
 
       {/* Product Grid/List */}
       {filteredProducts.length === 0 ? (
-        <Card>
+        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
           <CardContent className="py-16 flex flex-col items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+            <div className="h-12 w-12 rounded-full bg-black/[0.05] dark:bg-white/[0.08] flex items-center justify-center">
               <PackageX className="h-6 w-6 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground font-medium">No products found</p>
@@ -349,19 +349,19 @@ export function ProductsView() {
                       <p className="text-sm text-muted-foreground">{selectedProduct.description}</p>
                     )}
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="bg-black/[0.04] dark:bg-white/[0.06] rounded-xl p-3">
                         <p className="text-xs text-muted-foreground">Unit Price</p>
                         <p className="text-lg font-bold">${selectedProduct.unitPrice.toFixed(2)}</p>
                       </div>
-                      <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="bg-black/[0.04] dark:bg-white/[0.06] rounded-xl p-3">
                         <p className="text-xs text-muted-foreground">Cost Price</p>
                         <p className="text-lg font-bold">${selectedProduct.costPrice.toFixed(2)}</p>
                       </div>
-                      <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="bg-black/[0.04] dark:bg-white/[0.06] rounded-xl p-3">
                         <p className="text-xs text-muted-foreground">Unit</p>
                         <p className="text-lg font-bold">{selectedProduct.unit}</p>
                       </div>
-                      <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="bg-black/[0.04] dark:bg-white/[0.06] rounded-xl p-3">
                         <p className="text-xs text-muted-foreground">Reorder Level</p>
                         <p className="text-lg font-bold">{selectedProduct.reorderLevel}</p>
                       </div>
@@ -491,7 +491,7 @@ export function ProductsView() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowAddProduct(false)}>Cancel</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+              <Button type="submit" className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700">
                 <Plus className="h-4 w-4 mr-1" />
                 Add Product
               </Button>
@@ -557,7 +557,7 @@ export function ProductsView() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowStockMovement(false)}>Cancel</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+              <Button type="submit" className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700">
                 <ArrowRightLeft className="h-4 w-4 mr-1" />
                 Record Movement
               </Button>
@@ -584,7 +584,7 @@ function ProductCard({ product, onClick, index }: { product: Product; onClick: (
       transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.3) }}
     >
       <Card
-        className="cursor-pointer hover:shadow-md transition-all hover:border-emerald-200 group"
+        className="cursor-pointer glass border border-black/5 dark:border-white/10 hover:shadow-macos-lg hover-lift transition-all hover:border-emerald-300/40 dark:hover:border-emerald-500/30 group rounded-2xl"
         onClick={onClick}
       >
         <CardContent className="p-4 space-y-3">
@@ -626,7 +626,7 @@ function ProductCard({ product, onClick, index }: { product: Product; onClick: (
                 return (
                   <div key={sl.id} className="flex items-center gap-2">
                     <span className="text-[10px] text-muted-foreground w-16 truncate">{sl.warehouse.code}</span>
-                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div className="flex-1 h-1.5 bg-black/[0.05] dark:bg-white/[0.08] rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
                           sl.quantity === 0 ? "bg-red-400" :
@@ -659,10 +659,10 @@ function ProductListItem({ product, onClick }: { product: Product; onClick: () =
 
   return (
     <div
-      className="flex items-center gap-4 px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors"
+      className="flex items-center gap-4 px-4 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] cursor-pointer transition-colors rounded-xl"
       onClick={onClick}
     >
-      <div className="h-10 w-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+      <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
         <Package className="h-5 w-5 text-emerald-600" />
       </div>
       <div className="flex-1 min-w-0">
