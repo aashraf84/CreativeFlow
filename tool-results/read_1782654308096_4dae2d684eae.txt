@@ -1,0 +1,1026 @@
+     1→import { create } from 'zustand'
+     2→
+     3→// Types for the ERP
+     4→export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers' | 'employees' | 'payroll' | 'recruitment' | 'expenses' | 'financeAccounts' | 'products' | 'purchaseOrders' | 'vendors' | 'itAssets' | 'reports'
+     5→
+     6→export type ContentStage = 'idea' | 'design' | 'edit' | 'review' | 'approve' | 'disseminate' | 'archived'
+     7→export type ContentPriority = 'low' | 'medium' | 'high' | 'urgent'
+     8→export type ContentType = 'post' | 'story' | 'reel' | 'carousel' | 'video' | 'graphic' | 'article'
+     9→export type PostStatus = 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed'
+    10→export type Platform = 'instagram' | 'facebook' | 'twitter' | 'linkedin' | 'tiktok' | 'youtube' | 'pinterest' | 'snapchat'
+    11→
+    12→export interface Organization {
+    13→  id: string
+    14→  name: string
+    15→  slug: string
+    16→  logo: string | null
+    17→  plan: string
+    18→}
+    19→
+    20→export interface User {
+    21→  id: string
+    22→  email: string
+    23→  name: string
+    24→  avatar: string | null
+    25→  role: string
+    26→  organizationId: string
+    27→}
+    28→
+    29→export interface Team {
+    30→  id: string
+    31→  name: string
+    32→  type: string
+    33→  color: string
+    34→  icon: string | null
+    35→  description: string | null
+    36→  members: TeamMember[]
+    37→}
+    38→
+    39→export interface TeamMember {
+    40→  id: string
+    41→  userId: string
+    42→  teamId: string
+    43→  role: string
+    44→  user: User
+    45→}
+    46→
+    47→export interface Client {
+    48→  id: string
+    49→  name: string
+    50→  logo: string | null
+    51→  industry: string | null
+    52→  status: string
+    53→}
+    54→
+    55→export interface Campaign {
+    56→  id: string
+    57→  name: string
+    58→  description: string | null
+    59→  status: string
+    60→  startDate: string | null
+    61→  endDate: string | null
+    62→  budget: number | null
+    63→  client: Client | null
+    64→}
+    65→
+    66→export interface Content {
+    67→  id: string
+    68→  title: string
+    69→  description: string | null
+    70→  type: ContentType
+    71→  stage: ContentStage
+    72→  priority: ContentPriority
+    73→  format: string | null
+    74→  tags: string | null
+    75→  dueDate: string | null
+    76→  publishedAt: string | null
+    77→  campaignId: string | null
+    78→  creatorId: string | null
+    79→  assigneeId: string | null
+    80→  teamId: string | null
+    81→  creator: User | null
+    82→  assignee: User | null
+    83→  team: Team | null
+    84→  campaign: Campaign | null
+    85→  posts: Post[]
+    86→  comments: Comment[]
+    87→  createdAt: string
+    88→  updatedAt: string
+    89→}
+    90→
+    91→export interface SocialAccount {
+    92→  id: string
+    93→  platform: Platform
+    94→  accountId: string
+    95→  username: string
+    96→  displayName: string | null
+    97→  avatar: string | null
+    98→  followers: number
+    99→  isVerified: boolean
+   100→  isActive: boolean
+   101→  userId: string
+   102→  user: User
+   103→}
+   104→
+   105→export interface Post {
+   106→  id: string
+   107→  content: string
+   108→  mediaUrls: string | null
+   109→  platform: Platform
+   110→  status: PostStatus
+   111→  scheduledAt: string | null
+   112→  publishedAt: string | null
+   113→  engagement: string | null
+   114→  failureReason: string | null
+   115→  socialAccountId: string
+   116→  contentId: string | null
+   117→  socialAccount: SocialAccount
+   118→  createdAt: string
+   119→}
+   120→
+   121→export interface AutomationRule {
+   122→  id: string
+   123→  name: string
+   124→  description: string | null
+   125→  trigger: string
+   126→  conditions: string
+   127→  actions: string
+   128→  isActive: boolean
+   129→}
+   130→
+   131→export interface ActivityLog {
+   132→  id: string
+   133→  action: string
+   134→  entity: string
+   135→  entityId: string | null
+   136→  details: string | null
+   137→  actor: User
+   138→  createdAt: string
+   139→}
+   140→
+   141→export interface Comment {
+   142→  id: string
+   143→  text: string
+   144→  userId: string
+   145→  contentId: string
+   146→  user: User
+   147→  createdAt: string
+   148→}
+   149→
+   150→export interface CalendarEvent {
+   151→  id: string
+   152→  title: string
+   153→  date: string
+   154→  type: 'content' | 'post' | 'campaign'
+   155→  status: string
+   156→  platform?: string
+   157→  color: string
+   158→}
+   159→
+   160→export interface Approval {
+   161→  id: string
+   162→  type: string
+   163→  status: string
+   164→  comment: string | null
+   165→  contentId: string | null
+   166→  postId: string | null
+   167→  requestedById: string
+   168→  reviewedById: string | null
+   169→  reviewedAt: string | null
+   170→  requestedBy: User
+   171→  reviewedBy: User | null
+   172→  content: Content | null
+   173→  post: Post | null
+   174→  createdAt: string
+   175→}
+   176→
+   177→export interface Invoice {
+   178→  id: string
+   179→  number: string
+   180→  clientId: string
+   181→  campaignId: string | null
+   182→  status: string
+   183→  subtotal: number
+   184→  tax: number
+   185→  total: number
+   186→  dueDate: string | null
+   187→  paidAt: string | null
+   188→  notes: string | null
+   189→  client: Client
+   190→  campaign: Campaign | null
+   191→  invoiceItems: InvoiceItem[]
+   192→  createdAt: string
+   193→}
+   194→
+   195→export interface TimeEntry {
+   196→  id: string
+   197→  description: string
+   198→  hours: number
+   199→  billable: boolean
+   200→  date: string
+   201→  userId: string
+   202→  clientId: string | null
+   203→  campaignId: string | null
+   204→  contentId: string | null
+   205→  user: User
+   206→  client: Client | null
+   207→  campaign: Campaign | null
+   208→  createdAt: string
+   209→}
+   210→
+   211→export interface Asset {
+   212→  id: string
+   213→  name: string
+   214→  type: string
+   215→  url: string
+   216→  thumbnailUrl: string | null
+   217→  size: number
+   218→  mimeType: string | null
+   219→  tags: string | null
+   220→  folder: string | null
+   221→  metadata: string | null
+   222→  uploadedById: string
+   223→  clientId: string | null
+   224→  uploadedBy: User
+   225→  client: Client | null
+   226→  createdAt: string
+   227→}
+   228→
+   229→export interface ERPNotification {
+   230→  id: string
+   231→  title: string
+   232→  message: string
+   233→  type: string
+   234→  category: string
+   235→  isRead: boolean
+   236→  actionUrl: string | null
+   237→  userId: string
+   238→  createdAt: string
+   239→}
+   240→
+   241→export interface InboxMessage {
+   242→  id: string
+   243→  platform: Platform
+   244→  senderName: string
+   245→  senderAvatar: string | null
+   246→  content: string
+   247→  type: string
+   248→  status: string
+   249→  postUrl: string | null
+   250→  socialAccountId: string
+   251→  repliedAt: string | null
+   252→  createdAt: string
+   253→}
+   254→
+   255→export interface Influencer {
+   256→  id: string
+   257→  name: string
+   258→  username: string
+   259→  platform: Platform
+   260→  followers: number
+   261→  engagementRate: number
+   262→  niche: string | null
+   263→  email: string | null
+   264→  phone: string | null
+   265→  notes: string | null
+   266→  status: string
+   267→  rate: number | null
+   268→  contractStart: string | null
+   269→  contractEnd: string | null
+   270→  clientId: string | null
+   271→  campaignId: string | null
+   272→  client: Client | null
+   273→  campaign: Campaign | null
+   274→  createdAt: string
+   275→}
+   276→
+   277→export interface BrandKit {
+   278→  id: string
+   279→  name: string
+   280→  type: string
+   281→  value: string
+   282→  clientId: string | null
+   283→  client: Client | null
+   284→  createdAt: string
+   285→}
+   286→
+   287→export interface Department {
+   288→  id: string
+   289→  name: string
+   290→  description: string | null
+   291→  color: string
+   292→  headId: string | null
+   293→  _count?: { employees: number; jobPostings: number }
+   294→  createdAt: string
+   295→}
+   296→
+   297→export interface Employee {
+   298→  id: string
+   299→  userId: string | null
+   300→  employeeId: string
+   301→  firstName: string
+   302→  lastName: string
+   303→  email: string
+   304→  phone: string | null
+   305→  avatar: string | null
+   306→  position: string
+   307→  departmentId: string
+   308→  hireDate: string
+   309→  status: string
+   310→  employmentType: string
+   311→  salary: number | null
+   312→  salaryCurrency: string
+   313→  bankAccount: string | null
+   314→  taxId: string | null
+   315→  emergencyContact: string | null
+   316→  address: string | null
+   317→  notes: string | null
+   318→  department: Department
+   319→  user: User | null
+   320→  createdAt: string
+   321→}
+   322→
+   323→export interface LeaveRequest {
+   324→  id: string
+   325→  employeeId: string
+   326→  type: string
+   327→  startDate: string
+   328→  endDate: string
+   329→  days: number
+   330→  reason: string | null
+   331→  status: string
+   332→  approvedById: string | null
+   333→  approvedAt: string | null
+   334→  comment: string | null
+   335→  employee: Employee
+   336→  createdAt: string
+   337→}
+   338→
+   339→export interface PayrollItem {
+   340→  id: string
+   341→  payrollRunId: string
+   342→  employeeId: string
+   343→  baseSalary: number
+   344→  overtime: number
+   345→  bonuses: number
+   346→  deductions: number
+   347→  tax: number
+   348→  netPay: number
+   349→  employee: Employee
+   350→  createdAt: string
+   351→}
+   352→
+   353→export interface PayrollRun {
+   354→  id: string
+   355→  period: string
+   356→  status: string
+   357→  runDate: string
+   358→  totalGross: number
+   359→  totalDeductions: number
+   360→  totalNet: number
+   361→  items: PayrollItem[]
+   362→  createdAt: string
+   363→}
+   364→
+   365→export interface JobPosting {
+   366→  id: string
+   367→  title: string
+   368→  departmentId: string
+   369→  type: string
+   370→  location: string | null
+   371→  salary_min: number | null
+   372→  salary_max: number | null
+   373→  description: string
+   374→  requirements: string | null
+   375→  status: string
+   376→  postedDate: string | null
+   377→  closingDate: string | null
+   378→  applicants: number
+   379→  department: Department
+   380→  createdAt: string
+   381→}
+   382→
+   383→export interface Expense {
+   384→  id: string
+   385→  title: string
+   386→  description: string | null
+   387→  amount: number
+   388→  category: string
+   389→  date: string
+   390→  status: string
+   391→  receiptUrl: string | null
+   392→  submittedById: string
+   393→  approvedById: string | null
+   394→  approvedAt: string | null
+   395→  campaignId: string | null
+   396→  clientId: string | null
+   397→  submittedBy: User
+   398→  createdAt: string
+   399→}
+   400→
+   401→export interface Account {
+   402→  id: string
+   403→  code: string
+   404→  name: string
+   405→  type: string
+   406→  category: string | null
+   407→  description: string | null
+   408→  normalBalance: string
+   409→  parentId: string | null
+   410→  balance: number
+   411→  isActive: boolean
+   412→  organizationId: string
+   413→  createdAt: string
+   414→  updatedAt: string
+   415→  parent: { id: string; code: string; name: string } | null
+   416→  children: { id: string; code: string; name: string; type: string; balance: number }[]
+   417→  _count?: { journalLines: number }
+   418→}
+   419→
+   420→export interface JournalEntryLine {
+   421→  id: string
+   422→  journalEntryId: string
+   423→  accountId: string
+   424→  debit: number
+   425→  credit: number
+   426→  description: string | null
+   427→  organizationId: string
+   428→  createdAt: string
+   429→  updatedAt: string
+   430→  account: { id: string; code: string; name: string; type: string }
+   431→}
+   432→
+   433→export interface JournalEntry {
+   434→  id: string
+   435→  number: string
+   436→  date: string
+   437→  description: string
+   438→  reference: string | null
+   439→  source: string
+   440→  sourceId: string | null
+   441→  status: string
+   442→  isAdjusting: boolean
+   443→  period: string
+   444→  totalDebit: number
+   445→  totalCredit: number
+   446→  organizationId: string
+   447→  createdById: string | null
+   448→  createdAt: string
+   449→  updatedAt: string
+   450→  createdBy: { id: string; name: string; email: string } | null
+   451→  lines: JournalEntryLine[]
+   452→}
+   453→
+   454→export interface InvoiceItem {
+   455→  id: string
+   456→  invoiceId: string
+   457→  description: string
+   458→  quantity: number
+   459→  rate: number
+   460→  amount: number
+   461→  organizationId: string
+   462→  createdAt: string
+   463→  updatedAt: string
+   464→}
+   465→
+   466→export interface TaxRate {
+   467→  id: string
+   468→  name: string
+   469→  rate: number
+   470→  type: string
+   471→  isActive: boolean
+   472→  createdAt: string
+   473→}
+   474→
+   475→export interface Warehouse {
+   476→  id: string
+   477→  name: string
+   478→  code: string
+   479→  location: string | null
+   480→  isDefault: boolean
+   481→  isActive: boolean
+   482→  _count?: { stockLevels: number; stockMovements: number }
+   483→  createdAt: string
+   484→}
+   485→
+   486→export interface StockLevel {
+   487→  id: string
+   488→  productId: string
+   489→  warehouseId: string
+   490→  quantity: number
+   491→  reservedQuantity: number
+   492→  warehouse: Warehouse
+   493→}
+   494→
+   495→export interface Product {
+   496→  id: string
+   497→  name: string
+   498→  sku: string
+   499→  description: string | null
+   500→  category: string | null
+   501→  unit: string
+   502→  unitPrice: number
+   503→  costPrice: number
+   504→  reorderLevel: number
+   505→  imageUrl: string | null
+   506→  tags: string | null
+   507→  isActive: boolean
+   508→  stockLevels: StockLevel[]
+   509→  createdAt: string
+   510→}
+   511→
+   512→export interface StockMovement {
+   513→  id: string
+   514→  productId: string
+   515→  warehouseId: string
+   516→  type: string
+   517→  quantity: number
+   518→  reference: string | null
+   519→  notes: string | null
+   520→  product: Product
+   521→  warehouse: Warehouse
+   522→  createdAt: string
+   523→}
+   524→
+   525→export interface Vendor {
+   526→  id: string
+   527→  name: string
+   528→  email: string | null
+   529→  phone: string | null
+   530→  address: string | null
+   531→  category: string | null
+   532→  rating: number
+   533→  isActive: boolean
+   534→  _count?: { purchaseOrders: number }
+   535→  createdAt: string
+   536→}
+   537→
+   538→export interface PurchaseOrderItem {
+   539→  id: string
+   540→  purchaseOrderId: string
+   541→  productId: string
+   542→  quantity: number
+   543→  unitPrice: number
+   544→  total: number
+   545→  product: Product
+   546→}
+   547→
+   548→export interface PurchaseOrder {
+   549→  id: string
+   550→  number: string
+   551→  vendorId: string
+   552→  status: string
+   553→  items: string
+   554→  subtotal: number
+   555→  tax: number
+   556→  total: number
+   557→  orderDate: string
+   558→  expectedDate: string | null
+   559→  notes: string | null
+   560→  vendor: Vendor
+   561→  poItems: PurchaseOrderItem[]
+   562→  createdAt: string
+   563→}
+   564→
+   565→export interface ITAsset {
+   566→  id: string
+   567→  assetTag: string
+   568→  name: string
+   569→  category: string
+   570→  brand: string | null
+   571→  model: string | null
+   572→  serialNumber: string | null
+   573→  specifications: string | null
+   574→  purchaseDate: string | null
+   575→  purchaseCost: number | null
+   576→  warrantyExpiry: string | null
+   577→  vendor: string | null
+   578→  invoiceNumber: string | null
+   579→  condition: string
+   580→  status: string
+   581→  assignedToId: string | null
+   582→  location: string | null
+   583→  notes: string | null
+   584→  imageUrl: string | null
+   585→  organizationId: string
+   586→  createdAt: string
+   587→  updatedAt: string
+   588→  assignedTo: User | null
+   589→  issuances: AssetIssuance[]
+   590→  _count?: { issuances: number }
+   591→}
+   592→
+   593→export interface Disseminator {
+   594→  id: string
+   595→  userId: string
+   596→  teamId: string | null
+   597→  speciality: string | null
+   598→  platforms: string | null  // JSON array string
+   599→  workloadCapacity: number
+   600→  status: string
+   601→  rating: number
+   602→  totalTasksCompleted: number
+   603→  totalPostsPublished: number
+   604→  avgCompletionHours: number
+   605→  onTimeRate: number
+   606→  notes: string | null
+   607→  organizationId: string
+   608→  createdAt: string
+   609→  updatedAt: string
+   610→  user: { id: string; name: string; email: string; avatar: string | null; role: string }
+   611→  team: { id: string; name: string; type: string; color: string } | null
+   612→  _count?: { assignedTasks: number }
+   613→}
+   614→
+   615→export interface DisseminationTask {
+   616→  id: string
+   617→  title: string
+   618→  description: string | null
+   619→  contentId: string | null
+   620→  assigneeId: string | null
+   621→  disseminatorId: string | null
+   622→  clientId: string | null
+   623→  campaignId: string | null
+   624→  targetPlatforms: string | null  // JSON array string
+   625→  postContent: string | null
+   626→  mediaUrls: string | null  // JSON array string
+   627→  hashtags: string | null
+   628→  scheduledAt: string | null
+   629→  dueDate: string | null
+   630→  priority: string
+   631→  status: string
+   632→  startedAt: string | null
+   633→  completedAt: string | null
+   634→  postId: string | null
+   635→  failureReason: string | null
+   636→  assignedById: string | null
+   637→  assignedAt: string | null
+   638→  completionNotes: string | null
+   639→  engagement: string | null
+   640→  organizationId: string
+   641→  createdAt: string
+   642→  updatedAt: string
+   643→  assignee: { id: string; name: string; email: string; avatar: string | null } | null
+   644→  disseminator: { id: string; userId: string; speciality: string | null; rating: number } | null
+   645→  content: { id: string; title: string; type: string; stage: string } | null
+   646→  client: { id: string; name: string; logo: string | null } | null
+   647→  campaign: { id: string; name: string; status: string } | null
+   648→}
+   649→
+   650→export interface AssetIssuance {
+   651→  id: string
+   652→  assetId: string
+   653→  issuedToId: string
+   654→  issuedById: string
+   655→  issueDate: string
+   656→  expectedReturnDate: string | null
+   657→  actualReturnDate: string | null
+   658→  returnCondition: string | null
+   659→  issueCondition: string | null
+   660→  purpose: string | null
+   661→  notes: string | null
+   662→  status: string
+   663→  organizationId: string
+   664→  createdAt: string
+   665→  updatedAt: string
+   666→  asset: ITAsset
+   667→  issuedTo: User
+   668→  issuedBy: User
+   669→}
+   670→
+   671→export interface CommunicationTemplate {
+   672→  id: string
+   673→  name: string
+   674→  subject: string | null
+   675→  body: string
+   676→  type: string  // email, whatsapp
+   677→  category: string | null
+   678→  variables: string | null  // JSON array
+   679→  isDefault: boolean
+   680→  isActive: boolean
+   681→  organizationId: string
+   682→  createdAt: string
+   683→}
+   684→
+   685→export interface Conversation {
+   686→  id: string
+   687→  subject: string | null
+   688→  type: string  // email, whatsapp, mixed
+   689→  status: string  // active, archived, closed
+   690→  priority: string  // low, normal, high, urgent
+   691→  channel: string  // email, whatsapp, manual
+   692→  clientId: string | null
+   693→  influencerId: string | null
+   694→  campaignId: string | null
+   695→  assignedToId: string | null
+   696→  lastMessageAt: string
+   697→  lastMessagePreview: string | null
+   698→  unreadCount: number
+   699→  tags: string | null
+   700→  organizationId: string
+   701→  createdAt: string
+   702→  updatedAt: string
+   703→  client: { id: string; name: string; logo: string | null } | null
+   704→  influencer: { id: string; name: string; username: string; platform: string } | null
+   705→  assignedTo: { id: string; name: string; email: string; avatar: string | null } | null
+   706→  messages: CommunicationMessage[]
+   707→}
+   708→
+   709→export interface CommunicationMessage {
+   710→  id: string
+   711→  conversationId: string
+   712→  senderId: string | null
+   713→  senderName: string
+   714→  senderEmail: string | null
+   715→  senderPhone: string | null
+   716→  recipientName: string
+   717→  recipientEmail: string | null
+   718→  recipientPhone: string | null
+   719→  subject: string | null
+   720→  body: string
+   721→  htmlBody: string | null
+   722→  mediaUrls: string | null  // JSON array
+   723→  type: string  // email, whatsapp, note
+   724→  direction: string  // inbound, outbound
+   725→  status: string  // draft, queued, sent, delivered, read, failed, bounced
+   726→  failureReason: string | null
+   727→  templateId: string | null
+   728→  isStarred: boolean
+   729→  isRead: boolean
+   730→  readAt: string | null
+   731→  deliveredAt: string | null
+   732→  openedAt: string | null
+   733→  clickedAt: string | null
+   734→  repliedAt: string | null
+   735→  organizationId: string
+   736→  createdAt: string
+   737→}
+   738→
+   739→export interface CommunicationContact {
+   740→  id: string
+   741→  name: string
+   742→  email: string | null
+   743→  phone: string | null
+   744→  whatsappNumber: string | null
+   745→  company: string | null
+   746→  role: string | null
+   747→  avatar: string | null
+   748→  notes: string | null
+   749→  preferredChannel: string  // email, whatsapp
+   750→  lastContactedAt: string | null
+   751→  isFavorite: boolean
+   752→  tags: string | null
+   753→  clientId: string | null
+   754→  influencerId: string | null
+   755→  organizationId: string
+   756→  createdAt: string
+   757→}
+   758→
+   759→export interface DashboardData {
+   760→  totalContent: number
+   761→  contentByStage: Record<ContentStage, number>
+   762→  postsThisWeek: number
+   763→  postsThisMonth: number
+   764→  scheduledPosts: number
+   765→  activeCampaigns: number
+   766→  totalClients: number
+   767→  totalAccounts: number
+   768→  teamProductivity: { team: string; completed: number; pending: number }[]
+   769→  platformBreakdown: { platform: string; posts: number; engagement: number }[]
+   770→  recentActivity: ActivityLog[]
+   771→  contentTrend: { date: string; created: number; published: number }[]
+   772→  pendingApprovals: number
+   773→  totalRevenue: number
+   774→  paidRevenue: number
+   775→  outstandingRevenue: number
+   776→  timeTrackedThisWeek: number
+   777→  unreadInbox: number
+   778→  assetCount: number
+   779→}
+   780→
+   781→interface ERPStore {
+   782→  // Navigation
+   783→  activeView: ActiveView
+   784→  setActiveView: (view: ActiveView) => void
+   785→  sidebarOpen: boolean
+   786→  setSidebarOpen: (open: boolean) => void
+   787→
+   788→  // Data
+   789→  dashboard: DashboardData | null
+   790→  contents: Content[]
+   791→  posts: Post[]
+   792→  teams: Team[]
+   793→  socialAccounts: SocialAccount[]
+   794→  campaigns: Campaign[]
+   795→  clients: Client[]
+   796→  automations: AutomationRule[]
+   797→  calendarEvents: CalendarEvent[]
+   798→  activities: ActivityLog[]
+   799→  currentUser: User | null
+   800→  // Auth state
+   801→  authState: 'loading' | 'serial-key' | 'login' | 'authenticated'
+   802→  isViewOnly: boolean
+   803→  deviceRegistered: boolean
+   804→  setAuthState: (state: 'loading' | 'serial-key' | 'login' | 'authenticated') => void
+   805→  setIsViewOnly: (viewOnly: boolean) => void
+   806→  setDeviceRegistered: (registered: boolean) => void
+   807→  logout: () => void
+   808→  approvals: Approval[]
+   809→  invoices: Invoice[]
+   810→  timeEntries: TimeEntry[]
+   811→  assets: Asset[]
+   812→  notifications: ERPNotification[]
+   813→  inboxMessages: InboxMessage[]
+   814→  influencers: Influencer[]
+   815→  brandKits: BrandKit[]
+   816→  departments: Department[]
+   817→  employees: Employee[]
+   818→  leaveRequests: LeaveRequest[]
+   819→  payrollRuns: PayrollRun[]
+   820→  jobPostings: JobPosting[]
+   821→  expenses: Expense[]
+   822→  financeAccounts: Account[]
+   823→  taxRates: TaxRate[]
+   824→  journalEntries: JournalEntry[]
+   825→  invoiceItems: InvoiceItem[]
+   826→  products: Product[]
+   827→  warehouses: Warehouse[]
+   828→  stockMovements: StockMovement[]
+   829→  vendors: Vendor[]
+   830→  purchaseOrders: PurchaseOrder[]
+   831→  itAssets: ITAsset[]
+   832→  assetIssuances: AssetIssuance[]
+   833→  disseminators: Disseminator[]
+   834→  disseminationTasks: DisseminationTask[]
+   835→  conversations: Conversation[]
+   836→  communicationTemplates: CommunicationTemplate[]
+   837→  communicationContacts: CommunicationContact[]
+   838→
+   839→  // Loading states
+   840→  isLoading: boolean
+   841→  setIsLoading: (loading: boolean) => void
+   842→
+   843→  // Data setters (from API)
+   844→  setDashboard: (data: DashboardData) => void
+   845→  setContents: (data: Content[]) => void
+   846→  setPosts: (data: Post[]) => void
+   847→  setTeams: (data: Team[]) => void
+   848→  setSocialAccounts: (data: SocialAccount[]) => void
+   849→  setCampaigns: (data: Campaign[]) => void
+   850→  setClients: (data: Client[]) => void
+   851→  setAutomations: (data: AutomationRule[]) => void
+   852→  setCalendarEvents: (data: CalendarEvent[]) => void
+   853→  setActivities: (data: ActivityLog[]) => void
+   854→  setCurrentUser: (user: User) => void
+   855→  setApprovals: (data: Approval[]) => void
+   856→  setInvoices: (data: Invoice[]) => void
+   857→  setTimeEntries: (data: TimeEntry[]) => void
+   858→  setAssets: (data: Asset[]) => void
+   859→  setNotifications: (data: ERPNotification[]) => void
+   860→  setInboxMessages: (data: InboxMessage[]) => void
+   861→  setInfluencers: (data: Influencer[]) => void
+   862→  setBrandKits: (data: BrandKit[]) => void
+   863→  setDepartments: (data: Department[]) => void
+   864→  setEmployees: (data: Employee[]) => void
+   865→  setLeaveRequests: (data: LeaveRequest[]) => void
+   866→  setPayrollRuns: (data: PayrollRun[]) => void
+   867→  setJobPostings: (data: JobPosting[]) => void
+   868→  setExpenses: (data: Expense[]) => void
+   869→  setFinanceAccounts: (data: Account[]) => void
+   870→  setTaxRates: (data: TaxRate[]) => void
+   871→  setJournalEntries: (data: JournalEntry[]) => void
+   872→  setInvoiceItems: (data: InvoiceItem[]) => void
+   873→  setProducts: (data: Product[]) => void
+   874→  setWarehouses: (data: Warehouse[]) => void
+   875→  setStockMovements: (data: StockMovement[]) => void
+   876→  setVendors: (data: Vendor[]) => void
+   877→  setPurchaseOrders: (data: PurchaseOrder[]) => void
+   878→  setItAssets: (data: ITAsset[]) => void
+   879→  setAssetIssuances: (data: AssetIssuance[]) => void
+   880→  setDisseminators: (data: Disseminator[]) => void
+   881→  setDisseminationTasks: (data: DisseminationTask[]) => void
+   882→  setConversations: (data: Conversation[]) => void
+   883→  setCommunicationTemplates: (data: CommunicationTemplate[]) => void
+   884→  setCommunicationContacts: (data: CommunicationContact[]) => void
+   885→
+   886→  // Modals
+   887→  showCreateContent: boolean
+   888→  setShowCreateContent: (show: boolean) => void
+   889→  showCreatePost: boolean
+   890→  setShowCreatePost: (show: boolean) => void
+   891→  selectedContent: Content | null
+   892→  setSelectedContent: (content: Content | null) => void
+   893→
+   894→  // Filters
+   895→  pipelineFilter: string
+   896→  setPipelineFilter: (filter: string) => void
+   897→  disseminationPlatformFilter: string
+   898→  setDisseminationPlatformFilter: (filter: string) => void
+   899→}
+   900→
+   901→export const useERPStore = create<ERPStore>((set) => ({
+   902→  // Navigation
+   903→  activeView: 'dashboard',
+   904→  setActiveView: (view) => set({ activeView: view }),
+   905→  sidebarOpen: true,
+   906→  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+   907→
+   908→  // Data
+   909→  dashboard: null,
+   910→  contents: [],
+   911→  posts: [],
+   912→  teams: [],
+   913→  socialAccounts: [],
+   914→  campaigns: [],
+   915→  clients: [],
+   916→  automations: [],
+   917→  calendarEvents: [],
+   918→  activities: [],
+   919→  currentUser: null,
+   920→  // Auth state
+   921→  authState: 'loading',
+   922→  isViewOnly: false,
+   923→  deviceRegistered: false,
+   924→  setAuthState: (state) => set({ authState: state }),
+   925→  setIsViewOnly: (viewOnly) => set({ isViewOnly: viewOnly }),
+   926→  setDeviceRegistered: (registered) => set({ deviceRegistered: registered }),
+   927→  logout: () => {
+   928→    if (typeof window !== 'undefined') {
+   929→      localStorage.removeItem('erp_session')
+   930→      localStorage.removeItem('erp_device_registered')
+   931→    }
+   932→    set({ currentUser: null, authState: 'serial-key', isViewOnly: false, deviceRegistered: false })
+   933→  },
+   934→  approvals: [],
+   935→  invoices: [],
+   936→  timeEntries: [],
+   937→  assets: [],
+   938→  notifications: [],
+   939→  inboxMessages: [],
+   940→  influencers: [],
+   941→  brandKits: [],
+   942→  departments: [],
+   943→  employees: [],
+   944→  leaveRequests: [],
+   945→  payrollRuns: [],
+   946→  jobPostings: [],
+   947→  expenses: [],
+   948→  financeAccounts: [],
+   949→  taxRates: [],
+   950→  journalEntries: [],
+   951→  invoiceItems: [],
+   952→  products: [],
+   953→  warehouses: [],
+   954→  stockMovements: [],
+   955→  vendors: [],
+   956→  purchaseOrders: [],
+   957→  itAssets: [],
+   958→  assetIssuances: [],
+   959→  disseminators: [],
+   960→  disseminationTasks: [],
+   961→  conversations: [],
+   962→  communicationTemplates: [],
+   963→  communicationContacts: [],
+   964→
+   965→  // Loading
+   966→  isLoading: false,
+   967→  setIsLoading: (loading) => set({ isLoading: loading }),
+   968→
+   969→  // Setters
+   970→  setDashboard: (data) => set({ dashboard: data }),
+   971→  setContents: (data) => set({ contents: data }),
+   972→  setPosts: (data) => set({ posts: data }),
+   973→  setTeams: (data) => set({ teams: data }),
+   974→  setSocialAccounts: (data) => set({ socialAccounts: data }),
+   975→  setCampaigns: (data) => set({ campaigns: data }),
+   976→  setClients: (data) => set({ clients: data }),
+   977→  setAutomations: (data) => set({ automations: data }),
+   978→  setCalendarEvents: (data) => set({ calendarEvents: data }),
+   979→  setActivities: (data) => set({ activities: data }),
+   980→  setCurrentUser: (user) => set({ currentUser: user }),
+   981→  setApprovals: (data) => set({ approvals: data }),
+   982→  setInvoices: (data) => set({ invoices: data }),
+   983→  setTimeEntries: (data) => set({ timeEntries: data }),
+   984→  setAssets: (data) => set({ assets: data }),
+   985→  setNotifications: (data) => set({ notifications: data }),
+   986→  setInboxMessages: (data) => set({ inboxMessages: data }),
+   987→  setInfluencers: (data) => set({ influencers: data }),
+   988→  setBrandKits: (data) => set({ brandKits: data }),
+   989→  setDepartments: (data) => set({ departments: data }),
+   990→  setEmployees: (data) => set({ employees: data }),
+   991→  setLeaveRequests: (data) => set({ leaveRequests: data }),
+   992→  setPayrollRuns: (data) => set({ payrollRuns: data }),
+   993→  setJobPostings: (data) => set({ jobPostings: data }),
+   994→  setExpenses: (data) => set({ expenses: data }),
+   995→  setFinanceAccounts: (data) => set({ financeAccounts: data }),
+   996→  setTaxRates: (data) => set({ taxRates: data }),
+   997→  setJournalEntries: (data) => set({ journalEntries: data }),
+   998→  setInvoiceItems: (data) => set({ invoiceItems: data }),
+   999→  setProducts: (data) => set({ products: data }),
+  1000→  setWarehouses: (data) => set({ warehouses: data }),
+  1001→  setStockMovements: (data) => set({ stockMovements: data }),
+  1002→  setVendors: (data) => set({ vendors: data }),
+  1003→  setPurchaseOrders: (data) => set({ purchaseOrders: data }),
+  1004→  setItAssets: (data) => set({ itAssets: data }),
+  1005→  setAssetIssuances: (data) => set({ assetIssuances: data }),
+  1006→  setDisseminators: (data) => set({ disseminators: data }),
+  1007→  setDisseminationTasks: (data) => set({ disseminationTasks: data }),
+  1008→  setConversations: (data) => set({ conversations: data }),
+  1009→  setCommunicationTemplates: (data) => set({ communicationTemplates: data }),
+  1010→  setCommunicationContacts: (data) => set({ communicationContacts: data }),
+  1011→
+  1012→  // Modals
+  1013→  showCreateContent: false,
+  1014→  setShowCreateContent: (show) => set({ showCreateContent: show }),
+  1015→  showCreatePost: false,
+  1016→  setShowCreatePost: (show) => set({ showCreatePost: show }),
+  1017→  selectedContent: null,
+  1018→  setSelectedContent: (content) => set({ selectedContent: content }),
+  1019→
+  1020→  // Filters
+  1021→  pipelineFilter: 'all',
+  1022→  setPipelineFilter: (filter) => set({ pipelineFilter: filter }),
+  1023→  disseminationPlatformFilter: 'all',
+  1024→  setDisseminationPlatformFilter: (filter) => set({ disseminationPlatformFilter: filter }),
+  1025→}))
+  1026→

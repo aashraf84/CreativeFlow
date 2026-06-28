@@ -34,6 +34,7 @@ import { ReportsView } from "@/components/erp/reports-view";
 import { CreateContentModal } from "@/components/erp/create-content-modal";
 import { CreatePostModal } from "@/components/erp/create-post-modal";
 import { ContentDetailModal } from "@/components/erp/content-detail-modal";
+import { AuthScreen } from "@/components/erp/auth-screen";
 import { AnimatePresence, motion } from "framer-motion";
 
 const viewComponents: Record<ActiveView, React.ComponentType> = {
@@ -86,6 +87,7 @@ export default function ERPPage() {
     setStockMovements, setVendors, setPurchaseOrders, setItAssets, setAssetIssuances,
     setDisseminators, setDisseminationTasks,
     setConversations, setCommunicationTemplates, setCommunicationContacts,
+    authState,
   } = useERPStore();
   const [seeded, setSeeded] = useState(false);
 
@@ -444,10 +446,17 @@ export default function ERPPage() {
   }, [seeded]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (authState === 'authenticated') {
+      loadData();
+    }
+  }, [loadData, authState]);
 
   const ActiveViewComponent = viewComponents[activeView];
+
+  // Show auth screen if not authenticated
+  if (authState !== 'authenticated') {
+    return <AuthScreen />;
+  }
 
   return (
     <div className="min-h-screen flex bg-[#f5f5f7] dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-white antialiased selection:bg-emerald-500/25">

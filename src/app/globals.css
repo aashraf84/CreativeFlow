@@ -485,6 +485,117 @@
   border-radius: 0 4px 4px 0;
 }
 
+/* ── Two-column financial breakdown (e.g. Cash Flow) ── */
+.report-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+/* ── Progress / bar chart rows (CSS bars) ── */
+.report-bar-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 9.5pt;
+  padding: 0.2rem 0;
+}
+.report-bar-track {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.report-bar-fill {
+  height: 100%;
+  background: linear-gradient(to right, #10b981, #14b8a6);
+  border-radius: 999px;
+}
+
+/* ── Status pill (for in-table status indicators) ── */
+.report-pill {
+  display: inline-block;
+  font-size: 8pt;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.report-pill-positive {
+  background: #d1fae5;
+  color: #065f46;
+}
+.report-pill-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+.report-pill-negative {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.report-pill-neutral {
+  background: #e2e8f0;
+  color: #475569;
+}
+.report-pill-accent {
+  background: #ccfbf1;
+  color: #115e59;
+}
+
+/* ── Subgroup row inside a table (e.g. aging buckets) ── */
+.report-subgroup-row td {
+  background: #f1f5f9 !important;
+  font-weight: 700;
+  color: #334155;
+  border-top: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+  font-size: 8.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Report sidebar category header (collapsible trigger) ── */
+.report-cat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.report-cat-header:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.dark .report-cat-header:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Report toolbar at top of preview panel ── */
+.report-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0 0.75rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.dark .report-toolbar {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── KPI strip shown inside reports (longer format) ── */
+.report-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
 /* ───────────────────────────────────────────────────────────────────
    Print styles — letter format with proper margins
    ─────────────────────────────────────────────────────────────────── */

@@ -797,6 +797,14 @@ interface ERPStore {
   calendarEvents: CalendarEvent[]
   activities: ActivityLog[]
   currentUser: User | null
+  // Auth state
+  authState: 'loading' | 'serial-key' | 'login' | 'authenticated'
+  isViewOnly: boolean
+  deviceRegistered: boolean
+  setAuthState: (state: 'loading' | 'serial-key' | 'login' | 'authenticated') => void
+  setIsViewOnly: (viewOnly: boolean) => void
+  setDeviceRegistered: (registered: boolean) => void
+  logout: () => void
   approvals: Approval[]
   invoices: Invoice[]
   timeEntries: TimeEntry[]
@@ -909,6 +917,20 @@ export const useERPStore = create<ERPStore>((set) => ({
   calendarEvents: [],
   activities: [],
   currentUser: null,
+  // Auth state
+  authState: 'loading',
+  isViewOnly: false,
+  deviceRegistered: false,
+  setAuthState: (state) => set({ authState: state }),
+  setIsViewOnly: (viewOnly) => set({ isViewOnly: viewOnly }),
+  setDeviceRegistered: (registered) => set({ deviceRegistered: registered }),
+  logout: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('erp_session')
+      localStorage.removeItem('erp_device_registered')
+    }
+    set({ currentUser: null, authState: 'serial-key', isViewOnly: false, deviceRegistered: false })
+  },
   approvals: [],
   invoices: [],
   timeEntries: [],
