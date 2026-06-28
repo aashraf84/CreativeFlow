@@ -53,6 +53,7 @@ model Organization {
   influencers Influencer[]
   brandKits  BrandKit[]
   employees  Employee[]
+  attendance Attendance[]
   departments Department[]
   leaveRequests LeaveRequest[]
   payrollRuns PayrollRun[]
@@ -602,12 +603,34 @@ model Employee {
   leaveRequests LeaveRequest[]
   payrollItems  PayrollItem[]
   user          User?       @relation("EmployeeUser", fields: [userId], references: [id])
+  attendance    Attendance[]
 
   @@unique([userId])
 
   @@index([organizationId])
   @@index([departmentId])
   @@index([status])
+}
+
+model Attendance {
+  id            String   @id @default(cuid())
+  employeeId    String
+  date          DateTime
+  clockIn       DateTime?
+  clockOut      DateTime?
+  status        String   @default("present") // present, absent, late, half-day, leave
+  workHours     Float?
+  notes         String?
+  organizationId String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  organization  Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([employeeId])
+  @@index([organizationId])
+  @@index([date])
 }
 
 model LeaveRequest {

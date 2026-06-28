@@ -69,6 +69,7 @@ export async function GET() {
     await db.account.deleteMany()
     await db.payrollItem.deleteMany()
     await db.payrollRun.deleteMany()
+    await db.attendance.deleteMany()
     await db.leaveRequest.deleteMany()
     await db.employee.deleteMany()
     await db.jobPosting.deleteMany()
@@ -443,6 +444,100 @@ export async function GET() {
     ])
 
     const [empSarah, empMarcus, empPriya, empJake, empLuna, empDavid, empEmma, empAlex, empMia, empRyan, empSophie, empJames, empOlivia, empNathan] = employees
+
+    // ============================================
+    // HR: Attendance (last 5 working days for each employee)
+    // ============================================
+    const attendanceStatuses = ['present', 'late', 'half-day', 'leave', 'absent'] as const
+    const statusWeights: Record<string, number> = { present: 0.65, late: 0.20, 'half-day': 0.07, leave: 0.05, absent: 0.03 }
+    const statusNotes: Record<string, string> = {
+      present: 'On time, regular work day',
+      late: 'Late arrival — clocked in after 9:30 AM',
+      'half-day': 'Half-day — left after lunch',
+      leave: 'On approved leave',
+      absent: 'No show, no prior notice',
+    }
+
+    // Build a list of the last 5 working days (skipping weekends)
+    const workingDays: Date[] = []
+    const cursor = new Date(now)
+    // Start from "yesterday" so the most recent day is a completed workday
+    cursor.setDate(cursor.getDate() - 1)
+    while (workingDays.length < 5) {
+      const day = cursor.getDay()
+      if (day !== 0 && day !== 6) {
+        // 0 = Sunday, 6 = Saturday
+        workingDays.push(new Date(cursor))
+      }
+      cursor.setDate(cursor.getDate() - 1)
+    }
+
+    const attendancePromises: Promise<unknown>[] = []
+    for (const emp of employees) {
+      // Terminated employees don't have recent attendance
+      if (emp.status === 'terminated') continue
+
+      for (const day of workingDays) {
+        const roll = Math.random()
+        let cum = 0
+        let status: (typeof attendanceStatuses)[number] = 'present'
+        for (const s of attendanceStatuses) {
+          cum += statusWeights[s]
+          if (roll <= cum) {
+            status = s
+            break
+          }
+        }
+
+        // Employees currently on leave get "leave" for the most recent day
+        if (emp.status === 'on_leave' && day.getTime() === workingDays[0].getTime()) {
+          status = 'leave'
+        }
+
+        let clockIn: Date | null = null
+        let clockOut: Date | null = null
+        const dateBase = new Date(day)
+        dateBase.setHours(0, 0, 0, 0)
+
+        if (status === 'present') {
+          // Clock in 8:30 - 9:30 AM
+          clockIn = new Date(dateBase.getTime() + (8 * 60 + 30 + Math.floor(Math.random() * 60)) * 60 * 1000)
+          // Clock out 5:30 - 7:00 PM
+          clockOut = new Date(dateBase.getTime() + (17 * 60 + 30 + Math.floor(Math.random() * 90)) * 60 * 1000)
+        } else if (status === 'late') {
+          // Clock in 9:31 - 10:00 AM
+          clockIn = new Date(dateBase.getTime() + (9 * 60 + 31 + Math.floor(Math.random() * 29)) * 60 * 1000)
+          // Clock out 5:30 - 7:00 PM
+          clockOut = new Date(dateBase.getTime() + (17 * 60 + 30 + Math.floor(Math.random() * 90)) * 60 * 1000)
+        } else if (status === 'half-day') {
+          // Clock in 8:30 - 9:30 AM
+          clockIn = new Date(dateBase.getTime() + (8 * 60 + 30 + Math.floor(Math.random() * 60)) * 60 * 1000)
+          // Clock out 12:00 - 1:00 PM
+          clockOut = new Date(dateBase.getTime() + (12 * 60 + Math.floor(Math.random() * 60)) * 60 * 1000)
+        }
+        // leave & absent => clockIn/clockOut stay null
+
+        const workHours = clockIn && clockOut
+          ? Math.round(((clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60)) * 100) / 100
+          : null
+
+        attendancePromises.push(
+          db.attendance.create({
+            data: {
+              employeeId: emp.id,
+              date: dateBase,
+              clockIn,
+              clockOut,
+              status,
+              workHours,
+              notes: statusNotes[status],
+              organizationId: org.id,
+            },
+          })
+        )
+      }
+    }
+    await Promise.all(attendancePromises)
 
     // ============================================
     // HR: Leave Requests

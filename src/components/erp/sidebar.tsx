@@ -32,6 +32,7 @@ import {
   Store,
   Monitor,
   FileText,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -64,6 +65,7 @@ const manageNav: NavItem[] = [
 
 const hrNav: NavItem[] = [
   { id: "employees", label: "Employees", icon: Users },
+  { id: "attendance", label: "Attendance", icon: Clock },
   { id: "payroll", label: "Payroll", icon: Banknote },
   { id: "recruitment", label: "Recruitment", icon: UserPlus },
 ];

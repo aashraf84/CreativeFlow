@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState, useCallback } from "react";
-import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder, type ITAsset, type AssetIssuance, type Disseminator, type DisseminationTask, type Conversation, type CommunicationTemplate, type CommunicationContact, type JournalEntry, type InvoiceItem } from "@/lib/store";
+import { useERPStore, type ActiveView, type DashboardData, type Content, type Post, type Team, type SocialAccount, type Campaign, type Client, type AutomationRule, type CalendarEvent, type Approval, type Invoice, type TimeEntry, type Asset, type ERPNotification, type InboxMessage, type Influencer, type BrandKit, type Department, type Employee, type Attendance, type LeaveRequest, type PayrollRun, type JobPosting, type Expense, type Account, type TaxRate, type Product, type Warehouse, type StockMovement, type Vendor, type PurchaseOrder, type ITAsset, type AssetIssuance, type Disseminator, type DisseminationTask, type Conversation, type CommunicationTemplate, type CommunicationContact, type JournalEntry, type InvoiceItem } from "@/lib/store";
 import { Sidebar } from "@/components/erp/sidebar";
 import { Header } from "@/components/erp/header";
 import { DashboardView } from "@/components/erp/dashboard-view";
@@ -22,6 +22,7 @@ import { AssetsView } from "@/components/erp/assets-view";
 import { BrandKitView } from "@/components/erp/brand-kit-view";
 import { InfluencersView } from "@/components/erp/influencers-view";
 import { EmployeesView } from "@/components/erp/employees-view";
+import { AttendanceView } from "@/components/erp/attendance-view";
 import { PayrollView } from "@/components/erp/payroll-view";
 import { RecruitmentView } from "@/components/erp/recruitment-view";
 import { ExpensesView } from "@/components/erp/expenses-view";
@@ -56,6 +57,7 @@ const viewComponents: Record<ActiveView, React.ComponentType> = {
   brandKit: BrandKitView,
   influencers: InfluencersView,
   employees: EmployeesView,
+  attendance: AttendanceView,
   payroll: PayrollView,
   recruitment: RecruitmentView,
   expenses: ExpensesView,
@@ -82,7 +84,7 @@ export default function ERPPage() {
     setCurrentUser, isLoading, activeView,
     setApprovals, setInvoices, setTimeEntries, setAssets, setNotifications,
     setInboxMessages, setInfluencers, setBrandKits,
-    setDepartments, setEmployees, setLeaveRequests, setPayrollRuns, setJobPostings,
+    setDepartments, setEmployees, setAttendance, setLeaveRequests, setPayrollRuns, setJobPostings,
     setExpenses, setFinanceAccounts, setTaxRates, setJournalEntries, setInvoiceItems, setProducts, setWarehouses,
     setStockMovements, setVendors, setPurchaseOrders, setItAssets, setAssetIssuances,
     setDisseminators, setDisseminationTasks,
@@ -188,9 +190,10 @@ export default function ERPPage() {
         fetch("/api/departments"),
       ]);
 
-      // Batch 7: Employees
-      const [employeesRes, leaveRequestsRes, payrollRes] = await Promise.all([
+      // Batch 7: Employees & Attendance
+      const [employeesRes, attendanceRes, leaveRequestsRes, payrollRes] = await Promise.all([
         fetch("/api/employees"),
+        fetch("/api/attendance"),
         fetch("/api/leave-requests"),
         fetch("/api/payroll"),
       ]);
@@ -250,6 +253,7 @@ export default function ERPPage() {
       const brandKitJson = await safeJson(brandKitRes);
       const departmentsJson = await safeJson(departmentsRes);
       const employeesJson = await safeJson(employeesRes);
+      const attendanceJson = await safeJson(attendanceRes);
       const leaveRequestsJson = await safeJson(leaveRequestsRes);
       const payrollJson = await safeJson(payrollRes);
       const jobPostingsJson = await safeJson(jobPostingsRes);
@@ -341,6 +345,10 @@ export default function ERPPage() {
       // Employees
       const employeesData = employeesJson?.data || (Array.isArray(employeesJson) ? employeesJson : []);
       if (Array.isArray(employeesData)) setEmployees(employeesData as Employee[]);
+
+      // Attendance
+      const attendanceData = attendanceJson?.data || (Array.isArray(attendanceJson) ? attendanceJson : []);
+      if (Array.isArray(attendanceData)) setAttendance(attendanceData as Attendance[]);
 
       // Leave Requests
       const leaveRequestsData = leaveRequestsJson?.data || (Array.isArray(leaveRequestsJson) ? leaveRequestsJson : []);

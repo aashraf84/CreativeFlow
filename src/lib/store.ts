@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 // Types for the ERP
-export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers' | 'employees' | 'payroll' | 'recruitment' | 'expenses' | 'financeAccounts' | 'products' | 'purchaseOrders' | 'vendors' | 'itAssets' | 'reports'
+export type ActiveView = 'dashboard' | 'pipeline' | 'dissemination' | 'calendar' | 'teams' | 'accounts' | 'clients' | 'analytics' | 'automation' | 'archive' | 'settings' | 'inbox' | 'approvals' | 'invoicing' | 'assets' | 'brandKit' | 'influencers' | 'employees' | 'attendance' | 'payroll' | 'recruitment' | 'expenses' | 'financeAccounts' | 'products' | 'purchaseOrders' | 'vendors' | 'itAssets' | 'reports'
 
 export type ContentStage = 'idea' | 'design' | 'edit' | 'review' | 'approve' | 'disseminate' | 'archived'
 export type ContentPriority = 'low' | 'medium' | 'high' | 'urgent'
@@ -318,6 +318,21 @@ export interface Employee {
   department: Department
   user: User | null
   createdAt: string
+}
+
+export interface Attendance {
+  id: string
+  employeeId: string
+  date: string
+  clockIn: string | null
+  clockOut: string | null
+  status: string
+  workHours: number | null
+  notes: string | null
+  organizationId: string
+  createdAt: string
+  updatedAt: string
+  employee: Employee
 }
 
 export interface LeaveRequest {
@@ -815,6 +830,7 @@ interface ERPStore {
   brandKits: BrandKit[]
   departments: Department[]
   employees: Employee[]
+  attendance: Attendance[]
   leaveRequests: LeaveRequest[]
   payrollRuns: PayrollRun[]
   jobPostings: JobPosting[]
@@ -862,6 +878,7 @@ interface ERPStore {
   setBrandKits: (data: BrandKit[]) => void
   setDepartments: (data: Department[]) => void
   setEmployees: (data: Employee[]) => void
+  setAttendance: (data: Attendance[]) => void
   setLeaveRequests: (data: LeaveRequest[]) => void
   setPayrollRuns: (data: PayrollRun[]) => void
   setJobPostings: (data: JobPosting[]) => void
@@ -941,6 +958,7 @@ export const useERPStore = create<ERPStore>((set) => ({
   brandKits: [],
   departments: [],
   employees: [],
+  attendance: [],
   leaveRequests: [],
   payrollRuns: [],
   jobPostings: [],
@@ -988,6 +1006,7 @@ export const useERPStore = create<ERPStore>((set) => ({
   setBrandKits: (data) => set({ brandKits: data }),
   setDepartments: (data) => set({ departments: data }),
   setEmployees: (data) => set({ employees: data }),
+  setAttendance: (data) => set({ attendance: data }),
   setLeaveRequests: (data) => set({ leaveRequests: data }),
   setPayrollRuns: (data) => set({ payrollRuns: data }),
   setJobPostings: (data) => set({ jobPostings: data }),

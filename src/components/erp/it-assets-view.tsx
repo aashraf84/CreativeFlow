@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useMemo, useCallback } from "react"
+import React, { useState, useMemo, useCallback, useEffect } from "react"
 import { useERPStore, type ITAsset, type AssetIssuance, type User } from "@/lib/store"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -1079,6 +1079,17 @@ function AssetRow({ asset, onClick, onIssue, onReturn }: {
 // ── Main Component ───────────────────────────────────────────────────
 export function ITAssetsView() {
   const { itAssets, assetIssuances, employees, setItAssets, setAssetIssuances } = useERPStore()
+  const [fetchedUsers, setFetchedUsers] = useState<User[]>([])
+
+  // Fetch users from /api/users on mount
+  useEffect(() => {
+    fetch("/api/users")
+      .then(r => r.json())
+      .then(json => {
+        if (json.data) setFetchedUsers(json.data)
+      })
+      .catch(() => {})
+  }, [])
 
   // State
   const [categoryTab, setCategoryTab] = useState("All")
@@ -1093,14 +1104,15 @@ export function ITAssetsView() {
   const [addOpen, setAddOpen] = useState(false)
   const [issuanceStatusFilter, setIssuanceStatusFilter] = useState("all")
 
-  // Merge users from both store sources
+  // Merge users from both store sources and fetched users
   const allUsers = useMemo(() => {
     const userMap = new Map<string, User>()
+    fetchedUsers.forEach(u => userMap.set(u.id, u))
     employees.forEach(e => {
       if (e.user) userMap.set(e.user.id, e.user)
     })
     return Array.from(userMap.values())
-  }, [employees])
+  }, [employees, fetchedUsers])
 
   // KPI computations
   const kpis = useMemo(() => {

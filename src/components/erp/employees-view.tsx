@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useMemo } from "react"
-import { useERPStore, type Employee } from "@/lib/store"
+import { useERPStore, type Employee, type Department } from "@/lib/store"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -13,11 +13,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Textarea } from "@/components/ui/textarea"
+import { usePermissions } from "@/hooks/use-permissions"
+import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Users, UserCheck, UserX, Building2, Search, Download, Plus,
   Mail, Phone, MapPin, Calendar, DollarSign, Shield, Heart,
-  Briefcase, Clock, ChevronRight,
+  Briefcase, Clock, ChevronRight, Pencil, Trash2,
 } from "lucide-react"
 
 // ── Animation variants ──────────────────────────────────────────────
@@ -333,6 +336,323 @@ function EmployeeDetailSheet({
   )
 }
 
+// ── Department Add/Edit Dialog ─────────────────────────────────────
+function DepartmentFormDialog({
+  open,
+  onOpenChange,
+  editing,
+  onSubmit,
+  loading,
+}: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  editing: Department | null
+  onSubmit: (values: { name: string; description: string; color: string }) => Promise<void>
+  loading: boolean
+}) {
+  const [values, setValues] = useState({
+    name: "",
+    description: "",
+    color: "#10b981",
+  })
+
+  React.useEffect(() => {
+    if (open) {
+      setValues({
+        name: editing?.name || "",
+        description: editing?.description || "",
+        color: editing?.color || "#10b981",
+      })
+    }
+  }, [open, editing])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!values.name.trim()) {
+      toast.error("Department name is required")
+      return
+    }
+    await onSubmit(values)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[460px] glass border border-black/5 dark:border-white/10 shadow-macos-lg rounded-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold text-[#1d1d1f] dark:text-white">
+            {editing ? "Edit Department" : "Add Department"}
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="dept-name">Name</Label>
+            <Input
+              id="dept-name"
+              placeholder="e.g. Engineering"
+              value={values.name}
+              onChange={(e) => setValues((s) => ({ ...s, name: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="dept-desc">Description</Label>
+            <Textarea
+              id="dept-desc"
+              placeholder="Optional description..."
+              rows={3}
+              value={values.description}
+              onChange={(e) => setValues((s) => ({ ...s, description: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="dept-color">Color</Label>
+            <div className="flex items-center gap-3">
+              <input
+                id="dept-color"
+                type="color"
+                value={values.color}
+                onChange={(e) => setValues((s) => ({ ...s, color: e.target.value }))}
+                className="h-10 w-14 rounded-lg border border-black/10 dark:border-white/10 bg-transparent cursor-pointer"
+              />
+              <Input
+                value={values.color}
+                onChange={(e) => setValues((s) => ({ ...s, color: e.target.value }))}
+                className="flex-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" className="rounded-lg">Cancel</Button>
+            </DialogClose>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg shadow-md shadow-emerald-500/25"
+            >
+              {loading ? "Saving..." : editing ? "Update" : "Create"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Manage Departments Dialog ──────────────────────────────────────
+function DepartmentsManagementDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { departments, employees, setDepartments } = useERPStore()
+  const { canEdit } = usePermissions()
+
+  const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<Department | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  // Build a map of headId -> employee name
+  const employeeMap = useMemo(() => {
+    const m = new Map<string, Employee>()
+    employees.forEach((e) => m.set(e.id, e))
+    return m
+  }, [employees])
+
+  const handleOpenAdd = () => {
+    if (!canEdit) {
+      toast.error("You don't have permission to perform this action in demo mode")
+      return
+    }
+    setEditing(null)
+    setFormOpen(true)
+  }
+
+  const handleOpenEdit = (dept: Department) => {
+    if (!canEdit) {
+      toast.error("You don't have permission to perform this action in demo mode")
+      return
+    }
+    setEditing(dept)
+    setFormOpen(true)
+  }
+
+  const handleDelete = async (dept: Department) => {
+    if (!canEdit) {
+      toast.error("You don't have permission to perform this action in demo mode")
+      return
+    }
+    setDeletingId(dept.id)
+    try {
+      const res = await fetch(`/api/departments/${dept.id}`, { method: "DELETE" })
+      if (res.ok) {
+        setDepartments(departments.filter((d) => d.id !== dept.id))
+        toast.success(`Department "${dept.name}" deleted`)
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error || "Failed to delete department")
+      }
+    } catch {
+      toast.error("Failed to delete department")
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  const handleSubmit = async (values: { name: string; description: string; color: string }) => {
+    setSaving(true)
+    try {
+      if (editing) {
+        const res = await fetch(`/api/departments/${editing.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: values.name,
+            description: values.description,
+            color: values.color,
+          }),
+        })
+        if (res.ok) {
+          const updated = await res.json()
+          setDepartments(departments.map((d) => (d.id === editing.id ? { ...d, ...updated } : d)))
+          toast.success("Department updated")
+          setFormOpen(false)
+        } else {
+          toast.error("Failed to update department")
+        }
+      } else {
+        const res = await fetch("/api/departments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: values.name,
+            description: values.description,
+            color: values.color,
+          }),
+        })
+        if (res.ok) {
+          const created = await res.json()
+          setDepartments([...departments, created])
+          toast.success("Department created")
+          setFormOpen(false)
+        } else {
+          toast.error("Failed to create department")
+        }
+      }
+    } catch {
+      toast.error("Something went wrong")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[680px] glass border border-black/5 dark:border-white/10 shadow-macos-lg rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-[#1d1d1f] dark:text-white flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-emerald-600" />
+              Manage Departments
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-[#86868b] dark:text-[#aeaeb2]">
+              {departments.length} {departments.length === 1 ? "department" : "departments"} total
+            </p>
+            <Button
+              onClick={handleOpenAdd}
+              disabled={!canEdit}
+              size="sm"
+              className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white gap-1.5 rounded-full shadow-sm"
+            >
+              <Plus className="h-4 w-4" /> Add Department
+            </Button>
+          </div>
+          <ScrollArea className="max-h-[460px] rounded-xl border border-black/5 dark:border-white/10">
+            <div className="divide-y divide-black/5 dark:divide-white/5">
+              {departments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 px-4">
+                  <Building2 className="h-10 w-10 text-[#86868b]/40 dark:text-[#aeaeb2]/40 mb-3" />
+                  <p className="text-sm font-medium text-[#86868b] dark:text-[#aeaeb2]">No departments yet</p>
+                  <p className="text-xs text-[#86868b]/70 dark:text-[#aeaeb2]/70 mt-1">Click &quot;Add Department&quot; to create one</p>
+                </div>
+              ) : (
+                departments.map((dept) => {
+                  const empCount = dept._count?.employees ?? 0
+                  const head = dept.headId ? employeeMap.get(dept.headId) : null
+                  const headName = head ? `${head.firstName} ${head.lastName}` : "—"
+                  return (
+                    <div
+                      key={dept.id}
+                      className="flex items-center justify-between p-3 hover:bg-black/[0.02] dark:hover:bg-white/[0.03] group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div
+                          className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: `${dept.color}1A`, color: dept.color }}
+                        >
+                          <Building2 className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-[#1d1d1f] dark:text-white truncate">{dept.name}</p>
+                          <p className="text-xs text-[#86868b] dark:text-[#aeaeb2] truncate">
+                            {dept.description || "No description"}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-700 border-emerald-200 rounded-full">
+                              {empCount} {empCount === 1 ? "employee" : "employees"}
+                            </Badge>
+                            <span className="text-[10px] text-[#86868b] dark:text-[#aeaeb2]">
+                              Head: {headName}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-lg hover:bg-emerald-50 hover:text-emerald-700"
+                          onClick={() => handleOpenEdit(dept)}
+                          disabled={!canEdit}
+                          aria-label="Edit"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 rounded-lg hover:bg-rose-50 hover:text-rose-700"
+                          onClick={() => handleDelete(dept)}
+                          disabled={!canEdit || deletingId === dept.id}
+                          aria-label="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline" className="rounded-lg">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <DepartmentFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        editing={editing}
+        onSubmit={handleSubmit}
+        loading={saving}
+      />
+    </>
+  )
+}
+
 // ── Main Employees View ─────────────────────────────────────────────
 export function EmployeesView() {
   const { employees, departments, leaveRequests, currentUser } = useERPStore()
@@ -341,6 +661,7 @@ export function EmployeesView() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [deptDialogOpen, setDeptDialogOpen] = useState(false)
 
   const isAdmin = currentUser?.role === "admin"
 
@@ -379,6 +700,14 @@ export function EmployeesView() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-2 text-[#424245] dark:text-[#aeaeb2] rounded-lg">
             <Download className="h-4 w-4" /> Export
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setDeptDialogOpen(true)}
+            className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg"
+          >
+            <Building2 className="h-4 w-4" /> Manage Departments
           </Button>
           <AddEmployeeDialog departments={departments.map((d) => ({ id: d.id, name: d.name }))} />
         </div>
@@ -566,6 +895,9 @@ export function EmployeesView() {
         onOpenChange={setDetailOpen}
         leaveRequests={leaveRequests.filter((lr) => lr.employeeId === selectedEmployee?.id)}
       />
+
+      {/* Departments Management Dialog */}
+      <DepartmentsManagementDialog open={deptDialogOpen} onOpenChange={setDeptDialogOpen} />
     </div>
   )
 }

@@ -1,0 +1,1247 @@
+     1→generator client {
+     2→  provider = "prisma-client-js"
+     3→}
+     4→
+     5→datasource db {
+     6→  provider  = "postgresql"
+     7→  url       = env("DATABASE_URL")
+     8→  directUrl = env("DIRECT_URL")
+     9→}
+    10→
+    11→model Tenant {
+    12→  id          String   @id @default(cuid())
+    13→  name        String
+    14→  slug        String   @unique
+    15→  plan        String   @default("starter")  // starter, professional, enterprise
+    16→  status      String   @default("active")   // active, suspended, cancelled
+    17→  domain      String?  // custom domain for the tenant
+    18→  settings    String?  // JSON string for tenant-level settings
+    19→  createdAt   DateTime @default(now())
+    20→  updatedAt   DateTime @updatedAt
+    21→
+    22→  organizations Organization[]
+    23→  users         User[]
+    24→}
+    25→
+    26→model Organization {
+    27→  id          String   @id @default(cuid())
+    28→  name        String
+    29→  slug        String   @unique
+    30→  logo        String?
+    31→  plan        String   @default("starter")
+    32→  maxUsers    Int      @default(10)
+    33→  maxAccounts Int      @default(25)
+    34→  tenantId    String
+    35→  createdAt   DateTime @default(now())
+    36→  updatedAt   DateTime @updatedAt
+    37→
+    38→  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+    39→  users      User[]
+    40→  teams      Team[]
+    41→  clients    Client[]
+    42→  campaigns  Campaign[]
+    43→  contents   Content[]
+    44→  socialAccounts SocialAccount[]
+    45→  automations AutomationRule[]
+    46→  activities ActivityLog[]
+    47→  approvals  Approval[]
+    48→  invoices   Invoice[]
+    49→  timeEntries TimeEntry[]
+    50→  assets     Asset[]
+    51→  notifications Notification[]
+    52→  inboxMessages InboxMessage[]
+    53→  influencers Influencer[]
+    54→  brandKits  BrandKit[]
+    55→  employees  Employee[]
+    56→  attendance Attendance[]
+    57→  departments Department[]
+    58→  leaveRequests LeaveRequest[]
+    59→  payrollRuns PayrollRun[]
+    60→  jobPostings  JobPosting[]
+    61→  expenses     Expense[]
+    62→  accounts     Account[]
+    63→  taxRates     TaxRate[]
+    64→  products     Product[]
+    65→  purchaseOrders PurchaseOrder[]
+    66→  vendors      Vendor[]
+    67→  warehouses   Warehouse[]
+    68→  itAssets           ITAsset[]
+    69→  disseminators      Disseminator[]
+    70→  disseminationTasks DisseminationTask[] @relation("TaskAssigner")
+    71→  communicationTemplates CommunicationTemplate[]
+    72→  conversations     Conversation[]
+    73→  communicationMessages CommunicationMessage[]
+    74→  communicationContacts CommunicationContact[]
+    75→  journalEntries    JournalEntry[]
+    76→  invoiceItems      InvoiceItem[]
+    77→
+    78→  @@index([tenantId])
+    79→}
+    80→
+    81→model User {
+    82→  id             String   @id @default(cuid())
+    83→  email          String   @unique
+    84→  name           String
+    85→  avatar         String?
+    86→  role           String   @default("member")
+    87→  organizationId String
+    88→  tenantId       String?
+    89→  createdAt      DateTime @default(now())
+    90→  updatedAt      DateTime @updatedAt
+    91→
+    92→  organization   Organization  @relation(fields: [organizationId], references: [id])
+    93→  tenant         Tenant?       @relation(fields: [tenantId], references: [id])
+    94→  teamMemberships TeamMember[]
+    95→  contents       Content[]     @relation("ContentCreator")
+    96→  assignedContents Content[]   @relation("ContentAssignee")
+    97→  socialAccounts  SocialAccount[]
+    98→  posts           Post[]
+    99→  comments        Comment[]
+   100→  activities      ActivityLog[] @relation("ActivityActor")
+   101→  approvalsRequested Approval[] @relation("ApprovalRequester")
+   102→  approvalsReviewed  Approval[] @relation("ApprovalReviewer")
+   103→  timeEntries     TimeEntry[]  @relation("TimeEntryUser")
+   104→  assetsUploaded  Asset[]      @relation("AssetUploader")
+   105→  notifications   Notification[] @relation("NotificationUser")
+   106→  employee        Employee?    @relation("EmployeeUser")
+   107→  expensesSubmitted Expense[] @relation("ExpenseSubmitter")
+   108→  itAssets        ITAsset[]    @relation("ITAssetAssignee")
+   109→  issuancesReceived AssetIssuance[] @relation("AssetIssuanceRecipient")
+   110→  issuancesIssued   AssetIssuance[] @relation("AssetIssuanceIssuer")
+   111→  disseminator      Disseminator?  @relation("DisseminatorUser")
+   112→  assignedTasks     DisseminationTask[] @relation("TaskAssignee")
+   113→  conversationsAssigned Conversation[] @relation("ConversationAssignee")
+   114→  messagesSent      CommunicationMessage[] @relation("MessageSender")
+   115→  journalEntriesCreated JournalEntry[] @relation("JournalEntryCreator")
+   116→
+   117→  @@index([organizationId])
+   118→  @@index([tenantId])
+   119→}
+   120→
+   121→model Team {
+   122→  id             String   @id @default(cuid())
+   123→  name           String
+   124→  type           String   // creatives, content, design, edit, archive, dissemination
+   125→  color          String   @default("#6366f1")
+   126→  icon           String?
+   127→  description    String?
+   128→  organizationId String
+   129→  createdAt      DateTime @default(now())
+   130→  updatedAt      DateTime @updatedAt
+   131→
+   132→  organization Organization  @relation(fields: [organizationId], references: [id])
+   133→  members      TeamMember[]
+   134→  contents     Content[]
+   135→  disseminators Disseminator[]
+   136→
+   137→  @@index([organizationId])
+   138→}
+   139→
+   140→model TeamMember {
+   141→  id       String @id @default(cuid())
+   142→  userId   String
+   143→  teamId   String
+   144→  role     String @default("member") // lead, member
+   145→  joinedAt DateTime @default(now())
+   146→
+   147→  user User @relation(fields: [userId], references: [id])
+   148→  team Team @relation(fields: [teamId], references: [id])
+   149→
+   150→  @@unique([userId, teamId])
+   151→}
+   152→
+   153→model Client {
+   154→  id             String   @id @default(cuid())
+   155→  name           String
+   156→  logo           String?
+   157→  industry       String?
+   158→  website        String?
+   159→  email          String?
+   160→  phone          String?
+   161→  status         String   @default("active") // active, inactive, prospect
+   162→  organizationId String
+   163→  createdAt      DateTime @default(now())
+   164→  updatedAt      DateTime @updatedAt
+   165→
+   166→  organization Organization @relation(fields: [organizationId], references: [id])
+   167→  campaigns    Campaign[]
+   168→  invoices     Invoice[]
+   169→  timeEntries  TimeEntry[]
+   170→  assets       Asset[]
+   171→  influencers  Influencer[]
+   172→  brandKits    BrandKit[]
+   173→  disseminationTasks DisseminationTask[]
+   174→  conversations Conversation[]
+   175→  communicationContacts CommunicationContact[]
+   176→
+   177→  @@index([organizationId])
+   178→}
+   179→
+   180→model Campaign {
+   181→  id             String   @id @default(cuid())
+   182→  name           String
+   183→  description    String?
+   184→  status         String   @default("draft") // draft, active, paused, completed
+   185→  startDate      DateTime?
+   186→  endDate        DateTime?
+   187→  budget         Float?
+   188→  clientId       String?
+   189→  organizationId String
+   190→  createdAt      DateTime @default(now())
+   191→  updatedAt      DateTime @updatedAt
+   192→
+   193→  organization Organization @relation(fields: [organizationId], references: [id])
+   194→  client       Client?      @relation(fields: [clientId], references: [id])
+   195→  contents     Content[]
+   196→  invoices     Invoice[]
+   197→  timeEntries  TimeEntry[]
+   198→  influencers  Influencer[]
+   199→  disseminationTasks DisseminationTask[]
+   200→  conversations Conversation[]
+   201→
+   202→  @@index([organizationId])
+   203→  @@index([clientId])
+   204→}
+   205→
+   206→model Content {
+   207→  id             String   @id @default(cuid())
+   208→  title          String
+   209→  description    String?
+   210→  type           String   @default("post") // post, story, reel, carousel, video, graphic, article
+   211→  stage          String   @default("idea") // idea, design, edit, review, approve, disseminate, archived
+   212→  priority       String   @default("medium") // low, medium, high, urgent
+   213→  format         String?  // square, portrait, landscape, vertical
+   214→  tags           String?  // comma-separated tags
+   215→  metadata       String?  // JSON string for extra data
+   216→  dueDate        DateTime?
+   217→  publishedAt    DateTime?
+   218→  organizationId String
+   219→  campaignId     String?
+   220→  creatorId      String?
+   221→  assigneeId     String?
+   222→  teamId         String?
+   223→  createdAt      DateTime @default(now())
+   224→  updatedAt      DateTime @updatedAt
+   225→
+   226→  organization Organization @relation(fields: [organizationId], references: [id])
+   227→  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+   228→  creator      User?        @relation("ContentCreator", fields: [creatorId], references: [id])
+   229→  assignee     User?        @relation("ContentAssignee", fields: [assigneeId], references: [id])
+   230→  team         Team?        @relation(fields: [teamId], references: [id])
+   231→  posts        Post[]
+   232→  comments     Comment[]
+   233→  approvals    Approval[]
+   234→  timeEntries  TimeEntry[]
+   235→  disseminationTasks DisseminationTask[] @relation("TaskContent")
+   236→
+   237→  @@index([organizationId])
+   238→  @@index([stage])
+   239→  @@index([campaignId])
+   240→}
+   241→
+   242→model SocialAccount {
+   243→  id             String   @id @default(cuid())
+   244→  platform       String   // instagram, facebook, twitter, linkedin, tiktok, youtube, pinterest, snapchat
+   245→  accountId      String
+   246→  username       String
+   247→  displayName    String?
+   248→  avatar         String?
+   249→  accessToken    String?
+   250→  refreshToken   String?
+   251→  tokenExpiry    DateTime?
+   252→  followers      Int      @default(0)
+   253→  isVerified     Boolean  @default(false)
+   254→  isActive       Boolean  @default(true)
+   255→  userId         String
+   256→  organizationId String
+   257→  createdAt      DateTime @default(now())
+   258→  updatedAt      DateTime @updatedAt
+   259→
+   260→  user           User          @relation(fields: [userId], references: [id])
+   261→  organization   Organization  @relation(fields: [organizationId], references: [id])
+   262→  posts          Post[]
+   263→  inboxMessages  InboxMessage[]
+   264→
+   265→  @@unique([platform, accountId])
+   266→  @@index([organizationId])
+   267→  @@index([userId])
+   268→}
+   269→
+   270→model Post {
+   271→  id              String    @id @default(cuid())
+   272→  content         String
+   273→  mediaUrls       String?   // comma-separated URLs
+   274→  platform        String    // instagram, facebook, twitter, etc.
+   275→  status          String    @default("draft") // draft, scheduled, publishing, published, failed
+   276→  scheduledAt     DateTime?
+   277→  publishedAt     DateTime?
+   278→  engagement      String?   // JSON string with likes, comments, shares, etc.
+   279→  failureReason   String?
+   280→  socialAccountId String
+   281→  contentId       String?
+   282→  userId          String
+   283→  organizationId  String
+   284→  createdAt       DateTime  @default(now())
+   285→  updatedAt       DateTime  @updatedAt
+   286→
+   287→  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id])
+   288→  contentItem     Content?      @relation(fields: [contentId], references: [id])
+   289→  user            User          @relation(fields: [userId], references: [id])
+   290→  approvals       Approval[]
+   291→
+   292→  @@index([organizationId])
+   293→  @@index([socialAccountId])
+   294→  @@index([status])
+   295→  @@index([scheduledAt])
+   296→}
+   297→
+   298→model AutomationRule {
+   299→  id             String   @id @default(cuid())
+   300→  name           String
+   301→  description    String?
+   302→  trigger        String   // stage_change, content_created, scheduled_time, engagement_threshold
+   303→  conditions     String   // JSON string
+   304→  actions        String   // JSON string
+   305→  isActive       Boolean  @default(true)
+   306→  organizationId String
+   307→  createdAt      DateTime @default(now())
+   308→  updatedAt      DateTime @updatedAt
+   309→
+   310→  organization Organization @relation(fields: [organizationId], references: [id])
+   311→
+   312→  @@index([organizationId])
+   313→}
+   314→
+   315→model Comment {
+   316→  id        String   @id @default(cuid())
+   317→  text      String
+   318→  contentId String
+   319→  userId    String
+   320→  createdAt DateTime @default(now())
+   321→
+   322→  contentItem Content @relation(fields: [contentId], references: [id])
+   323→  user        User    @relation(fields: [userId], references: [id])
+   324→
+   325→  @@index([contentId])
+   326→}
+   327→
+   328→model ActivityLog {
+   329→  id             String   @id @default(cuid())
+   330→  action         String   // created, updated, moved, commented, published, assigned
+   331→  entity         String   // content, campaign, post, team, account
+   332→  entityId       String?
+   333→  details        String?  // JSON string
+   334→  organizationId String
+   335→  actorId        String
+   336→  createdAt      DateTime @default(now())
+   337→
+   338→  organization Organization @relation(fields: [organizationId], references: [id])
+   339→  actor        User         @relation("ActivityActor", fields: [actorId], references: [id])
+   340→
+   341→  @@index([organizationId])
+   342→  @@index([createdAt])
+   343→}
+   344→
+   345→// ─── New Models for Enhanced ERP ──────────────────────────────────────────────
+   346→
+   347→model Approval {
+   348→  id             String   @id @default(cuid())
+   349→  type           String   // content_review, post_publish, campaign_launch, budget_approval
+   350→  status         String   @default("pending") // pending, approved, rejected, changes_requested
+   351→  comment        String?
+   352→  organizationId String
+   353→  contentId      String?
+   354→  postId         String?
+   355→  requestedById  String
+   356→  reviewedById   String?
+   357→  reviewedAt     DateTime?
+   358→  createdAt      DateTime @default(now())
+   359→  updatedAt      DateTime @updatedAt
+   360→
+   361→  organization Organization @relation(fields: [organizationId], references: [id])
+   362→  content      Content?     @relation(fields: [contentId], references: [id])
+   363→  post         Post?        @relation(fields: [postId], references: [id])
+   364→  requestedBy  User         @relation("ApprovalRequester", fields: [requestedById], references: [id])
+   365→  reviewedBy   User?        @relation("ApprovalReviewer", fields: [reviewedById], references: [id])
+   366→
+   367→  @@index([organizationId])
+   368→  @@index([status])
+   369→}
+   370→
+   371→model Invoice {
+   372→  id             String   @id @default(cuid())
+   373→  number         String   @unique
+   374→  clientId       String
+   375→  campaignId     String?
+   376→  status         String   @default("draft") // draft, sent, paid, overdue, cancelled
+   377→  subtotal       Float    @default(0)
+   378→  tax            Float    @default(0)
+   379→  total          Float    @default(0)
+   380→  dueDate        DateTime?
+   381→  paidAt         DateTime?
+   382→  notes          String?
+   383→  organizationId String
+   384→  createdAt      DateTime @default(now())
+   385→  updatedAt      DateTime @updatedAt
+   386→
+   387→  organization Organization  @relation(fields: [organizationId], references: [id])
+   388→  client       Client        @relation(fields: [clientId], references: [id])
+   389→  campaign     Campaign?     @relation(fields: [campaignId], references: [id])
+   390→  invoiceItems InvoiceItem[]
+   391→
+   392→  @@index([organizationId])
+   393→  @@index([clientId])
+   394→  @@index([status])
+   395→}
+   396→
+   397→model InvoiceItem {
+   398→  id          String   @id @default(cuid())
+   399→  invoiceId   String
+   400→  description String
+   401→  quantity    Float    @default(1)
+   402→  rate        Float    @default(0)
+   403→  amount      Float    @default(0)
+   404→  organizationId String
+   405→  createdAt   DateTime @default(now())
+   406→  updatedAt   DateTime @updatedAt
+   407→
+   408→  invoice     Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+   409→  organization Organization @relation(fields: [organizationId], references: [id])
+   410→
+   411→  @@index([invoiceId])
+   412→  @@index([organizationId])
+   413→}
+   414→
+   415→model TimeEntry {
+   416→  id             String   @id @default(cuid())
+   417→  description    String
+   418→  hours          Float
+   419→  billable       Boolean  @default(true)
+   420→  date           DateTime
+   421→  userId         String
+   422→  clientId       String?
+   423→  campaignId     String?
+   424→  contentId      String?
+   425→  organizationId String
+   426→  createdAt      DateTime @default(now())
+   427→  updatedAt      DateTime @updatedAt
+   428→
+   429→  organization Organization @relation(fields: [organizationId], references: [id])
+   430→  user         User         @relation("TimeEntryUser", fields: [userId], references: [id])
+   431→  client       Client?      @relation(fields: [clientId], references: [id])
+   432→  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+   433→  content      Content?     @relation(fields: [contentId], references: [id])
+   434→
+   435→  @@index([organizationId])
+   436→  @@index([userId])
+   437→  @@index([clientId])
+   438→}
+   439→
+   440→model Asset {
+   441→  id             String   @id @default(cuid())
+   442→  name           String
+   443→  type           String   // image, video, document, template, font, brand-guide
+   444→  url            String
+   445→  thumbnailUrl   String?
+   446→  size           Int      @default(0) // in bytes
+   447→  mimeType       String?
+   448→  tags           String?  // comma-separated
+   449→  folder         String?  // folder path
+   450→  metadata       String?  // JSON for width, height, duration, etc.
+   451→  organizationId String
+   452→  uploadedById   String
+   453→  clientId       String?
+   454→  createdAt      DateTime @default(now())
+   455→  updatedAt      DateTime @updatedAt
+   456→
+   457→  organization Organization @relation(fields: [organizationId], references: [id])
+   458→  uploadedBy   User         @relation("AssetUploader", fields: [uploadedById], references: [id])
+   459→  client       Client?      @relation(fields: [clientId], references: [id])
+   460→
+   461→  @@index([organizationId])
+   462→  @@index([type])
+   463→  @@index([folder])
+   464→}
+   465→
+   466→model Notification {
+   467→  id             String   @id @default(cuid())
+   468→  title          String
+   469→  message        String
+   470→  type           String   // info, warning, success, error, approval, mention
+   471→  category       String   // content, approval, post, invoice, system
+   472→  isRead         Boolean  @default(false)
+   473→  actionUrl      String?
+   474→  organizationId String
+   475→  userId         String
+   476→  createdAt      DateTime @default(now())
+   477→
+   478→  organization Organization @relation(fields: [organizationId], references: [id])
+   479→  user         User         @relation("NotificationUser", fields: [userId], references: [id])
+   480→
+   481→  @@index([organizationId])
+   482→  @@index([userId])
+   483→  @@index([isRead])
+   484→}
+   485→
+   486→model InboxMessage {
+   487→  id             String   @id @default(cuid())
+   488→  platform       String
+   489→  senderName     String
+   490→  senderAvatar   String?
+   491→  content        String
+   492→  type           String   // comment, mention, dm, reply, review
+   493→  status         String   @default("unread") // unread, read, replied, ignored
+   494→  postUrl        String?
+   495→  socialAccountId String
+   496→  organizationId String
+   497→  repliedAt      DateTime?
+   498→  createdAt      DateTime @default(now())
+   499→
+   500→  socialAccount  SocialAccount @relation(fields: [socialAccountId], references: [id])
+   501→  organization   Organization  @relation(fields: [organizationId], references: [id])
+   502→
+   503→  @@index([organizationId])
+   504→  @@index([status])
+   505→  @@index([platform])
+   506→}
+   507→
+   508→model Influencer {
+   509→  id               String   @id @default(cuid())
+   510→  name             String
+   511→  username         String
+   512→  platform         String
+   513→  followers        Int      @default(0)
+   514→  engagementRate   Float    @default(0)
+   515→  niche            String?  // comma-separated niches
+   516→  email            String?
+   517→  phone            String?
+   518→  notes            String?
+   519→  status           String   @default("prospect") // prospect, contacted, negotiating, active, completed, declined
+   520→  rate             Float?   // per-post rate
+   521→  contractStart    DateTime?
+   522→  contractEnd      DateTime?
+   523→  organizationId   String
+   524→  clientId         String?
+   525→  campaignId       String?
+   526→  createdAt        DateTime @default(now())
+   527→  updatedAt        DateTime @updatedAt
+   528→
+   529→  organization Organization @relation(fields: [organizationId], references: [id])
+   530→  client       Client?      @relation(fields: [clientId], references: [id])
+   531→  campaign     Campaign?    @relation(fields: [campaignId], references: [id])
+   532→  conversations Conversation[]
+   533→  communicationContacts CommunicationContact[]
+   534→
+   535→  @@index([organizationId])
+   536→  @@index([status])
+   537→  @@index([platform])
+   538→}
+   539→
+   540→model BrandKit {
+   541→  id             String   @id @default(cuid())
+   542→  name           String
+   543→  type           String   // color, font, logo, voice, guideline
+   544→  value          String   // JSON: color hex, font family, logo url, etc.
+   545→  clientId       String?
+   546→  organizationId String
+   547→  createdAt      DateTime @default(now())
+   548→  updatedAt      DateTime @updatedAt
+   549→
+   550→  organization Organization @relation(fields: [organizationId], references: [id])
+   551→  client       Client?      @relation(fields: [clientId], references: [id])
+   552→
+   553→  @@index([organizationId])
+   554→  @@index([clientId])
+   555→}
+   556→
+   557→// ─── HR Module ──────────────────────────────────────────────────────────────────
+   558→
+   559→model Department {
+   560→  id             String   @id @default(cuid())
+   561→  name           String
+   562→  description    String?
+   563→  color          String   @default("#10b981")
+   564→  headId         String?
+   565→  organizationId String
+   566→  createdAt      DateTime @default(now())
+   567→  updatedAt      DateTime @updatedAt
+   568→
+   569→  organization Organization @relation(fields: [organizationId], references: [id])
+   570→  employees    Employee[]
+   571→  jobPostings  JobPosting[]
+   572→
+   573→  @@index([organizationId])
+   574→}
+   575→
+   576→model Employee {
+   577→  id             String   @id @default(cuid())
+   578→  userId         String?
+   579→  employeeId     String
+   580→  firstName      String
+   581→  lastName       String
+   582→  email          String
+   583→  phone          String?
+   584→  avatar         String?
+   585→  position       String
+   586→  departmentId   String
+   587→  hireDate       DateTime
+   588→  status         String   @default("active")
+   589→  employmentType String   @default("full-time")
+   590→  salary         Float?
+   591→  salaryCurrency String   @default("USD")
+   592→  bankAccount    String?
+   593→  taxId          String?
+   594→  emergencyContact String?
+   595→  address        String?
+   596→  notes          String?
+   597→  organizationId String
+   598→  createdAt      DateTime @default(now())
+   599→  updatedAt      DateTime @updatedAt
+   600→
+   601→  organization Organization @relation(fields: [organizationId], references: [id])
+   602→  department   Department  @relation(fields: [departmentId], references: [id])
+   603→  leaveRequests LeaveRequest[]
+   604→  payrollItems  PayrollItem[]
+   605→  user          User?       @relation("EmployeeUser", fields: [userId], references: [id])
+   606→  attendance    Attendance[]
+   607→
+   608→  @@unique([userId])
+   609→
+   610→  @@index([organizationId])
+   611→  @@index([departmentId])
+   612→  @@index([status])
+   613→}
+   614→
+   615→model Attendance {
+   616→  id            String   @id @default(cuid())
+   617→  employeeId    String
+   618→  date          DateTime
+   619→  clockIn       DateTime?
+   620→  clockOut      DateTime?
+   621→  status        String   @default("present") // present, absent, late, half-day, leave
+   622→  workHours     Float?
+   623→  notes         String?
+   624→  organizationId String
+   625→  createdAt     DateTime @default(now())
+   626→  updatedAt     DateTime @updatedAt
+   627→
+   628→  employee      Employee @relation(fields: [employeeId], references: [id])
+   629→  organization  Organization @relation(fields: [organizationId], references: [id])
+   630→
+   631→  @@index([employeeId])
+   632→  @@index([organizationId])
+   633→  @@index([date])
+   634→}
+   635→
+   636→model LeaveRequest {
+   637→  id             String   @id @default(cuid())
+   638→  employeeId     String
+   639→  type           String
+   640→  startDate      DateTime
+   641→  endDate        DateTime
+   642→  days           Float
+   643→  reason         String?
+   644→  status         String   @default("pending")
+   645→  approvedById   String?
+   646→  approvedAt     DateTime?
+   647→  comment        String?
+   648→  organizationId String
+   649→  createdAt      DateTime @default(now())
+   650→  updatedAt      DateTime @updatedAt
+   651→
+   652→  organization Organization @relation(fields: [organizationId], references: [id])
+   653→  employee     Employee     @relation(fields: [employeeId], references: [id])
+   654→
+   655→  @@index([organizationId])
+   656→  @@index([employeeId])
+   657→  @@index([status])
+   658→}
+   659→
+   660→model PayrollRun {
+   661→  id             String   @id @default(cuid())
+   662→  period         String
+   663→  status         String   @default("draft")
+   664→  runDate        DateTime
+   665→  totalGross     Float    @default(0)
+   666→  totalDeductions Float   @default(0)
+   667→  totalNet       Float    @default(0)
+   668→  organizationId String
+   669→  createdAt      DateTime @default(now())
+   670→  updatedAt      DateTime @updatedAt
+   671→
+   672→  organization Organization @relation(fields: [organizationId], references: [id])
+   673→  items        PayrollItem[]
+   674→
+   675→  @@index([organizationId])
+   676→  @@index([period])
+   677→}
+   678→
+   679→model PayrollItem {
+   680→  id             String   @id @default(cuid())
+   681→  payrollRunId   String
+   682→  employeeId     String
+   683→  baseSalary     Float    @default(0)
+   684→  overtime       Float    @default(0)
+   685→  bonuses        Float    @default(0)
+   686→  deductions     Float    @default(0)
+   687→  tax            Float    @default(0)
+   688→  netPay         Float    @default(0)
+   689→  organizationId String
+   690→  createdAt      DateTime @default(now())
+   691→
+   692→  payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id])
+   693→  employee   Employee   @relation(fields: [employeeId], references: [id])
+   694→
+   695→  @@index([payrollRunId])
+   696→  @@index([employeeId])
+   697→}
+   698→
+   699→model JobPosting {
+   700→  id             String   @id @default(cuid())
+   701→  title          String
+   702→  departmentId   String
+   703→  type           String   @default("full-time")
+   704→  location       String?
+   705→  salary_min     Float?
+   706→  salary_max     Float?
+   707→  description    String
+   708→  requirements   String?
+   709→  status         String   @default("open")
+   710→  postedDate     DateTime?
+   711→  closingDate    DateTime?
+   712→  applicants     Int      @default(0)
+   713→  organizationId String
+   714→  createdAt      DateTime @default(now())
+   715→  updatedAt      DateTime @updatedAt
+   716→
+   717→  organization Organization @relation(fields: [organizationId], references: [id])
+   718→  department   Department  @relation(fields: [departmentId], references: [id])
+   719→
+   720→  @@index([organizationId])
+   721→  @@index([status])
+   722→}
+   723→
+   724→// ─── Finance Module ────────────────────────────────────────────────────────────
+   725→
+   726→model Expense {
+   727→  id             String   @id @default(cuid())
+   728→  title          String
+   729→  description    String?
+   730→  amount         Float
+   731→  category       String
+   732→  date           DateTime
+   733→  status         String   @default("pending")
+   734→  receiptUrl     String?
+   735→  submittedById  String
+   736→  approvedById   String?
+   737→  approvedAt     DateTime?
+   738→  campaignId     String?
+   739→  clientId       String?
+   740→  organizationId String
+   741→  createdAt      DateTime @default(now())
+   742→  updatedAt      DateTime @updatedAt
+   743→
+   744→  organization Organization @relation(fields: [organizationId], references: [id])
+   745→  submittedBy  User         @relation("ExpenseSubmitter", fields: [submittedById], references: [id])
+   746→
+   747→  @@index([organizationId])
+   748→  @@index([status])
+   749→  @@index([category])
+   750→}
+   751→
+   752→model Account {
+   753→  id             String   @id @default(cuid())
+   754→  code           String
+   755→  name           String
+   756→  type           String          // asset, liability, equity, revenue, expense
+   757→  category       String?
+   758→  description    String?
+   759→  normalBalance  String   @default("debit") // debit or credit
+   760→  parentId       String?
+   761→  balance        Float    @default(0)
+   762→  isActive       Boolean  @default(true)
+   763→  organizationId String
+   764→  createdAt      DateTime @default(now())
+   765→  updatedAt      DateTime @updatedAt
+   766→
+   767→  organization   Organization   @relation(fields: [organizationId], references: [id])
+   768→  parent         Account?       @relation("AccountHierarchy", fields: [parentId], references: [id])
+   769→  children       Account[]      @relation("AccountHierarchy")
+   770→  journalLines   JournalEntryLine[]
+   771→
+   772→  @@index([organizationId])
+   773→  @@index([type])
+   774→  @@index([parentId])
+   775→  @@index([code])
+   776→}
+   777→
+   778→model TaxRate {
+   779→  id             String   @id @default(cuid())
+   780→  name           String
+   781→  rate           Float
+   782→  type           String
+   783→  isActive       Boolean  @default(true)
+   784→  organizationId String
+   785→  createdAt      DateTime @default(now())
+   786→  updatedAt      DateTime @updatedAt
+   787→
+   788→  organization Organization @relation(fields: [organizationId], references: [id])
+   789→
+   790→  @@index([organizationId])
+   791→}
+   792→
+   793→// ─── Inventory Module ──────────────────────────────────────────────────────────
+   794→
+   795→model Product {
+   796→  id             String   @id @default(cuid())
+   797→  name           String
+   798→  sku            String
+   799→  description    String?
+   800→  category       String?
+   801→  unit           String   @default("pcs")
+   802→  unitPrice      Float    @default(0)
+   803→  costPrice      Float    @default(0)
+   804→  reorderLevel   Int      @default(10)
+   805→  imageUrl       String?
+   806→  tags           String?
+   807→  isActive       Boolean  @default(true)
+   808→  organizationId String
+   809→  createdAt      DateTime @default(now())
+   810→  updatedAt      DateTime @updatedAt
+   811→
+   812→  organization   Organization  @relation(fields: [organizationId], references: [id])
+   813→  stockLevels    StockLevel[]
+   814→  stockMovements StockMovement[]
+   815→  poItems        PurchaseOrderItem[]
+   816→
+   817→  @@index([organizationId])
+   818→  @@index([sku])
+   819→  @@index([category])
+   820→}
+   821→
+   822→model StockLevel {
+   823→  id             String @id @default(cuid())
+   824→  productId      String
+   825→  warehouseId    String
+   826→  quantity       Int    @default(0)
+   827→  reservedQuantity Int  @default(0)
+   828→  organizationId String
+   829→
+   830→  product    Product   @relation(fields: [productId], references: [id])
+   831→  warehouse  Warehouse @relation(fields: [warehouseId], references: [id])
+   832→
+   833→  @@unique([productId, warehouseId])
+   834→  @@index([organizationId])
+   835→}
+   836→
+   837→model Warehouse {
+   838→  id             String   @id @default(cuid())
+   839→  name           String
+   840→  code           String
+   841→  location       String?
+   842→  isDefault      Boolean  @default(false)
+   843→  isActive       Boolean  @default(true)
+   844→  organizationId String
+   845→  createdAt      DateTime @default(now())
+   846→  updatedAt      DateTime @updatedAt
+   847→
+   848→  organization Organization @relation(fields: [organizationId], references: [id])
+   849→  stockLevels  StockLevel[]
+   850→  stockMovements StockMovement[]
+   851→
+   852→  @@index([organizationId])
+   853→}
+   854→
+   855→model StockMovement {
+   856→  id             String   @id @default(cuid())
+   857→  productId      String
+   858→  warehouseId    String
+   859→  type           String
+   860→  quantity       Int
+   861→  reference      String?
+   862→  notes          String?
+   863→  organizationId String
+   864→  createdAt      DateTime @default(now())
+   865→
+   866→  product     Product   @relation(fields: [productId], references: [id])
+   867→  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+   868→
+   869→  @@index([organizationId])
+   870→  @@index([productId])
+   871→  @@index([type])
+   872→  @@index([createdAt])
+   873→}
+   874→
+   875→model Vendor {
+   876→  id             String   @id @default(cuid())
+   877→  name           String
+   878→  email          String?
+   879→  phone          String?
+   880→  address        String?
+   881→  category       String?
+   882→  rating         Float    @default(0)
+   883→  isActive       Boolean  @default(true)
+   884→  organizationId String
+   885→  createdAt      DateTime @default(now())
+   886→  updatedAt      DateTime @updatedAt
+   887→
+   888→  organization   Organization     @relation(fields: [organizationId], references: [id])
+   889→  purchaseOrders PurchaseOrder[]
+   890→
+   891→  @@index([organizationId])
+   892→}
+   893→
+   894→model PurchaseOrder {
+   895→  id             String   @id @default(cuid())
+   896→  number         String
+   897→  vendorId       String
+   898→  status         String   @default("draft")
+   899→  items          String
+   900→  subtotal       Float    @default(0)
+   901→  tax            Float    @default(0)
+   902→  total          Float    @default(0)
+   903→  orderDate      DateTime
+   904→  expectedDate   DateTime?
+   905→  notes          String?
+   906→  organizationId String
+   907→  createdAt      DateTime @default(now())
+   908→  updatedAt      DateTime @updatedAt
+   909→
+   910→  organization Organization @relation(fields: [organizationId], references: [id])
+   911→  vendor       Vendor       @relation(fields: [vendorId], references: [id])
+   912→  poItems      PurchaseOrderItem[]
+   913→
+   914→  @@index([organizationId])
+   915→  @@index([vendorId])
+   916→  @@index([status])
+   917→}
+   918→
+   919→model PurchaseOrderItem {
+   920→  id              String @id @default(cuid())
+   921→  purchaseOrderId String
+   922→  productId       String
+   923→  quantity        Int
+   924→  unitPrice       Float
+   925→  total           Float
+   926→
+   927→  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+   928→  product       Product       @relation(fields: [productId], references: [id])
+   929→
+   930→  @@index([purchaseOrderId])
+   931→}
+   932→
+   933→// ─── IT Asset Management ───────────────────────────────────────────────────────
+   934→
+   935→model ITAsset {
+   936→  id              String   @id @default(cuid())
+   937→  assetTag        String   @unique  // e.g. "IT-LAP-001", "IT-KEY-042"
+   938→  name            String   // e.g. "MacBook Pro 14 inch", "Logitech MX Master 3S"
+   939→  category        String   // laptop, desktop, monitor, keyboard, mouse, headphone, usb, webcam, dock, cable, adapter, tablet, phone, printer, router, other
+   940→  brand           String?  // Apple, Dell, Logitech, etc.
+   941→  model           String?  // "MacBook Pro 14 M3", "MX Master 3S"
+   942→  serialNumber    String?
+   943→  specifications  String?  // JSON: { ram, storage, cpu, screen_size, color, etc. }
+   944→  purchaseDate    DateTime?
+   945→  purchaseCost    Float?
+   946→  warrantyExpiry  DateTime?
+   947→  vendor          String?
+   948→  invoiceNumber   String?
+   949→  condition       String   @default("new") // new, good, fair, damaged, retired
+   950→  status          String   @default("available") // available, issued, maintenance, retired, lost
+   951→  assignedToId    String?  // userId currently holding the asset
+   952→  location        String?  // "Office A", "Remote", "Store Room"
+   953→  notes           String?
+   954→  imageUrl        String?
+   955→  organizationId  String
+   956→  createdAt       DateTime @default(now())
+   957→  updatedAt       DateTime @updatedAt
+   958→
+   959→  organization    Organization  @relation(fields: [organizationId], references: [id])
+   960→  assignedTo      User?         @relation("ITAssetAssignee", fields: [assignedToId], references: [id])
+   961→  issuances       AssetIssuance[]
+   962→
+   963→  @@index([organizationId])
+   964→  @@index([category])
+   965→  @@index([status])
+   966→  @@index([assignedToId])
+   967→}
+   968→
+   969→model AssetIssuance {
+   970→  id              String   @id @default(cuid())
+   971→  assetId         String
+   972→  issuedToId      String   // userId receiving the asset
+   973→  issuedById      String   // userId (IT admin) issuing the asset
+   974→  issueDate       DateTime @default(now())
+   975→  expectedReturnDate DateTime?
+   976→  actualReturnDate DateTime?
+   977→  returnCondition String?  // condition when returned
+   978→  issueCondition  String?  // condition when issued
+   979→  purpose         String?  // "Daily work", "Project X", "Remote work"
+   980→  notes           String?
+   981→  status          String   @default("issued") // issued, returned, overdue, lost
+   982→  organizationId  String
+   983→  createdAt       DateTime @default(now())
+   984→  updatedAt       DateTime @updatedAt
+   985→
+   986→  asset           ITAsset  @relation(fields: [assetId], references: [id])
+   987→  issuedTo        User     @relation("AssetIssuanceRecipient", fields: [issuedToId], references: [id])
+   988→  issuedBy        User     @relation("AssetIssuanceIssuer", fields: [issuedById], references: [id])
+   989→
+   990→  @@index([organizationId])
+   991→  @@index([assetId])
+   992→  @@index([issuedToId])
+   993→  @@index([status])
+   994→}
+   995→
+   996→// ─── Dissemination Module ─────────────────────────────────────────────────────
+   997→
+   998→model Disseminator {
+   999→  id              String   @id @default(cuid())
+  1000→  userId          String
+  1001→  teamId          String?  // link to the dissemination team
+  1002→  speciality      String?  // e.g. "Instagram Reels", "LinkedIn Articles", "Multi-platform"
+  1003→  platforms       String?  // JSON array of platforms this disseminator handles: ["instagram","facebook"]
+  1004→  workloadCapacity Int     @default(10) // max concurrent tasks
+  1005→  status          String   @default("active") // active, on_leave, inactive
+  1006→  rating          Float    @default(0) // performance rating 0-5
+  1007→  totalTasksCompleted Int  @default(0)
+  1008→  totalPostsPublished Int  @default(0)
+  1009→  avgCompletionHours Float  @default(0) // average time to complete a task
+  1010→  onTimeRate      Float    @default(0) // percentage of tasks completed on time (0-100)
+  1011→  notes           String?
+  1012→  organizationId  String
+  1013→  createdAt       DateTime @default(now())
+  1014→  updatedAt       DateTime @updatedAt
+  1015→
+  1016→  organization    Organization @relation(fields: [organizationId], references: [id])
+  1017→  user            User         @relation("DisseminatorUser", fields: [userId], references: [id])
+  1018→  team            Team?        @relation(fields: [teamId], references: [id])
+  1019→  assignedTasks   DisseminationTask[] @relation("TaskDisseminator")
+  1020→
+  1021→  @@unique([userId])
+  1022→  @@index([organizationId])
+  1023→  @@index([status])
+  1024→}
+  1025→
+  1026→model DisseminationTask {
+  1027→  id              String   @id @default(cuid())
+  1028→  title           String
+  1029→  description     String?
+  1030→  contentId       String?  // link to the approved content piece
+  1031→  assigneeId      String?  // disseminator user id (who will post)
+  1032→  disseminatorId  String?  // link to disseminator profile
+  1033→  clientId        String?  // which client this is for
+  1034→  campaignId      String?  // which campaign
+  1035→  targetPlatforms String?  // JSON array: ["instagram","facebook","twitter"]
+  1036→  postContent     String?  // the actual content/caption to post
+  1037→  mediaUrls       String?  // JSON array of media URLs
+  1038→  hashtags        String?  // comma-separated hashtags
+  1039→  scheduledAt     DateTime? // when to post
+  1040→  dueDate         DateTime? // deadline for completion
+  1041→  priority        String   @default("medium") // low, medium, high, urgent
+  1042→  status          String   @default("pending") // pending, in_progress, completed, failed, overdue, cancelled
+  1043→  startedAt       DateTime?
+  1044→  completedAt     DateTime?
+  1045→  postId          String?  // link to the created post once published
+  1046→  failureReason   String?
+  1047→  assignedById    String?  // who assigned this task
+  1048→  assignedAt      DateTime?
+  1049→  completionNotes String?
+  1050→  engagement      String?  // JSON: engagement data pulled after publishing
+  1051→  organizationId  String
+  1052→  createdAt       DateTime @default(now())
+  1053→  updatedAt       DateTime @updatedAt
+  1054→
+  1055→  organization    Organization @relation("TaskAssigner", fields: [organizationId], references: [id])
+  1056→  content         Content?     @relation("TaskContent", fields: [contentId], references: [id])
+  1057→  assignee        User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  1058→  disseminator    Disseminator? @relation("TaskDisseminator", fields: [disseminatorId], references: [id])
+  1059→  client          Client?      @relation(fields: [clientId], references: [id])
+  1060→  campaign        Campaign?    @relation(fields: [campaignId], references: [id])
+  1061→
+  1062→  @@index([organizationId])
+  1063→  @@index([assigneeId])
+  1064→  @@index([disseminatorId])
+  1065→  @@index([status])
+  1066→  @@index([priority])
+  1067→  @@index([dueDate])
+  1068→  @@index([scheduledAt])
+  1069→}
+  1070→
+  1071→// ─── Communication Module ───────────────────────────────────────────────────
+  1072→
+  1073→model CommunicationTemplate {
+  1074→  id              String   @id @default(cuid())
+  1075→  name            String
+  1076→  subject         String?  // for email
+  1077→  body            String
+  1078→  type            String   @default("email") // email, whatsapp, sms
+  1079→  category        String?  // welcome, follow_up, proposal, invoice, reminder, campaign, notification
+  1080→  variables       String?  // JSON array of template variables: ["name", "company", "date"]
+  1081→  isDefault       Boolean  @default(false)
+  1082→  isActive        Boolean  @default(true)
+  1083→  organizationId  String
+  1084→  createdAt       DateTime @default(now())
+  1085→  updatedAt       DateTime @updatedAt
+  1086→
+  1087→  organization    Organization @relation(fields: [organizationId], references: [id])
+  1088→  messages        CommunicationMessage[]
+  1089→
+  1090→  @@index([organizationId])
+  1091→  @@index([type])
+  1092→}
+  1093→
+  1094→model Conversation {
+  1095→  id              String   @id @default(cuid())
+  1096→  subject         String?
+  1097→  type            String   @default("email") // email, whatsapp, mixed
+  1098→  status          String   @default("active") // active, archived, closed
+  1099→  priority        String   @default("normal") // low, normal, high, urgent
+  1100→  channel         String   @default("email") // email, whatsapp, manual
+  1101→  clientId        String?
+  1102→  influencerId    String?
+  1103→  campaignId      String?
+  1104→  assignedToId    String?  // userId assigned to this conversation
+  1105→  lastMessageAt   DateTime @default(now())
+  1106→  lastMessagePreview String? // preview of last message
+  1107→  unreadCount     Int      @default(0)
+  1108→  tags            String?  // comma-separated tags
+  1109→  organizationId  String
+  1110→  createdAt       DateTime @default(now())
+  1111→  updatedAt       DateTime @updatedAt
+  1112→
+  1113→  organization    Organization @relation(fields: [organizationId], references: [id])
+  1114→  client          Client?      @relation(fields: [clientId], references: [id])
+  1115→  influencer      Influencer?  @relation(fields: [influencerId], references: [id])
+  1116→  campaign        Campaign?    @relation(fields: [campaignId], references: [id])
+  1117→  assignedTo      User?        @relation("ConversationAssignee", fields: [assignedToId], references: [id])
+  1118→  messages        CommunicationMessage[]
+  1119→
+  1120→  @@index([organizationId])
+  1121→  @@index([clientId])
+  1122→  @@index([influencerId])
+  1123→  @@index([assignedToId])
+  1124→  @@index([status])
+  1125→  @@index([lastMessageAt])
+  1126→}
+  1127→
+  1128→model CommunicationMessage {
+  1129→  id                String   @id @default(cuid())
+  1130→  conversationId    String
+  1131→  senderId          String?  // userId (null for external contacts)
+  1132→  senderName        String
+  1133→  senderEmail       String?  // email of sender
+  1134→  senderPhone       String?  // phone of sender
+  1135→  recipientName     String
+  1136→  recipientEmail    String?  // for email
+  1137→  recipientPhone    String?  // for whatsapp
+  1138→  subject           String?  // for email
+  1139→  body              String
+  1140→  htmlBody          String?  // rich HTML for email
+  1141→  mediaUrls         String?  // JSON array of attachment URLs
+  1142→  type              String   @default("email") // email, whatsapp, note
+  1143→  direction         String   @default("outbound") // inbound, outbound
+  1144→  status            String   @default("sent") // draft, queued, sent, delivered, read, failed, bounced
+  1145→  failureReason     String?
+  1146→  templateId        String?
+  1147→  isStarred         Boolean  @default(false)
+  1148→  isRead            Boolean  @default(true)
+  1149→  readAt            DateTime?
+  1150→  deliveredAt       DateTime?
+  1151→  openedAt          DateTime? // email open tracking
+  1152→  clickedAt         DateTime? // link click tracking
+  1153→  repliedAt         DateTime?
+  1154→  externalId        String?  // external message ID from provider
+  1155→  organizationId    String
+  1156→  createdAt         DateTime @default(now())
+  1157→  updatedAt         DateTime @updatedAt
+  1158→
+  1159→  conversation      Conversation @relation(fields: [conversationId], references: [id])
+  1160→  organization      Organization @relation(fields: [organizationId], references: [id])
+  1161→  sender            User?        @relation("MessageSender", fields: [senderId], references: [id])
+  1162→  template          CommunicationTemplate? @relation(fields: [templateId], references: [id])
+  1163→
+  1164→  @@index([conversationId])
+  1165→  @@index([organizationId])
+  1166→  @@index([senderId])
+  1167→  @@index([status])
+  1168→  @@index([createdAt])
+  1169→}
+  1170→
+  1171→model CommunicationContact {
+  1172→  id              String   @id @default(cuid())
+  1173→  name            String
+  1174→  email           String?
+  1175→  phone           String?
+  1176→  whatsappNumber  String?
+  1177→  company         String?
+  1178→  role            String?  // client, influencer, partner, vendor
+  1179→  avatar          String?
+  1180→  notes           String?
+  1181→  preferredChannel String  @default("email") // email, whatsapp
+  1182→  lastContactedAt  DateTime?
+  1183→  isFavorite      Boolean  @default(false)
+  1184→  tags            String?
+  1185→  clientId        String?
+  1186→  influencerId    String?
+  1187→  organizationId  String
+  1188→  createdAt       DateTime @default(now())
+  1189→  updatedAt       DateTime @updatedAt
+  1190→
+  1191→  organization    Organization @relation(fields: [organizationId], references: [id])
+  1192→  client          Client?      @relation(fields: [clientId], references: [id])
+  1193→  influencer      Influencer?  @relation(fields: [influencerId], references: [id])
+  1194→
+  1195→  @@index([organizationId])
+  1196→  @@index([email])
+  1197→  @@index([phone])
+  1198→}
+  1199→
+  1200→model JournalEntry {
+  1201→  id             String   @id @default(cuid())
+  1202→  number         String   @unique
+  1203→  date           DateTime
+  1204→  description    String
+  1205→  reference      String?   // e.g. INV-001, PAY-042
+  1206→  source         String    // manual, invoice, expense, payroll, transfer
+  1207→  sourceId       String?   // ID of the source document
+  1208→  status         String    @default("draft") // draft, posted, void
+  1209→  isAdjusting    Boolean   @default(false)
+  1210→  period         String    // e.g. "2026-01" for fiscal period
+  1211→  totalDebit     Float     @default(0)
+  1212→  totalCredit    Float     @default(0)
+  1213→  organizationId String
+  1214→  createdById    String?
+  1215→  createdAt      DateTime  @default(now())
+  1216→  updatedAt      DateTime  @updatedAt
+  1217→
+  1218→  organization   Organization @relation(fields: [organizationId], references: [id])
+  1219→  createdBy      User?        @relation("JournalEntryCreator", fields: [createdById], references: [id])
+  1220→  lines          JournalEntryLine[]
+  1221→
+  1222→  @@index([organizationId])
+  1223→  @@index([date])
+  1224→  @@index([status])
+  1225→  @@index([period])
+  1226→  @@index([source])
+  1227→}
+  1228→
+  1229→model JournalEntryLine {
+  1230→  id             String   @id @default(cuid())
+  1231→  journalEntryId String
+  1232→  accountId      String
+  1233→  debit          Float    @default(0)
+  1234→  credit         Float    @default(0)
+  1235→  description    String?
+  1236→  organizationId String
+  1237→  createdAt      DateTime @default(now())
+  1238→  updatedAt      DateTime @updatedAt
+  1239→
+  1240→  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  1241→  account        Account      @relation(fields: [accountId], references: [id])
+  1242→
+  1243→  @@index([journalEntryId])
+  1244→  @@index([accountId])
+  1245→  @@index([organizationId])
+  1246→}
+  1247→
