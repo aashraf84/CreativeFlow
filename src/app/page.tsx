@@ -98,65 +98,131 @@ export default function ERPPage() {
         setSeeded(true);
       }
 
-      // Load data in batches to avoid overwhelming the server
       const safeJson = (res: Response) => res.json().catch(() => ({}));
 
-      // Batch 1: Core data
-      const [dashboardRes, contentsRes, postsRes, teamsRes, accountsRes, campaignsRes] = await Promise.all([
-        fetch("/api/dashboard"),
+      // Load dashboard FIRST so it appears quickly
+      try {
+        const dashRes = await fetch("/api/dashboard");
+        const dashJson = await safeJson(dashRes);
+        if (dashJson && !dashJson.error) {
+          const dash: DashboardData = {
+            totalContent: dashJson.totalContent || 0,
+            contentByStage: dashJson.contentByStage || {},
+            postsThisWeek: dashJson.postsPublishedThisWeek || 0,
+            postsThisMonth: dashJson.postsPublishedThisMonth || 0,
+            scheduledPosts: dashJson.scheduledPosts || 0,
+            activeCampaigns: dashJson.activeCampaigns || 0,
+            totalClients: dashJson.totalClients || 0,
+            totalAccounts: dashJson.socialAccountsCount || 0,
+            teamProductivity: (dashJson.teamStats || []).map((t: Record<string, unknown>) => ({
+              team: t.name as string,
+              completed: Object.values(t.contentByStage as Record<string, number> || {}).reduce((a: number, b: number) => a + b, 0),
+              pending: (t.contentCount as number || 0),
+            })),
+            platformBreakdown: [],
+            recentActivity: (dashJson.recentActivity || []).map((a: Record<string, unknown>) => ({
+              id: a.id as string,
+              action: a.action as string,
+              entity: a.entity as string,
+              entityId: a.entityId as string || null,
+              details: typeof a.details === 'string' ? a.details : JSON.stringify(a.details) || null,
+              actor: a.actor as { id: string; name: string; email: string; avatar: string | null; role: string },
+              createdAt: a.createdAt as string,
+            })),
+            contentTrend: [],
+            pendingApprovals: dashJson.pendingApprovals || 0,
+            totalRevenue: dashJson.totalRevenue || 0,
+            paidRevenue: dashJson.paidRevenue || 0,
+            outstandingRevenue: dashJson.outstandingRevenue || 0,
+            timeTrackedThisWeek: dashJson.timeTrackedThisWeek || 0,
+            unreadInbox: dashJson.unreadInbox || 0,
+            assetCount: dashJson.assetCount || 0,
+          };
+          setDashboard(dash);
+          setIsLoading(false); // Stop loading so dashboard renders immediately
+        }
+      } catch { /* ignore dashboard errors */ }
+
+      // Load remaining data in small batches (3-4 per batch to avoid memory issues with Neon)
+      // Batch 1: Core content data
+      const [contentsRes, postsRes, teamsRes] = await Promise.all([
         fetch("/api/contents"),
         fetch("/api/posts"),
         fetch("/api/teams"),
-        fetch("/api/social-accounts"),
-        fetch("/api/campaigns"),
       ]);
 
-      // Batch 2: Business data
-      const [clientsRes, automationsRes, calendarRes, approvalsRes, invoicesRes, timeEntriesRes] = await Promise.all([
+      // Batch 2: Social & Campaigns
+      const [accountsRes, campaignsRes, clientsRes] = await Promise.all([
+        fetch("/api/social-accounts"),
+        fetch("/api/campaigns"),
         fetch("/api/clients"),
+      ]);
+
+      // Batch 3: Business data
+      const [automationsRes, calendarRes, approvalsRes] = await Promise.all([
         fetch("/api/automation"),
         fetch("/api/calendar"),
         fetch("/api/approvals"),
-        fetch("/api/invoices"),
-        fetch("/api/time-entries"),
       ]);
 
-      // Batch 3: Assets & Media
-      const [assetsRes, notificationsRes, inboxRes, influencersRes, brandKitRes, departmentsRes] = await Promise.all([
+      // Batch 4: Financial data
+      const [invoicesRes, timeEntriesRes, expensesRes] = await Promise.all([
+        fetch("/api/invoices"),
+        fetch("/api/time-entries"),
+        fetch("/api/expenses"),
+      ]);
+
+      // Batch 5: Assets & Media
+      const [assetsRes, notificationsRes, inboxRes] = await Promise.all([
         fetch("/api/assets"),
         fetch("/api/notifications"),
         fetch("/api/inbox"),
+      ]);
+
+      // Batch 6: HR
+      const [influencersRes, brandKitRes, departmentsRes] = await Promise.all([
         fetch("/api/influencers"),
         fetch("/api/brand-kit"),
         fetch("/api/departments"),
       ]);
 
-      // Batch 4: HR & Finance
-      const [employeesRes, leaveRequestsRes, payrollRes, jobPostingsRes, expensesRes, financeAccountsRes] = await Promise.all([
+      // Batch 7: Employees
+      const [employeesRes, leaveRequestsRes, payrollRes] = await Promise.all([
         fetch("/api/employees"),
         fetch("/api/leave-requests"),
         fetch("/api/payroll"),
-        fetch("/api/job-postings"),
-        fetch("/api/expenses"),
-        fetch("/api/accounts"),
       ]);
 
-      // Batch 5: Finance details & Inventory
-      const [taxRatesRes, journalEntriesRes, productsRes, warehousesRes, stockMovementsRes, vendorsRes] = await Promise.all([
+      // Batch 8: Recruitment & Finance
+      const [jobPostingsRes, financeAccountsRes, taxRatesRes] = await Promise.all([
+        fetch("/api/job-postings"),
+        fetch("/api/accounts"),
         fetch("/api/tax-rates"),
+      ]);
+
+      // Batch 9: Journal & Inventory
+      const [journalEntriesRes, productsRes, warehousesRes] = await Promise.all([
         fetch("/api/journal-entries"),
         fetch("/api/products"),
         fetch("/api/warehouses"),
-        fetch("/api/stock-movements"),
-        fetch("/api/vendors"),
       ]);
 
-      // Batch 6: Remaining
-      const [purchaseOrdersRes, itAssetsRes, assetIssuancesRes, disseminatorsRes, disseminationTasksRes, conversationsRes, commTemplatesRes, commContactsRes] = await Promise.all([
+      // Batch 10: Inventory details
+      const [stockMovementsRes, vendorsRes, purchaseOrdersRes] = await Promise.all([
+        fetch("/api/stock-movements"),
+        fetch("/api/vendors"),
         fetch("/api/purchase-orders"),
+      ]);
+
+      // Batch 11: IT Assets
+      const [itAssetsRes, assetIssuancesRes, disseminatorsRes] = await Promise.all([
         fetch("/api/it-assets"),
         fetch("/api/asset-issuances"),
         fetch("/api/disseminators"),
+      ]);
+
+      // Batch 12: Communications
+      const [disseminationTasksRes, conversationsRes, commTemplatesRes, commContactsRes] = await Promise.all([
         fetch("/api/dissemination-tasks"),
         fetch("/api/communications/conversations"),
         fetch("/api/communications/templates"),
@@ -164,7 +230,6 @@ export default function ERPPage() {
       ]);
 
       // Parse all JSON responses safely
-      const dashboardJson = await safeJson(dashboardRes);
       const contentsJson = await safeJson(contentsRes);
       const postsJson = await safeJson(postsRes);
       const teamsJson = await safeJson(teamsRes);
@@ -202,44 +267,6 @@ export default function ERPPage() {
       const conversationsJson = await safeJson(conversationsRes);
       const commTemplatesJson = await safeJson(commTemplatesRes);
       const commContactsJson = await safeJson(commContactsRes);
-
-      // Dashboard - map API response to store format
-      if (dashboardJson && !dashboardJson.error) {
-        const dash: DashboardData = {
-          totalContent: dashboardJson.totalContent || 0,
-          contentByStage: dashboardJson.contentByStage || {},
-          postsThisWeek: dashboardJson.postsPublishedThisWeek || 0,
-          postsThisMonth: dashboardJson.postsPublishedThisMonth || 0,
-          scheduledPosts: dashboardJson.scheduledPosts || 0,
-          activeCampaigns: dashboardJson.activeCampaigns || 0,
-          totalClients: dashboardJson.totalClients || 0,
-          totalAccounts: dashboardJson.socialAccountsCount || 0,
-          teamProductivity: (dashboardJson.teamStats || []).map((t: Record<string, unknown>) => ({
-            team: t.name as string,
-            completed: Object.values(t.contentByStage as Record<string, number> || {}).reduce((a: number, b: number) => a + b, 0),
-            pending: (t.contentCount as number || 0),
-          })),
-          platformBreakdown: [],
-          recentActivity: (dashboardJson.recentActivity || []).map((a: Record<string, unknown>) => ({
-            id: a.id as string,
-            action: a.action as string,
-            entity: a.entity as string,
-            entityId: a.entityId as string || null,
-            details: typeof a.details === 'string' ? a.details : JSON.stringify(a.details) || null,
-            actor: a.actor as { id: string; name: string; email: string; avatar: string | null; role: string },
-            createdAt: a.createdAt as string,
-          })),
-          contentTrend: [],
-          pendingApprovals: dashboardJson.pendingApprovals || 0,
-          totalRevenue: dashboardJson.totalRevenue || 0,
-          paidRevenue: dashboardJson.paidRevenue || 0,
-          outstandingRevenue: dashboardJson.outstandingRevenue || 0,
-          timeTrackedThisWeek: dashboardJson.timeTrackedThisWeek || 0,
-          unreadInbox: dashboardJson.unreadInbox || 0,
-          assetCount: dashboardJson.assetCount || 0,
-        };
-        setDashboard(dash);
-      }
 
       // Contents
       const contentsData = contentsJson?.contents || contentsJson?.data || (Array.isArray(contentsJson) ? contentsJson : []);
