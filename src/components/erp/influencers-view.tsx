@@ -307,10 +307,12 @@ export function InfluencersView() {
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase()
       result = result.filter(i =>
+        i.id.toLowerCase().includes(q) ||
         i.name.toLowerCase().includes(q) ||
         i.username.toLowerCase().includes(q) ||
         (i.niche && i.niche.toLowerCase().includes(q)) ||
         (i.email && i.email.toLowerCase().includes(q)) ||
+        (i.phone && i.phone.toLowerCase().includes(q)) ||
         (i.notes && i.notes.toLowerCase().includes(q))
       )
     }
@@ -360,8 +362,13 @@ export function InfluencersView() {
     if (!search || search.length < 2) return []
     const q = search.toLowerCase()
     return influencers
-      .filter(i => i.name.toLowerCase().includes(q) || i.username.toLowerCase().includes(q))
-      .slice(0, 6)
+      .filter(i =>
+        i.id.toLowerCase().includes(q) ||
+        i.name.toLowerCase().includes(q) ||
+        i.username.toLowerCase().includes(q) ||
+        (i.email && i.email.toLowerCase().includes(q))
+      )
+      .slice(0, 8)
   }, [search, influencers])
 
   // ── Platform counts ──
@@ -862,7 +869,7 @@ export function InfluencersView() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="influencer-search-input"
-                  placeholder="Search by name, username, niche, email..."
+                  placeholder="Search by ID, name, username, email, niche..."
                   value={search}
                   onChange={e => { setSearch(e.target.value); setShowSuggestions(true) }}
                   onFocus={() => setShowSuggestions(true)}
@@ -893,9 +900,10 @@ export function InfluencersView() {
                           className="w-full px-4 py-2 text-left text-sm hover:bg-muted/50 flex items-center gap-2"
                           onClick={() => { setSearch(s.name); setShowSuggestions(false); setSelectedInfluencer(s) }}
                         >
-                          <Search className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-medium">{s.name}</span>
-                          <span className="text-muted-foreground">{formatUsername(s.username)}</span>
+                          <Search className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="font-medium truncate">{s.name}</span>
+                          <span className="text-muted-foreground text-xs truncate">{formatUsername(s.username)}</span>
+                          <span className="ml-auto text-[10px] text-muted-foreground font-mono shrink-0">{s.id.substring(0, 8)}</span>
                         </button>
                       ))}
                     </motion.div>
