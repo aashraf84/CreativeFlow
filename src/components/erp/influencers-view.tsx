@@ -270,32 +270,34 @@ export function InfluencersView() {
     debounceTimer.current = setTimeout(() => {
       setDebouncedSearch(search)
       const q = search.trim()
-      if (q.length >= 2) {
+      if (q.length >= 1) {
         // Search database
         fetch(`/api/influencers?search=${encodeURIComponent(q)}`)
           .then(r => r.json())
           .then(data => {
             const results = data?.influencers || data?.data || []
-            if (Array.isArray(results) && results.length > 0) {
+            if (Array.isArray(results)) {
               setInfluencers(results)
             }
           })
           .catch(() => {})
 
-        // Search the internet
-        setWebSearching(true)
-        setShowWebResults(true)
-        fetch("/api/influencers/web-search", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: q }),
-        })
-          .then(r => r.json())
-          .then(data => {
-            setWebResults(data?.results || [])
+        // Search the internet (only for 2+ chars to avoid unnecessary searches)
+        if (q.length >= 2) {
+          setWebSearching(true)
+          setShowWebResults(true)
+          fetch("/api/influencers/web-search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: q }),
           })
-          .catch(() => setWebResults([]))
-          .finally(() => setWebSearching(false))
+            .then(r => r.json())
+            .then(data => {
+              setWebResults(data?.results || [])
+            })
+            .catch(() => setWebResults([]))
+            .finally(() => setWebSearching(false))
+        }
       } else {
         // Reload all from DB
         fetch("/api/influencers")
