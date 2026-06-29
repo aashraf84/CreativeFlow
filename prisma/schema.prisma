@@ -21,6 +21,42 @@ model Tenant {
 
   organizations Organization[]
   users         User[]
+  serialKeys    SerialKey[]
+}
+
+model SerialKey {
+  id            String    @id @default(cuid())
+  key           String    @unique
+  tenantId      String
+  maxDevices    Int       @default(1)
+  usedDevices   Int       @default(0)
+  isActive      Boolean   @default(true)
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  devices       Device[]
+
+  @@index([tenantId])
+}
+
+model Device {
+  id            String   @id @default(cuid())
+  deviceId      String   @unique
+  serialKeyId   String
+  tenantId      String?
+  organizationId String?
+  userAgent     String?
+  ipAddress     String?
+  lastSeenAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  serialKey     SerialKey @relation(fields: [serialKeyId], references: [id])
+
+  @@index([serialKeyId])
+  @@index([tenantId])
+  @@index([organizationId])
 }
 
 model Organization {
@@ -83,7 +119,10 @@ model User {
   email          String   @unique
   name           String
   avatar         String?
-  role           String   @default("member")
+  role           String   @default("member") // admin, lead, member, demo, superadmin
+  password       String?
+  isDemo         Boolean  @default(false)
+  permissions    String?  // JSON string: {"canCreate":false,"canEdit":false,"canDelete":false}
   organizationId String
   tenantId       String?
   createdAt      DateTime @default(now())
