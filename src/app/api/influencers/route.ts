@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ influencers: [], data: [] })
     }
 
     const { searchParams } = new URL(request.url)
@@ -173,7 +173,7 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('Influencers GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch influencers' }, { status: 500 })
+    return NextResponse.json({ influencers: [], data: [] })
   }
 }
 
@@ -181,7 +181,7 @@ export async function POST(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ influencers: [], data: [] })
     }
 
     const body = await request.json()

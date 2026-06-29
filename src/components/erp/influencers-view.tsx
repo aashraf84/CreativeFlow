@@ -376,16 +376,17 @@ export function InfluencersView() {
 
   // ── Search suggestions ──
   const suggestions = useMemo(() => {
-    if (!search || search.length < 2) return []
-    const q = search.toLowerCase()
+    if (!search || search.length < 1) return []
+    const q = search.toLowerCase().replace(/^@/, "")
     return influencers
       .filter(i =>
         i.id.toLowerCase().includes(q) ||
-        i.name.toLowerCase().includes(q) ||
-        i.username.toLowerCase().includes(q) ||
-        (i.email && i.email.toLowerCase().includes(q))
+        (i.name || "").toLowerCase().includes(q) ||
+        (i.username || "").toLowerCase().replace(/^@/, "").includes(q) ||
+        (i.email && i.email.toLowerCase().includes(q)) ||
+        (i.niche && i.niche.toLowerCase().includes(q))
       )
-      .slice(0, 8)
+      .slice(0, 10)
   }, [search, influencers])
 
   // ── Platform counts ──
@@ -915,13 +916,14 @@ export function InfluencersView() {
                       {suggestions.map(s => (
                         <button
                           key={s.id}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-muted/50 flex items-center gap-2"
+                          className="w-full px-4 py-2.5 text-left text-sm hover:bg-emerald-50 flex items-center gap-2 border-b last:border-0"
                           onClick={() => { setSearch(s.name); setShowSuggestions(false); setSelectedInfluencer(s) }}
                         >
-                          <Search className="h-3 w-3 text-muted-foreground shrink-0" />
-                          <span className="font-medium truncate">{s.name}</span>
+                          <Search className="h-3 w-3 text-emerald-500 shrink-0" />
+                          <span className="font-medium truncate">{s.name || "Unknown"}</span>
                           <span className="text-muted-foreground text-xs truncate">{formatUsername(s.username)}</span>
-                          <span className="ml-auto text-[10px] text-muted-foreground font-mono shrink-0">{s.id.substring(0, 8)}</span>
+                          {s.platform && <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">{s.platform}</span>}
+                          {s.followers > 0 && <span className="ml-auto text-[10px] text-muted-foreground shrink-0">{formatFollowers(Number(s.followers) || 0)}</span>}
                         </button>
                       ))}
                     </motion.div>

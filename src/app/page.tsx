@@ -331,7 +331,7 @@ export default function ERPPage() {
       if (Array.isArray(inboxData)) setInboxMessages(inboxData as InboxMessage[]);
 
       // Influencers
-      const influencersData = influencersJson?.influencers || (Array.isArray(influencersJson) ? influencersJson : []);
+      const influencersData = influencersJson?.influencers || influencersJson?.data || (Array.isArray(influencersJson) ? influencersJson : []);
       if (Array.isArray(influencersData)) setInfluencers(influencersData as Influencer[]);
 
       // Brand Kits
