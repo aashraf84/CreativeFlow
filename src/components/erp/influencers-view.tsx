@@ -77,6 +77,8 @@ import {
   Minus,
   PlusCircle,
   RotateCcw,
+  Globe,
+  Database,
 } from "lucide-react"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
@@ -183,6 +185,11 @@ export function InfluencersView() {
   const searchRef = useRef<HTMLDivElement>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // ── Web search results ──
+  const [webResults, setWebResults] = useState<Record<string, unknown>[]>([])
+  const [webSearching, setWebSearching] = useState(false)
+  const [showWebResults, setShowWebResults] = useState(false)
+
   // ── Filters ──
   const [filtersOpen, setFiltersOpen] = useState(true)
   const [platformFilter, setPlatformFilter] = useState<string>("all")
@@ -262,9 +269,10 @@ export function InfluencersView() {
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
     debounceTimer.current = setTimeout(() => {
       setDebouncedSearch(search)
-      // Also fetch from server-side API for real-time DB search
-      if (search.trim().length >= 1) {
-        fetch(`/api/influencers?search=${encodeURIComponent(search.trim())}`)
+      const q = search.trim()
+      if (q.length >= 2) {
+        // Search database
+        fetch(`/api/influencers?search=${encodeURIComponent(q)}`)
           .then(r => r.json())
           .then(data => {
             const results = data?.influencers || data?.data || []
@@ -273,19 +281,34 @@ export function InfluencersView() {
             }
           })
           .catch(() => {})
+
+        // Search the internet
+        setWebSearching(true)
+        setShowWebResults(true)
+        fetch("/api/influencers/web-search", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: q }),
+        })
+          .then(r => r.json())
+          .then(data => {
+            setWebResults(data?.results || [])
+          })
+          .catch(() => setWebResults([]))
+          .finally(() => setWebSearching(false))
       } else {
-        // If search is empty, reload all influencers
+        // Reload all from DB
         fetch("/api/influencers")
           .then(r => r.json())
           .then(data => {
             const results = data?.influencers || data?.data || []
-            if (Array.isArray(results)) {
-              setInfluencers(results)
-            }
+            if (Array.isArray(results)) setInfluencers(results)
           })
           .catch(() => {})
+        setWebResults([])
+        setShowWebResults(false)
       }
-    }, 400)
+    }, 500)
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current) }
   }, [search, setInfluencers])
 
@@ -1132,6 +1155,100 @@ export function InfluencersView() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
+              {/* Web Search Results */}
+              {showWebResults && (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Globe className="h-4 w-4 text-blue-500" />
+                    <h3 className="text-sm font-semibold">
+                      Internet Results {webSearching && <span className="text-xs text-muted-foreground font-normal">(searching...)</span>}
+                    </h3>
+                    <span className="text-xs text-muted-foreground">{webResults.length} found on the web</span>
+                  </div>
+                  {webResults.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                      {webResults.map((wr, idx) => {
+                        const name = String(wr.name || 'Unknown')
+                        const username = String(wr.username || '')
+                        const platform = String(wr.platform || 'unknown')
+                        const followers = Number(wr.followers) || 0
+                        const snippet = String(wr.snippet || '')
+                        const sourceUrl = String(wr.sourceUrl || '')
+                        const hostName = String(wr.hostName || '')
+                        const cfg = platformConfig[platform as keyof typeof platformConfig] || { icon: Globe, color: "text-gray-500", bg: "bg-gray-50" }
+                        const Icon = cfg.icon
+                        return (
+                          <div key={`web-${idx}`} className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20 p-3 hover:shadow-md transition-shadow">
+                            <div className="flex items-start gap-2 mb-2">
+                              <div className={`p-1.5 rounded-lg ${cfg.bg}`}>
+                                <Icon className={`h-3.5 w-3.5 ${cfg.color}`} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{name}</p>
+                                <p className="text-xs text-muted-foreground truncate">{username || hostName}</p>
+                              </div>
+                              {followers > 0 && (
+                                <Badge variant="outline" className="text-[10px] shrink-0">{formatFollowers(followers)}</Badge>
+                              )}
+                            </div>
+                            {snippet && <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2">{snippet}</p>}
+                            <div className="flex items-center gap-2">
+                              {sourceUrl && (
+                                <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                                  <ExternalLink className="h-3 w-3" /> View Profile
+                                </a>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-[10px] ml-auto border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch("/api/influencers", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({
+                                        name,
+                                        username: username.replace(/^@/, ""),
+                                        platform,
+                                        followers,
+                                        engagementRate: 0,
+                                        niche: "",
+                                        status: "prospect",
+                                        notes: `Found via web search: ${snippet.substring(0, 100)}`,
+                                      }),
+                                    })
+                                    if (res.ok) {
+                                      const data = await res.json()
+                                      if (data.influencer) {
+                                        setInfluencers([...influencers, data.influencer])
+                                        toast({ title: "Added to CRM", description: `${name} has been added to your influencer database.` })
+                                      }
+                                    }
+                                  } catch {
+                                    toast({ title: "Error", description: "Failed to add influencer." })
+                                  }
+                                }}
+                              >
+                                <Plus className="h-3 w-3 mr-0.5" /> Add to CRM
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : !webSearching ? (
+                    <p className="text-xs text-muted-foreground py-2">No results found on the internet. Try a different search term.</p>
+                  ) : null}
+                </div>
+              )}
+
+              {/* Database Results */}
+              <div className="flex items-center gap-2 mb-3">
+                <Database className="h-4 w-4 text-emerald-500" />
+                <h3 className="text-sm font-semibold">Your CRM Database</h3>
+                <span className="text-xs text-muted-foreground">{filteredInfluencers.length} influencers</span>
+              </div>
               {filteredInfluencers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-64 gap-4">
                   <Users className="h-12 w-12 text-muted-foreground/30" />
