@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// POST /api/auth/login
+async function withRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      if (i === retries - 1) throw e
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+    }
+  }
+  throw new Error('Retry failed')
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -14,10 +25,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Password is required' }, { status: 400 })
     }
 
-    const user = await db.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
-      include: { organization: { select: { id: true, name: true, slug: true, logo: true, plan: true, tenantId: true } } }
-    })
+    const user = await withRetry(() =>
+      db.user.findUnique({
+        where: { email: email.toLowerCase().trim() },
+        include: { organization: { select: { id: true, name: true, slug: true, logo: true, plan: true, tenantId: true } } }
+      })
+    )
 
     if (!user) return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     if (!user.password || user.password !== password) return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
@@ -32,6 +45,6 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('Login error:', error)
-    return NextResponse.json({ error: 'Failed to login. Database may be starting up.' }, { status: 500 })
+    return NextResponse.json({ error: 'Database connection failed. Please try again in a moment.' }, { status: 500 })
   }
 }
