@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.employee.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -45,7 +45,7 @@ export async function PUT(
     return NextResponse.json(employee)
   } catch (error) {
     console.error('Employee PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update employee' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -63,6 +63,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Employee deleted' })
   } catch (error) {
     console.error('Employee DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete employee' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

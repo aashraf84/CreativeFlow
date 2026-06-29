@@ -34,12 +34,12 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } },
 }
 
-// ── Status config ───────────────────────────────────────────────────
+// ── Status config (with dark mode variants) ────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  active: { label: "Active", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
-  on_leave: { label: "On Leave", color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
-  probation: { label: "Probation", color: "text-teal-700", bg: "bg-teal-50 border-teal-200" },
-  terminated: { label: "Terminated", color: "text-red-700", bg: "bg-red-50 border-red-200" },
+  active: { label: "Active", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-700/40" },
+  on_leave: { label: "On Leave", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-900/40 border-amber-200 dark:border-amber-700/40" },
+  probation: { label: "Probation", color: "text-teal-700 dark:text-teal-300", bg: "bg-teal-50 dark:bg-teal-900/40 border-teal-200 dark:border-teal-700/40" },
+  terminated: { label: "Terminated", color: "text-red-700 dark:text-red-300", bg: "bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-700/40" },
 }
 
 const DEPT_COLORS: Record<string, string> = {
@@ -705,7 +705,7 @@ export function EmployeesView() {
             variant="outline"
             size="sm"
             onClick={() => setDeptDialogOpen(true)}
-            className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg"
+            className="gap-2 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/40 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 hover:text-emerald-800 dark:hover:text-emerald-200 rounded-lg"
           >
             <Building2 className="h-4 w-4" /> Manage Departments
           </Button>
@@ -721,10 +721,10 @@ export function EmployeesView() {
         className="grid grid-cols-2 md:grid-cols-4 gap-4"
       >
         {[
-          { label: "Total Employees", value: totalEmployees, icon: Users, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Active", value: activeCount, icon: UserCheck, color: "text-teal-600", bg: "bg-teal-50" },
-          { label: "On Leave", value: onLeaveCount, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
-          { label: "Departments", value: deptCount, icon: Building2, color: "text-cyan-600", bg: "bg-cyan-50" },
+          { label: "Total Employees", value: totalEmployees, icon: Users, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40" },
+          { label: "Active", value: activeCount, icon: UserCheck, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-900/40" },
+          { label: "On Leave", value: onLeaveCount, icon: Clock, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/40" },
+          { label: "Departments", value: deptCount, icon: Building2, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-900/40" },
         ].map((kpi) => (
           <motion.div key={kpi.label} variants={itemVariants}>
             <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">

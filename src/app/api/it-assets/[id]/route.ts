@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.iTAsset.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'IT Asset not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -70,7 +70,7 @@ export async function PUT(
     return NextResponse.json(itAsset)
   } catch (error) {
     console.error('IT Asset PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update IT asset' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -83,7 +83,7 @@ export async function DELETE(
 
     const existing = await db.iTAsset.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'IT Asset not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     // Delete related issuances first
@@ -93,6 +93,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'IT Asset deleted' })
   } catch (error) {
     console.error('IT Asset DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete IT asset' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

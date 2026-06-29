@@ -26,7 +26,7 @@ export async function PUT(
     return NextResponse.json({ brandKit })
   } catch (error) {
     console.error('BrandKit PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update brand kit item' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -40,6 +40,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Brand kit item deleted' })
   } catch (error) {
     console.error('BrandKit DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete brand kit item' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

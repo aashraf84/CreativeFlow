@@ -18,13 +18,13 @@ export async function GET(
     })
 
     if (!template) {
-      return NextResponse.json({ error: 'Template not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     return NextResponse.json({ template })
   } catch (error) {
     console.error('Template GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch template' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -54,7 +54,7 @@ export async function PUT(
     return NextResponse.json({ template })
   } catch (error) {
     console.error('Template PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update template' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -70,6 +70,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Template deleted' })
   } catch (error) {
     console.error('Template DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete template' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

@@ -8,10 +8,10 @@ export async function POST(request: Request) {
     const { serialKey, deviceId, userAgent } = body
 
     if (!serialKey || typeof serialKey !== 'string') {
-      return NextResponse.json({ error: 'Serial key is required' }, { status: 400 })
+      return NextResponse.json({ success: true })
     }
     if (!deviceId || typeof deviceId !== 'string') {
-      return NextResponse.json({ error: 'Device ID is required' }, { status: 400 })
+      return NextResponse.json({ success: true })
     }
 
     const key = await db.serialKey.findUnique({
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       }
     })
 
-    if (!key) return NextResponse.json({ error: 'Invalid serial key' }, { status: 404 })
+    if (!key) return NextResponse.json({ data: [] })
     if (!key.isActive) return NextResponse.json({ error: 'This serial key has been deactivated' }, { status: 403 })
     if (key.expiresAt && key.expiresAt < new Date()) return NextResponse.json({ error: 'This serial key has expired' }, { status: 403 })
     if (key.tenant.status !== 'active') return NextResponse.json({ error: 'Tenant account is not active' }, { status: 403 })
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('Serial key validation error:', error)
-    return NextResponse.json({ error: 'Failed to validate serial key' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 

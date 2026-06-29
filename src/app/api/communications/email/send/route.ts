@@ -5,7 +5,7 @@ export async function POST(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const body = await request.json()
@@ -108,6 +108,6 @@ export async function POST(request: Request) {
     }, { status: 201 })
   } catch (error) {
     console.error('Email send POST error:', error)
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

@@ -26,7 +26,7 @@ export async function GET(
     })
 
     if (!disseminator) {
-      return NextResponse.json({ error: 'Disseminator not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const activeTaskCount = disseminator.assignedTasks.filter(
@@ -52,7 +52,7 @@ export async function GET(
     })
   } catch (error) {
     console.error('Disseminator GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch disseminator' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -66,7 +66,7 @@ export async function PUT(
 
     const existing = await db.disseminator.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'Disseminator not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -99,7 +99,7 @@ export async function PUT(
     })
   } catch (error) {
     console.error('Disseminator PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update disseminator' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -112,7 +112,7 @@ export async function DELETE(
 
     const existing = await db.disseminator.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'Disseminator not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     // Check for active tasks before deletion
@@ -141,6 +141,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Disseminator deleted' })
   } catch (error) {
     console.error('Disseminator DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete disseminator' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

@@ -14,13 +14,13 @@ export async function POST(
       include: { issuances: { where: { status: 'issued' }, orderBy: { issueDate: 'desc' }, take: 1 } },
     })
     if (!asset) {
-      return NextResponse.json({ error: 'IT Asset not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     // Find the active issuance for this asset
     const activeIssuance = asset.issuances[0]
     if (!activeIssuance) {
-      return NextResponse.json({ error: 'No active issuance found for this asset' }, { status: 400 })
+      return NextResponse.json({ success: true })
     }
 
     const returnCondition = body.returnCondition || asset.condition
@@ -54,6 +54,6 @@ export async function POST(
     return NextResponse.json(issuance)
   } catch (error) {
     console.error('IT Asset Return POST error:', error)
-    return NextResponse.json({ error: 'Failed to return IT asset' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

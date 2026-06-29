@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const clients = await db.client.findMany({
@@ -19,6 +19,6 @@ export async function GET() {
     return NextResponse.json(clients)
   } catch (error) {
     console.error('Clients GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

@@ -45,6 +45,22 @@
   /* ── macOS 27 (Tahoe) Liquid Glass Design Tokens ── */
   --font-sf: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
     "Helvetica Neue", "Inter", system-ui, sans-serif;
+
+  /* ── Retina Vibrant Accent Palette (Apple system colors) ── */
+  --retina-emerald: #34c759;
+  --retina-teal:    #30d158;
+  --retina-orange:  #ff9500;
+  --retina-red:     #ff3b30;
+  --retina-purple:  #af52de;
+  --retina-blue:    #007aff;
+  --retina-pink:    #ff2d92;
+  --retina-yellow:  #ffcc00;
+  --retina-indigo:  #5856d6;
+  --retina-mint:    #00c7be;
+
+  /* ── Easing curves for Tahoe-style motion ── */
+  --ease-tahoe: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ───────────────────────────────────────────────────────────────────
@@ -103,6 +119,7 @@
   /* Tahoe-specific custom tokens */
   --macos-bg: #f5f5f7;
   --macos-card: rgba(255, 255, 255, 0.72);
+  --macos-card-solid: #ffffff;
   --macos-sidebar: rgba(235, 235, 245, 0.6);
   --macos-toolbar: rgba(255, 255, 255, 0.7);
   --macos-accent: #34c759;
@@ -111,6 +128,20 @@
   --macos-muted: #86868b;
   --macos-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
   --macos-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.06), 0 16px 48px rgba(0, 0, 0, 0.08);
+
+  /* ── Spec-compliant aliases (used by tailwind `bg-[var(--bg)]` etc.) ── */
+  --bg: #f5f5f7;
+  --card: #ffffff;
+  --text: #1d1d1f;
+  --muted: #86868b;
+
+  /* ── Retina vibrant accents (also exposed at root level) ── */
+  --emerald: #34c759;
+  --teal: #30d158;
+  --orange: #ff9500;
+  --red: #ff3b30;
+  --purple: #af52de;
+  --blue: #007aff;
 }
 
 .dark {
@@ -157,6 +188,7 @@
 
   --macos-bg: #1c1c1e;
   --macos-card: rgba(44, 44, 46, 0.72);
+  --macos-card-solid: #2c2c2e;
   --macos-sidebar: rgba(28, 28, 30, 0.6);
   --macos-toolbar: rgba(28, 28, 30, 0.7);
   --macos-accent: #30d158;
@@ -165,6 +197,20 @@
   --macos-muted: #aeaeb2;
   --macos-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
   --macos-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.5);
+
+  /* ── Spec-compliant aliases (dark mode) ── */
+  --bg: #1c1c1e;
+  --card: #2c2c2e;
+  --text: #ffffff;
+  --muted: #aeaeb2;
+
+  /* ── Retina vibrant accents (slightly brighter on dark for vibrancy) ── */
+  --emerald: #34c759;
+  --teal: #30d158;
+  --orange: #ff9500;
+  --red: #ff3b30;
+  --purple: #af52de;
+  --blue: #0a84ff;
 }
 
 @layer base {
@@ -184,6 +230,19 @@
     font-family: var(--font-sf);
     letter-spacing: -0.011em;
     background-color: var(--macos-bg);
+    /* Smooth transition when toggling between dark/light modes */
+    transition: background-color 0.32s var(--ease-smooth),
+                color 0.32s var(--ease-smooth);
+  }
+
+  /* Smooth transition for glass surfaces, cards, sidebars, toolbars when theme switches */
+  .glass,
+  .glass-sidebar,
+  .glass-toolbar,
+  [class*="shadow-macos"] {
+    transition: background-color 0.32s var(--ease-smooth),
+                box-shadow 0.32s var(--ease-smooth),
+                border-color 0.32s var(--ease-smooth);
   }
 
   /* Headings inherit SF Pro Display weight */
@@ -224,6 +283,29 @@
   * {
     scrollbar-width: thin;
     scrollbar-color: oklch(0.5 0.005 240 / 0.3) transparent;
+  }
+
+  /* ── .macos-scroll: explicit auto-hiding scrollbar wrapper ── */
+  .macos-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.5 0.005 240 / 0.3) transparent;
+  }
+  .macos-scroll::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  .macos-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .macos-scroll::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .macos-scroll:hover::-webkit-scrollbar-thumb {
+    background-color: oklch(0.5 0.005 240 / 0.4);
+    background-clip: padding-box;
   }
 }
 
@@ -273,6 +355,177 @@
     border-radius: 999px;
     display: inline-block;
     box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+  }
+
+  /* ── Retina vibrant text color helpers ── */
+  .text-emerald-retina { color: var(--retina-emerald); }
+  .text-teal-retina    { color: var(--retina-teal); }
+  .text-orange-retina  { color: var(--retina-orange); }
+  .text-red-retina     { color: var(--retina-red); }
+  .text-purple-retina  { color: var(--retina-purple); }
+  .text-blue-retina    { color: var(--retina-blue); }
+  .bg-emerald-retina   { background-color: var(--retina-emerald); }
+  .bg-teal-retina      { background-color: var(--retina-teal); }
+  .bg-orange-retina    { background-color: var(--retina-orange); }
+  .bg-red-retina       { background-color: var(--retina-red); }
+  .bg-purple-retina    { background-color: var(--retina-purple); }
+  .bg-blue-retina      { background-color: var(--retina-blue); }
+
+  /* ── macOS pill button (segmented control style) ── */
+  .macos-pill {
+    border-radius: 999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: background-color 0.18s var(--ease-smooth),
+                color 0.18s var(--ease-smooth),
+                transform 0.18s var(--ease-tahoe);
+  }
+  .macos-pill:active {
+    transform: scale(0.96);
+  }
+
+  /* ── Status badge: works in both light and dark mode ── */
+  .badge-emerald {
+    background-color: rgba(52, 199, 89, 0.12);
+    color: #1a7d3a;
+    border: 1px solid rgba(52, 199, 89, 0.25);
+  }
+  .dark .badge-emerald {
+    background-color: rgba(52, 199, 89, 0.18);
+    color: #5ee385;
+    border-color: rgba(52, 199, 89, 0.35);
+  }
+  .badge-amber {
+    background-color: rgba(255, 149, 0, 0.12);
+    color: #a35e00;
+    border: 1px solid rgba(255, 149, 0, 0.25);
+  }
+  .dark .badge-amber {
+    background-color: rgba(255, 149, 0, 0.18);
+    color: #ffb84d;
+    border-color: rgba(255, 149, 0, 0.35);
+  }
+  .badge-red {
+    background-color: rgba(255, 59, 48, 0.12);
+    color: #a8281f;
+    border: 1px solid rgba(255, 59, 48, 0.25);
+  }
+  .dark .badge-red {
+    background-color: rgba(255, 59, 48, 0.18);
+    color: #ff7a72;
+    border-color: rgba(255, 59, 48, 0.35);
+  }
+  .badge-teal {
+    background-color: rgba(48, 209, 88, 0.12);
+    color: #1a7d3a;
+    border: 1px solid rgba(48, 209, 88, 0.25);
+  }
+  .dark .badge-teal {
+    background-color: rgba(48, 209, 88, 0.18);
+    color: #5ee385;
+    border-color: rgba(48, 209, 88, 0.35);
+  }
+  .badge-blue {
+    background-color: rgba(0, 122, 255, 0.12);
+    color: #0a5bc4;
+    border: 1px solid rgba(0, 122, 255, 0.25);
+  }
+  .dark .badge-blue {
+    background-color: rgba(0, 122, 255, 0.18);
+    color: #4da3ff;
+    border-color: rgba(0, 122, 255, 0.35);
+  }
+  .badge-purple {
+    background-color: rgba(175, 82, 222, 0.12);
+    color: #6b34a0;
+    border: 1px solid rgba(175, 82, 222, 0.25);
+  }
+  .dark .badge-purple {
+    background-color: rgba(175, 82, 222, 0.18);
+    color: #c98cee;
+    border-color: rgba(175, 82, 222, 0.35);
+  }
+  .badge-slate {
+    background-color: rgba(120, 120, 128, 0.12);
+    color: #5a5a5e;
+    border: 1px solid rgba(120, 120, 128, 0.25);
+  }
+  .dark .badge-slate {
+    background-color: rgba(120, 120, 128, 0.2);
+    color: #c7c7cc;
+    border-color: rgba(120, 120, 128, 0.4);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────
+   Vortex Animation Utilities (kept for backward compatibility)
+   ─────────────────────────────────────────────────────────────────── */
+@keyframes vortex-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.6; transform: scale(1.04); }
+}
+@keyframes vortex-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes vortex-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes vortex-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.0); }
+  50%      { box-shadow: 0 0 18px 4px rgba(52, 199, 89, 0.35); }
+}
+@keyframes vortex-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes vortex-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes vortex-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.vortex-pulse    { animation: vortex-pulse 2.4s var(--ease-smooth) infinite; }
+.vortex-shimmer {
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.18) 50%,
+    transparent 100%);
+  background-size: 200% 100%;
+  animation: vortex-shimmer 2.2s linear infinite;
+}
+.vortex-float    { animation: vortex-float 3.2s var(--ease-smooth) infinite; }
+.vortex-glow     { animation: vortex-glow 2.4s var(--ease-smooth) infinite; }
+.vortex-spin     { animation: vortex-spin 1s linear infinite; }
+.vortex-fade-in  { animation: vortex-fade-in 0.4s var(--ease-smooth) both; }
+.vortex-scale-in { animation: vortex-scale-in 0.32s var(--ease-tahoe) both; }
+
+/* ───────────────────────────────────────────────────────────────────
+   prefers-reduced-motion: respect user accessibility preferences
+   ─────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable the 3D tilt / hover lift micro-interactions */
+  .hover-lift:hover,
+  .vortex-pulse,
+  .vortex-shimmer,
+  .vortex-float,
+  .vortex-glow,
+  .vortex-spin {
+    animation: none !important;
+    transform: none !important;
   }
 }
 

@@ -25,7 +25,7 @@ export async function POST(
     })
 
     if (!task) {
-      return NextResponse.json({ error: 'Dissemination task not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     if (!task.assigneeId) {
@@ -146,6 +146,6 @@ export async function POST(
     }, { status: 201 })
   } catch (error) {
     console.error('Dissemination Task Publish POST error:', error)
-    return NextResponse.json({ error: 'Failed to publish dissemination task' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

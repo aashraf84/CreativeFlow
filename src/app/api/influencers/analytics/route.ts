@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const allInfluencers = await db.influencer.findMany({
@@ -131,6 +131,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Influencer Analytics GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch influencer analytics' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

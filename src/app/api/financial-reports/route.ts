@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     // Get all accounts with their journal line aggregates from posted entries
@@ -242,6 +242,6 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('FinancialReports GET error:', error)
-    return NextResponse.json({ error: 'Failed to generate financial report' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

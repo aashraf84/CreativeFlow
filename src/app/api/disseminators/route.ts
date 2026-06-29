@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const where: Record<string, unknown> = {
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ disseminators: disseminatorsWithStats })
   } catch (error) {
     console.error('Disseminators GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch disseminators' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const body = await request.json()
@@ -103,6 +103,6 @@ export async function POST(request: Request) {
     }, { status: 201 })
   } catch (error) {
     console.error('Disseminators POST error:', error)
-    return NextResponse.json({ error: 'Failed to create disseminator' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

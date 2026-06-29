@@ -33,9 +33,9 @@ function getStockStatus(product: Product) {
 
 function StockIndicator({ status }: { status: "ok" | "low" | "out" }) {
   const config = {
-    ok: { color: "bg-emerald-500", label: "In Stock", textColor: "text-emerald-700", bgColor: "bg-emerald-50" },
-    low: { color: "bg-amber-500", label: "Low Stock", textColor: "text-amber-700", bgColor: "bg-amber-50" },
-    out: { color: "bg-red-500", label: "Out of Stock", textColor: "text-red-700", bgColor: "bg-red-50" },
+    ok: { color: "bg-emerald-500", label: "In Stock", textColor: "text-emerald-700 dark:text-emerald-300", bgColor: "bg-emerald-50 dark:bg-emerald-900/40" },
+    low: { color: "bg-amber-500", label: "Low Stock", textColor: "text-amber-700 dark:text-amber-300", bgColor: "bg-amber-50 dark:bg-amber-900/40" },
+    out: { color: "bg-red-500", label: "Out of Stock", textColor: "text-red-700 dark:text-red-300", bgColor: "bg-red-50 dark:bg-red-900/40" },
   }
   const c = config[status]
   return (
@@ -190,10 +190,10 @@ export function ProductsView() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Products", value: totalProducts, icon: Package, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Low Stock Items", value: lowStockItems, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50" },
-          { label: "Total Value", value: `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, icon: DollarSign, color: "text-teal-600", bg: "bg-teal-50" },
-          { label: "Warehouses", value: warehouses.length, icon: Warehouse, color: "text-emerald-600", bg: "bg-emerald-50" },
+          { label: "Total Products", value: totalProducts, icon: Package, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40" },
+          { label: "Low Stock Items", value: lowStockItems, icon: AlertTriangle, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/40" },
+          { label: "Total Value", value: `$${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`, icon: DollarSign, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-900/40" },
+          { label: "Warehouses", value: warehouses.length, icon: Warehouse, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40" },
         ].map((kpi) => (
           <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
@@ -396,10 +396,10 @@ export function ProductsView() {
                     ) : (
                       <p className="text-sm text-muted-foreground">No stock levels recorded</p>
                     )}
-                    <div className="mt-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                    <div className="mt-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700/40">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-emerald-800">Total Stock</span>
-                        <span className="text-lg font-bold text-emerald-800">
+                        <span className="text-sm font-medium text-emerald-800 dark:text-emerald-200">Total Stock</span>
+                        <span className="text-lg font-bold text-emerald-800 dark:text-emerald-200">
                           {selectedProduct.stockLevels?.reduce((s, sl) => s + sl.quantity, 0) || 0}
                         </span>
                       </div>
@@ -662,8 +662,8 @@ function ProductListItem({ product, onClick }: { product: Product; onClick: () =
       className="flex items-center gap-4 px-4 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] cursor-pointer transition-colors rounded-xl"
       onClick={onClick}
     >
-      <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-        <Package className="h-5 w-5 text-emerald-600" />
+      <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+        <Package className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">

@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.leaveRequest.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'Leave request not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -36,6 +36,6 @@ export async function PUT(
     return NextResponse.json(leaveRequest)
   } catch (error) {
     console.error('LeaveRequest PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update leave request' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

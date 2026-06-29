@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.payrollRun.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'Payroll run not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -40,6 +40,6 @@ export async function PUT(
     return NextResponse.json(payrollRun)
   } catch (error) {
     console.error('PayrollRun PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update payroll run' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

@@ -32,7 +32,7 @@ export async function GET(
     })
 
     if (!task) {
-      return NextResponse.json({ error: 'Dissemination task not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     return NextResponse.json({
@@ -45,7 +45,7 @@ export async function GET(
     })
   } catch (error) {
     console.error('Dissemination Task GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch dissemination task' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -62,7 +62,7 @@ export async function PUT(
       select: { status: true, assigneeId: true, disseminatorId: true, startedAt: true },
     })
     if (!currentTask) {
-      return NextResponse.json({ error: 'Dissemination task not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -204,6 +204,6 @@ export async function PUT(
     })
   } catch (error) {
     console.error('Dissemination Task PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update dissemination task' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

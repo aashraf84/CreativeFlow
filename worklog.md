@@ -1372,3 +1372,92 @@ Added new report-specific CSS classes:
 4. For aging reports (AR Aging, AP Aging), invoices/expenses are grouped into 0–30/31–60/61–90/90+ day buckets with sub-group header rows.
 5. For reports with bar visualizations (Financial Summary, Payroll Summary, Department Summary, Expense Report, Inventory Valuation), top categories/products are visualized as horizontal CSS bars.
 6. Export PDF button is locked in demo mode (shows lock icon + "Export Locked" label + amber demo-mode banner).
+
+---
+
+# Task: Complete macOS 27 Tahoe Redesign with Dark/Light Mode and Retina Colors
+
+## Agent: frontend-styling-expert
+## Date: 2026-06-27
+
+## Summary
+Completed a comprehensive macOS 27 (Tahoe) "Liquid Glass" redesign with full dark AND light mode support across the entire ERP. Added retina-quality vibrant Apple system accent colors (emerald, teal, orange, red, purple, blue), a working dark/light theme toggle with FOUC-free bootstrap, smooth color transitions, prefers-reduced-motion accessibility support, and vortex-* animation utilities. All glass materials, status badges, KPI cards, and section-color cues now adapt correctly between modes.
+
+## Changes Made
+
+### 1. `/home/z/my-project/src/app/globals.css` (Tahoe design system expansion)
+- Added **retina vibrant accent palette** at `@theme inline` level: `--retina-emerald: #34c759`, `--retina-teal: #30d158`, `--retina-orange: #ff9500`, `--retina-red: #ff3b30`, `--retina-purple: #af52de`, `--retina-blue: #007aff` (plus pink, yellow, indigo, mint).
+- Added **easing curves**: `--ease-tahoe: cubic-bezier(0.34,1.56,0.64,1)` and `--ease-smooth: cubic-bezier(0.4,0,0.2,1)`.
+- Added **spec-compliant aliases** at both `:root` (light) and `.dark` (dark) layers: `--bg`, `--card`, `--text`, `--muted`, `--emerald`, `--teal`, `--orange`, `--red`, `--purple`, `--blue`, plus `--macos-card-solid` (#ffffff / #2c2c2e).
+- Added **smooth dark/light transition** on `body`, `.glass`, `.glass-sidebar`, `.glass-toolbar`, and `.shadow-macos` (0.32s ease-smooth transition on background-color, color, box-shadow, border-color).
+- Added **`.macos-scroll`** utility class — explicit auto-hiding thin scrollbars (transparent thumb, visible on hover) — referenced by the sidebar nav container.
+- Added **retina color helper classes**: `.text-emerald-retina`, `.bg-emerald-retina`, etc. (6 colors × 2 variants).
+- Added **`.macos-pill`** segmented-control pill button with active scale micro-interaction.
+- Added **status badge classes that work in both light & dark mode**: `.badge-emerald`, `.badge-amber`, `.badge-red`, `.badge-teal`, `.badge-blue`, `.badge-purple`, `.badge-slate` — each with explicit `.dark` overrides.
+- Added **vortex-* animation utilities**: `vortex-pulse`, `vortex-shimmer`, `vortex-float`, `vortex-glow`, `vortex-spin`, `vortex-fade-in`, `vortex-scale-in` (with corresponding `@keyframes` definitions).
+- Added **`prefers-reduced-motion`** media query — disables all animations, transitions, hover lifts, and vortex animations for users with motion sensitivity.
+
+### 2. `/home/z/my-project/src/app/layout.tsx` (FOUC-free theme bootstrap)
+- Added inline `<script>` running before paint that reads `vortex-theme` from localStorage (or falls back to `prefers-color-scheme: dark`) and applies the `dark` class to `<html>` — preventing a flash of the wrong color scheme on initial page load.
+
+### 3. `/home/z/my-project/src/components/erp/header.tsx` (theme toggle + section color)
+- Enhanced the theme toggle's `useEffect` to sync state with whatever the bootstrap script applied and to fall back to system preference when no saved theme exists.
+- Added `SECTION_COLOR_BY_VIEW` map covering all 28 views, color-coded by their sidebar section (emerald/blue/orange/teal/red/purple).
+- Page title now renders in its section color with a small color dot beside it (both visible in light and dark mode).
+- DEMO badge now has `dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-300` for dark mode visibility.
+
+### 4. `/home/z/my-project/src/components/erp/employees-view.tsx`
+- `STATUS_CONFIG` (active/on_leave/probation/terminated) now has `dark:` variants for bg, border, and text colors.
+- KPI card config (Total Employees, Active, On Leave, Departments) updated with `dark:` variants.
+- "Manage Departments" outline button gets dark-mode emerald styling.
+
+### 5. `/home/z/my-project/src/components/erp/attendance-view.tsx`
+- `STATUS_CONFIG` (present/late/absent/half-day/leave) now has `dark:` variants.
+- KPI card config (Present, Late, Absent, On Leave) updated with `dark:` variants.
+
+### 6. `/home/z/my-project/src/components/erp/finance-accounts-view.tsx`
+- `ACCOUNT_TYPE_CONFIG` (asset/liability/equity/revenue/expense) now has `dark:` variants.
+- KPI card config (5 KPIs) updated with `dark:` variants.
+- Balance-sheet total rows (Total Assets, Total Liabilities, Total Equity, Total Expenses) and Net Income row now have dark backgrounds and matching text colors.
+
+### 7. `/home/z/my-project/src/components/erp/it-assets-view.tsx`
+- `CATEGORY_COLORS` (laptop/desktop/monitor/keyboard/mouse/headphone/usb/other) now has `dark:` variants for bg, text, border, and icon.
+- `STATUS_CONFIG`, `CONDITION_CONFIG`, `ISSUANCE_STATUS_CONFIG` all received `dark:` variants.
+- "Currently issued to" alert, current assignment panel, overdue issuance row, retire/issue/return action buttons, and "Return" action button in issuance list all received dark-mode styling.
+
+### 8. `/home/z/my-project/src/components/erp/invoicing-view.tsx`
+- `STATUS_CONFIG` (draft/sent/paid/overdue/cancelled) now has `dark:` variants.
+- "Billable" badge updated with dark-mode emerald styling.
+
+### 9. `/home/z/my-project/src/components/erp/products-view.tsx`
+- `StockIndicator` config (ok/low/out) now has `dark:` variants.
+- KPI card config (4 KPIs) updated with `dark:` variants.
+- "Total Stock" summary panel in product detail updated with dark-mode emerald styling.
+- Product list item icon container updated with dark-mode emerald styling.
+
+### 10. `/home/z/my-project/src/components/erp/auth-screen.tsx` (dark immersive redesign)
+- Replaced the light `from-emerald-50 via-white to-teal-50` gradient with a deep `#0a0a0c` immersive dark canvas.
+- Added **aurora background blobs** (emerald, teal, purple) with `blur-3xl` and `vortex-float` animation, plus a subtle grid overlay.
+- Auth Card now uses **glass morphism on dark**: `bg-white/[0.04] backdrop-blur-xl border-white/10`.
+- All text converted to white with various opacity levels (`text-white/60`, `text-white/40`).
+- Inputs use `bg-white/[0.06] border-white/10 text-white placeholder:text-white/30` with emerald focus ring.
+- Branding panel uses `from-emerald-300 to-teal-300` gradient text and `bg-emerald-500/15` icon chips.
+- All existing JS/TS logic (serial key submit, login, demo login, error handling, device ID) preserved unchanged.
+
+## Verification
+- ✅ `bun run lint` — passes clean (no warnings, no errors)
+- ✅ `unset DATABASE_URL && unset DIRECT_URL && npx next build` — compiled successfully in 11.4s, generated 60 static pages
+
+## Key Design Decisions
+1. **Inline theme bootstrap** in `layout.tsx` prevents FOUC by applying the dark class before React hydrates — critical for a quality dark/light experience.
+2. **CSS variables for both modes** — all glass surfaces and shadow utilities reference `--macos-card`, `--macos-shadow`, etc., so they automatically adapt when `.dark` is toggled on `<html>`.
+3. **`.dark .class` overrides** in globals.css for the 7 status badge variants — single source of truth that any view can use via `className="badge-emerald"` etc.
+4. **Auth screen stays dark by default** — per task spec, it's an immersive dark design. The rest of the app respects the user's saved/system theme preference.
+5. **`prefers-reduced-motion`** is enforced globally — motion-sensitive users get instant transitions with no animation.
+
+## What to Verify Visually
+- Open the app, click the Sun/Moon toggle in the header — background, sidebar, toolbar, and all cards should smoothly transition between modes.
+- Sidebar section color dots (emerald/blue/orange/teal/red/purple) and active nav-item left borders remain visible in both modes.
+- Header page title takes on the active view's section color (e.g. emerald on Dashboard, orange on Employees, teal on Invoicing).
+- KPI cards in Employees/Attendance/Finance/Products views show correctly-tinted status badges in both modes.
+- Auth screen renders as dark immersive with aurora blobs and floating animation — independent of the saved theme.

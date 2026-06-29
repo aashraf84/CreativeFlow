@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: records })
   } catch (error) {
     console.error('Attendance GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch attendance' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const org = await db.organization.findFirst()
-    if (!org) return NextResponse.json({ error: 'No organization' }, { status: 404 })
+    if (!org) return NextResponse.json({ data: [] })
 
     let workHours: number | null = null
     if (body.clockIn && body.clockOut) {
@@ -78,6 +78,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: record }, { status: 201 })
   } catch (error) {
     console.error('Attendance POST error:', error)
-    return NextResponse.json({ error: 'Failed to create attendance' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

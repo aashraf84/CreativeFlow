@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const { searchParams } = new URL(request.url)
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ brandKits })
   } catch (error) {
     console.error('BrandKit GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch brand kit items' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const body = await request.json()
@@ -55,6 +55,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ brandKit }, { status: 201 })
   } catch (error) {
     console.error('BrandKit POST error:', error)
-    return NextResponse.json({ error: 'Failed to create brand kit item' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

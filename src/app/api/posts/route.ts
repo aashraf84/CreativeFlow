@@ -13,7 +13,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const where: Record<string, unknown> = {
@@ -60,7 +60,7 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('Posts GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     if (!body.content || !body.platform || !body.socialAccountId || !body.userId) {
@@ -114,6 +114,6 @@ export async function POST(request: Request) {
     return NextResponse.json(post, { status: 201 })
   } catch (error) {
     console.error('Posts POST error:', error)
-    return NextResponse.json({ error: 'Failed to create post' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

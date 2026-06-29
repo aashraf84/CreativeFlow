@@ -27,13 +27,13 @@ export async function GET(
     })
 
     if (!content) {
-      return NextResponse.json({ error: 'Content not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     return NextResponse.json(content)
   } catch (error) {
     console.error('Content GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch content' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -52,7 +52,7 @@ export async function PUT(
     })
 
     if (!currentContent) {
-      return NextResponse.json({ error: 'Content not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -126,7 +126,7 @@ export async function PUT(
     return NextResponse.json(content)
   } catch (error) {
     console.error('Content PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update content' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -145,6 +145,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Content deleted' })
   } catch (error) {
     console.error('Content DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete content' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

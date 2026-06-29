@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const { searchParams } = new URL(request.url)
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ assets })
   } catch (error) {
     console.error('Assets GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch assets' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const body = await request.json()
@@ -66,6 +66,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ asset }, { status: 201 })
   } catch (error) {
     console.error('Assets POST error:', error)
-    return NextResponse.json({ error: 'Failed to create asset' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

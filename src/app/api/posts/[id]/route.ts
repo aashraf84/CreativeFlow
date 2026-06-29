@@ -17,7 +17,7 @@ export async function GET(
     })
 
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     return NextResponse.json({
@@ -26,7 +26,7 @@ export async function GET(
     })
   } catch (error) {
     console.error('Post GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch post' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -40,7 +40,7 @@ export async function PUT(
 
     const currentPost = await db.post.findUnique({ where: { id }, select: { status: true } })
     if (!currentPost) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -98,7 +98,7 @@ export async function PUT(
     })
   } catch (error) {
     console.error('Post PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update post' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -112,6 +112,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Post deleted' })
   } catch (error) {
     console.error('Post DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete post' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

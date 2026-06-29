@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.vendor.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'Vendor not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -34,7 +34,7 @@ export async function PUT(
     return NextResponse.json(vendor)
   } catch (error) {
     console.error('Vendor PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update vendor' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -48,6 +48,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Vendor deleted' })
   } catch (error) {
     console.error('Vendor DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete vendor' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

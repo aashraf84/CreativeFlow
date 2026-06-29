@@ -17,11 +17,11 @@ import { toast } from "sonner"
 import { format } from "date-fns"
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  present: { label: "Present", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", dot: "bg-emerald-500" },
-  late: { label: "Late", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", dot: "bg-amber-500" },
-  absent: { label: "Absent", color: "text-red-700", bg: "bg-red-50 border-red-200", dot: "bg-red-500" },
-  "half-day": { label: "Half Day", color: "text-orange-700", bg: "bg-orange-50 border-orange-200", dot: "bg-orange-500" },
-  leave: { label: "On Leave", color: "text-teal-700", bg: "bg-teal-50 border-teal-200", dot: "bg-teal-500" },
+  present: { label: "Present", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-700/40", dot: "bg-emerald-500" },
+  late: { label: "Late", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-900/40 border-amber-200 dark:border-amber-700/40", dot: "bg-amber-500" },
+  absent: { label: "Absent", color: "text-red-700 dark:text-red-300", bg: "bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-700/40", dot: "bg-red-500" },
+  "half-day": { label: "Half Day", color: "text-orange-700 dark:text-orange-300", bg: "bg-orange-50 dark:bg-orange-900/40 border-orange-200 dark:border-orange-700/40", dot: "bg-orange-500" },
+  leave: { label: "On Leave", color: "text-teal-700 dark:text-teal-300", bg: "bg-teal-50 dark:bg-teal-900/40 border-teal-200 dark:border-teal-700/40", dot: "bg-teal-500" },
 }
 
 export function AttendanceView() {
@@ -259,10 +259,10 @@ export function AttendanceView() {
       {/* KPI Cards */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Present", value: kpis.present, icon: UserCheck, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Late", value: kpis.late, icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
-          { label: "Absent", value: kpis.absent, icon: AlertCircle, color: "text-red-600", bg: "bg-red-50" },
-          { label: "On Leave", value: kpis.leave, icon: Users, color: "text-teal-600", bg: "bg-teal-50" },
+          { label: "Present", value: kpis.present, icon: UserCheck, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40" },
+          { label: "Late", value: kpis.late, icon: Clock, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/40" },
+          { label: "Absent", value: kpis.absent, icon: AlertCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/40" },
+          { label: "On Leave", value: kpis.leave, icon: Users, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-900/40" },
         ].map((kpi, i) => (
           <motion.div key={kpi.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
             <Card className="glass border border-black/5 dark:border-white/10 shadow-sm rounded-2xl">

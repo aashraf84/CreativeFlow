@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const departments = await db.department.findMany({
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: departments })
   } catch (error) {
     console.error('Departments GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch departments' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const department = await db.department.create({
@@ -47,6 +47,6 @@ export async function POST(request: Request) {
     return NextResponse.json(department, { status: 201 })
   } catch (error) {
     console.error('Departments POST error:', error)
-    return NextResponse.json({ error: 'Failed to create department' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

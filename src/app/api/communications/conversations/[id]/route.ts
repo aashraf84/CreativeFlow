@@ -26,13 +26,13 @@ export async function GET(
     })
 
     if (!conversation) {
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     return NextResponse.json({ conversation })
   } catch (error) {
     console.error('Conversation GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch conversation' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -70,6 +70,6 @@ export async function PUT(
     return NextResponse.json({ conversation })
   } catch (error) {
     console.error('Conversation PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update conversation' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

@@ -59,37 +59,37 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 }
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string; icon: string }> = {
-  laptop: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", icon: "bg-emerald-100 text-emerald-600" },
-  desktop: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200", icon: "bg-slate-100 text-slate-600" },
-  monitor: { bg: "bg-cyan-50", text: "text-cyan-700", border: "border-cyan-200", icon: "bg-cyan-100 text-cyan-600" },
-  keyboard: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200", icon: "bg-violet-100 text-violet-600" },
-  mouse: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", icon: "bg-amber-100 text-amber-600" },
-  headphone: { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200", icon: "bg-rose-100 text-rose-600" },
-  usb: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200", icon: "bg-teal-100 text-teal-600" },
-  other: { bg: "bg-gray-50", text: "text-gray-700", border: "border-gray-200", icon: "bg-gray-100 text-gray-600" },
+  laptop: { bg: "bg-emerald-50 dark:bg-emerald-900/40", text: "text-emerald-700 dark:text-emerald-300", border: "border-emerald-200 dark:border-emerald-700/40", icon: "bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300" },
+  desktop: { bg: "bg-slate-50 dark:bg-slate-900/40", text: "text-slate-700 dark:text-slate-300", border: "border-slate-200 dark:border-slate-700/40", icon: "bg-slate-100 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300" },
+  monitor: { bg: "bg-cyan-50 dark:bg-cyan-900/40", text: "text-cyan-700 dark:text-cyan-300", border: "border-cyan-200 dark:border-cyan-700/40", icon: "bg-cyan-100 dark:bg-cyan-900/60 text-cyan-600 dark:text-cyan-300" },
+  keyboard: { bg: "bg-violet-50 dark:bg-violet-900/40", text: "text-violet-700 dark:text-violet-300", border: "border-violet-200 dark:border-violet-700/40", icon: "bg-violet-100 dark:bg-violet-900/60 text-violet-600 dark:text-violet-300" },
+  mouse: { bg: "bg-amber-50 dark:bg-amber-900/40", text: "text-amber-700 dark:text-amber-300", border: "border-amber-200 dark:border-amber-700/40", icon: "bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300" },
+  headphone: { bg: "bg-rose-50 dark:bg-rose-900/40", text: "text-rose-700 dark:text-rose-300", border: "border-rose-200 dark:border-rose-700/40", icon: "bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300" },
+  usb: { bg: "bg-teal-50 dark:bg-teal-900/40", text: "text-teal-700 dark:text-teal-300", border: "border-teal-200 dark:border-teal-700/40", icon: "bg-teal-100 dark:bg-teal-900/60 text-teal-600 dark:text-teal-300" },
+  other: { bg: "bg-gray-50 dark:bg-gray-800/40", text: "text-gray-700 dark:text-gray-300", border: "border-gray-200 dark:border-gray-700/40", icon: "bg-gray-100 dark:bg-gray-800/60 text-gray-600 dark:text-gray-300" },
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  available: { label: "Available", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", dot: "bg-emerald-500" },
-  issued: { label: "Issued", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", dot: "bg-amber-500" },
-  maintenance: { label: "Maintenance", color: "text-cyan-700", bg: "bg-cyan-50 border-cyan-200", dot: "bg-cyan-500" },
-  retired: { label: "Retired", color: "text-slate-700", bg: "bg-slate-50 border-slate-200", dot: "bg-slate-500" },
-  lost: { label: "Lost", color: "text-rose-700", bg: "bg-rose-50 border-rose-200", dot: "bg-rose-500" },
+  available: { label: "Available", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-700/40", dot: "bg-emerald-500" },
+  issued: { label: "Issued", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-900/40 border-amber-200 dark:border-amber-700/40", dot: "bg-amber-500" },
+  maintenance: { label: "Maintenance", color: "text-cyan-700 dark:text-cyan-300", bg: "bg-cyan-50 dark:bg-cyan-900/40 border-cyan-200 dark:border-cyan-700/40", dot: "bg-cyan-500" },
+  retired: { label: "Retired", color: "text-slate-700 dark:text-slate-300", bg: "bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700/40", dot: "bg-slate-500" },
+  lost: { label: "Lost", color: "text-rose-700 dark:text-rose-300", bg: "bg-rose-50 dark:bg-rose-900/40 border-rose-200 dark:border-rose-700/40", dot: "bg-rose-500" },
 }
 
 const CONDITION_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
-  new: { label: "New", color: "text-emerald-700", dot: "bg-emerald-500" },
-  good: { label: "Good", color: "text-teal-700", dot: "bg-teal-500" },
-  fair: { label: "Fair", color: "text-amber-700", dot: "bg-amber-500" },
-  damaged: { label: "Damaged", color: "text-red-700", dot: "bg-red-500" },
-  retired: { label: "Retired", color: "text-slate-700", dot: "bg-slate-400" },
+  new: { label: "New", color: "text-emerald-700 dark:text-emerald-300", dot: "bg-emerald-500" },
+  good: { label: "Good", color: "text-teal-700 dark:text-teal-300", dot: "bg-teal-500" },
+  fair: { label: "Fair", color: "text-amber-700 dark:text-amber-300", dot: "bg-amber-500" },
+  damaged: { label: "Damaged", color: "text-red-700 dark:text-red-300", dot: "bg-red-500" },
+  retired: { label: "Retired", color: "text-slate-700 dark:text-slate-300", dot: "bg-slate-400" },
 }
 
 const ISSUANCE_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  issued: { label: "Issued", color: "text-amber-700", bg: "bg-amber-50 border-amber-200" },
-  returned: { label: "Returned", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
-  overdue: { label: "Overdue", color: "text-rose-700", bg: "bg-rose-50 border-rose-200" },
-  lost: { label: "Lost", color: "text-slate-700", bg: "bg-slate-50 border-slate-200" },
+  issued: { label: "Issued", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-900/40 border-amber-200 dark:border-amber-700/40" },
+  returned: { label: "Returned", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-700/40" },
+  overdue: { label: "Overdue", color: "text-rose-700 dark:text-rose-300", bg: "bg-rose-50 dark:bg-rose-900/40 border-rose-200 dark:border-rose-700/40" },
+  lost: { label: "Lost", color: "text-slate-700 dark:text-slate-300", bg: "bg-slate-50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-700/40" },
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -612,8 +612,8 @@ function ReturnAssetDialog({ asset, open, onOpenChange }: {
             </div>
           </div>
           {asset.assignedTo && (
-            <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 border border-amber-200">
-              <UserIcon className="h-4 w-4 text-amber-600" />
+            <div className="flex items-center gap-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/40">
+              <UserIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <span className="text-sm">Currently issued to <strong>{asset.assignedTo.name}</strong></span>
             </div>
           )}
@@ -820,10 +820,10 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
           {activeIssuance && (
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Current Assignment</h4>
-              <div className="p-3 rounded-lg border border-amber-200 bg-amber-50/50">
+              <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-700/40 bg-amber-50/50 dark:bg-amber-900/20">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-amber-100 text-amber-700 text-xs">
+                    <AvatarFallback className="bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 text-xs">
                       {getInitials(activeIssuance.issuedTo?.name || "?")}
                     </AvatarFallback>
                   </Avatar>
@@ -918,7 +918,7 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
               </Button>
             )}
             {asset.status !== "retired" && (
-              <Button variant="outline" onClick={handleRetire} className="h-9 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50" disabled={actionLoading}>
+              <Button variant="outline" onClick={handleRetire} className="h-9 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30" disabled={actionLoading}>
                 <CirclePause className="h-3.5 w-3.5 mr-1.5" /> Retire
               </Button>
             )}
@@ -998,12 +998,12 @@ function AssetCard({ asset, onClick, onIssue, onReturn }: {
           {/* Quick Actions */}
           <div className="flex items-center gap-1 mt-3 pt-3 border-t opacity-0 group-hover:opacity-100 transition-opacity">
             {asset.status === "available" && (
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-50" onClick={e => { e.stopPropagation(); onIssue() }}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30" onClick={e => { e.stopPropagation(); onIssue() }}>
                 <ArrowRightLeft className="h-3 w-3" /> Issue
               </Button>
             )}
             {asset.status === "issued" && (
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" onClick={e => { e.stopPropagation(); onReturn() }}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30" onClick={e => { e.stopPropagation(); onReturn() }}>
                 <RotateCcw className="h-3 w-3" /> Return
               </Button>
             )}
@@ -1439,7 +1439,7 @@ export function ITAssetsView() {
                         return (
                           <tr
                             key={issuance.id}
-                            className={`border-b last:border-0 hover:bg-black/[0.03] dark:bg-white/[0.04] transition-colors ${effectiveStatus === "overdue" ? "bg-rose-50/50" : ""}`}
+                            className={`border-b last:border-0 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors ${effectiveStatus === "overdue" ? "bg-rose-50/50 dark:bg-rose-900/15" : ""}`}
                           >
                             <td className="py-3 px-4">
                               {asset ? (
@@ -1494,7 +1494,7 @@ export function ITAssetsView() {
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  className="h-7 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                  className="h-7 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
                                   onClick={() => {
                                     if (asset) {
                                       openReturn(asset)

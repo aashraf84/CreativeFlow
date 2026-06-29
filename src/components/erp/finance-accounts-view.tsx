@@ -32,13 +32,13 @@ const itemVariants = {
   visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
 }
 
-// ── Account type config ─────────────────────────────────────────────
+// ── Account type config (with dark mode variants) ──────────────────
 const ACCOUNT_TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  asset: { label: "Asset", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: Wallet },
-  liability: { label: "Liability", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", icon: CreditCard },
-  equity: { label: "Equity", color: "text-teal-700", bg: "bg-teal-50 border-teal-200", icon: PiggyBank },
-  revenue: { label: "Revenue", color: "text-green-700", bg: "bg-green-50 border-green-200", icon: TrendingUp },
-  expense: { label: "Expense", color: "text-red-700", bg: "bg-red-50 border-red-200", icon: TrendingDown },
+  asset: { label: "Asset", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-700/40", icon: Wallet },
+  liability: { label: "Liability", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-900/40 border-amber-200 dark:border-amber-700/40", icon: CreditCard },
+  equity: { label: "Equity", color: "text-teal-700 dark:text-teal-300", bg: "bg-teal-50 dark:bg-teal-900/40 border-teal-200 dark:border-teal-700/40", icon: PiggyBank },
+  revenue: { label: "Revenue", color: "text-green-700 dark:text-green-300", bg: "bg-green-50 dark:bg-green-900/40 border-green-200 dark:border-green-700/40", icon: TrendingUp },
+  expense: { label: "Expense", color: "text-red-700 dark:text-red-300", bg: "bg-red-50 dark:bg-red-900/40 border-red-200 dark:border-red-700/40", icon: TrendingDown },
 }
 
 const ACCOUNT_TYPES = ["All", "Asset", "Liability", "Equity", "Revenue", "Expense"]
@@ -434,11 +434,11 @@ export function FinanceAccountsView() {
         {/* KPIs */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
           {[
-            { label: "Total Assets", value: kpis.totalAssets, icon: Wallet, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Total Liabilities", value: kpis.totalLiabilities, icon: CreditCard, color: "text-amber-600", bg: "bg-amber-50" },
-            { label: "Total Equity", value: kpis.totalEquity, icon: PiggyBank, color: "text-teal-600", bg: "bg-teal-50" },
-            { label: "Total Revenue", value: kpis.totalRevenue, icon: TrendingUp, color: "text-green-600", bg: "bg-green-50" },
-            { label: "Total Expenses", value: kpis.totalExpenses, icon: TrendingDown, color: "text-red-600", bg: "bg-red-50" },
+            { label: "Total Assets", value: kpis.totalAssets, icon: Wallet, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40" },
+            { label: "Total Liabilities", value: kpis.totalLiabilities, icon: CreditCard, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/40" },
+            { label: "Total Equity", value: kpis.totalEquity, icon: PiggyBank, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-900/40" },
+            { label: "Total Revenue", value: kpis.totalRevenue, icon: TrendingUp, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/40" },
+            { label: "Total Expenses", value: kpis.totalExpenses, icon: TrendingDown, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/40" },
           ].map((kpi) => (
             <Card key={kpi.label} className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
               <CardContent className="p-4">
@@ -827,7 +827,7 @@ export function FinanceAccountsView() {
                           <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between text-sm font-bold p-2 bg-emerald-50 rounded mt-1">
+                      <div className="flex justify-between text-sm font-bold p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded mt-1 text-emerald-800 dark:text-emerald-200">
                         <span>Total Assets</span><span className="text-emerald-700">{formatCurrency(reportData.totalAssets as number || 0)}</span>
                       </div>
                     </div>
@@ -842,7 +842,7 @@ export function FinanceAccountsView() {
                           <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between text-sm font-bold p-2 bg-amber-50 rounded mt-1">
+                      <div className="flex justify-between text-sm font-bold p-2 bg-amber-50 dark:bg-amber-900/30 rounded mt-1 text-amber-800 dark:text-amber-200">
                         <span>Total Liabilities</span><span className="text-amber-700">{formatCurrency(reportData.totalLiabilities as number || 0)}</span>
                       </div>
                     </div>
@@ -857,7 +857,7 @@ export function FinanceAccountsView() {
                           <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between text-sm font-bold p-2 bg-teal-50 rounded mt-1">
+                      <div className="flex justify-between text-sm font-bold p-2 bg-teal-50 dark:bg-teal-900/30 rounded mt-1 text-teal-800 dark:text-teal-200">
                         <span>Total Equity</span><span className="text-teal-700">{formatCurrency(reportData.totalEquity as number || 0)}</span>
                       </div>
                     </div>
@@ -925,7 +925,7 @@ export function FinanceAccountsView() {
                           <span>{a.code} - {a.name}</span><span>{formatCurrency(a.balance)}</span>
                         </div>
                       ))}
-                      <div className="flex justify-between text-sm font-bold p-2 bg-red-50 rounded mt-1">
+                      <div className="flex justify-between text-sm font-bold p-2 bg-red-50 dark:bg-red-900/30 rounded mt-1 text-red-800 dark:text-red-200">
                         <span>Total Expenses</span><span className="text-red-700">{formatCurrency(reportData.totalExpenses as number || 0)}</span>
                       </div>
                     </div>
@@ -933,7 +933,7 @@ export function FinanceAccountsView() {
 
                   {/* Net Income */}
                   <div className="border-t pt-4">
-                    <div className={`flex justify-between text-lg font-bold p-3 rounded ${((reportData.netIncome as number) || 0) >= 0 ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>
+                    <div className={`flex justify-between text-lg font-bold p-3 rounded ${((reportData.netIncome as number) || 0) >= 0 ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200" : "bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200"}`}>
                       <span>Net Income</span>
                       <span>{formatCurrency(reportData.netIncome as number || 0)}</span>
                     </div>

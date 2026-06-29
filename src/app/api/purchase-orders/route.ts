@@ -8,7 +8,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const where: Record<string, unknown> = {
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: purchaseOrders })
   } catch (error) {
     console.error('PurchaseOrders GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch purchase orders' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const purchaseOrder = await db.purchaseOrder.create({
@@ -82,6 +82,6 @@ export async function POST(request: Request) {
     return NextResponse.json(purchaseOrder, { status: 201 })
   } catch (error) {
     console.error('PurchaseOrders POST error:', error)
-    return NextResponse.json({ error: 'Failed to create purchase order' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

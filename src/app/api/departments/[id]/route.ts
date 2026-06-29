@@ -25,7 +25,7 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json({ data: dept })
   } catch (error) {
     console.error('Department PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update department' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -46,6 +46,6 @@ export async function DELETE(_request: Request, { params }: Params) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Department DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete department' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

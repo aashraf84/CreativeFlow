@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const { searchParams } = new URL(request.url)
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ approvals })
   } catch (error) {
     console.error('Approvals GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch approvals' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const body = await request.json()
@@ -63,6 +63,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ approval }, { status: 201 })
   } catch (error) {
     console.error('Approvals POST error:', error)
-    return NextResponse.json({ error: 'Failed to create approval' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

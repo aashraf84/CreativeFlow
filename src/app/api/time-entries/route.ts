@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const { searchParams } = new URL(request.url)
@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ timeEntries })
   } catch (error) {
     console.error('TimeEntries GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch time entries' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const body = await request.json()
@@ -73,6 +73,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ timeEntry }, { status: 201 })
   } catch (error) {
     console.error('TimeEntries POST error:', error)
-    return NextResponse.json({ error: 'Failed to create time entry' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

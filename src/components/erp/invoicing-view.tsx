@@ -75,13 +75,13 @@ const itemVariants = {
   },
 }
 
-// ── Status config ───────────────────────────────────────────────────
+// ── Status config (with dark mode variants) ────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  draft: { label: "Draft", color: "text-slate-600", bg: "bg-slate-100", border: "border-slate-200" },
-  sent: { label: "Sent", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
-  paid: { label: "Paid", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
-  overdue: { label: "Overdue", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200" },
-  cancelled: { label: "Cancelled", color: "text-gray-600", bg: "bg-gray-100", border: "border-gray-200" },
+  draft: { label: "Draft", color: "text-slate-600 dark:text-slate-300", bg: "bg-slate-100 dark:bg-slate-800/60", border: "border-slate-200 dark:border-slate-700/40" },
+  sent: { label: "Sent", color: "text-amber-700 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-900/40", border: "border-amber-200 dark:border-amber-700/40" },
+  paid: { label: "Paid", color: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 dark:bg-emerald-900/40", border: "border-emerald-200 dark:border-emerald-700/40" },
+  overdue: { label: "Overdue", color: "text-rose-700 dark:text-rose-300", bg: "bg-rose-50 dark:bg-rose-900/40", border: "border-rose-200 dark:border-rose-700/40" },
+  cancelled: { label: "Cancelled", color: "text-gray-600 dark:text-gray-300", bg: "bg-gray-100 dark:bg-gray-800/60", border: "border-gray-200 dark:border-gray-700/40" },
 }
 
 // ── Chart config ────────────────────────────────────────────────────
@@ -776,7 +776,7 @@ export function InvoicingView() {
                               <td className="p-3 text-sm text-muted-foreground hidden md:table-cell">{formatDate(entry.date)}</td>
                               <td className="p-3 text-center">
                                 {entry.billable ? (
-                                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs">Billable</Badge>
+                                  <Badge className="bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/40 text-xs">Billable</Badge>
                                 ) : (
                                   <Badge variant="secondary" className="text-xs">Non-Billable</Badge>
                                 )}

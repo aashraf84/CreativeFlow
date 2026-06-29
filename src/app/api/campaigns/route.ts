@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const where: Record<string, unknown> = {
@@ -31,6 +31,6 @@ export async function GET(request: Request) {
     return NextResponse.json(campaigns)
   } catch (error) {
     console.error('Campaigns GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

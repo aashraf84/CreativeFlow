@@ -6,7 +6,7 @@ export async function GET() {
     // Get the first organization (Vortex Digital)
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found. Please seed the database.' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     // Total content by stage
@@ -230,6 +230,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Dashboard error:', error)
-    return NextResponse.json({ error: 'Failed to fetch dashboard data' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

@@ -8,7 +8,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const where: Record<string, unknown> = {
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: jobPostings })
   } catch (error) {
     console.error('JobPostings GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch job postings' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const jobPosting = await db.jobPosting.create({
@@ -64,6 +64,6 @@ export async function POST(request: Request) {
     return NextResponse.json(jobPosting, { status: 201 })
   } catch (error) {
     console.error('JobPostings POST error:', error)
-    return NextResponse.json({ error: 'Failed to create job posting' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

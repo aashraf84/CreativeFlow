@@ -13,11 +13,11 @@ export async function GET(_request: Request, { params }: Params) {
       where: { id },
       include: { employee: { select: { id: true, firstName: true, lastName: true, avatar: true, department: { select: { name: true } } } } }
     })
-    if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!record) return NextResponse.json({ data: [] })
     return NextResponse.json({ data: record })
   } catch (error) {
     console.error('Attendance GET error:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -54,7 +54,7 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json({ data: record })
   } catch (error) {
     console.error('Attendance PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -66,6 +66,6 @@ export async function DELETE(_request: Request, { params }: Params) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Attendance DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

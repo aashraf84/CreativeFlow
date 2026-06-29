@@ -98,7 +98,10 @@ export default function ERPPage() {
     try {
       // Seed the database first
       if (!seeded) {
-        await fetch("/api/seed");
+        await Promise.race([
+          fetch("/api/seed").catch(() => {}),
+          new Promise(r => setTimeout(r, 3000)),
+        ]);
         setSeeded(true);
       }
 

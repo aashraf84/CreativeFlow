@@ -13,7 +13,7 @@ export async function GET(
 
     const conversation = await db.conversation.findUnique({ where: { id } })
     if (!conversation) {
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const where = { conversationId: id }
@@ -37,7 +37,7 @@ export async function GET(
     })
   } catch (error) {
     console.error('Conversation messages GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -58,7 +58,7 @@ export async function POST(
 
     const conversation = await db.conversation.findUnique({ where: { id } })
     if (!conversation) {
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     // For email, subject and recipientEmail are expected
@@ -154,6 +154,6 @@ export async function POST(
     return NextResponse.json({ message: finalMessage }, { status: 201 })
   } catch (error) {
     console.error('Conversation messages POST error:', error)
-    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

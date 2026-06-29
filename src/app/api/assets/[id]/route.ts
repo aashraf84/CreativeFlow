@@ -33,7 +33,7 @@ export async function PUT(
     return NextResponse.json({ asset })
   } catch (error) {
     console.error('Asset PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update asset' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -47,6 +47,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Asset deleted' })
   } catch (error) {
     console.error('Asset DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete asset' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

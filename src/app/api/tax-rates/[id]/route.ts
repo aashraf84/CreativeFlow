@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.taxRate.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'Tax rate not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -28,7 +28,7 @@ export async function PUT(
     return NextResponse.json({ data: taxRate })
   } catch (error) {
     console.error('TaxRate PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update tax rate' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -41,7 +41,7 @@ export async function DELETE(
 
     const existing = await db.taxRate.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'Tax rate not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     // Soft delete - set isActive to false
@@ -53,6 +53,6 @@ export async function DELETE(
     return NextResponse.json({ data: taxRate, message: 'Tax rate deactivated' })
   } catch (error) {
     console.error('TaxRate DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete tax rate' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

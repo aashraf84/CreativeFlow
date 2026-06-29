@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const warehouses = await db.warehouse.findMany({
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: warehouses })
   } catch (error) {
     console.error('Warehouses GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch warehouses' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const warehouse = await db.warehouse.create({
@@ -48,6 +48,6 @@ export async function POST(request: Request) {
     return NextResponse.json(warehouse, { status: 201 })
   } catch (error) {
     console.error('Warehouses POST error:', error)
-    return NextResponse.json({ error: 'Failed to create warehouse' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

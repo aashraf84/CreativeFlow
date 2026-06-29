@@ -56,15 +56,58 @@ const viewLabels: Record<ActiveView, string> = {
   itAssets: "IT Assets",
 };
 
+// Map each view to its Tahoe section color (matches sidebar palette)
+const SECTION_COLOR_BY_VIEW: Record<ActiveView, string> = {
+  dashboard: "#34c759",
+  pipeline: "#34c759",
+  dissemination: "#34c759",
+  calendar: "#34c759",
+  inbox: "#34c759",
+  approvals: "#34c759",
+  teams: "#007aff",
+  accounts: "#007aff",
+  clients: "#007aff",
+  influencers: "#007aff",
+  assets: "#007aff",
+  brandKit: "#007aff",
+  employees: "#ff9500",
+  attendance: "#ff9500",
+  payroll: "#ff9500",
+  recruitment: "#ff9500",
+  financeAccounts: "#30d158",
+  invoicing: "#30d158",
+  expenses: "#30d158",
+  products: "#ff3b30",
+  purchaseOrders: "#ff3b30",
+  vendors: "#ff3b30",
+  itAssets: "#ff3b30",
+  analytics: "#af52de",
+  automation: "#af52de",
+  reports: "#af52de",
+  archive: "#af52de",
+  settings: "#86868b",
+};
+
 export function Header() {
   const { activeView, setShowCreateContent, setShowCreatePost, currentUser, isViewOnly, logout } = useERPStore();
   const [isDark, setIsDark] = React.useState(false);
 
   React.useEffect(() => {
+    // Sync state with whatever the bootstrap script (or a prior session) set
+    const currentlyDark = document.documentElement.classList.contains("dark");
+    setIsDark(currentlyDark);
+
+    // If no preference is saved yet, fall back to system preference
     const savedTheme = localStorage.getItem("vortex-theme");
-    if (savedTheme === "dark") {
-      setIsDark(true);
-      document.documentElement.classList.add("dark");
+    if (!savedTheme) {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      if (prefersDark && !currentlyDark) {
+        document.documentElement.classList.add("dark");
+        setIsDark(true);
+      } else if (!prefersDark && currentlyDark) {
+        document.documentElement.classList.remove("dark");
+        setIsDark(false);
+      }
     }
   }, []);
 
@@ -85,7 +128,15 @@ export function Header() {
       {/* Left: Page title */}
       <div className="flex items-center gap-4 min-w-0">
         <div className="flex items-center gap-3 min-w-0">
-          <h2 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-white truncate">
+          <span
+            className="h-1.5 w-1.5 rounded-full shrink-0"
+            style={{ backgroundColor: SECTION_COLOR_BY_VIEW[activeView] || "#34c759" }}
+            aria-hidden
+          />
+          <h2
+            className="text-[15px] font-semibold tracking-tight truncate"
+            style={{ color: SECTION_COLOR_BY_VIEW[activeView] || "var(--macos-text)" }}
+          >
             {viewLabels[activeView]}
           </h2>
           {(activeView === "pipeline" || activeView === "dissemination") && (
@@ -146,9 +197,9 @@ export function Header() {
 
         {/* Demo mode indicator */}
         {isViewOnly && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200">
-            <Eye className="h-3 w-3 text-amber-600" />
-            <span className="text-[10px] font-semibold text-amber-700">DEMO</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30">
+            <Eye className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+            <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300">DEMO</span>
           </div>
         )}
 

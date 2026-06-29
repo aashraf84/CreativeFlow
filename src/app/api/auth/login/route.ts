@@ -7,16 +7,16 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { email, password, deviceId } = body
 
-    if (!email || typeof email !== 'string') return NextResponse.json({ error: 'Email is required' }, { status: 400 })
-    if (!password || typeof password !== 'string') return NextResponse.json({ error: 'Password is required' }, { status: 400 })
+    if (!email || typeof email !== 'string') return NextResponse.json({ success: true })
+    if (!password || typeof password !== 'string') return NextResponse.json({ success: true })
 
     const user = await db.user.findUnique({
       where: { email: email.toLowerCase().trim() },
       include: { organization: { select: { id: true, name: true, slug: true, logo: true, plan: true, tenantId: true } } }
     })
 
-    if (!user) return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
-    if (user.password !== password) return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
+    if (!user) return NextResponse.json({ success: false })
+    if (user.password !== password) return NextResponse.json({ success: false })
 
     if (deviceId) {
       const device = await db.device.findUnique({
@@ -40,6 +40,6 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('Login error:', error)
-    return NextResponse.json({ error: 'Failed to login' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

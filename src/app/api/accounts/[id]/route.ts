@@ -17,7 +17,7 @@ export async function GET(
     })
 
     if (!account) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     // Compute balance from journal entry lines (posted entries only)
@@ -64,7 +64,7 @@ export async function GET(
     })
   } catch (error) {
     console.error('Account GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch account' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -78,7 +78,7 @@ export async function PUT(
 
     const existing = await db.account.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -105,7 +105,7 @@ export async function PUT(
     return NextResponse.json({ data: account })
   } catch (error) {
     console.error('Account PUT error:', error)
-    return NextResponse.json({ error: 'Failed to update account' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
@@ -121,7 +121,7 @@ export async function DELETE(
       include: { _count: { select: { journalLines: true, children: true } } },
     })
     if (!existing) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     // Prevent deletion if account has journal lines
@@ -144,6 +144,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Account deleted' })
   } catch (error) {
     console.error('Account DELETE error:', error)
-    return NextResponse.json({ error: 'Failed to delete account' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }

@@ -21,6 +21,24 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Inline theme bootstrap — runs before paint to apply the saved theme
+ * and prevent a flash of the wrong color scheme (FOUC).
+ */
+const themeBootstrap = `
+(function() {
+  try {
+    var t = localStorage.getItem('vortex-theme');
+    var mql = window.matchMedia('(prefers-color-scheme: dark)');
+    if (t === 'dark' || (!t && mql.matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,6 +46,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >

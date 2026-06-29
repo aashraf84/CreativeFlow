@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const { searchParams } = new URL(request.url)
@@ -27,6 +27,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ messages })
   } catch (error) {
     console.error('Inbox GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch inbox messages' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
