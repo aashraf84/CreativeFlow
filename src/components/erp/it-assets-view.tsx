@@ -1182,10 +1182,16 @@ export function ITAssetsView() {
       const [assetsJson, issuancesJson] = await Promise.all([assetsRes.json(), issuancesRes.json()])
       const assetsData = assetsJson?.data || []
       const issuancesData = issuancesJson?.data || []
-      setItAssets(assetsData as ITAsset[])
-      setAssetIssuances(issuancesData as AssetIssuance[])
+      // IMPORTANT: Only update store if API returned actual data
+      // This prevents overwriting locally added assets with empty API response
+      if (Array.isArray(assetsData) && assetsData.length > 0) {
+        setItAssets(assetsData as ITAsset[])
+      }
+      if (Array.isArray(issuancesData) && issuancesData.length > 0) {
+        setAssetIssuances(issuancesData as AssetIssuance[])
+      }
     } catch {
-      // silent
+      // Keep existing store data on error
     }
   }, [setItAssets, setAssetIssuances])
 

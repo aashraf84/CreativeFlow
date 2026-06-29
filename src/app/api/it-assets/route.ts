@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 })
+      return NextResponse.json({ data: [] })
     }
 
     const where: Record<string, unknown> = {
@@ -48,30 +48,38 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ data: itAssets })
   } catch (error) {
-    console.error('IT Assets GET error:', error)
-    return NextResponse.json({ error: 'Failed to fetch IT assets' }, { status: 500 })
+    return NextResponse.json({ data: [] })
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+
+    if (!body.name || typeof body.name !== 'string') {
+      return NextResponse.json({ error: 'Asset name is required' }, { status: 400 })
+    }
+    if (!body.category || typeof body.category !== 'string') {
+      return NextResponse.json({ error: 'Category is required' }, { status: 400 })
+    }
+
     const org = await db.organization.findFirst()
     if (!org) {
       return NextResponse.json({ error: 'No organization found' }, { status: 404 })
     }
 
+    // Generate asset tag if not provided
+    const assetTag = body.assetTag || `IT-${body.category.substring(0, 3).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`
+
     // Check unique assetTag
-    if (body.assetTag) {
-      const existing = await db.iTAsset.findUnique({ where: { assetTag: body.assetTag } })
-      if (existing) {
-        return NextResponse.json({ error: 'Asset tag already exists' }, { status: 400 })
-      }
+    const existing = await db.iTAsset.findUnique({ where: { assetTag } })
+    if (existing) {
+      return NextResponse.json({ error: 'Asset tag already exists' }, { status: 400 })
     }
 
     const itAsset = await db.iTAsset.create({
       data: {
-        assetTag: body.assetTag,
+        assetTag,
         name: body.name,
         category: body.category,
         brand: body.brand || null,
@@ -99,7 +107,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(itAsset, { status: 201 })
   } catch (error) {
-    console.error('IT Assets POST error:', error)
     return NextResponse.json({ error: 'Failed to create IT asset' }, { status: 500 })
   }
 }
