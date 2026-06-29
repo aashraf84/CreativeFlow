@@ -13,11 +13,11 @@ export async function GET(_request: Request, { params }: Params) {
       where: { id },
       include: { employee: { select: { id: true, firstName: true, lastName: true, avatar: true, department: { select: { name: true } } } } }
     })
-    if (!record) return NextResponse.json({ data: [] })
+    if (!record) return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     return NextResponse.json({ data: record })
   } catch (error) {
     console.error('Attendance GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -54,7 +54,7 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json({ data: record })
   } catch (error) {
     console.error('Attendance PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -63,9 +63,9 @@ export async function DELETE(_request: Request, { params }: Params) {
   try {
     const { id } = await params
     await db.attendance.delete({ where: { id } })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
   } catch (error) {
     console.error('Attendance DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

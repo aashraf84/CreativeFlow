@@ -213,6 +213,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ influencer }, { status: 201 })
   } catch (error) {
     console.error('Influencers POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

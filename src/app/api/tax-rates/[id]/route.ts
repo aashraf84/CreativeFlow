@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.taxRate.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -28,7 +28,7 @@ export async function PUT(
     return NextResponse.json({ data: taxRate })
   } catch (error) {
     console.error('TaxRate PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -41,7 +41,7 @@ export async function DELETE(
 
     const existing = await db.taxRate.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     // Soft delete - set isActive to false
@@ -53,6 +53,6 @@ export async function DELETE(
     return NextResponse.json({ data: taxRate, message: 'Tax rate deactivated' })
   } catch (error) {
     console.error('TaxRate DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

@@ -31,6 +31,6 @@ export async function PUT(
     return NextResponse.json({ approval })
   } catch (error) {
     console.error('Approval PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

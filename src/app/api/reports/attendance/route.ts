@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const [employees, leaveRequests] = await Promise.all([
@@ -91,6 +91,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Reports/Attendance GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

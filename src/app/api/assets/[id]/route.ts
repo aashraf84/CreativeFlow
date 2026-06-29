@@ -33,7 +33,7 @@ export async function PUT(
     return NextResponse.json({ asset })
   } catch (error) {
     console.error('Asset PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -47,6 +47,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Asset deleted' })
   } catch (error) {
     console.error('Asset DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

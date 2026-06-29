@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ notifications })
   } catch (error) {
     console.error('Notifications GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -50,9 +50,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: 'All notifications marked as read' })
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
   } catch (error) {
     console.error('Notifications POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

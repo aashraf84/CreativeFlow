@@ -31,7 +31,7 @@ export async function PUT(
     return NextResponse.json({ timeEntry })
   } catch (error) {
     console.error('TimeEntry PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -45,6 +45,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Time entry deleted' })
   } catch (error) {
     console.error('TimeEntry DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

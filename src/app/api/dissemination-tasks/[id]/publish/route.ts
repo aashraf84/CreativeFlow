@@ -25,7 +25,7 @@ export async function POST(
     })
 
     if (!task) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     if (!task.assigneeId) {
@@ -146,6 +146,6 @@ export async function POST(
     }, { status: 201 })
   } catch (error) {
     console.error('Dissemination Task Publish POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

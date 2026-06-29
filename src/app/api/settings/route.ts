@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     // Get the first admin user as the "current user" for settings
@@ -44,7 +44,7 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Settings GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -56,7 +56,7 @@ export async function PUT(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const results: string[] = []
@@ -111,6 +111,6 @@ export async function PUT(request: Request) {
     })
   } catch (error) {
     console.error('Settings PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const where: Record<string, unknown> = {
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ data: itAssets })
   } catch (error) {
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -57,15 +57,15 @@ export async function POST(request: Request) {
     const body = await request.json()
 
     if (!body.name || typeof body.name !== 'string') {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
     }
     if (!body.category || typeof body.category !== 'string') {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
     }
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     // Generate asset tag if not provided
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     // Check unique assetTag
     const existing = await db.iTAsset.findUnique({ where: { assetTag } })
     if (existing) {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
     }
 
     const itAsset = await db.iTAsset.create({
@@ -107,6 +107,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(itAsset, { status: 201 })
   } catch (error) {
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

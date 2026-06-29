@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const endDate = searchParams.get('endDate')
 
     const org = await db.organization.findFirst()
-    if (!org) return NextResponse.json({ data: [] })
+    if (!org) return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
 
     const where: Record<string, unknown> = { organizationId: org.id }
     if (employeeId) where.employeeId = employeeId
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: records })
   } catch (error) {
     console.error('Attendance GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const org = await db.organization.findFirst()
-    if (!org) return NextResponse.json({ data: [] })
+    if (!org) return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
 
     let workHours: number | null = null
     if (body.clockIn && body.clockOut) {
@@ -78,6 +78,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: record }, { status: 201 })
   } catch (error) {
     console.error('Attendance POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

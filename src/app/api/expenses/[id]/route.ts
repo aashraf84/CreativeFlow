@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.expense.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -36,7 +36,7 @@ export async function PUT(
     return NextResponse.json(expense)
   } catch (error) {
     console.error('Expense PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -50,6 +50,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Expense deleted' })
   } catch (error) {
     console.error('Expense DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

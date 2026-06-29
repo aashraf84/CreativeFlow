@@ -25,7 +25,7 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json({ data: dept })
   } catch (error) {
     console.error('Department PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -43,9 +43,9 @@ export async function DELETE(_request: Request, { params }: Params) {
     }
 
     await db.department.delete({ where: { id } })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
   } catch (error) {
     console.error('Department DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

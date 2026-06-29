@@ -21,13 +21,13 @@ export async function GET(
     })
 
     if (!entry) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     return NextResponse.json({ data: entry })
   } catch (error) {
     console.error('JournalEntry GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -41,7 +41,7 @@ export async function PUT(
 
     const existing = await db.journalEntry.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     // Only allow updates if status is draft (or status change to posted/void)
@@ -118,6 +118,6 @@ export async function PUT(
     return NextResponse.json({ data: updated })
   } catch (error) {
     console.error('JournalEntry PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

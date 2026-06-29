@@ -6,7 +6,7 @@ export async function GET() {
     // Get the first organization (Vortex Digital)
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     // Total content by stage
@@ -230,6 +230,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Dashboard error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

@@ -8,7 +8,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const where: Record<string, unknown> = {
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: vendors })
   } catch (error) {
     console.error('Vendors GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const vendor = await db.vendor.create({
@@ -59,6 +59,6 @@ export async function POST(request: Request) {
     return NextResponse.json(vendor, { status: 201 })
   } catch (error) {
     console.error('Vendors POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

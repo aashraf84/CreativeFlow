@@ -11,20 +11,20 @@ export async function POST(
 
     const asset = await db.iTAsset.findUnique({ where: { id } })
     if (!asset) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     if (asset.status === 'issued') {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
     }
 
     if (asset.status === 'retired' || asset.status === 'lost') {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
     }
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     // Create the issuance record
@@ -60,6 +60,6 @@ export async function POST(
     return NextResponse.json(issuance, { status: 201 })
   } catch (error) {
     console.error('IT Asset Issue POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

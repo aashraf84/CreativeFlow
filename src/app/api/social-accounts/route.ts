@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const socialAccounts = await db.socialAccount.findMany({
@@ -35,6 +35,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Social Accounts GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

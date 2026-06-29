@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.jobPosting.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -38,7 +38,7 @@ export async function PUT(
     return NextResponse.json(jobPosting)
   } catch (error) {
     console.error('JobPosting PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -52,6 +52,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Job posting deleted' })
   } catch (error) {
     console.error('JobPosting DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

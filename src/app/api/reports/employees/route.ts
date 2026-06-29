@@ -11,7 +11,7 @@ export async function GET() {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const employees = await db.employee.findMany({
@@ -60,6 +60,6 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Reports/Employees GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

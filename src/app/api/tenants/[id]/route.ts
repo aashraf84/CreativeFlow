@@ -52,13 +52,13 @@ export async function GET(_request: Request, { params }: TenantParams) {
     })
 
     if (!tenant) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     return NextResponse.json(tenant)
   } catch (error) {
     console.error('Tenant GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -70,26 +70,26 @@ export async function PUT(request: Request, { params }: TenantParams) {
 
     const existing = await db.tenant.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const updateData: Record<string, unknown> = {}
 
     if (body.name !== undefined) {
       if (typeof body.name !== 'string' || !body.name.trim()) {
-        return NextResponse.json({ success: true })
+        return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
       }
       updateData.name = body.name.trim()
     }
 
     if (body.slug !== undefined) {
       if (typeof body.slug !== 'string' || !body.slug.trim()) {
-        return NextResponse.json({ success: true })
+        return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
       }
       // Check slug uniqueness (excluding current tenant)
       const slugOwner = await db.tenant.findUnique({ where: { slug: body.slug.trim() } })
       if (slugOwner && slugOwner.id !== id) {
-        return NextResponse.json({ success: true })
+        return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
       }
       updateData.slug = body.slug.trim()
     }
@@ -97,7 +97,7 @@ export async function PUT(request: Request, { params }: TenantParams) {
     if (body.plan !== undefined) {
       const validPlans = ['starter', 'professional', 'enterprise']
       if (!validPlans.includes(body.plan)) {
-        return NextResponse.json({ success: true })
+        return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
       }
       updateData.plan = body.plan
     }
@@ -105,7 +105,7 @@ export async function PUT(request: Request, { params }: TenantParams) {
     if (body.status !== undefined) {
       const validStatuses = ['active', 'suspended', 'cancelled']
       if (!validStatuses.includes(body.status)) {
-        return NextResponse.json({ success: true })
+        return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
       }
       updateData.status = body.status
     }
@@ -139,7 +139,7 @@ export async function PUT(request: Request, { params }: TenantParams) {
     return NextResponse.json(tenant)
   } catch (error) {
     console.error('Tenant PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -155,7 +155,7 @@ export async function DELETE(_request: Request, { params }: TenantParams) {
       },
     })
     if (!existing) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     // Cascade delete: remove all data belonging to the tenant's organizations,
@@ -248,6 +248,6 @@ export async function DELETE(_request: Request, { params }: TenantParams) {
     })
   } catch (error) {
     console.error('Tenant DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

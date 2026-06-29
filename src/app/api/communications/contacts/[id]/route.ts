@@ -17,7 +17,7 @@ export async function GET(
     })
 
     if (!contact) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     // Fetch conversation history for this contact
@@ -52,7 +52,7 @@ export async function GET(
     return NextResponse.json({ contact, conversations })
   } catch (error) {
     console.error('Contact GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -94,7 +94,7 @@ export async function PUT(
     return NextResponse.json({ contact })
   } catch (error) {
     console.error('Contact PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -110,6 +110,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Contact deleted' })
   } catch (error) {
     console.error('Contact DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

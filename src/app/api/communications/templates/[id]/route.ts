@@ -18,13 +18,13 @@ export async function GET(
     })
 
     if (!template) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     return NextResponse.json({ template })
   } catch (error) {
     console.error('Template GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -54,7 +54,7 @@ export async function PUT(
     return NextResponse.json({ template })
   } catch (error) {
     console.error('Template PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -70,6 +70,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Template deleted' })
   } catch (error) {
     console.error('Template DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

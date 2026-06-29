@@ -8,7 +8,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const where: Record<string, unknown> = {
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: payrollRuns })
   } catch (error) {
     console.error('PayrollRuns GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const payrollRun = await db.payrollRun.create({
@@ -90,6 +90,6 @@ export async function POST(request: Request) {
     return NextResponse.json(payrollRun, { status: 201 })
   } catch (error) {
     console.error('PayrollRuns POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const dateFilter: Record<string, unknown> = {}
@@ -95,6 +95,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ events, totalContentDue: contentEvents.length, totalPosts: postEvents.length })
   } catch (error) {
     console.error('Calendar GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

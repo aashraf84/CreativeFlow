@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const where: Record<string, unknown> = {
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ data: leaveRequests })
   } catch (error) {
     console.error('LeaveRequests GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const leaveRequest = await db.leaveRequest.create({
@@ -71,6 +71,6 @@ export async function POST(request: Request) {
     return NextResponse.json(leaveRequest, { status: 201 })
   } catch (error) {
     console.error('LeaveRequests POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

@@ -54,7 +54,7 @@ export async function PUT(
     return NextResponse.json({ invoice })
   } catch (error) {
     console.error('Invoice PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -68,6 +68,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Invoice deleted' })
   } catch (error) {
     console.error('Invoice DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

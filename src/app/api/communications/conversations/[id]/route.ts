@@ -26,13 +26,13 @@ export async function GET(
     })
 
     if (!conversation) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     return NextResponse.json({ conversation })
   } catch (error) {
     console.error('Conversation GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -70,6 +70,6 @@ export async function PUT(
     return NextResponse.json({ conversation })
   } catch (error) {
     console.error('Conversation PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

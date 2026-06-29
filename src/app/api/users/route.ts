@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 export async function GET() {
   try {
     const org = await db.organization.findFirst()
-    if (!org) return NextResponse.json({ data: [] })
+    if (!org) return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
 
     const users = await db.user.findMany({
       where: { organizationId: org.id },
@@ -23,6 +23,6 @@ export async function GET() {
     return NextResponse.json({ data: users })
   } catch (error) {
     console.error('Users GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

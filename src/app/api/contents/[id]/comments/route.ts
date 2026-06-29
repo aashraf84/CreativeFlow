@@ -19,7 +19,7 @@ export async function GET(
     return NextResponse.json(comments)
   } catch (error) {
     console.error('Comments GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -32,7 +32,7 @@ export async function POST(
     const body = await request.json()
 
     if (!body.text || !body.userId) {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
     }
 
     const comment = await db.comment.create({
@@ -65,6 +65,6 @@ export async function POST(
     return NextResponse.json(comment, { status: 201 })
   } catch (error) {
     console.error('Comments POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

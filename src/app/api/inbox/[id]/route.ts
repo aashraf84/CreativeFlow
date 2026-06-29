@@ -24,6 +24,6 @@ export async function PUT(
     return NextResponse.json({ message })
   } catch (error) {
     console.error('Inbox PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

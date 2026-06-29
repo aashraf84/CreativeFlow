@@ -38,7 +38,7 @@ export async function PUT(
     return NextResponse.json({ influencer })
   } catch (error) {
     console.error('Influencer PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -52,6 +52,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Influencer deleted' })
   } catch (error) {
     console.error('Influencer DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const rules = await db.automationRule.findMany({
@@ -23,7 +23,7 @@ export async function GET() {
     return NextResponse.json(parsedRules)
   } catch (error) {
     console.error('Automation GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     if (!body.name || !body.trigger) {
@@ -61,6 +61,6 @@ export async function POST(request: Request) {
     }, { status: 201 })
   } catch (error) {
     console.error('Automation POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

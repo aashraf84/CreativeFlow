@@ -11,7 +11,7 @@ export async function PUT(
 
     const existing = await db.product.findUnique({ where: { id } })
     if (!existing) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const updateData: Record<string, unknown> = {}
@@ -42,7 +42,7 @@ export async function PUT(
     return NextResponse.json(product)
   } catch (error) {
     console.error('Product PUT error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -59,6 +59,6 @@ export async function DELETE(
     return NextResponse.json({ success: true, message: 'Product deleted' })
   } catch (error) {
     console.error('Product DELETE error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

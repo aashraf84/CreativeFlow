@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ brandKits })
   } catch (error) {
     console.error('BrandKit GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   try {
     const org = await db.organization.findFirst()
     if (!org) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const body = await request.json()
@@ -55,6 +55,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ brandKit }, { status: 201 })
   } catch (error) {
     console.error('BrandKit POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }

@@ -13,7 +13,7 @@ export async function GET(
 
     const conversation = await db.conversation.findUnique({ where: { id } })
     if (!conversation) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     const where = { conversationId: id }
@@ -37,7 +37,7 @@ export async function GET(
     })
   } catch (error) {
     console.error('Conversation messages GET error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
 
@@ -58,7 +58,7 @@ export async function POST(
 
     const conversation = await db.conversation.findUnique({ where: { id } })
     if (!conversation) {
-      return NextResponse.json({ data: [] })
+      return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
     }
 
     // For email, subject and recipientEmail are expected
@@ -154,6 +154,6 @@ export async function POST(
     return NextResponse.json({ message: finalMessage }, { status: 201 })
   } catch (error) {
     console.error('Conversation messages POST error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Database connection failed' }, { status: 500 })
   }
 }
