@@ -136,8 +136,21 @@ type SortField = "name" | "followers" | "engagement" | "rate" | "createdAt" | "c
 type SortOrder = "asc" | "desc"
 
 // Helper: format username with @ prefix (avoid double @@)
-function formatUsername(username: string): string {
+function formatUsername(username: string | null | undefined): string {
+  if (!username) return "@unknown"
   return username.startsWith("@") ? username : `@${username}`
+}
+
+// Safe date formatter that handles invalid dates
+function safeFormatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "N/A"
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return "N/A"
+    return format(d, "MMM d, yyyy")
+  } catch {
+    return "N/A"
+  }
 }
 
 interface AnalyticsData {
@@ -259,9 +272,13 @@ export function InfluencersView() {
         const res = await fetch("/api/influencers/analytics")
         if (res.ok) {
           const data = await res.json()
-          setAnalytics(data)
+          // Validate the response has the expected structure
+          if (data && data.overview && typeof data.overview.totalInfluencers === 'number') {
+            setAnalytics(data)
+          } else {
+            setAnalytics(computeAnalyticsFallback(influencers))
+          }
         } else {
-          // Fallback: compute from store data
           setAnalytics(computeAnalyticsFallback(influencers))
         }
       } catch {
@@ -783,6 +800,7 @@ export function InfluencersView() {
                   <CardContent className="space-y-3">
                     {analytics.topPerformers.map((inf, idx) => {
                       const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+                      const engRate = Number(inf.engagementRate) || 0
                       return (
                         <div key={inf.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer" onClick={() => { setSelectedInfluencer(inf); setActiveTab("directory") }}>
                           <span className="w-5 text-xs font-bold text-muted-foreground text-center">{idx + 1}</span>
@@ -794,7 +812,7 @@ export function InfluencersView() {
                             <p className="text-xs text-muted-foreground">{formatUsername(inf.username)}</p>
                           </div>
                           <Badge variant="outline" className="text-emerald-700 border-emerald-200 bg-emerald-50">
-                            {inf.engagementRate.toFixed(1)}%
+                            {engRate.toFixed(1)}%
                           </Badge>
                         </div>
                       )
@@ -845,7 +863,7 @@ export function InfluencersView() {
                           </div>
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3" />
-                            Ends {inf.contractEnd ? format(new Date(inf.contractEnd), "MMM d, yyyy") : "N/A"}
+                            Ends {inf.contractEnd ? safeFormatDate(inf.contractEnd) : "N/A"}
                           </div>
                           {inf.client && <div className="text-xs text-muted-foreground mt-1">Client: {inf.client.name}</div>}
                         </div>
