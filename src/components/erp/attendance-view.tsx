@@ -265,7 +265,7 @@ export function AttendanceView() {
           { label: "On Leave", value: kpis.leave, icon: Users, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-900/40" },
         ].map((kpi, i) => (
           <motion.div key={kpi.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
-            <Card className="glass border border-black/5 dark:border-white/10 shadow-sm rounded-2xl">
+            <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${kpi.bg}`}><kpi.icon className={`h-4 w-4 ${kpi.color}`} /></div>
@@ -281,7 +281,7 @@ export function AttendanceView() {
       </motion.div>
 
       {/* Quick Actions */}
-      <Card className="glass border border-black/5 dark:border-white/10 shadow-sm rounded-2xl">
+      <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
@@ -310,7 +310,7 @@ export function AttendanceView() {
       </Card>
 
       {/* Filters & Table */}
-      <Card className="glass border border-black/5 dark:border-white/10 shadow-sm rounded-2xl">
+      <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
         <CardContent className="p-0">
           <div className="flex items-center gap-3 p-4 border-b border-black/5 dark:border-white/5">
             <div className="relative flex-1 max-w-xs">
@@ -401,7 +401,7 @@ export function AttendanceView() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="glass max-w-md">
+        <DialogContent className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] max-w-md">
           <DialogHeader>
             <DialogTitle>{editingRecord ? "Edit Attendance" : "Add Attendance"}</DialogTitle>
           </DialogHeader>

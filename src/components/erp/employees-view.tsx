@@ -110,7 +110,7 @@ function AddEmployeeDialog({ departments }: { departments: { id: string; name: s
           <Plus className="h-4 w-4" /> Add Employee
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] glass border border-black/5 dark:border-white/10 shadow-macos-lg rounded-2xl">
+      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos-lg rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Add New Employee</DialogTitle>
         </DialogHeader>
@@ -199,7 +199,7 @@ function EmployeeDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-[480px] overflow-y-auto glass border-l border-black/5 dark:border-white/10">
+      <SheetContent className="w-full sm:max-w-[480px] overflow-y-auto bg-white dark:bg-[#1c1c1e] border-l border-[#e5e5e7] dark:border-[#38383a]">
         <SheetHeader className="pb-4">
           <SheetTitle className="sr-only">Employee Details</SheetTitle>
         </SheetHeader>
@@ -252,25 +252,25 @@ function EmployeeDetailSheet({
           <div className="space-y-3">
             <h3 className="text-[11px] font-semibold text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-[0.08em]">Employment Details</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3">
+              <div className="rounded-xl border border-[#e5e5e7] dark:border-[#38383a] bg-[#f7f7f8] dark:bg-[#262628] p-3">
                 <div className="flex items-center gap-2 text-xs text-[#86868b] dark:text-[#aeaeb2] mb-1">
                   <Briefcase className="h-3 w-3" /> Department
                 </div>
                 <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">{employee.department?.name}</p>
               </div>
-              <div className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3">
+              <div className="rounded-xl border border-[#e5e5e7] dark:border-[#38383a] bg-[#f7f7f8] dark:bg-[#262628] p-3">
                 <div className="flex items-center gap-2 text-xs text-[#86868b] dark:text-[#aeaeb2] mb-1">
                   <Calendar className="h-3 w-3" /> Hire Date
                 </div>
                 <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">{formatDate(employee.hireDate)}</p>
               </div>
-              <div className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3">
+              <div className="rounded-xl border border-[#e5e5e7] dark:border-[#38383a] bg-[#f7f7f8] dark:bg-[#262628] p-3">
                 <div className="flex items-center gap-2 text-xs text-[#86868b] dark:text-[#aeaeb2] mb-1">
                   <DollarSign className="h-3 w-3" /> Salary
                 </div>
                 <p className="text-sm font-medium text-[#1d1d1f] dark:text-white">{employee.salary ? formatCurrency(employee.salary, employee.salaryCurrency) : "N/A"}</p>
               </div>
-              <div className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3">
+              <div className="rounded-xl border border-[#e5e5e7] dark:border-[#38383a] bg-[#f7f7f8] dark:bg-[#262628] p-3">
                 <div className="flex items-center gap-2 text-xs text-[#86868b] dark:text-[#aeaeb2] mb-1">
                   <Shield className="h-3 w-3" /> Employee ID
                 </div>
@@ -291,7 +291,7 @@ function EmployeeDetailSheet({
                   .reduce((sum, l) => sum + l.days, 0)
                 const total = type === "vacation" ? 20 : type === "sick" ? 10 : 5
                 return (
-                  <div key={type} className="rounded-xl border border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04] p-3 text-center">
+                  <div key={type} className="rounded-xl border border-[#e5e5e7] dark:border-[#38383a] bg-[#f7f7f8] dark:bg-[#262628] p-3 text-center">
                     <p className="text-xs text-[#86868b] dark:text-[#aeaeb2] capitalize mb-1">{type}</p>
                     <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{total - used}</p>
                     <p className="text-xs text-[#86868b] dark:text-[#aeaeb2]">{used} used</p>
@@ -377,7 +377,7 @@ function DepartmentFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[460px] glass border border-black/5 dark:border-white/10 shadow-macos-lg rounded-2xl">
+      <DialogContent className="sm:max-w-[460px] bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos-lg rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold text-[#1d1d1f] dark:text-white">
             {editing ? "Edit Department" : "Add Department"}
@@ -546,7 +546,7 @@ function DepartmentsManagementDialog({ open, onOpenChange }: { open: boolean; on
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[680px] glass border border-black/5 dark:border-white/10 shadow-macos-lg rounded-2xl">
+        <DialogContent className="sm:max-w-[680px] bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos-lg rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-[#1d1d1f] dark:text-white flex items-center gap-2">
               <Building2 className="h-5 w-5 text-emerald-600" />
@@ -727,7 +727,7 @@ export function EmployeesView() {
           { label: "Departments", value: deptCount, icon: Building2, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-900/40" },
         ].map((kpi) => (
           <motion.div key={kpi.label} variants={itemVariants}>
-            <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
+            <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -811,7 +811,7 @@ export function EmployeesView() {
 
       {/* Employee Grid */}
       {filteredEmployees.length === 0 ? (
-        <Card className="border-dashed glass border border-black/5 dark:border-white/10 rounded-2xl">
+        <Card className="border-dashed bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] rounded-2xl">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <Users className="h-12 w-12 text-[#86868b]/40 dark:text-[#aeaeb2]/40 mb-4" />
             <p className="text-lg font-medium text-[#86868b] dark:text-[#aeaeb2]">No employees found</p>
@@ -839,7 +839,7 @@ export function EmployeesView() {
                   className="cursor-pointer"
                   onClick={() => handleSelectEmployee(emp)}
                 >
-                  <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl group">
+                  <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl group">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm`}>

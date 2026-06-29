@@ -196,7 +196,7 @@ export function ProductsView() {
           { label: "Warehouses", value: warehouses.length, icon: Warehouse, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40" },
         ].map((kpi) => (
           <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
+            <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -216,7 +216,7 @@ export function ProductsView() {
       {/* Low Stock Alert */}
       {lowStockProducts.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="glass border border-amber-200/60 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-900/10 rounded-2xl shadow-macos">
+          <Card className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/40 rounded-2xl shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4" />
@@ -288,7 +288,7 @@ export function ProductsView() {
 
       {/* Product Grid/List */}
       {filteredProducts.length === 0 ? (
-        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
           <CardContent className="py-16 flex flex-col items-center gap-3">
             <div className="h-12 w-12 rounded-full bg-black/[0.05] dark:bg-white/[0.08] flex items-center justify-center">
               <PackageX className="h-6 w-6 text-muted-foreground" />
@@ -584,7 +584,7 @@ function ProductCard({ product, onClick, index }: { product: Product; onClick: (
       transition={{ duration: 0.2, delay: Math.min(index * 0.03, 0.3) }}
     >
       <Card
-        className="cursor-pointer glass border border-black/5 dark:border-white/10 hover:shadow-macos-lg hover-lift transition-all hover:border-emerald-300/40 dark:hover:border-emerald-500/30 group rounded-2xl"
+        className="cursor-pointer bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] hover:shadow-macos-lg hover-lift transition-all hover:border-emerald-300/40 dark:hover:border-emerald-500/30 group rounded-2xl"
         onClick={onClick}
       >
         <CardContent className="p-4 space-y-3">

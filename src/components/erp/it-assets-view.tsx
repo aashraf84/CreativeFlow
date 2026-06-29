@@ -178,7 +178,7 @@ function KPICard({ icon: Icon, label, value, sub, colorClass }: {
 }) {
   return (
     <motion.div variants={itemVariants}>
-      <Card className="relative overflow-hidden glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
+      <Card className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl">
         <CardContent className="p-4">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
@@ -939,7 +939,7 @@ function AssetCard({ asset, onClick, onIssue, onReturn }: {
   return (
     <motion.div variants={itemVariants}>
       <Card
-        className="group cursor-pointer glass border border-black/5 dark:border-white/10 hover:shadow-macos-lg transition-all duration-200 hover:border-emerald-300/40 dark:hover:border-emerald-500/30 relative overflow-hidden rounded-2xl"
+        className="group cursor-pointer bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] hover:shadow-macos-lg transition-all duration-200 hover:border-emerald-300/40 dark:hover:border-emerald-500/30 relative overflow-hidden rounded-2xl"
         onClick={onClick}
       >
         {/* Top color bar */}
@@ -1027,7 +1027,7 @@ function AssetRow({ asset, onClick, onIssue, onReturn }: {
   return (
     <motion.div variants={itemVariants}>
       <div
-        className="flex items-center gap-4 p-3 rounded-xl glass border border-black/5 dark:border-white/10 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] hover:border-emerald-300/40 dark:hover:border-emerald-500/30 cursor-pointer transition-all group"
+        className="flex items-center gap-4 p-3 rounded-xl bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] hover:bg-black/[0.03] dark:hover:bg-white/[0.04] hover:border-emerald-300/40 dark:hover:border-emerald-500/30 cursor-pointer transition-all group"
         onClick={onClick}
       >
         <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${catColor.icon}`}>
@@ -1317,7 +1317,7 @@ export function ITAssetsView() {
 
             {/* Asset Grid / List */}
             {filteredAssets.length === 0 ? (
-              <Card className="border-dashed glass border border-black/5 dark:border-white/10 rounded-2xl">
+              <Card className="border-dashed bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] rounded-2xl">
                 <CardContent className="py-16 text-center">
                   <Package className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-sm font-medium text-muted-foreground">No assets found</p>
@@ -1407,7 +1407,7 @@ export function ITAssetsView() {
             </div>
 
             {filteredIssuances.length === 0 ? (
-              <Card className="border-dashed glass border border-black/5 dark:border-white/10 rounded-2xl">
+              <Card className="border-dashed bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] rounded-2xl">
                 <CardContent className="py-16 text-center">
                   <ArrowRightLeft className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-sm font-medium text-muted-foreground">No issuance records found</p>

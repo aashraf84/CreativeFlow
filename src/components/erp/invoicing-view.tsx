@@ -358,7 +358,7 @@ export function InvoicingView() {
 
         {/* ── KPI Row ─────────────────────────────────────────────────── */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl border-l-4 border-l-emerald-500">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl border-l-4 border-l-emerald-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -372,7 +372,7 @@ export function InvoicingView() {
             </CardContent>
           </Card>
 
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl border-l-4 border-l-teal-500">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl border-l-4 border-l-teal-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -386,7 +386,7 @@ export function InvoicingView() {
             </CardContent>
           </Card>
 
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl border-l-4 border-l-amber-500">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl border-l-4 border-l-amber-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -400,7 +400,7 @@ export function InvoicingView() {
             </CardContent>
           </Card>
 
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl border-l-4 border-l-rose-500">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl border-l-4 border-l-rose-500">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -420,7 +420,7 @@ export function InvoicingView() {
 
         {/* ── Revenue Chart ───────────────────────────────────────────── */}
         <motion.div variants={itemVariants}>
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-semibold text-[#1d1d1f] dark:text-white">Monthly Revenue</CardTitle>
             </CardHeader>
@@ -495,7 +495,7 @@ export function InvoicingView() {
 
               {/* Invoice List */}
               {filteredInvoices.length === 0 ? (
-                <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+                <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
                   <CardContent className="py-16 text-center">
                     <FileText className="h-12 w-12 mx-auto text-muted-foreground/40" />
                     <p className="text-muted-foreground mt-4 font-medium">No invoices found</p>
@@ -543,7 +543,7 @@ export function InvoicingView() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -8 }}
                         >
-                          <Card className="glass border border-black/5 dark:border-white/10 hover:shadow-macos-lg hover-lift transition-all cursor-pointer rounded-2xl" onClick={() => setExpandedInvoiceId(isExpanded ? null : invoice.id)}>
+                          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] hover:shadow-macos-lg hover-lift transition-all cursor-pointer rounded-2xl" onClick={() => setExpandedInvoiceId(isExpanded ? null : invoice.id)}>
                             <CardContent className="p-4">
                               {/* Desktop Row */}
                               <div className="hidden md:grid md:grid-cols-[1fr_1fr_0.8fr_0.7fr_0.7fr_0.8fr_44px] gap-4 items-center">
@@ -713,7 +713,7 @@ export function InvoicingView() {
 
               {/* Weekly Summary by User */}
               {weeklyTimeSummary.byUser.length > 0 && (
-                <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+                <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-semibold">Weekly Summary by Team Member</CardTitle>
                   </CardHeader>
@@ -737,7 +737,7 @@ export function InvoicingView() {
 
               {/* Time Entries Table */}
               {timeEntries.length === 0 ? (
-                <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+                <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
                   <CardContent className="py-16 text-center">
                     <Timer className="h-12 w-12 mx-auto text-muted-foreground/40" />
                     <p className="text-muted-foreground mt-4 font-medium">No time entries yet</p>
@@ -745,7 +745,7 @@ export function InvoicingView() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+                <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
                   <CardContent className="p-0">
                     <ScrollArea className="max-h-[480px]">
                       <table className="w-full text-sm">

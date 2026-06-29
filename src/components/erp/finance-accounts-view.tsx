@@ -440,7 +440,7 @@ export function FinanceAccountsView() {
             { label: "Total Revenue", value: kpis.totalRevenue, icon: TrendingUp, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/40" },
             { label: "Total Expenses", value: kpis.totalExpenses, icon: TrendingDown, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/40" },
           ].map((kpi) => (
-            <Card key={kpi.label} className="glass border border-black/5 dark:border-white/10 shadow-macos hover-lift rounded-2xl">
+            <Card key={kpi.label} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${kpi.bg}`}><kpi.icon className={`h-4 w-4 ${kpi.color}`} /></div>
@@ -469,7 +469,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 1: Chart of Accounts ──────────────────────────── */}
         <TabsContent value="chart-of-accounts">
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle className="text-base">Chart of Accounts</CardTitle>
@@ -576,7 +576,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 2: General Ledger ─────────────────────────────── */}
         <TabsContent value="general-ledger">
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><BookOpen className="h-4 w-4 text-emerald-600" />General Ledger</CardTitle>
@@ -642,7 +642,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 3: Journal Entries ────────────────────────────── */}
         <TabsContent value="journal-entries">
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><FileText className="h-4 w-4 text-emerald-600" />Journal Entries</CardTitle>
@@ -740,7 +740,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 4: Trial Balance ──────────────────────────────── */}
         <TabsContent value="trial-balance">
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><BarChart3 className="h-4 w-4 text-emerald-600" />Trial Balance</CardTitle>
@@ -801,7 +801,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 5: Balance Sheet ──────────────────────────────── */}
         <TabsContent value="balance-sheet">
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><Landmark className="h-4 w-4 text-emerald-600" />Balance Sheet</CardTitle>
@@ -884,7 +884,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 6: P&L Statement ──────────────────────────────── */}
         <TabsContent value="pnl">
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><Calculator className="h-4 w-4 text-emerald-600" />Profit & Loss Statement</CardTitle>
@@ -970,7 +970,7 @@ export function FinanceAccountsView() {
 
         {/* ── Tab 7: Tax Rates ──────────────────────────────────── */}
         <TabsContent value="tax-rates">
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-3">
                 <CardTitle className="text-base flex items-center gap-2"><Percent className="h-4 w-4 text-emerald-600" />Tax Rates</CardTitle>

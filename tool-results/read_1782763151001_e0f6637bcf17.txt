@@ -1,0 +1,1293 @@
+     1→"use client";
+     2→
+     3→import React from "react";
+     4→import { useERPStore, type ContentStage, type ActivityLog } from "@/lib/store";
+     5→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+     6→import { Badge } from "@/components/ui/badge";
+     7→import { Button } from "@/components/ui/button";
+     8→import { ScrollArea } from "@/components/ui/scroll-area";
+     9→import { Separator } from "@/components/ui/separator";
+    10→import { Skeleton } from "@/components/ui/skeleton";
+    11→import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+    12→import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+    13→import {
+    14→  FileText,
+    15→  Send,
+    16→  Clock,
+    17→  Rocket,
+    18→  TrendingUp,
+    19→  ArrowUpRight,
+    20→  Activity,
+    21→  Plus,
+    22→  Edit3,
+    23→  Trash2,
+    24→  CheckCircle2,
+    25→  Eye,
+    26→  MessageSquare,
+    27→  UserPlus,
+    28→  CalendarCheck,
+    29→  Share2,
+    30→  Workflow,
+    31→  Users,
+    32→  ShieldCheck,
+    33→  Scissors,
+    34→  Lightbulb,
+    35→  Palette,
+    36→  Zap,
+    37→  ClipboardCheck,
+    38→  ArrowRight,
+    39→  Globe,
+    40→  Instagram,
+    41→  Facebook,
+    42→  Twitter,
+    43→  Linkedin,
+    44→  AlertCircle,
+    45→} from "lucide-react";
+    46→import { AnimatedCounter } from "@/components/erp/animated-counter";
+    47→
+    48→// ── Animation variants ──────────────────────────────────────────────
+    49→const containerVariants = {
+    50→  hidden: { opacity: 0 },
+    51→  visible: {
+    52→    opacity: 1,
+    53→    transition: { staggerChildren: 0.05, delayChildren: 0.05 },
+    54→  },
+    55→};
+    56→
+    57→const itemVariants = {
+    58→  hidden: { opacity: 0, y: 20 },
+    59→  visible: {
+    60→    opacity: 1,
+    61→    y: 0,
+    62→    transition: { duration: 0.5, ease: "easeOut" as const },
+    63→  },
+    64→};
+    65→
+    66→// ── Pipeline stage configuration ────────────────────────────────────
+    67→const PIPELINE_STAGES = [
+    68→  { key: "idea" as ContentStage, label: "Idea", icon: Lightbulb, color: "#10b981" },
+    69→  { key: "design" as ContentStage, label: "Design", icon: Palette, color: "#14b8a6" },
+    70→  { key: "edit" as ContentStage, label: "Edit", icon: Scissors, color: "#06b6d4" },
+    71→  { key: "review" as ContentStage, label: "Review", icon: Eye, color: "#f59e0b" },
+    72→  { key: "approve" as ContentStage, label: "Approve", icon: CheckCircle2, color: "#22c55e" },
+    73→  { key: "disseminate" as ContentStage, label: "Disseminate", icon: Send, color: "#0d9488" },
+    74→];
+    75→
+    76→const PLATFORM_COLORS: Record<string, string> = {
+    77→  instagram: "#E4405F",
+    78→  facebook: "#1877F2",
+    79→  twitter: "#1DA1F2",
+    80→  linkedin: "#0A66C2",
+    81→  tiktok: "#000000",
+    82→  youtube: "#FF0000",
+    83→  pinterest: "#E60023",
+    84→  snapchat: "#FFFC00",
+    85→};
+    86→
+    87→const PLATFORM_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+    88→  instagram: Instagram,
+    89→  facebook: Facebook,
+    90→  twitter: Twitter,
+    91→  linkedin: Linkedin,
+    92→  tiktok: Globe,
+    93→  youtube: Globe,
+    94→  pinterest: Globe,
+    95→  snapchat: Globe,
+    96→};
+    97→
+    98→// ── Activity icon helper ────────────────────────────────────────────
+    99→function getActivityIcon(action: string, entity?: string) {
+   100→  const lower = action.toLowerCase();
+   101→  const entityLower = (entity ?? "").toLowerCase();
+   102→
+   103→  if (lower.includes("approve") || lower.includes("accept") || lower.includes("complete"))
+   104→    return { icon: CheckCircle2, color: "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40" };
+   105→  if (lower.includes("reject") || lower.includes("deny"))
+   106→    return { icon: ShieldCheck, color: "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40" };
+   107→  if (lower.includes("review"))
+   108→    return { icon: Eye, color: "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40" };
+   109→
+   110→  if (lower.includes("create") || lower.includes("add") || lower.includes("new"))
+   111→    return { icon: Plus, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40" };
+   112→  if (lower.includes("edit") || lower.includes("update") || lower.includes("modify"))
+   113→    return { icon: Edit3, color: "text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/40" };
+   114→  if (lower.includes("delete") || lower.includes("remove"))
+   115→    return { icon: Trash2, color: "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-900/40" };
+   116→  if (lower.includes("comment") || lower.includes("reply"))
+   117→    return { icon: MessageSquare, color: "text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-900/40" };
+   118→  if (lower.includes("assign") || lower.includes("member") || lower.includes("join"))
+   119→    return { icon: UserPlus, color: "text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/40" };
+   120→  if (lower.includes("schedule") || lower.includes("calendar"))
+   121→    return { icon: CalendarCheck, color: "text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-900/40" };
+   122→  if (lower.includes("publish") || lower.includes("share") || lower.includes("send"))
+   123→    return { icon: Share2, color: "text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/40" };
+   124→  return { icon: Activity, color: "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/40" };
+   125→}
+   126→
+   127→// ── Entity type badge helper ────────────────────────────────────────
+   128→function getEntityTypeBadge(entity: string | null | undefined): { label: string; color: string } | null {
+   129→  if (!entity) return null;
+   130→  const lower = entity.toLowerCase();
+   131→  if (lower.includes("content")) return { label: "Content", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" };
+   132→  if (lower.includes("post")) return { label: "Post", color: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" };
+   133→  if (lower.includes("campaign")) return { label: "Campaign", color: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300" };
+   134→  if (lower.includes("approval")) return { label: "Approval", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" };
+   135→  if (lower.includes("team")) return { label: "Team", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" };
+   136→  if (lower.includes("client")) return { label: "Client", color: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300" };
+   137→  if (lower.includes("asset")) return { label: "Asset", color: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" };
+   138→  if (lower.includes("disseminat")) return { label: "Dissemination", color: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" };
+   139→  return null;
+   140→}
+   141→
+   142→// ── Time formatting ─────────────────────────────────────────────────
+   143→function formatRelativeTime(dateStr: string): string {
+   144→  try {
+   145→    const date = new Date(dateStr);
+   146→    const now = new Date();
+   147→    const diffMs = now.getTime() - date.getTime();
+   148→    const diffMins = Math.floor(diffMs / 60000);
+   149→    const diffHours = Math.floor(diffMs / 3600000);
+   150→    const diffDays = Math.floor(diffMs / 86400000);
+   151→
+   152→    if (diffMins < 1) return "Just now";
+   153→    if (diffMins < 60) return `${diffMins}m ago`;
+   154→    if (diffHours < 24) return `${diffHours}h ago`;
+   155→    if (diffDays < 7) return `${diffDays}d ago`;
+   156→    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+   157→  } catch {
+   158→    return "";
+   159→  }
+   160→}
+   161→
+   162→// ── Priority color helper ───────────────────────────────────────────
+   163→function getPriorityColor(priority: string): string {
+   164→  switch (priority.toLowerCase()) {
+   165→    case "urgent": return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+   166→    case "high": return "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300";
+   167→    case "medium": return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+   168→    case "low": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+   169→    default: return "bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-300";
+   170→  }
+   171→}
+   172→
+   173→function getStatusColor(status: string): string {
+   174→  switch (status.toLowerCase()) {
+   175→    case "pending": return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+   176→    case "in_progress":
+   177→    case "in-progress": return "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300";
+   178→    case "completed": return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+   179→    case "failed": return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+   180→    default: return "bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-300";
+   181→  }
+   182→}
+   183→
+   184→// ── KPI Card Component ──────────────────────────────────────────────
+   185→interface KPICardData {
+   186→  title: string;
+   187→  value: number | string;
+   188→  change?: number;
+   189→  changeLabel?: string;
+   190→  icon: React.ComponentType<{ className?: string }>;
+   191→  gradient: string;
+   192→  iconColor: string;
+   193→  badge?: string;
+   194→  badgeColor?: string;
+   195→}
+   196→
+   197→function KPICard({ data }: { data: KPICardData }) {
+   198→  const Icon = data.icon;
+   199→
+   200→  // ── 3D tilt on hover (subtle, springy) ──
+   201→  const xMotion = useMotionValue(0);
+   202→  const yMotion = useMotionValue(0);
+   203→  const rotateX = useSpring(useTransform(yMotion, [-0.5, 0.5], [6, -6]), {
+   204→    stiffness: 200,
+   205→    damping: 18,
+   206→  });
+   207→  const rotateY = useSpring(useTransform(xMotion, [-0.5, 0.5], [-6, 6]), {
+   208→    stiffness: 200,
+   209→    damping: 18,
+   210→  });
+   211→
+   212→  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+   213→    const rect = e.currentTarget.getBoundingClientRect();
+   214→    const px = (e.clientX - rect.left) / rect.width; // 0..1
+   215→    const py = (e.clientY - rect.top) / rect.height; // 0..1
+   216→    xMotion.set(px - 0.5);
+   217→    yMotion.set(py - 0.5);
+   218→  };
+   219→
+   220→  const handleMouseLeave = () => {
+   221→    xMotion.set(0);
+   222→    yMotion.set(0);
+   223→  };
+   224→
+   225→  const isNumeric = typeof data.value === "number";
+   226→
+   227→  return (
+   228→    <motion.div variants={itemVariants}>
+   229→      <motion.div
+   230→        onMouseMove={handleMouseMove}
+   231→        onMouseLeave={handleMouseLeave}
+   232→        style={{ perspective: 1000 }}
+   233→        whileHover={{ scale: 1.03 }}
+   234→        transition={{ type: "spring", stiffness: 300, damping: 22 }}
+   235→      >
+   236→        <Card className="relative overflow-hidden glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+   237→          <motion.div
+   238→            style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
+   239→            className="relative"
+   240→          >
+   241→            <CardContent className="p-5">
+   242→              <div className="flex items-start justify-between">
+   243→                <div className="flex-1 min-w-0">
+   244→                  <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">
+   245→                    {data.title}
+   246→                  </p>
+   247→                  <div className="mt-2 flex items-baseline gap-2">
+   248→                    <h3 className="text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-white tabular-nums">
+   249→                      {isNumeric ? (
+   250→                        <AnimatedCounter value={data.value as number} duration={1000} />
+   251→                      ) : (
+   252→                        data.value
+   253→                      )}
+   254→                    </h3>
+   255→                    {data.badge && (
+   256→                      <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-md leading-none ${data.badgeColor}`}>
+   257→                        {data.badge}
+   258→                      </span>
+   259→                    )}
+   260→                  </div>
+   261→                  {data.change !== undefined && (
+   262→                    <div className="mt-1.5 flex items-center gap-1">
+   263→                      <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+   264→                      <span className={`text-xs font-medium ${data.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+   265→                        {Math.abs(data.change)}%
+   266→                      </span>
+   267→                      {data.changeLabel && (
+   268→                        <span className="text-[10px] text-[#86868b] dark:text-[#aeaeb2]">{data.changeLabel}</span>
+   269→                      )}
+   270→                    </div>
+   271→                  )}
+   272→                </div>
+   273→                <motion.div
+   274→                  className={`h-10 w-10 rounded-xl bg-gradient-to-br ${data.gradient} flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0`}
+   275→                  style={{ transform: "translateZ(40px)" }}
+   276→                  whileHover={{ scale: 1.1, rotate: 5 }}
+   277→                  transition={{ type: "spring", stiffness: 400, damping: 15 }}
+   278→                >
+   279→                  <Icon className={`h-5 w-5 ${data.iconColor}`} />
+   280→                </motion.div>
+   281→              </div>
+   282→            </CardContent>
+   283→          </motion.div>
+   284→          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent" />
+   285→        </Card>
+   286→      </motion.div>
+   287→    </motion.div>
+   288→  );
+   289→}
+   290→
+   291→// ── Pipeline Stage Node ─────────────────────────────────────────────
+   292→function PipelineStageNode({
+   293→  stage,
+   294→  count,
+   295→  totalContent,
+   296→  onClick,
+   297→}: {
+   298→  stage: typeof PIPELINE_STAGES[number];
+   299→  count: number;
+   300→  totalContent: number;
+   301→  onClick: () => void;
+   302→}) {
+   303→  const StageIcon = stage.icon;
+   304→  const pct = totalContent > 0 ? Math.round((count / totalContent) * 100) : 0;
+   305→
+   306→  return (
+   307→    <motion.div
+   308→      className="flex flex-col items-center gap-2 cursor-pointer group"
+   309→      whileHover={{ scale: 1.05, y: -4 }}
+   310→      onClick={onClick}
+   311→    >
+   312→      {/* Circle with icon and count */}
+   313→      <div className="relative">
+   314→        <motion.div
+   315→          className="h-16 w-16 rounded-2xl flex items-center justify-center"
+   316→          style={{ backgroundColor: stage.color + "15" }}
+   317→          animate={
+   318→            count > 0
+   319→              ? {
+   320→                  boxShadow: [
+   321→                    `0 0 0 0 ${stage.color}00`,
+   322→                    `0 0 0 8px ${stage.color}10`,
+   323→                    `0 0 0 0 ${stage.color}00`,
+   324→                  ],
+   325→                }
+   326→              : {}
+   327→          }
+   328→          transition={{ duration: 2, repeat: Infinity }}
+   329→        >
+   330→          <StageIcon className="h-7 w-7" style={{ color: stage.color }} />
+   331→        </motion.div>
+   332→        {/* Count badge */}
+   333→        <motion.div
+   334→          className="absolute -top-1 -right-1 h-6 min-w-[24px] px-1 rounded-full flex items-center justify-center text-xs font-bold text-white"
+   335→          style={{ backgroundColor: stage.color }}
+   336→          animate={count > 0 ? { scale: [1, 1.1, 1] } : {}}
+   337→          transition={{ duration: 1.5, repeat: Infinity }}
+   338→        >
+   339→          {count}
+   340→        </motion.div>
+   341→      </div>
+   342→      <span className="text-xs font-medium text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+   343→        {stage.label}
+   344→      </span>
+   345→      {/* Mini progress bar */}
+   346→      <div className="w-full max-w-[64px] h-1.5 rounded-full bg-muted/60 overflow-hidden">
+   347→        <motion.div
+   348→          className="h-full rounded-full"
+   349→          style={{ backgroundColor: stage.color }}
+   350→          initial={{ width: 0 }}
+   351→          animate={{ width: `${pct}%` }}
+   352→          transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+   353→        />
+   354→      </div>
+   355→      <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
+   356→    </motion.div>
+   357→  );
+   358→}
+   359→
+   360→// ── Pipeline Connector with animated dots ────────────────────────────
+   361→function PipelineConnector({ fromColor, toColor, hasItems }: { fromColor: string; toColor: string; hasItems: boolean }) {
+   362→  return (
+   363→    <div className="flex-1 relative h-1 min-w-[24px] sm:min-w-[40px] lg:min-w-[60px] rounded-full overflow-hidden mx-1 sm:mx-2 self-center mt-[-20px]">
+   364→      {/* Base line */}
+   365→      <div
+   366→        className="absolute inset-0 rounded-full opacity-30"
+   367→        style={{
+   368→          background: `linear-gradient(to right, ${fromColor}, ${toColor})`,
+   369→        }}
+   370→      />
+   371→      {/* Animated flowing dots */}
+   372→      {[0, 1, 2].map((i) => (
+   373→        <motion.div
+   374→          key={i}
+   375→          className="absolute top-0 h-full w-2 sm:w-3 rounded-full"
+   376→          style={{ backgroundColor: toColor }}
+   377→          animate={{ left: ["-10%", "110%"] }}
+   378→          transition={{
+   379→            duration: hasItems ? 1.5 : 3,
+   380→            repeat: Infinity,
+   381→            delay: i * 0.5,
+   382→            ease: "linear",
+   383→          }}
+   384→        />
+   385→      ))}
+   386→    </div>
+   387→  );
+   388→}
+   389→
+   390→// ── Team Productivity Bar (Enhanced) ────────────────────────────────
+   391→function TeamProductivityBar({ team, completed, pending, index = 0 }: { team: string; completed: number; pending: number; index?: number }) {
+   392→  const total = completed + pending;
+   393→  const completedPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+   394→  const pendingPct = total > 0 ? Math.round((pending / total) * 100) : 0;
+   395→
+   396→  return (
+   397→    <motion.div
+   398→      className="space-y-2 group"
+   399→      initial={{ opacity: 0, y: 12 }}
+   400→      whileInView={{ opacity: 1, y: 0 }}
+   401→      viewport={{ once: true, margin: "-40px" }}
+   402→      transition={{ duration: 0.5, delay: index * 0.08, ease: "easeOut" }}
+   403→      whileHover={{ scale: 1.01 }}
+   404→    >
+   405→      <div className="flex items-center justify-between">
+   406→        <div className="flex items-center gap-2">
+   407→          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm shadow-emerald-500/20 transition-shadow group-hover:shadow-md group-hover:shadow-emerald-500/40">
+   408→            <Users className="h-3.5 w-3.5 text-white" />
+   409→          </div>
+   410→          <span className="text-sm font-medium text-foreground truncate">{team}</span>
+   411→        </div>
+   412→        <div className="flex items-center gap-2">
+   413→          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{completedPct}%</span>
+   414→          <span className="text-[10px] text-muted-foreground tabular-nums">
+   415→            {completed}<span className="text-muted-foreground/60">/{total}</span>
+   416→          </span>
+   417→        </div>
+   418→      </div>
+   419→      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted/60">
+   420→        <motion.div
+   421→          className="bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-l-full relative"
+   422→          initial={{ width: 0 }}
+   423→          whileInView={{ width: `${completedPct}%` }}
+   424→          viewport={{ once: true }}
+   425→          transition={{ duration: 0.8, delay: index * 0.08 + 0.2, ease: "easeOut" }}
+   426→        >
+   427→          {/* Subtle glow on hover */}
+   428→          <span className="absolute inset-0 rounded-l-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-[0_0_10px_2px_rgba(16,185,129,0.6)]" />
+   429→        </motion.div>
+   430→        <motion.div
+   431→          className="bg-gradient-to-r from-amber-400 to-amber-300 dark:from-amber-500 dark:to-amber-400"
+   432→          initial={{ width: 0 }}
+   433→          whileInView={{ width: `${pendingPct}%` }}
+   434→          viewport={{ once: true }}
+   435→          transition={{ duration: 0.8, delay: index * 0.08 + 0.35, ease: "easeOut" }}
+   436→        />
+   437→      </div>
+   438→      {/* Mini sparkline-style indicator */}
+   439→      <div className="flex gap-[2px]">
+   440→        {Array.from({ length: 8 }).map((_, i) => {
+   441→          // Deterministic sine-wave pattern for decorative sparkline
+   442→          const height = Math.round((Math.sin(i * 0.8 + completed * 0.3) * 0.5 + 0.5) * 12 + 4);
+   443→          const isCompleted = i < Math.round((completedPct / 100) * 8);
+   444→          return (
+   445→            <motion.div
+   446→              key={i}
+   447→              className="flex-1 rounded-sm"
+   448→              initial={{ scaleY: 0, opacity: 0 }}
+   449→              whileInView={{ scaleY: 1, opacity: 1 }}
+   450→              viewport={{ once: true }}
+   451→              transition={{ duration: 0.4, delay: index * 0.08 + i * 0.04 + 0.5, ease: "easeOut" }}
+   452→              style={{
+   453→                height: `${height}px`,
+   454→                backgroundColor: isCompleted ? "#10b981" : "#f59e0b30",
+   455→                transformOrigin: "bottom",
+   456→              }}
+   457→            />
+   458→          );
+   459→        })}
+   460→      </div>
+   461→    </motion.div>
+   462→  );
+   463→}
+   464→
+   465→// ── Main Dashboard View ─────────────────────────────────────────────
+   466→export function DashboardView() {
+   467→  const {
+   468→    dashboard,
+   469→    isLoading,
+   470→    setShowCreateContent,
+   471→    setShowCreatePost,
+   472→    contents,
+   473→    posts,
+   474→    teams,
+   475→    socialAccounts,
+   476→    disseminators,
+   477→    disseminationTasks,
+   478→    setActiveView,
+   479→  } = useERPStore();
+   480→
+   481→  // Loading state
+   482→  if (isLoading || !dashboard) {
+   483→    return <DashboardSkeleton />;
+   484→  }
+   485→
+   486→  // Count active dissemination tasks
+   487→  const activeDisseminationTasks = disseminationTasks.filter(
+   488→    (t) => t.status === "pending" || t.status === "in_progress"
+   489→  ).length;
+   490→
+   491→  // ── Compute real KPI change percentages from data ────────────────────
+   492→  const now = new Date();
+   493→  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+   494→  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+   495→
+   496→  const contentThisMonth = contents.filter((c) => new Date(c.createdAt) >= thisMonthStart).length;
+   497→  const contentLastMonth = contents.filter((c) => {
+   498→    const d = new Date(c.createdAt);
+   499→    return d >= lastMonthStart && d < thisMonthStart;
+   500→  }).length;
+   501→  const contentChange = contentLastMonth > 0
+   502→    ? Math.round(((contentThisMonth - contentLastMonth) / contentLastMonth) * 1000) / 10
+   503→    : (contentThisMonth > 0 ? 100 : 0);
+   504→
+   505→  const postsThisMonthCalc = posts.filter((p) => {
+   506→    const d = new Date(p.publishedAt || p.createdAt);
+   507→    return d >= thisMonthStart;
+   508→  }).length;
+   509→  const postsLastMonth = posts.filter((p) => {
+   510→    const d = new Date(p.publishedAt || p.createdAt);
+   511→    return d >= lastMonthStart && d < thisMonthStart;
+   512→  }).length;
+   513→  const postsChange = postsLastMonth > 0
+   514→    ? Math.round(((postsThisMonthCalc - postsLastMonth) / postsLastMonth) * 1000) / 10
+   515→    : (postsThisMonthCalc > 0 ? 100 : 0);
+   516→
+   517→  // Build KPI cards (work-related only, 6 cards)
+   518→  const kpiCards: KPICardData[] = [
+   519→    {
+   520→      title: "Total Content",
+   521→      value: dashboard.totalContent,
+   522→      change: contentChange,
+   523→      changeLabel: "vs last month",
+   524→      icon: FileText,
+   525→      gradient: "from-emerald-500 to-emerald-600",
+   526→      iconColor: "text-white",
+   527→    },
+   528→    {
+   529→      title: "Posts This Month",
+   530→      value: dashboard.postsThisMonth,
+   531→      change: postsChange,
+   532→      changeLabel: "vs last month",
+   533→      icon: Send,
+   534→      gradient: "from-teal-500 to-teal-600",
+   535→      iconColor: "text-white",
+   536→    },
+   537→    {
+   538→      title: "Scheduled Posts",
+   539→      value: dashboard.scheduledPosts,
+   540→      icon: Clock,
+   541→      gradient: "from-cyan-500 to-cyan-600",
+   542→      iconColor: "text-white",
+   543→      badge: "Upcoming",
+   544→      badgeColor: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
+   545→    },
+   546→    {
+   547→      title: "Active Campaigns",
+   548→      value: dashboard.activeCampaigns,
+   549→      icon: Rocket,
+   550→      gradient: "from-green-500 to-green-600",
+   551→      iconColor: "text-white",
+   552→      badge: dashboard.activeCampaigns > 0 ? "Live" : undefined,
+   553→      badgeColor: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+   554→    },
+   555→    {
+   556→      title: "Pending Approvals",
+   557→      value: dashboard.pendingApprovals,
+   558→      icon: ShieldCheck,
+   559→      gradient: "from-amber-500 to-amber-600",
+   560→      iconColor: "text-white",
+   561→      badge: dashboard.pendingApprovals > 0 ? "Action needed" : undefined,
+   562→      badgeColor: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+   563→    },
+   564→    {
+   565→      title: "Dissemination Tasks",
+   566→      value: activeDisseminationTasks,
+   567→      icon: Share2,
+   568→      gradient: "from-emerald-500 to-teal-600",
+   569→      iconColor: "text-white",
+   570→      badge: activeDisseminationTasks > 0 ? "Active" : undefined,
+   571→      badgeColor: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
+   572→    },
+   573→  ];
+   574→
+   575→  // Pipeline data
+   576→  const totalContent = dashboard.totalContent || 1; // avoid div by zero
+   577→
+   578→  // Platform activity data
+   579→  const platformData = dashboard.platformBreakdown.map((p) => ({
+   580→    platform: p.platform,
+   581→    label: p.platform.charAt(0).toUpperCase() + p.platform.slice(1),
+   582→    posts: p.posts,
+   583→    engagement: p.engagement,
+   584→    color: PLATFORM_COLORS[p.platform.toLowerCase()] || "#10b981",
+   585→  }));
+   586→  const maxPosts = Math.max(...platformData.map((p) => p.posts), 1);
+   587→
+   588→  // Activity items (last 15)
+   589→  const activityItems = dashboard.recentActivity.slice(0, 15);
+   590→
+   591→  // Team productivity
+   592→  const teamData = dashboard.teamProductivity;
+   593→
+   594→  // Pending/in-progress dissemination tasks for queue display
+   595→  const taskQueue = disseminationTasks
+   596→    .filter((t) => t.status === "pending" || t.status === "in_progress")
+   597→    .slice(0, 5);
+   598→
+   599→  // Quick actions (work-related only)
+   600→  const quickActions = [
+   601→    {
+   602→      label: "Create Content",
+   603→      icon: FileText,
+   604→      onClick: () => setShowCreateContent(true),
+   605→      color: "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60",
+   606→    },
+   607→    {
+   608→      label: "Schedule Post",
+   609→      icon: CalendarCheck,
+   610→      onClick: () => setShowCreatePost(true),
+   611→      color: "bg-teal-100 text-teal-700 hover:bg-teal-200 dark:bg-teal-900/40 dark:text-teal-300 dark:hover:bg-teal-900/60",
+   612→    },
+   613→    {
+   614→      label: "Assign Dissemination",
+   615→      icon: Share2,
+   616→      onClick: () => setActiveView("dissemination"),
+   617→      color: "bg-cyan-100 text-cyan-700 hover:bg-cyan-200 dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-900/60",
+   618→    },
+   619→    {
+   620→      label: "Request Approval",
+   621→      icon: ClipboardCheck,
+   622→      onClick: () => setActiveView("approvals"),
+   623→      color: "bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/60",
+   624→    },
+   625→  ];
+   626→
+   627→  return (
+   628→    <motion.div
+   629→      className="p-6 space-y-6"
+   630→      variants={containerVariants}
+   631→      initial="hidden"
+   632→      animate="visible"
+   633→    >
+   634→      {/* ── Section Header ── */}
+   635→      <motion.div variants={itemVariants} className="flex items-center justify-between">
+   636→        <div>
+   637→          <h2 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white">
+   638→            Dashboard Overview
+   639→          </h2>
+   640→          <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] mt-1">
+   641→            Work metrics &amp; pipeline performance
+   642→          </p>
+   643→        </div>
+   644→        <Badge variant="secondary" className="text-[10px] font-semibold gap-1.5 rounded-full bg-black/5 dark:bg-white/10 px-3 py-1">
+   645→          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+   646→          Live
+   647→        </Badge>
+   648→      </motion.div>
+   649→
+   650→      {/* ── Row 1: KPI Cards (6 cards) ── */}
+   651→      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+   652→        {kpiCards.map((card) => (
+   653→          <KPICard key={card.title} data={card} />
+   654→        ))}
+   655→      </div>
+   656→
+   657→      {/* ── Row 2: Animated Pipeline Workflow (HERO SECTION) ── */}
+   658→      <motion.div variants={itemVariants}>
+   659→        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos overflow-hidden rounded-2xl">
+   660→          <CardHeader className="pb-3">
+   661→            <div className="flex items-center justify-between">
+   662→              <div>
+   663→                <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Content Pipeline</CardTitle>
+   664→                <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
+   665→                  Workflow stages &mdash; click any stage to view details
+   666→                </CardDescription>
+   667→              </div>
+   668→              <div className="flex items-center gap-2">
+   669→                <Badge variant="outline" className="text-[10px] gap-1 border-emerald-200 dark:border-emerald-800 rounded-full">
+   670→                  <Workflow className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+   671→                  {dashboard.totalContent} items
+   672→                </Badge>
+   673→              </div>
+   674→            </div>
+   675→          </CardHeader>
+   676→          <CardContent className="pt-0 pb-6">
+   677→            {/* Desktop horizontal pipeline */}
+   678→            <div className="hidden md:flex items-start justify-between px-4 py-4">
+   679→              {PIPELINE_STAGES.map((stage, index) => {
+   680→                const count = dashboard.contentByStage[stage.key] || 0;
+   681→                return (
+   682→                  <React.Fragment key={stage.key}>
+   683→                    <PipelineStageNode
+   684→                      stage={stage}
+   685→                      count={count}
+   686→                      totalContent={totalContent}
+   687→                      onClick={() => setActiveView("pipeline")}
+   688→                    />
+   689→                    {index < PIPELINE_STAGES.length - 1 && (
+   690→                      <PipelineConnector
+   691→                        fromColor={stage.color}
+   692→                        toColor={PIPELINE_STAGES[index + 1].color}
+   693→                        hasItems={count > 0}
+   694→                      />
+   695→                    )}
+   696→                  </React.Fragment>
+   697→                );
+   698→              })}
+   699→            </div>
+   700→            {/* Mobile vertical pipeline */}
+   701→            <div className="md:hidden flex flex-col items-center gap-0 py-4">
+   702→              {PIPELINE_STAGES.map((stage, index) => {
+   703→                const count = dashboard.contentByStage[stage.key] || 0;
+   704→                const pct = totalContent > 0 ? Math.round((count / totalContent) * 100) : 0;
+   705→                const StageIcon = stage.icon;
+   706→                return (
+   707→                  <React.Fragment key={stage.key}>
+   708→                    <motion.button
+   709→                      className="flex items-center gap-3 w-full max-w-[260px] py-2 px-3 rounded-xl hover:bg-muted/50 transition-colors"
+   710→                      whileHover={{ scale: 1.02 }}
+   711→                      onClick={() => setActiveView("pipeline")}
+   712→                    >
+   713→                      <div className="relative shrink-0">
+   714→                        <motion.div
+   715→                          className="h-12 w-12 rounded-xl flex items-center justify-center"
+   716→                          style={{ backgroundColor: stage.color + "15" }}
+   717→                          animate={
+   718→                            count > 0
+   719→                              ? {
+   720→                                  boxShadow: [
+   721→                                    `0 0 0 0 ${stage.color}00`,
+   722→                                    `0 0 0 6px ${stage.color}10`,
+   723→                                    `0 0 0 0 ${stage.color}00`,
+   724→                                  ],
+   725→                                }
+   726→                              : {}
+   727→                          }
+   728→                          transition={{ duration: 2, repeat: Infinity }}
+   729→                        >
+   730→                          <StageIcon className="h-5 w-5" style={{ color: stage.color }} />
+   731→                        </motion.div>
+   732→                        <motion.div
+   733→                          className="absolute -top-0.5 -right-0.5 h-5 min-w-[20px] px-0.5 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+   734→                          style={{ backgroundColor: stage.color }}
+   735→                          animate={count > 0 ? { scale: [1, 1.1, 1] } : {}}
+   736→                          transition={{ duration: 1.5, repeat: Infinity }}
+   737→                        >
+   738→                          {count}
+   739→                        </motion.div>
+   740→                      </div>
+   741→                      <div className="flex-1 min-w-0 text-left">
+   742→                        <p className="text-sm font-medium text-foreground">{stage.label}</p>
+   743→                        <div className="flex items-center gap-2 mt-1">
+   744→                          <div className="flex-1 h-1.5 rounded-full bg-muted/60 overflow-hidden">
+   745→                            <motion.div
+   746→                              className="h-full rounded-full"
+   747→                              style={{ backgroundColor: stage.color }}
+   748→                              initial={{ width: 0 }}
+   749→                              animate={{ width: `${pct}%` }}
+   750→                              transition={{ duration: 0.6, delay: 0.2 }}
+   751→                            />
+   752→                          </div>
+   753→                          <span className="text-[10px] text-muted-foreground tabular-nums">{pct}%</span>
+   754→                        </div>
+   755→                      </div>
+   756→                    </motion.button>
+   757→                    {index < PIPELINE_STAGES.length - 1 && (
+   758→                      <div className="w-px h-6 relative flex items-center justify-center">
+   759→                        <div className="w-px h-full" style={{ backgroundColor: stage.color + "30" }} />
+   760→                        <motion.div
+   761→                          className="absolute w-2 h-2 rounded-full"
+   762→                          style={{ backgroundColor: PIPELINE_STAGES[index + 1].color }}
+   763→                          animate={{ y: [-4, 4, -4] }}
+   764→                          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+   765→                        />
+   766→                      </div>
+   767→                    )}
+   768→                  </React.Fragment>
+   769→                );
+   770→              })}
+   771→            </div>
+   772→          </CardContent>
+   773→        </Card>
+   774→      </motion.div>
+   775→
+   776→      {/* ── Row 3: Tasks & Team Performance ── */}
+   777→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   778→        {/* Left: Tasks & Dissemination Queue */}
+   779→        <motion.div variants={itemVariants}>
+   780→          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
+   781→            <CardHeader className="pb-2">
+   782→              <div className="flex items-center justify-between">
+   783→                <div>
+   784→                  <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Tasks &amp; Dissemination Queue</CardTitle>
+   785→                  <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
+   786→                    Active tasks requiring attention
+   787→                  </CardDescription>
+   788→                </div>
+   789→                <div className="h-8 w-8 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+   790→                  <Share2 className="h-4 w-4 text-teal-600 dark:text-teal-400" />
+   791→                </div>
+   792→              </div>
+   793→            </CardHeader>
+   794→            <CardContent className="pt-2">
+   795→              {taskQueue.length === 0 ? (
+   796→                <div className="flex flex-col items-center justify-center h-32 text-sm text-muted-foreground gap-2">
+   797→                  <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+   798→                  <span>All tasks completed!</span>
+   799→                </div>
+   800→              ) : (
+   801→                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+   802→                  {taskQueue.map((task) => {
+   803→                    const platforms = task.targetPlatforms
+   804→                      ? (() => {
+   805→                          if (Array.isArray(task.targetPlatforms)) return task.targetPlatforms;
+   806→                          try {
+   807→                            return JSON.parse(task.targetPlatforms);
+   808→                          } catch {
+   809→                            return [task.targetPlatforms];
+   810→                          }
+   811→                        })()
+   812→                      : [];
+   813→                    const PlatformIcon = PLATFORM_ICONS[(platforms[0] || "").toLowerCase()] || Globe;
+   814→
+   815→                    return (
+   816→                      <motion.div
+   817→                        key={task.id}
+   818→                        initial={{ opacity: 0, x: -8 }}
+   819→                        animate={{ opacity: 1, x: 0 }}
+   820→                        className="flex items-start gap-3 p-3 rounded-xl border border-border/40 hover:bg-muted/30 transition-colors group"
+   821→                      >
+   822→                        {/* Status indicator */}
+   823→                        <div className="mt-1 shrink-0">
+   824→                          <div
+   825→                            className={`h-2 w-2 rounded-full ${
+   826→                              task.status === "in_progress"
+   827→                                ? "bg-cyan-500 animate-pulse"
+   828→                                : "bg-amber-500"
+   829→                            }`}
+   830→                          />
+   831→                        </div>
+   832→
+   833→                        <div className="flex-1 min-w-0">
+   834→                          <div className="flex items-center justify-between gap-2">
+   835→                            <p className="text-sm font-medium text-foreground truncate">
+   836→                              {task.title}
+   837→                            </p>
+   838→                            <span className={`inline-flex items-center px-1.5 py-0 text-[9px] font-semibold rounded shrink-0 ${getPriorityColor(task.priority)}`}>
+   839→                              {task.priority}
+   840→                            </span>
+   841→                          </div>
+   842→
+   843→                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+   844→                            {/* Assignee */}
+   845→                            {task.assignee && (
+   846→                              <div className="flex items-center gap-1">
+   847→                                <Avatar className="h-4 w-4">
+   848→                                  <AvatarFallback className="text-[8px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300">
+   849→                                    {task.assignee.name.slice(0, 2).toUpperCase()}
+   850→                                  </AvatarFallback>
+   851→                                </Avatar>
+   852→                                <span className="text-[10px] text-muted-foreground">{task.assignee.name}</span>
+   853→                              </div>
+   854→                            )}
+   855→
+   856→                            {/* Due date */}
+   857→                            {task.dueDate && (
+   858→                              <div className="flex items-center gap-1">
+   859→                                <Clock className="h-3 w-3 text-muted-foreground" />
+   860→                                <span className="text-[10px] text-muted-foreground">
+   861→                                  {new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+   862→                                </span>
+   863→                              </div>
+   864→                            )}
+   865→
+   866→                            {/* Platform icons */}
+   867→                            {platforms.slice(0, 3).map((p: string) => {
+   868→                              const PIcon = PLATFORM_ICONS[p.toLowerCase()] || Globe;
+   869→                              return (
+   870→                                <div
+   871→                                  key={p}
+   872→                                  className="h-4 w-4 rounded flex items-center justify-center"
+   873→                                  style={{ backgroundColor: (PLATFORM_COLORS[p.toLowerCase()] || "#10b981") + "20" }}
+   874→                                >
+   875→                                  <PIcon className="h-2.5 w-2.5" style={{ color: PLATFORM_COLORS[p.toLowerCase()] || "#10b981" }} />
+   876→                                </div>
+   877→                              );
+   878→                            })}
+   879→                            {platforms.length > 3 && (
+   880→                              <span className="text-[9px] text-muted-foreground">+{platforms.length - 3}</span>
+   881→                            )}
+   882→                          </div>
+   883→                        </div>
+   884→                      </motion.div>
+   885→                    );
+   886→                  })}
+   887→                </div>
+   888→              )}
+   889→              {taskQueue.length > 0 && (
+   890→                <div className="mt-3 pt-2 border-t border-border/40">
+   891→                  <Button
+   892→                    variant="ghost"
+   893→                    size="sm"
+   894→                    className="w-full text-xs text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/20"
+   895→                    onClick={() => setActiveView("dissemination")}
+   896→                  >
+   897→                    View All Tasks
+   898→                    <ArrowRight className="h-3 w-3 ml-1" />
+   899→                  </Button>
+   900→                </div>
+   901→              )}
+   902→            </CardContent>
+   903→          </Card>
+   904→        </motion.div>
+   905→
+   906→        {/* Right: Team Performance (Enhanced) */}
+   907→        <motion.div variants={itemVariants}>
+   908→          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
+   909→            <CardHeader className="pb-2">
+   910→              <div className="flex items-center justify-between">
+   911→                <div>
+   912→                  <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Team Performance</CardTitle>
+   913→                  <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
+   914→                    Completed vs pending tasks
+   915→                  </CardDescription>
+   916→                </div>
+   917→                <div className="flex items-center gap-3 text-[10px]">
+   918→                  <div className="flex items-center gap-1.5">
+   919→                    <div className="h-2 w-2 rounded-sm bg-gradient-to-r from-emerald-500 to-emerald-400" />
+   920→                    <span className="text-[#86868b] dark:text-[#aeaeb2]">Done</span>
+   921→                  </div>
+   922→                  <div className="flex items-center gap-1.5">
+   923→                    <div className="h-2 w-2 rounded-sm bg-gradient-to-r from-amber-400 to-amber-300" />
+   924→                    <span className="text-[#86868b] dark:text-[#aeaeb2]">Pending</span>
+   925→                  </div>
+   926→                </div>
+   927→              </div>
+   928→            </CardHeader>
+   929→            <CardContent className="pt-2">
+   930→              {teamData.length === 0 ? (
+   931→                <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+   932→                  No team data available
+   933→                </div>
+   934→              ) : (
+   935→                <div className="space-y-5">
+   936→                  {teamData.map((t, idx) => (
+   937→                    <TeamProductivityBar
+   938→                      key={t.team}
+   939→                      team={t.team}
+   940→                      completed={t.completed}
+   941→                      pending={t.pending}
+   942→                      index={idx}
+   943→                    />
+   944→                  ))}
+   945→                </div>
+   946→              )}
+   947→            </CardContent>
+   948→          </Card>
+   949→        </motion.div>
+   950→      </div>
+   951→
+   952→      {/* ── Row 4: Platform Activity & Recent Activity ── */}
+   953→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   954→        {/* Left: Platform Activity (CSS-based) */}
+   955→        <motion.div variants={itemVariants}>
+   956→          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
+   957→            <CardHeader className="pb-2">
+   958→              <div className="flex items-center justify-between">
+   959→                <div>
+   960→                  <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Platform Activity</CardTitle>
+   961→                  <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
+   962→                    Posts &amp; engagement by platform
+   963→                  </CardDescription>
+   964→                </div>
+   965→                <div className="h-8 w-8 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
+   966→                  <Globe className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+   967→                </div>
+   968→              </div>
+   969→            </CardHeader>
+   970→            <CardContent className="pt-2">
+   971→              {platformData.length === 0 ? (
+   972→                <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+   973→                  No platform data available
+   974→                </div>
+   975→              ) : (
+   976→                <div className="space-y-3 max-h-[340px] overflow-y-auto pr-1">
+   977→                  {platformData.map((p, pIdx) => {
+   978→                    const PIcon = PLATFORM_ICONS[p.platform.toLowerCase()] || Globe;
+   979→                    const barWidth = Math.round((p.posts / maxPosts) * 100);
+   980→                    return (
+   981→                      <motion.div
+   982→                        key={p.platform}
+   983→                        className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/30 transition-colors border-l-2 group relative overflow-hidden"
+   984→                        style={{ borderLeftColor: p.color }}
+   985→                        initial={{ opacity: 0, x: -16 }}
+   986→                        whileInView={{ opacity: 1, x: 0 }}
+   987→                        viewport={{ once: true, margin: "-30px" }}
+   988→                        transition={{ duration: 0.5, delay: pIdx * 0.08, ease: "easeOut" }}
+   989→                        whileHover={{ scale: 1.015 }}
+   990→                      >
+   991→                        {/* Hover glow */}
+   992→                        <span
+   993→                          className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+   994→                          style={{
+   995→                            background: `radial-gradient(120px 60px at 10% 50%, ${p.color}20, transparent 70%)`,
+   996→                          }}
+   997→                        />
+   998→                        <div
+   999→                          className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
+  1000→                          style={{ backgroundColor: p.color + "15" }}
+  1001→                        >
+  1002→                          <PIcon className="h-4 w-4" style={{ color: p.color }} />
+  1003→                        </div>
+  1004→                        <div className="flex-1 min-w-0 relative">
+  1005→                          <div className="flex items-center justify-between mb-1">
+  1006→                            <span className="text-sm font-medium text-foreground">{p.label}</span>
+  1007→                            <div className="flex items-center gap-2">
+  1008→                              <span className="text-xs font-semibold text-foreground tabular-nums">
+  1009→                                <AnimatedCounter value={p.posts} duration={900} /> posts
+  1010→                              </span>
+  1011→                              <span className="text-[10px] text-muted-foreground tabular-nums">
+  1012→                                {p.engagement.toLocaleString()} eng
+  1013→                              </span>
+  1014→                            </div>
+  1015→                          </div>
+  1016→                          <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+  1017→                            <motion.div
+  1018→                              className="h-full rounded-full relative"
+  1019→                              style={{ backgroundColor: p.color }}
+  1020→                              initial={{ width: 0 }}
+  1021→                              whileInView={{ width: `${barWidth}%` }}
+  1022→                              viewport={{ once: true }}
+  1023→                              transition={{ duration: 0.8, delay: pIdx * 0.08 + 0.2, ease: "easeOut" }}
+  1024→                            >
+  1025→                              <span
+  1026→                                className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+  1027→                                style={{ boxShadow: `0 0 10px 2px ${p.color}99` }}
+  1028→                              />
+  1029→                            </motion.div>
+  1030→                          </div>
+  1031→                        </div>
+  1032→                      </motion.div>
+  1033→                    );
+  1034→                  })}
+  1035→                </div>
+  1036→              )}
+  1037→            </CardContent>
+  1038→          </Card>
+  1039→        </motion.div>
+  1040→
+  1041→        {/* Right: Recent Activity Feed (Enhanced) */}
+  1042→        <motion.div variants={itemVariants}>
+  1043→          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
+  1044→            <CardHeader className="pb-2">
+  1045→              <div className="flex items-center justify-between">
+  1046→                <div>
+  1047→                  <CardTitle className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Recent Activity</CardTitle>
+  1048→                  <CardDescription className="text-xs mt-0.5 text-[#86868b] dark:text-[#aeaeb2]">
+  1049→                    Latest actions across the platform
+  1050→                  </CardDescription>
+  1051→                </div>
+  1052→                <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+  1053→                  <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+  1054→                </div>
+  1055→              </div>
+  1056→            </CardHeader>
+  1057→            <CardContent className="pt-0">
+  1058→              {activityItems.length === 0 ? (
+  1059→                <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+  1060→                  No recent activity
+  1061→                </div>
+  1062→              ) : (
+  1063→                <ScrollArea className="h-[340px] pr-3">
+  1064→                  <div className="space-y-0.5">
+  1065→                    {activityItems.map((item, idx) => {
+  1066→                      const { icon: ActivityIcon, color: iconColorClasses } = getActivityIcon(item.action, item.entity);
+  1067→                      const entityBadge = getEntityTypeBadge(item.entity);
+  1068→                      return (
+  1069→                        <motion.div
+  1070→                          key={item.id}
+  1071→                          initial={{ opacity: 0, x: -8 }}
+  1072→                          animate={{ opacity: 1, x: 0 }}
+  1073→                          transition={{ delay: idx * 0.03, duration: 0.2 }}
+  1074→                          className="flex items-start gap-3 py-2.5 px-2 rounded-lg hover:bg-muted/50 transition-colors group"
+  1075→                        >
+  1076→                          <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 ${iconColorClasses}`}>
+  1077→                            <ActivityIcon className="h-3.5 w-3.5" />
+  1078→                          </div>
+  1079→                          <div className="flex-1 min-w-0">
+  1080→                            <p className="text-xs text-foreground leading-snug">
+  1081→                              <span className="font-semibold">{item.actor?.name ?? "Unknown"}</span>
+  1082→                              {" "}
+  1083→                              <span className="text-muted-foreground">{item.action.toLowerCase()}</span>
+  1084→                              {item.entity && (
+  1085→                                <>
+  1086→                                  {" "}
+  1087→                                  <span className="font-medium text-foreground">{item.entity}</span>
+  1088→                                </>
+  1089→                              )}
+  1090→                            </p>
+  1091→                            <div className="flex items-center gap-2 mt-0.5">
+  1092→                              {item.details && (
+  1093→                                <p className="text-[10px] text-muted-foreground/70 truncate">
+  1094→                                  {item.details}
+  1095→                                </p>
+  1096→                              )}
+  1097→                              {entityBadge && (
+  1098→                                <span className={`inline-flex items-center px-1.5 py-0 text-[9px] font-semibold rounded leading-tight shrink-0 ${entityBadge.color}`}>
+  1099→                                  {entityBadge.label}
+  1100→                                </span>
+  1101→                              )}
+  1102→                            </div>
+  1103→                          </div>
+  1104→                          <span className="text-[10px] text-muted-foreground/60 whitespace-nowrap shrink-0 pt-0.5">
+  1105→                            {formatRelativeTime(item.createdAt)}
+  1106→                          </span>
+  1107→                        </motion.div>
+  1108→                      );
+  1109→                    })}
+  1110→                  </div>
+  1111→                </ScrollArea>
+  1112→              )}
+  1113→            </CardContent>
+  1114→          </Card>
+  1115→        </motion.div>
+  1116→      </div>
+  1117→
+  1118→      {/* ── Row 5: Quick Actions Bar ── */}
+  1119→      <motion.div variants={itemVariants}>
+  1120→        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+  1121→          <CardContent className="p-4">
+  1122→            <div className="flex items-center gap-2 mb-3">
+  1123→              <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+  1124→              <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white">Quick Actions</h3>
+  1125→            </div>
+  1126→            <div className="flex flex-wrap gap-2">
+  1127→              {quickActions.map((action) => {
+  1128→                const ActionIcon = action.icon;
+  1129→                return (
+  1130→                  <Button
+  1131→                    key={action.label}
+  1132→                    variant="ghost"
+  1133→                    size="sm"
+  1134→                    className={`h-9 gap-2 text-xs font-medium rounded-lg ${action.color} border-0`}
+  1135→                    onClick={action.onClick}
+  1136→                  >
+  1137→                    <ActionIcon className="h-3.5 w-3.5" />
+  1138→                    {action.label}
+  1139→                  </Button>
+  1140→                );
+  1141→              })}
+  1142→            </div>
+  1143→          </CardContent>
+  1144→        </Card>
+  1145→      </motion.div>
+  1146→    </motion.div>
+  1147→  );
+  1148→}
+  1149→
+  1150→// ── Loading Skeleton ────────────────────────────────────────────────
+  1151→function DashboardSkeleton() {
+  1152→  return (
+  1153→    <div className="p-6 space-y-6 animate-in fade-in duration-300">
+  1154→      {/* Header skeleton */}
+  1155→      <div className="flex items-center justify-between">
+  1156→        <div className="space-y-2">
+  1157→          <Skeleton className="h-6 w-44" />
+  1158→          <Skeleton className="h-4 w-60" />
+  1159→        </div>
+  1160→      </div>
+  1161→
+  1162→      {/* KPI cards skeleton (6 cards) */}
+  1163→      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+  1164→        {Array.from({ length: 6 }).map((_, i) => (
+  1165→          <Card key={i} className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+  1166→            <CardContent className="p-5">
+  1167→              <div className="flex items-start justify-between">
+  1168→                <div className="space-y-2 flex-1">
+  1169→                  <Skeleton className="h-3 w-20" />
+  1170→                  <Skeleton className="h-7 w-16" />
+  1171→                  <Skeleton className="h-3 w-24" />
+  1172→                </div>
+  1173→                <Skeleton className="h-10 w-10 rounded-xl" />
+  1174→              </div>
+  1175→            </CardContent>
+  1176→          </Card>
+  1177→        ))}
+  1178→      </div>
+  1179→
+  1180→      {/* Pipeline skeleton */}
+  1181→      <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+  1182→        <CardHeader className="pb-3">
+  1183→          <div className="flex items-center justify-between">
+  1184→            <div className="space-y-1.5">
+  1185→              <Skeleton className="h-4 w-32" />
+  1186→              <Skeleton className="h-3 w-48" />
+  1187→            </div>
+  1188→            <Skeleton className="h-6 w-20 rounded-full" />
+  1189→          </div>
+  1190→        </CardHeader>
+  1191→        <CardContent className="pt-0 pb-6">
+  1192→          <div className="hidden md:flex items-center justify-between px-4 py-4">
+  1193→            {Array.from({ length: 6 }).map((_, i) => (
+  1194→              <React.Fragment key={i}>
+  1195→                <div className="flex flex-col items-center gap-2">
+  1196→                  <Skeleton className="h-16 w-16 rounded-2xl" />
+  1197→                  <Skeleton className="h-3 w-12" />
+  1198→                  <Skeleton className="h-1.5 w-16 rounded-full" />
+  1199→                </div>
+  1200→                {i < 5 && <Skeleton className="h-1 flex-1 min-w-[40px] rounded-full mx-2" />}
+  1201→              </React.Fragment>
+  1202→            ))}
+  1203→          </div>
+  1204→          <div className="md:hidden flex flex-col items-center gap-2 py-4">
+  1205→            {Array.from({ length: 6 }).map((_, i) => (
+  1206→              <React.Fragment key={i}>
+  1207→                <Skeleton className="h-12 w-full max-w-[260px] rounded-xl" />
+  1208→                {i < 5 && <Skeleton className="w-px h-6" />}
+  1209→              </React.Fragment>
+  1210→            ))}
+  1211→          </div>
+  1212→        </CardContent>
+  1213→      </Card>
+  1214→
+  1215→      {/* Row 3 skeleton */}
+  1216→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  1217→        {Array.from({ length: 2 }).map((_, i) => (
+  1218→          <Card key={i} className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+  1219→            <CardHeader className="pb-2">
+  1220→              <div className="flex items-center justify-between">
+  1221→                <div className="space-y-1.5">
+  1222→                  <Skeleton className="h-4 w-40" />
+  1223→                  <Skeleton className="h-3 w-32" />
+  1224→                </div>
+  1225→                <Skeleton className="h-8 w-8 rounded-lg" />
+  1226→              </div>
+  1227→            </CardHeader>
+  1228→            <CardContent className="pt-2">
+  1229→              <div className="space-y-3">
+  1230→                {Array.from({ length: 4 }).map((_, j) => (
+  1231→                  <Skeleton key={j} className="h-16 w-full rounded-xl" />
+  1232→                ))}
+  1233→              </div>
+  1234→            </CardContent>
+  1235→          </Card>
+  1236→        ))}
+  1237→      </div>
+  1238→
+  1239→      {/* Row 4 skeleton */}
+  1240→      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+  1241→        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+  1242→          <CardHeader className="pb-2">
+  1243→            <div className="flex items-center justify-between">
+  1244→              <div className="space-y-1.5">
+  1245→                <Skeleton className="h-4 w-32" />
+  1246→                <Skeleton className="h-3 w-48" />
+  1247→              </div>
+  1248→              <Skeleton className="h-8 w-8 rounded-lg" />
+  1249→            </div>
+  1250→          </CardHeader>
+  1251→          <CardContent className="pt-2">
+  1252→            <div className="space-y-3">
+  1253→              {Array.from({ length: 5 }).map((_, j) => (
+  1254→                <Skeleton key={j} className="h-12 w-full rounded-lg" />
+  1255→              ))}
+  1256→            </div>
+  1257→          </CardContent>
+  1258→        </Card>
+  1259→        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+  1260→          <CardHeader className="pb-2">
+  1261→            <div className="flex items-center justify-between">
+  1262→              <div className="space-y-1.5">
+  1263→                <Skeleton className="h-4 w-32" />
+  1264→                <Skeleton className="h-3 w-48" />
+  1265→              </div>
+  1266→              <Skeleton className="h-8 w-8 rounded-lg" />
+  1267→            </div>
+  1268→          </CardHeader>
+  1269→          <CardContent className="pt-0">
+  1270→            <div className="space-y-2">
+  1271→              {Array.from({ length: 6 }).map((_, j) => (
+  1272→                <Skeleton key={j} className="h-10 w-full rounded-lg" />
+  1273→              ))}
+  1274→            </div>
+  1275→          </CardContent>
+  1276→        </Card>
+  1277→      </div>
+  1278→
+  1279→      {/* Quick actions skeleton */}
+  1280→      <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+  1281→        <CardContent className="p-4">
+  1282→          <Skeleton className="h-4 w-28 mb-3" />
+  1283→          <div className="flex flex-wrap gap-2">
+  1284→            {Array.from({ length: 4 }).map((_, i) => (
+  1285→              <Skeleton key={i} className="h-9 w-36 rounded-lg" />
+  1286→            ))}
+  1287→          </div>
+  1288→        </CardContent>
+  1289→      </Card>
+  1290→    </div>
+  1291→  );
+  1292→}
+  1293→

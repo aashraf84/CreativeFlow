@@ -143,7 +143,7 @@ export function Sidebar() {
       <aside
         className={cn(
           "relative flex flex-col h-screen sticky top-0 z-20",
-          "glass-sidebar border-r border-black/5 dark:border-white/5",
+          "bg-[#f7f7f8] dark:bg-[#1c1c1e] border-r border-[#e5e5e7] dark:border-[#38383a]",
           "transition-[width] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
           sidebarOpen ? "w-64" : "w-[68px]"
         )}
@@ -253,7 +253,7 @@ export function Sidebar() {
         </nav>
 
         {/* Bottom: Settings + User */}
-        <div className="px-2 pb-3 pt-2 border-t border-black/5 dark:border-white/5 space-y-1">
+        <div className="px-2 pb-3 pt-2 border-t border-[#e5e5e7] dark:border-[#38383a] space-y-1">
           {bottomNav.map((item) => (
             <NavButton
               key={item.id}
@@ -292,7 +292,7 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="icon"
-          className="absolute -right-3 top-20 h-6 w-6 rounded-full glass border border-black/5 dark:border-white/10 shadow-macos hover:bg-black/5 dark:hover:bg-white/10 z-30"
+          className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos hover:bg-black/5 dark:hover:bg-white/10 z-30"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
@@ -369,7 +369,7 @@ function NavButton({
         <TooltipTrigger asChild>
           {button}
         </TooltipTrigger>
-        <TooltipContent side="right" className="font-medium glass border border-black/5 dark:border-white/10 shadow-macos">
+        <TooltipContent side="right" className="font-medium bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos">
           {item.label}
           {item.badge && ` (${item.badge})`}
         </TooltipContent>

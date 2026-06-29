@@ -470,7 +470,7 @@ export default function ERPPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#f5f5f7] dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-white antialiased selection:bg-emerald-500/25">
+    <div className="min-h-screen flex bg-white dark:bg-black text-[#1d1d1f] dark:text-white antialiased selection:bg-emerald-500/25">
       <Sidebar />
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative">
         <Header />

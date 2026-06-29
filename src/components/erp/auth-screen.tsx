@@ -136,12 +136,12 @@ export function AuthScreen() {
 
   if (authState === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c] relative overflow-hidden">
-        {/* Aurora background blobs */}
+      <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
+        {/* Solid colored gradient blobs (no blur) */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-emerald-500/20 blur-3xl" />
-          <div className="absolute top-1/2 -right-32 h-96 w-96 rounded-full bg-teal-500/15 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-purple-500/10 blur-3xl" />
+          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-emerald-500/30" />
+          <div className="absolute top-1/2 -right-32 h-96 w-96 rounded-full bg-teal-500/25" />
+          <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-purple-500/20" />
         </div>
         <Loader2 className="h-8 w-8 animate-spin text-emerald-400 relative" />
       </div>
@@ -149,12 +149,12 @@ export function AuthScreen() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c] text-white p-4 relative overflow-hidden">
-      {/* Aurora background blobs (immersive dark design) */}
+    <div className="min-h-screen flex items-center justify-center bg-black text-white p-4 relative overflow-hidden">
+      {/* Solid colored gradient blobs (immersive dark design, no blur) */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-emerald-500/20 blur-3xl vortex-float" />
-        <div className="absolute top-1/2 -right-32 h-96 w-96 rounded-full bg-teal-500/15 blur-3xl vortex-float" style={{ animationDelay: "1s" }} />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-purple-500/10 blur-3xl vortex-float" style={{ animationDelay: "2s" }} />
+        <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-emerald-500/30 vortex-float" />
+        <div className="absolute top-1/2 -right-32 h-96 w-96 rounded-full bg-teal-500/25 vortex-float" style={{ animationDelay: "1s" }} />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-purple-500/20 vortex-float" style={{ animationDelay: "2s" }} />
         {/* Subtle grid overlay */}
         <div
           className="absolute inset-0 opacity-[0.04]"
@@ -192,9 +192,9 @@ export function AuthScreen() {
           </div>
         </motion.div>
 
-        {/* Right - Auth forms (glass card on dark immersive background) */}
+        {/* Right - Auth forms (SOLID dark card on immersive background) */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <Card className="border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-2xl shadow-emerald-500/10 rounded-2xl">
+          <Card className="border border-[#38383a] bg-[#1c1c1e] shadow-2xl shadow-emerald-500/10 rounded-2xl">
             <CardHeader className="space-y-1 pb-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 lg:hidden">
@@ -228,15 +228,15 @@ export function AuthScreen() {
                         <Input id="serialKey" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" value={serialKey}
                           onChange={(e) => setSerialKey(e.target.value.toUpperCase())}
                           onKeyPress={(e) => handleKeyPress(e, handleSerialKeySubmit)}
-                          className="pl-9 font-mono tracking-wider bg-white/[0.06] border-white/10 text-white placeholder:text-white/30 focus-visible:ring-emerald-500/40" disabled={loading} />
+                          className="pl-9 font-mono tracking-wider bg-[#2c2c2e] border-[#38383a] text-white placeholder:text-white/30 focus-visible:ring-emerald-500/40" disabled={loading} />
                       </div>
                     </div>
                     {error && <p className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg p-2">{error}</p>}
                     <Button onClick={handleSerialKeySubmit} disabled={loading} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-0 shadow-md shadow-emerald-500/30">
                       {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowRight className="h-4 w-4 mr-2" />}Register Device
                     </Button>
-                    <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/10" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-transparent px-2 text-white/40">or</span></div></div>
-                    <Button onClick={handleDemoLogin} disabled={loading} variant="outline" className="w-full bg-white/[0.04] border-white/15 text-white hover:bg-white/[0.08] hover:border-emerald-400/40">
+                    <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#38383a]" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-transparent px-2 text-white/40">or</span></div></div>
+                    <Button onClick={handleDemoLogin} disabled={loading} variant="outline" className="w-full bg-[#2c2c2e] border-[#38383a] text-white hover:bg-[#3a3a3c] hover:border-emerald-400/40">
                       {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2 text-emerald-400" />}Explore Demo (View Only)
                     </Button>
                     <p className="text-xs text-center text-white/40">No registration needed — explore the full ERP with view-only access</p>
@@ -250,7 +250,7 @@ export function AuthScreen() {
                         <User className="absolute left-3 top-2.5 h-4 w-4 text-white/40" />
                         <Input id="email" type="email" placeholder="admin@vortexdigital.com" value={email}
                           onChange={(e) => setEmail(e.target.value)} onKeyPress={(e) => handleKeyPress(e, handleLogin)}
-                          className="pl-9 bg-white/[0.06] border-white/10 text-white placeholder:text-white/30 focus-visible:ring-emerald-500/40" disabled={loading} />
+                          className="pl-9 bg-[#2c2c2e] border-[#38383a] text-white placeholder:text-white/30 focus-visible:ring-emerald-500/40" disabled={loading} />
                       </div>
                     </div>
                     <div className="space-y-2">
@@ -259,7 +259,7 @@ export function AuthScreen() {
                         <Lock className="absolute left-3 top-2.5 h-4 w-4 text-white/40" />
                         <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password}
                           onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => handleKeyPress(e, handleLogin)}
-                          className="pl-9 pr-9 bg-white/[0.06] border-white/10 text-white placeholder:text-white/30 focus-visible:ring-emerald-500/40" disabled={loading} />
+                          className="pl-9 pr-9 bg-[#2c2c2e] border-[#38383a] text-white placeholder:text-white/30 focus-visible:ring-emerald-500/40" disabled={loading} />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-2.5 text-white/40 hover:text-white">
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -269,8 +269,8 @@ export function AuthScreen() {
                     <Button onClick={handleLogin} disabled={loading} className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-0 shadow-md shadow-emerald-500/30">
                       {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogIn className="h-4 w-4 mr-2" />}Sign In
                     </Button>
-                    <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/10" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-transparent px-2 text-white/40">or</span></div></div>
-                    <Button onClick={handleDemoLogin} disabled={loading} variant="outline" className="w-full bg-white/[0.04] border-white/15 text-white hover:bg-white/[0.08] hover:border-emerald-400/40">
+                    <div className="relative"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-[#38383a]" /></div><div className="relative flex justify-center text-xs uppercase"><span className="bg-transparent px-2 text-white/40">or</span></div></div>
+                    <Button onClick={handleDemoLogin} disabled={loading} variant="outline" className="w-full bg-[#2c2c2e] border-[#38383a] text-white hover:bg-[#3a3a3c] hover:border-emerald-400/40">
                       {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2 text-emerald-400" />}Explore Demo (View Only)
                     </Button>
                   {/* Device already registered — no reset option */}

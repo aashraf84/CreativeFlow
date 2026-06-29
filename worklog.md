@@ -1461,3 +1461,118 @@ Completed a comprehensive macOS 27 (Tahoe) "Liquid Glass" redesign with full dar
 - Header page title takes on the active view's section color (e.g. emerald on Dashboard, orange on Employees, teal on Invoicing).
 - KPI cards in Employees/Attendance/Finance/Products views show correctly-tinted status badges in both modes.
 - Auth screen renders as dark immersive with aurora blobs and floating animation — independent of the saved theme.
+
+---
+
+## Task 1 (Redesign): macOS 27 Tahoe SOLID Retina Redesign
+
+## Agent: frontend-styling-expert
+## Date: 2026-06-29
+
+## Summary
+Replaced the previous "Liquid Glass" / frosted translucent design with a **SOLID, vibrant, retina-quality** macOS 27 Tahoe aesthetic. Removed every `backdrop-filter`/`backdrop-blur`, all `bg-white/80`-style translucent card surfaces, and the diffused shadow blobs. Surfaces are now opaque (`#ffffff` / `#1c1c1e`), borders are crisp `#e5e5e7` / `#38383a`, and shadows are subtle 1-3px lifts. True-black OLED dark mode (`#000000`) and pure-white light mode (`#ffffff`). Retina accent palette tightened to the exact Apple system colors specified (`#0a84ff`, `#ff2d55`, `#ffd60a`, `#5e5ce6`, `#66d4cf`).
+
+All existing TypeScript/React logic (AnimatedCounter, 3D tilt, staggered entrances, store interactions, API calls) was preserved untouched. `bun run lint` passes clean. `npx next build` compiles successfully in ~11s with no errors.
+
+## Design System Changes
+
+### Light Mode (pure white, no translucency)
+- Background: `#ffffff` (pure white — was `#f5f5f7`)
+- Sidebar: `#f7f7f8` (solid light gray, NO blur)
+- Header/Toolbar: `#ffffff` (solid white, NO blur)
+- Cards: `#ffffff` with `1px solid #e5e5e7` border
+- Text: `#1d1d1f` · Muted: `#86868b`
+- Shadows: `0 1px 3px rgba(0,0,0,0.08)` (was a 2-layer diffused blob)
+
+### Dark Mode (TRUE black OLED-style)
+- Background: `#000000` (pure black, was `#1c1c1e`)
+- Sidebar / Toolbar: `#1c1c1e` (solid, NO blur)
+- Cards: `#1c1c1e` with `1px solid #38383a` border
+- Text: `#ffffff` · Muted: `#8e8e93`
+- Shadows: `0 1px 3px rgba(0,0,0,0.3)`
+
+### Retina Accent Palette (vibrant, solid — verified per spec)
+- Emerald `#34c759` · Teal `#30d158` · Orange `#ff9500` · Red `#ff3b30`
+- Purple `#af52de` · Blue `#0a84ff` (was `#007aff`) · Pink `#ff2d55` (was `#ff2d92`)
+- Yellow `#ffd60a` (was `#ffcc00`) · Indigo `#5e5ce6` (was `#5856d6`) · Mint `#66d4cf` (was `#00c7be`)
+
+## Files Modified
+
+### 1. `src/app/globals.css` — foundational rewrite of design tokens
+- Rewrote `:root` block: `--background` → `#ffffff`; all `oklch(... / 0.7)` translucent surfaces → solid hex (`#ffffff` for card/popover/sidebar-accent, `#f7f7f8` for sidebar/muted/secondary, `#e5e5e7` for border/input/accent).
+- Rewrote `.dark` block: `--background` → `#000000` (true black); all surfaces → solid (`#1c1c1e` cards/sidebar/toolbar, `#38383a` borders).
+- Updated `--macos-bg/card/sidebar/toolbar/border` to SOLID values (no `rgba()`).
+- Replaced `--macos-shadow` from 2-layer diffused blob to single `0 1px 3px rgba(0,0,0,0.08)` (light) / `0 1px 3px rgba(0,0,0,0.3)` (dark). Same for `--macos-shadow-lg`.
+- Updated `--retina-blue/pink/yellow/indigo/mint` to spec values.
+- `.glass`, `.glass-sidebar`, `.glass-toolbar` classes kept for backward compatibility but now resolve to **SOLID** `background-color` only — `backdrop-filter` / `-webkit-backdrop-filter` rules fully removed.
+- `.shadow-macos` and `.shadow-macos-lg` kept (still referenced in many components) but now apply the subtle shadow values.
+- `.hover-lift:hover` translate reduced from `translateY(-2px) scale(1.005)` to `translateY(-1px)` only.
+- Scrollbar colors made solid (`rgba(135,135,140,0.35)` thumbs instead of `oklch(.../0.25)`).
+- `.badge-blue` light/dark updated to use `#0a84ff` (Apple blue) instead of `#007aff`.
+- All `vortex-*` keyframes/animations preserved. `prefers-reduced-motion` block preserved. SF Pro font stack preserved. All `.report-*` print styles preserved.
+
+### 2. `src/components/erp/sidebar.tsx`
+- `<aside>` className: `glass-sidebar border-r border-black/5 dark:border-white/5` → `bg-[#f7f7f8] dark:bg-[#1c1c1e] border-r border-[#e5e5e7] dark:border-[#38383a]`.
+- Bottom user-panel divider: `border-black/5 dark:border-white/5` → `border-[#e5e5e7] dark:border-[#38383a]`.
+- Collapse-toggle pill button: `glass border border-black/5 dark:border-white/10` → `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a]`.
+- Collapsed-tooltip content: same swap to solid `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a]`.
+- Section colors (emerald/blue/orange/teal/red/purple) and active-nav colored left-border logic preserved.
+- Hover overlay `bg-black/[0.04] dark:bg-white/[0.06]` kept (subtle elevation overlay, not a card surface — functionally solid gray).
+
+### 3. `src/components/erp/header.tsx`
+- `<header>`: `glass-toolbar border-b border-black/5 dark:border-white/5` → `bg-white dark:bg-[#1c1c1e] border-b border-[#e5e5e7] dark:border-[#38383a]`.
+- Both `DropdownMenuContent` panels: `glass border border-black/5 dark:border-white/10 shadow-macos-lg` → `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos-lg`.
+- User-menu divider: `border-black/5 dark:border-white/10` → `border-[#e5e5e7] dark:border-[#38383a]`.
+- Cmd-K `<kbd>` shortcut badge: `border-black/5 dark:border-white/10 bg-white/60` → `border-[#e5e5e7] dark:border-[#38383a] bg-[#f7f7f8]`.
+- Pill search, section-color title, DEMO badge, theme toggle, logout menu — all preserved.
+
+### 4. `src/app/page.tsx`
+- Root `<div>` background: `bg-[#f5f5f7] dark:bg-[#1c1c1e]` → `bg-white dark:bg-black` (pure white / true black).
+- Loading spinner and AnimatePresence motion logic untouched.
+
+### 5. `src/components/erp/dashboard-view.tsx`
+- All 14 `<Card>` instances: `glass border border-black/5 dark:border-white/10 shadow-macos` → `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm`.
+- KPI icon backgrounds (`bg-gradient-to-br from-emerald-500 to-teal-500` etc.) preserved as solid colored icons per spec.
+- `AnimatedCounter`, 3D tilt (`useMotionValue`/`useSpring`/`useTransform`), staggered entrance variants, hover-lift — all preserved.
+
+### 6. `src/components/erp/auth-screen.tsx`
+- Loading screen background: `bg-[#0a0a0c]` → `bg-black`. Removed `blur-3xl` from gradient blobs (now solid colored circles with 20-30% opacity for vibrancy).
+- Main auth screen: same `bg-black` background, gradient blobs kept (emerald/teal/purple at 20-30% opacity) — no `blur-3xl`.
+- Right-side auth `<Card>`: `border-white/10 bg-white/[0.04] backdrop-blur-xl` → `border-[#38383a] bg-[#1c1c1e]` (SOLID dark card, no blur).
+- All `<Input>` fields: `bg-white/[0.06] border-white/10` → `bg-[#2c2c2e] border-[#38383a]` (solid).
+- "Explore Demo" outline buttons: `bg-white/[0.04] border-white/15 hover:bg-white/[0.08]` → `bg-[#2c2c2e] border-[#38383a] hover:bg-[#3a3a3c]` (solid).
+- Divider lines: `border-white/10` → `border-[#38383a]`.
+- Dark immersive brand panel with feature icons — preserved (still uses `bg-emerald-500/15` accent overlays per spec allowance).
+
+### 7. All other ERP view files — bulk solid conversion
+Used a controlled `perl -pi -e` sweep across these files to convert card patterns:
+- `it-assets-view.tsx`, `finance-accounts-view.tsx`, `attendance-view.tsx`, `reports-view.tsx`, `recruitment-view.tsx`, `products-view.tsx`, `invoicing-view.tsx`, `employees-view.tsx`, `brand-kit-view.tsx`
+
+Replacements applied:
+1. `shadow-macos ` (trailing space, NOT `-lg`) → `shadow-sm ` (subtle 1px shadow per spec).
+2. `glass border border-black/5 dark:border-white/10` → `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a]`.
+3. `glass border-l border-black/5 dark:border-white/10` (SheetContent in employees-view) → `bg-white dark:bg-[#1c1c1e] border-l border-[#e5e5e7] dark:border-[#38383a]`.
+
+Additional manual fixes:
+- `attendance-view.tsx` line 404: standalone `glass max-w-md` DialogContent → `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] max-w-md`.
+- `products-view.tsx` line 219: amber Low-Stock alert card `glass border border-amber-200/60 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-900/10 rounded-2xl shadow-macos` → `bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/40 rounded-2xl shadow-sm`.
+- `employees-view.tsx` lines 255/261/267/273/294: 5 stat-card inner divs `border-black/5 dark:border-white/10 bg-white/50 dark:bg-white/[0.04]` → `border-[#e5e5e7] dark:border-[#38383a] bg-[#f7f7f8] dark:bg-[#262628]` (solid secondary surface).
+
+Verified post-edit: **zero** remaining `glass`, `backdrop-blur`, `backdrop-filter`, `bg-white/[0.0X]`, `bg-white/80`, `bg-white/70`, `bg-white/60` references anywhere in `src/components/erp/`.
+
+The other 7 view files (`vendors-view.tsx`, `purchase-orders-view.tsx`, `expenses-view.tsx`, `payroll-view.tsx`, `recruitment-view.tsx`, `analytics-view.tsx`, `settings-view.tsx`) were already free of glass/blur/shadow-macos patterns — they use semantic Tailwind classes (`bg-card`, `bg-muted`, `border`) which inherit the new solid design tokens automatically.
+
+## Verification
+- ✅ `bun run lint` — passes clean (no errors, no warnings).
+- ✅ `unset DATABASE_URL && unset DIRECT_URL && npx next build` — compiles successfully in 11.3s, generates 60 static pages, no errors.
+- ✅ All existing TypeScript/React logic preserved (AnimatedCounter, 3D tilt, staggered entrance, store interactions, API calls).
+- ✅ SF Pro font stack preserved. `vortex-*` animation utilities preserved. `prefers-reduced-motion` block preserved.
+- ✅ Active-nav colored left-border, section-color title, KPI icon gradients, DEMO badge, theme toggle, all view-specific functionality intact.
+
+## How to Verify Visually
+- Load the app → backgrounds should be pure white (light) or true black (dark), no frosted/blurry surfaces.
+- Sidebar should be solid `#f7f7f8` (light) / `#1c1c1e` (dark) with crisp `#e5e5e7`/`#38383a` right border.
+- Header should be solid white/dark with crisp bottom border — no translucency.
+- Cards should have crisp 1px borders and subtle 1px shadows (no diffused blobs).
+- Toggle theme — surfaces transition smoothly between solid white↔solid black.
+- Auth screen: solid black background with vibrant emerald/teal/purple gradient blobs (no blur), solid `#1c1c1e` card with `#38383a` border, solid `#2c2c2e` input fields.

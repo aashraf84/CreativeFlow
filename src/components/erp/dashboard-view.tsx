@@ -233,7 +233,7 @@ function KPICard({ data }: { data: KPICardData }) {
         whileHover={{ scale: 1.03 }}
         transition={{ type: "spring", stiffness: 300, damping: 22 }}
       >
-        <Card className="relative overflow-hidden glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+        <Card className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
           <motion.div
             style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
             className="relative"
@@ -656,7 +656,7 @@ export function DashboardView() {
 
       {/* ── Row 2: Animated Pipeline Workflow (HERO SECTION) ── */}
       <motion.div variants={itemVariants}>
-        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos overflow-hidden rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm overflow-hidden rounded-2xl">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
@@ -777,7 +777,7 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Tasks & Dissemination Queue */}
         <motion.div variants={itemVariants}>
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -905,7 +905,7 @@ export function DashboardView() {
 
         {/* Right: Team Performance (Enhanced) */}
         <motion.div variants={itemVariants}>
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -953,7 +953,7 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Platform Activity (CSS-based) */}
         <motion.div variants={itemVariants}>
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -1040,7 +1040,7 @@ export function DashboardView() {
 
         {/* Right: Recent Activity Feed (Enhanced) */}
         <motion.div variants={itemVariants}>
-          <Card className="glass border border-black/5 dark:border-white/10 shadow-macos h-full rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -1117,7 +1117,7 @@ export function DashboardView() {
 
       {/* ── Row 5: Quick Actions Bar ── */}
       <motion.div variants={itemVariants}>
-        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -1162,7 +1162,7 @@ function DashboardSkeleton() {
       {/* KPI cards skeleton (6 cards) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card key={i} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-2 flex-1">
@@ -1178,7 +1178,7 @@ function DashboardSkeleton() {
       </div>
 
       {/* Pipeline skeleton */}
-      <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+      <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="space-y-1.5">
@@ -1215,7 +1215,7 @@ function DashboardSkeleton() {
       {/* Row 3 skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {Array.from({ length: 2 }).map((_, i) => (
-          <Card key={i} className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+          <Card key={i} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
@@ -1238,7 +1238,7 @@ function DashboardSkeleton() {
 
       {/* Row 4 skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1.5">
@@ -1256,7 +1256,7 @@ function DashboardSkeleton() {
             </div>
           </CardContent>
         </Card>
-        <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1.5">
@@ -1277,7 +1277,7 @@ function DashboardSkeleton() {
       </div>
 
       {/* Quick actions skeleton */}
-      <Card className="glass border border-black/5 dark:border-white/10 shadow-macos rounded-2xl">
+      <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
         <CardContent className="p-4">
           <Skeleton className="h-4 w-28 mb-3" />
           <div className="flex flex-wrap gap-2">

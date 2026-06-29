@@ -124,7 +124,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 h-14 glass-toolbar border-b border-black/5 dark:border-white/5 flex items-center justify-between px-4 lg:px-6 gap-4">
+    <header className="sticky top-0 z-30 h-14 bg-white dark:bg-[#1c1c1e] border-b border-[#e5e5e7] dark:border-[#38383a] flex items-center justify-between px-4 lg:px-6 gap-4">
       {/* Left: Page title */}
       <div className="flex items-center gap-4 min-w-0">
         <div className="flex items-center gap-3 min-w-0">
@@ -154,7 +154,7 @@ export function Header() {
           placeholder="Search VortexERP…"
           className="h-9 w-full pl-9 pr-16 text-[13px] rounded-full bg-black/[0.04] dark:bg-white/[0.06] border-transparent focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:bg-white dark:focus-visible:bg-white/10 placeholder:text-[#86868b] dark:placeholder:text-[#aeaeb2]"
         />
-        <kbd className="absolute right-2.5 pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded-md border border-black/5 dark:border-white/10 bg-white/60 dark:bg-white/10 px-1.5 font-mono text-[10px] font-medium text-[#86868b] dark:text-[#aeaeb2]">
+        <kbd className="absolute right-2.5 pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded-md border border-[#e5e5e7] dark:border-[#38383a] bg-[#f7f7f8] dark:bg-white/10 px-1.5 font-mono text-[10px] font-medium text-[#86868b] dark:text-[#aeaeb2]">
           <Command className="h-2.5 w-2.5" />K
         </kbd>
       </div>
@@ -169,7 +169,7 @@ export function Header() {
               <span className="hidden sm:inline">Create</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 glass border border-black/5 dark:border-white/10 shadow-macos-lg">
+          <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos-lg">
             <DropdownMenuItem onClick={() => setShowCreateContent(true)} className="rounded-lg">
               <Workflow className="mr-2 h-4 w-4" />
               New Content
@@ -222,8 +222,8 @@ export function Header() {
               </Avatar>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 glass border border-black/5 dark:border-white/10 shadow-macos-lg">
-            <div className="px-2 py-2 border-b border-black/5 dark:border-white/10">
+          <DropdownMenuContent align="end" className="w-48 bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos-lg">
+            <div className="px-2 py-2 border-b border-[#e5e5e7] dark:border-[#38383a]">
               <p className="text-xs font-semibold text-[#1d1d1f] dark:text-white">{currentUser?.name || "Sarah Chen"}</p>
               <p className="text-[11px] text-[#86868b] dark:text-[#aeaeb2]">{isViewOnly ? "Demo Viewer" : "Admin"}</p>
             </div>

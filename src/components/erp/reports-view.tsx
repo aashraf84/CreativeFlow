@@ -1058,7 +1058,7 @@ export function ReportsView() {
         {/* ── Left: Report selector sidebar (hidden on print) ── */}
         <motion.aside
           variants={itemVariants}
-          className="glass border border-black/5 dark:border-white/10 rounded-2xl p-3 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col print:hidden"
+          className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] rounded-2xl p-3 lg:sticky lg:top-4 lg:self-start lg:max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col print:hidden"
         >
           <div className="flex items-center gap-2 px-1 pb-2">
             <FileText className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
