@@ -322,11 +322,11 @@ export function InfluencersView() {
 
     // Search
     if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase()
+      const q = debouncedSearch.toLowerCase().replace(/^@/, "")
       result = result.filter(i =>
         i.id.toLowerCase().includes(q) ||
         i.name.toLowerCase().includes(q) ||
-        i.username.toLowerCase().includes(q) ||
+        (i.username || "").toLowerCase().replace(/^@/, "").includes(q) ||
         (i.niche && i.niche.toLowerCase().includes(q)) ||
         (i.email && i.email.toLowerCase().includes(q)) ||
         (i.phone && i.phone.toLowerCase().includes(q)) ||
