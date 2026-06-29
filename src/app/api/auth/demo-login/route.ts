@@ -1,36 +1,16 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// POST /api/auth/demo-login - Login as demo user with view-only rights
+// POST /api/auth/demo-login
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => ({}))
-    const { deviceId } = body
-
     const demoUser = await db.user.findFirst({
       where: { isDemo: true, role: 'demo' },
       include: { organization: { select: { id: true, name: true, slug: true, logo: true, plan: true, tenantId: true } } }
     })
 
-    if (!demoUser) return NextResponse.json({ data: [] })
-
-    if (deviceId) {
-      try {
-        const existingDevice = await db.device.findUnique({ where: { deviceId } })
-        if (!existingDevice) {
-          let demoKey = await db.serialKey.findFirst({ where: { key: 'DEMO-ACCESS-KEY' } })
-          if (!demoKey) {
-            const tenant = await db.tenant.findFirst()
-            if (tenant) {
-              demoKey = await db.serialKey.create({ data: { key: 'DEMO-ACCESS-KEY', tenantId: tenant.id, maxDevices: 999999, isActive: true } })
-            }
-          }
-          if (demoKey) {
-            await db.device.create({ data: { deviceId, serialKeyId: demoKey.id, tenantId: demoUser.organization?.tenantId || null, organizationId: demoUser.organizationId } })
-            await db.serialKey.update({ where: { id: demoKey.id }, data: { usedDevices: { increment: 1 } } })
-          }
-        }
-      } catch { /* non-blocking */ }
+    if (!demoUser) {
+      return NextResponse.json({ error: 'Demo account not configured' }, { status: 404 })
     }
 
     return NextResponse.json({
@@ -43,6 +23,6 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('Demo login error:', error)
-    return NextResponse.json({ data: [] })
+    return NextResponse.json({ error: 'Failed to login. Database may be starting up.' }, { status: 500 })
   }
 }

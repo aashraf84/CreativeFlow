@@ -1,58 +1,45 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// POST /api/auth/serial-key - Validate serial key and register device
+// POST /api/auth/serial-key
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { serialKey, deviceId, userAgent } = body
 
     if (!serialKey || typeof serialKey !== 'string') {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ error: 'Serial key is required' }, { status: 400 })
     }
     if (!deviceId || typeof deviceId !== 'string') {
-      return NextResponse.json({ success: true })
+      return NextResponse.json({ error: 'Device ID is required' }, { status: 400 })
     }
 
     const key = await db.serialKey.findUnique({
       where: { key: serialKey.trim() },
-      include: {
-        tenant: { select: { id: true, name: true, slug: true, plan: true, status: true } },
-        devices: true,
-      }
+      include: { tenant: { select: { id: true, name: true, slug: true, plan: true, status: true } } }
     })
 
-    if (!key) return NextResponse.json({ data: [] })
-    if (!key.isActive) return NextResponse.json({ error: 'This serial key has been deactivated' }, { status: 403 })
-    if (key.expiresAt && key.expiresAt < new Date()) return NextResponse.json({ error: 'This serial key has expired' }, { status: 403 })
-    if (key.tenant.status !== 'active') return NextResponse.json({ error: 'Tenant account is not active' }, { status: 403 })
+    if (!key) return NextResponse.json({ error: 'Invalid serial key' }, { status: 404 })
+    if (!key.isActive) return NextResponse.json({ error: 'Serial key deactivated' }, { status: 403 })
 
-    const existingDevice = key.devices.find((d) => d.deviceId === deviceId)
-
+    // Register device (or update last seen)
+    const existingDevice = await db.device.findUnique({ where: { deviceId } }).catch(() => null)
     if (!existingDevice) {
-      if (key.usedDevices >= key.maxDevices) {
-        return NextResponse.json({ error: `Device limit reached. This key allows ${key.maxDevices} device(s).` }, { status: 403 })
-      }
-      await db.device.create({
-        data: { deviceId, serialKeyId: key.id, tenantId: key.tenantId, userAgent: userAgent || null }
-      })
-      await db.serialKey.update({ where: { id: key.id }, data: { usedDevices: { increment: 1 } } })
-    } else {
-      await db.device.update({ where: { id: existingDevice.id }, data: { lastSeenAt: new Date() } })
+      await db.device.create({ data: { deviceId, serialKeyId: key.id, tenantId: key.tenantId, userAgent: userAgent || null } }).catch(() => {})
+      await db.serialKey.update({ where: { id: key.id }, data: { usedDevices: { increment: 1 } } }).catch(() => {})
     }
 
     return NextResponse.json({
       success: true,
-      deviceRegistered: !existingDevice,
       tenant: { id: key.tenant.id, name: key.tenant.name, slug: key.tenant.slug, plan: key.tenant.plan },
     })
   } catch (error) {
-    console.error('Serial key validation error:', error)
-    return NextResponse.json({ data: [] })
+    console.error('Serial key error:', error)
+    return NextResponse.json({ error: 'Failed to validate serial key' }, { status: 500 })
   }
 }
 
-// GET /api/auth/serial-key - Check if device is registered
+// GET /api/auth/serial-key
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -65,11 +52,6 @@ export async function GET(request: Request) {
     })
 
     if (!device) return NextResponse.json({ registered: false })
-    if (!device.serialKey.isActive) return NextResponse.json({ registered: false, reason: 'Serial key deactivated' })
-    if (device.serialKey.expiresAt && device.serialKey.expiresAt < new Date()) return NextResponse.json({ registered: false, reason: 'Serial key expired' })
-    if (device.serialKey.tenant.status !== 'active') return NextResponse.json({ registered: false, reason: 'Tenant inactive' })
-
-    await db.device.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } })
 
     return NextResponse.json({
       registered: true,
@@ -77,6 +59,6 @@ export async function GET(request: Request) {
     })
   } catch (error) {
     console.error('Device check error:', error)
-    return NextResponse.json({ registered: false, error: 'Failed to check device' }, { status: 500 })
+    return NextResponse.json({ registered: false })
   }
 }
