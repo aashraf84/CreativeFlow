@@ -65,6 +65,7 @@ export function AuthScreen() {
       const data = await res.json()
       if (!res.ok) { setError(data.error || "Invalid serial key"); return }
       localStorage.setItem("erp_device_registered", "true")
+      localStorage.setItem("erp_serial_key", serialKey.trim())
       setDeviceRegistered(true)
       setAuthState("login")
     } catch (err) {
@@ -272,9 +273,7 @@ export function AuthScreen() {
                     <Button onClick={handleDemoLogin} disabled={loading} variant="outline" className="w-full bg-white/[0.04] border-white/15 text-white hover:bg-white/[0.08] hover:border-emerald-400/40">
                       {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2 text-emerald-400" />}Explore Demo (View Only)
                     </Button>
-                    <button onClick={() => setAuthState("serial-key")} className="w-full text-xs text-white/50 hover:text-white flex items-center justify-center gap-1">
-                      <KeyRound className="h-3 w-3" /> Use a different serial key
-                    </button>
+                  {/* Device already registered — no reset option */}
                   </motion.div>
                 )}
               </AnimatePresence>
