@@ -47,6 +47,8 @@ export async function GET(request: Request) {
         { niche: { contains: search } },
         { email: { contains: search } },
         { notes: { contains: search } },
+        { id: { contains: search } },
+        { phone: { contains: search } },
       ]
     }
 

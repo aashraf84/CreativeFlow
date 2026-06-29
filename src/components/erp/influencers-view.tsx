@@ -260,9 +260,34 @@ export function InfluencersView() {
   // ── Debounced search ──
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current)
-    debounceTimer.current = setTimeout(() => setDebouncedSearch(search), 300)
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(search)
+      // Also fetch from server-side API for real-time DB search
+      if (search.trim().length >= 1) {
+        fetch(`/api/influencers?search=${encodeURIComponent(search.trim())}`)
+          .then(r => r.json())
+          .then(data => {
+            const results = data?.influencers || data?.data || []
+            if (Array.isArray(results) && results.length > 0) {
+              setInfluencers(results)
+            }
+          })
+          .catch(() => {})
+      } else {
+        // If search is empty, reload all influencers
+        fetch("/api/influencers")
+          .then(r => r.json())
+          .then(data => {
+            const results = data?.influencers || data?.data || []
+            if (Array.isArray(results)) {
+              setInfluencers(results)
+            }
+          })
+          .catch(() => {})
+      }
+    }, 400)
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current) }
-  }, [search])
+  }, [search, setInfluencers])
 
   // ── Fetch analytics ──
   useEffect(() => {
