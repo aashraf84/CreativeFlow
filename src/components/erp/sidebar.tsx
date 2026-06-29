@@ -43,62 +43,75 @@ interface NavItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  color?: string;
 }
 
+const SECTION_MAIN = "#34c759";
+const SECTION_MANAGE = "#007aff";
+const SECTION_HR = "#ff9500";
+const SECTION_FINANCE = "#30d158";
+const SECTION_INVENTORY = "#ff3b30";
+const SECTION_INSIGHTS = "#af52de";
+
+const SECTION_COLOR_BY_VIEW: Record<string, string> = {};
+
 const mainNav: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "pipeline", label: "Content Pipeline", icon: Workflow },
-  { id: "dissemination", label: "Dissemination", icon: Send, badge: "Live" },
-  { id: "calendar", label: "Calendar", icon: CalendarDays },
-  { id: "inbox", label: "Inbox", icon: Inbox, badge: "New" },
-  { id: "approvals", label: "Approvals", icon: ShieldCheck },
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, color: SECTION_MAIN },
+  { id: "pipeline", label: "Content Pipeline", icon: Workflow, color: SECTION_MAIN },
+  { id: "dissemination", label: "Dissemination", icon: Send, badge: "Live", color: SECTION_MAIN },
+  { id: "calendar", label: "Calendar", icon: CalendarDays, color: SECTION_MAIN },
+  { id: "inbox", label: "Inbox", icon: Inbox, badge: "New", color: SECTION_MAIN },
+  { id: "approvals", label: "Approvals", icon: ShieldCheck, color: SECTION_MAIN },
 ];
 
 const manageNav: NavItem[] = [
-  { id: "teams", label: "Teams", icon: Users },
-  { id: "accounts", label: "Social Accounts", icon: Share2 },
-  { id: "clients", label: "Clients & Campaigns", icon: Briefcase },
-  { id: "influencers", label: "Influencers", icon: Star },
-  { id: "assets", label: "Assets", icon: FolderOpen },
-  { id: "brandKit", label: "Brand Kit", icon: Palette },
+  { id: "teams", label: "Teams", icon: Users, color: SECTION_MANAGE },
+  { id: "accounts", label: "Social Accounts", icon: Share2, color: SECTION_MANAGE },
+  { id: "clients", label: "Clients & Campaigns", icon: Briefcase, color: SECTION_MANAGE },
+  { id: "influencers", label: "Influencers", icon: Star, color: SECTION_MANAGE },
+  { id: "assets", label: "Assets", icon: FolderOpen, color: SECTION_MANAGE },
+  { id: "brandKit", label: "Brand Kit", icon: Palette, color: SECTION_MANAGE },
 ];
 
 const hrNav: NavItem[] = [
-  { id: "employees", label: "Employees", icon: Users },
-  { id: "attendance", label: "Attendance", icon: Clock },
-  { id: "payroll", label: "Payroll", icon: Banknote },
-  { id: "recruitment", label: "Recruitment", icon: UserPlus },
+  { id: "employees", label: "Employees", icon: Users, color: SECTION_HR },
+  { id: "attendance", label: "Attendance", icon: Clock, color: SECTION_HR },
+  { id: "payroll", label: "Payroll", icon: Banknote, color: SECTION_HR },
+  { id: "recruitment", label: "Recruitment", icon: UserPlus, color: SECTION_HR },
 ];
 
 const financeNav: NavItem[] = [
-  { id: "financeAccounts", label: "Accounts", icon: Landmark },
-  { id: "invoicing", label: "Invoicing", icon: Receipt },
-  { id: "expenses", label: "Expenses", icon: Receipt },
+  { id: "financeAccounts", label: "Accounts", icon: Landmark, color: SECTION_FINANCE },
+  { id: "invoicing", label: "Invoicing", icon: Receipt, color: SECTION_FINANCE },
+  { id: "expenses", label: "Expenses", icon: Receipt, color: SECTION_FINANCE },
 ];
 
 const inventoryNav: NavItem[] = [
-  { id: "products", label: "Products", icon: Package },
-  { id: "purchaseOrders", label: "Purchase Orders", icon: ShoppingCart },
-  { id: "vendors", label: "Vendors", icon: Store },
-  { id: "itAssets", label: "IT Assets", icon: Monitor },
+  { id: "products", label: "Products", icon: Package, color: SECTION_INVENTORY },
+  { id: "purchaseOrders", label: "Purchase Orders", icon: ShoppingCart, color: SECTION_INVENTORY },
+  { id: "vendors", label: "Vendors", icon: Store, color: SECTION_INVENTORY },
+  { id: "itAssets", label: "IT Assets", icon: Monitor, color: SECTION_INVENTORY },
 ];
 
 const insightNav: NavItem[] = [
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
-  { id: "automation", label: "Automation", icon: Zap, badge: "Pro" },
-  { id: "reports", label: "Reports", icon: FileText },
-  { id: "archive", label: "Archive", icon: Archive },
+  { id: "analytics", label: "Analytics", icon: BarChart3, color: SECTION_INSIGHTS },
+  { id: "automation", label: "Automation", icon: Zap, badge: "Pro", color: SECTION_INSIGHTS },
+  { id: "reports", label: "Reports", icon: FileText, color: SECTION_INSIGHTS },
+  { id: "archive", label: "Archive", icon: Archive, color: SECTION_INSIGHTS },
 ];
 
 const bottomNav: NavItem[] = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
-function SectionHeader({ label }: { label: string }) {
+function SectionHeader({ label, color }: { label: string; color?: string }) {
   return (
-    <p className="px-3 pt-4 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#86868b] dark:text-[#aeaeb2]/80">
-      {label}
-    </p>
+    <div className="flex items-center gap-1.5 px-3 pt-4 pb-1.5">
+      {color && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />}
+      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#86868b] dark:text-[#aeaeb2]/80">
+        {label}
+      </p>
+    </div>
   );
 }
 
@@ -160,7 +173,7 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 pb-4 pt-1 macos-scroll">
           {/* Main */}
-          {sidebarOpen && <SectionHeader label="Main" />}
+          {sidebarOpen && <SectionHeader label="Main" color={SECTION_MAIN} />}
           <div className="space-y-0.5">
             {mainNav.map((item) => (
               <NavButton
@@ -173,7 +186,7 @@ export function Sidebar() {
             ))}
           </div>
 
-          {sidebarOpen && <SectionHeader label="Manage" />}
+          {sidebarOpen && <SectionHeader label="Manage" color={SECTION_MANAGE} />}
           <div className="space-y-0.5">
             {manageNav.map((item) => (
               <NavButton
@@ -186,7 +199,7 @@ export function Sidebar() {
             ))}
           </div>
 
-          {sidebarOpen && <SectionHeader label="Human Resources" />}
+          {sidebarOpen && <SectionHeader label="Human Resources" color={SECTION_HR} />}
           <div className="space-y-0.5">
             {hrNav.map((item) => (
               <NavButton
@@ -199,7 +212,7 @@ export function Sidebar() {
             ))}
           </div>
 
-          {sidebarOpen && <SectionHeader label="Finance" />}
+          {sidebarOpen && <SectionHeader label="Finance" color={SECTION_FINANCE} />}
           <div className="space-y-0.5">
             {financeNav.map((item) => (
               <NavButton
@@ -212,7 +225,7 @@ export function Sidebar() {
             ))}
           </div>
 
-          {sidebarOpen && <SectionHeader label="Inventory" />}
+          {sidebarOpen && <SectionHeader label="Inventory" color={SECTION_INVENTORY} />}
           <div className="space-y-0.5">
             {inventoryNav.map((item) => (
               <NavButton
@@ -225,7 +238,7 @@ export function Sidebar() {
             ))}
           </div>
 
-          {sidebarOpen && <SectionHeader label="Insights" />}
+          {sidebarOpen && <SectionHeader label="Insights" color={SECTION_INSIGHTS} />}
           <div className="space-y-0.5">
             {insightNav.map((item) => (
               <NavButton
@@ -327,12 +340,13 @@ function NavButton({
           ? "bg-black/[0.07] dark:bg-white/10 text-[#1d1d1f] dark:text-white shadow-sm"
           : "text-[#424245] dark:text-[#aeaeb2] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-[#1d1d1f] dark:hover:text-white"
       )}
+      style={isActive && item.color ? { borderLeft: `2px solid ${item.color}` } : undefined}
     >
       <Icon className={cn(
         "shrink-0 transition-colors",
         collapsed ? "h-[18px] w-[18px]" : "h-4 w-4",
-        isActive ? "text-emerald-600 dark:text-emerald-400" : "text-[#86868b] dark:text-[#aeaeb2]"
-      )} />
+        isActive && item.color ? "" : isActive ? "text-emerald-600 dark:text-emerald-400" : "text-[#86868b] dark:text-[#aeaeb2]"
+      )} style={isActive && item.color ? { color: item.color } : undefined} />
       {!collapsed && (
         <>
           <span className="flex-1 text-left truncate">{item.label}</span>
