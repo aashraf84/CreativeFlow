@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { DEMO_DATA } from '@/lib/demo-data'
+import { DEMO_DATA, FINANCIAL_REPORT_DATA, REPORT_DATA } from '@/lib/demo-data'
 
 // ── Sandbox Stability Proxy ─────────────────────────────────────────
 // The sandbox dev server crashes when API routes use Prisma to connect to Neon.
@@ -70,7 +70,7 @@ function completeCreatedObject(body: Record<string, unknown>): Record<string, un
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
   const method = request.method
 
   // Only intercept /api/* routes
@@ -90,16 +90,85 @@ export async function proxy(request: NextRequest) {
 
   // ── GET: Return demo data ────────────────────────────────────────
   if (method === 'GET') {
+    // Handle /api/financial-reports?type=... (query-param based)
+    if (pathname === '/api/financial-reports') {
+      const reportType = searchParams.get('type') || 'overview'
+      const reportData = FINANCIAL_REPORT_DATA[reportType]
+      if (reportData) {
+        return NextResponse.json({ data: reportData })
+      }
+      return NextResponse.json({ data: [] })
+    }
+
+    // Handle /api/reports/* routes
+    if (REPORT_DATA[pathname]) {
+      return NextResponse.json(REPORT_DATA[pathname])
+    }
+
+    // Handle /api/influencers/web-search (POST only, but if GET, return empty)
+    if (pathname === '/api/influencers/web-search') {
+      return NextResponse.json({ results: [] })
+    }
+
+    // Handle /api/influencers/analytics
+    if (pathname === '/api/influencers/analytics') {
+      return NextResponse.json({
+        totalInfluencers: 6,
+        activeCollaborations: 4,
+        avgEngagement: 4.65,
+        totalReach: 3700000,
+        avgRate: 6500,
+        followerTiers: { micro: 2, macro: 4 },
+        platformBreakdown: { instagram: 3, youtube: 2, tiktok: 1 },
+      })
+    }
+
+    // Standard demo data lookup
     const demoResponse = DEMO_DATA[pathname]
     if (demoResponse) {
       return NextResponse.json(demoResponse)
     }
+
+    // Handle /api/{resource}/{id} pattern (detail routes) — return first item from collection
+    const pathParts = pathname.split('/').filter(Boolean)
+    if (pathParts.length === 3 && pathParts[0] === 'api') {
+      const collectionPath = `/api/${pathParts[1]}`
+      const collection = DEMO_DATA[collectionPath] as Record<string, unknown[]> | undefined
+      if (collection) {
+        // Find the item with matching id, or return first item
+        const arrays = Object.values(collection).filter(Array.isArray) as unknown[][]
+        if (arrays.length > 0 && arrays[0].length > 0) {
+          const items = arrays[0] as Record<string, unknown>[]
+          const item = items.find(i => i.id === pathParts[2]) || items[0]
+          return NextResponse.json(item)
+        }
+      }
+    }
+
     // For unknown GET routes, return empty array
     return NextResponse.json({ data: [] })
   }
 
   // ── POST: Create operation ───────────────────────────────────────
   if (method === 'POST') {
+    // Handle /api/influencers/web-search
+    if (pathname === '/api/influencers/web-search') {
+      try {
+        const body = await request.json()
+        const query = body?.query || ''
+        // Return mock web search results
+        return NextResponse.json({
+          results: query ? [
+            { name: `${query} Official`, username: `@${query.toLowerCase().replace(/\s+/g, '_')}`, platform: 'instagram', followers: 125000, engagementRate: 4.2, niche: 'Lifestyle', url: 'https://instagram.com/' },
+            { name: `${query} Fan Page`, username: `@${query.toLowerCase().replace(/\s+/g, '')}_fan`, platform: 'tiktok', followers: 89000, engagementRate: 5.8, niche: 'Entertainment', url: 'https://tiktok.com/' },
+            { name: `${query} Reviews`, username: `@${query.toLowerCase().replace(/\s+/g, '_')}_reviews`, platform: 'youtube', followers: 210000, engagementRate: 3.5, niche: 'Reviews', url: 'https://youtube.com/' },
+          ] : []
+        })
+      } catch {
+        return NextResponse.json({ results: [] })
+      }
+    }
+
     try {
       const body = await request.json()
       const created = {

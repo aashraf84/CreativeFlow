@@ -19,6 +19,11 @@ import {
   type PayrollRun,
   type TaxRate,
   type Department,
+  type Content,
+  type Post,
+  type Influencer,
+  type Disseminator,
+  type DisseminationTask,
 } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +72,7 @@ import {
   Megaphone,
   Banknote,
   Clock,
+  Send,
 } from "lucide-react";
 
 // ── Animation variants ──────────────────────────────────────────────
@@ -149,7 +155,8 @@ type ReportCategory =
   | "Inventory"
   | "Procurement"
   | "Assets"
-  | "CRM & Sales";
+  | "CRM & Sales"
+  | "Content & Social";
 
 type ReportId =
   | "financial-summary"
@@ -175,7 +182,11 @@ type ReportId =
   | "it-asset-register"
   | "asset-issuance"
   | "client-report"
-  | "campaign-performance";
+  | "campaign-performance"
+  | "content-pipeline"
+  | "social-performance"
+  | "influencer-roi"
+  | "dissemination-performance";
 
 interface ReportMeta {
   id: ReportId;
@@ -190,6 +201,7 @@ interface ReportMeta {
 const CATEGORY_ORDER: ReportCategory[] = [
   "Financial",
   "Human Resources",
+  "Content & Social",
   "Inventory",
   "Procurement",
   "Assets",
@@ -401,6 +413,39 @@ const REPORTS: ReportMeta[] = [
     icon: Megaphone,
     category: "CRM & Sales",
     accent: "from-teal-500 to-emerald-500",
+  },
+  // Content & Social (4)
+  {
+    id: "content-pipeline",
+    label: "Content Pipeline Report",
+    description: "Content by stage, type, and priority",
+    icon: FileText,
+    category: "Content & Social",
+    accent: "from-emerald-500 to-teal-500",
+  },
+  {
+    id: "social-performance",
+    label: "Social Media Performance",
+    description: "Posts by platform with engagement metrics",
+    icon: TrendingUp,
+    category: "Content & Social",
+    accent: "from-teal-500 to-cyan-500",
+  },
+  {
+    id: "influencer-roi",
+    label: "Influencer ROI Report",
+    description: "Influencer performance and engagement",
+    icon: Users2,
+    category: "Content & Social",
+    accent: "from-green-500 to-emerald-500",
+  },
+  {
+    id: "dissemination-performance",
+    label: "Dissemination Performance",
+    description: "Task completion rates by disseminator",
+    icon: Send,
+    category: "Content & Social",
+    accent: "from-cyan-500 to-teal-500",
   },
 ];
 
@@ -776,6 +821,11 @@ export function ReportsView() {
     taxRates,
     departments,
     stockMovements,
+    contents,
+    posts,
+    influencers,
+    disseminators,
+    disseminationTasks,
   } = useERPStore();
 
   // ── Collapsible category state (default all open) ──
@@ -919,6 +969,11 @@ export function ReportsView() {
       taxRates,
       departments,
       stockMovements,
+      contents,
+      posts,
+      influencers,
+      disseminators,
+      disseminationTasks,
     }),
     [
       products,
@@ -937,6 +992,11 @@ export function ReportsView() {
       taxRates,
       departments,
       stockMovements,
+      contents,
+      posts,
+      influencers,
+      disseminators,
+      disseminationTasks,
     ],
   );
 
@@ -973,6 +1033,14 @@ export function ReportsView() {
         return Math.max(1, Math.ceil(vendors.length / 18));
       case "payroll-summary":
         return Math.max(1, Math.ceil(payrollRuns.length / 18));
+      case "content-pipeline":
+        return Math.max(1, Math.ceil(contents.length / 18));
+      case "social-performance":
+        return Math.max(1, Math.ceil(posts.length / 22));
+      case "influencer-roi":
+        return Math.max(1, Math.ceil(influencers.length / 18));
+      case "dissemination-performance":
+        return Math.max(1, Math.ceil(disseminators.length / 18));
       default:
         return 1;
     }
@@ -994,6 +1062,10 @@ export function ReportsView() {
     campaigns,
     vendors,
     payrollRuns,
+    contents,
+    posts,
+    influencers,
+    disseminators,
   ]);
 
   return (
@@ -1259,6 +1331,11 @@ interface DataBag {
   taxRates: TaxRate[];
   departments: Department[];
   stockMovements: StockMovement[];
+  contents: Content[];
+  posts: Post[];
+  influencers: Influencer[];
+  disseminators: Disseminator[];
+  disseminationTasks: DisseminationTask[];
 }
 
 interface RenderReportProps {
@@ -1458,6 +1535,39 @@ function RenderReport(props: RenderReportProps) {
           campaigns={dataBag.campaigns}
           clients={dataBag.clients}
           invoices={dataBag.invoices}
+          generatedAt={generatedAt}
+          totalPages={totalPages}
+        />
+      );
+    case "content-pipeline":
+      return (
+        <ContentPipelineReport
+          contents={dataBag.contents}
+          generatedAt={generatedAt}
+          totalPages={totalPages}
+        />
+      );
+    case "social-performance":
+      return (
+        <SocialPerformanceReport
+          posts={dataBag.posts}
+          generatedAt={generatedAt}
+          totalPages={totalPages}
+        />
+      );
+    case "influencer-roi":
+      return (
+        <InfluencerRoiReport
+          influencers={dataBag.influencers}
+          generatedAt={generatedAt}
+          totalPages={totalPages}
+        />
+      );
+    case "dissemination-performance":
+      return (
+        <DisseminationPerformanceReport
+          disseminators={dataBag.disseminators}
+          tasks={dataBag.disseminationTasks}
           generatedAt={generatedAt}
           totalPages={totalPages}
         />
@@ -3645,6 +3755,368 @@ function CampaignReport({
         ROI is calculated as (Revenue − Budget) ÷ Budget × 100. Positive ROI indicates the campaign
         generated more revenue than its budgeted cost. Status reflects the current lifecycle state
         of each campaign.
+      </p>
+    </LetterPage>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CONTENT & SOCIAL REPORTS
+// ════════════════════════════════════════════════════════════════════
+
+// 25. Content Pipeline Report
+function ContentPipelineReport({
+  contents,
+  generatedAt,
+  totalPages,
+}: {
+  contents: Content[];
+  generatedAt: Date;
+  totalPages: number;
+}) {
+  const stats = useMemo(() => {
+    const byStage: Record<string, number> = {};
+    const byType: Record<string, number> = {};
+    const byPriority: Record<string, number> = {};
+    for (const c of contents) {
+      byStage[c.stage] = (byStage[c.stage] || 0) + 1;
+      byType[c.type] = (byType[c.type] || 0) + 1;
+      byPriority[c.priority] = (byPriority[c.priority] || 0) + 1;
+    }
+    const overdue = contents.filter(c => c.dueDate && new Date(c.dueDate) < new Date() && c.stage !== 'disseminate' && c.stage !== 'archived').length;
+    return { byStage, byType, byPriority, total: contents.length, overdue };
+  }, [contents]);
+
+  const stageRows = useMemo(() => {
+    const stages = ['idea', 'design', 'edit', 'review', 'approve', 'disseminate', 'archived'];
+    return stages.map(s => [titleCase(s), fmtNumber(stats.byStage[s] || 0), fmtPercent(stats.total > 0 ? ((stats.byStage[s] || 0) / stats.total) * 100 : 0)]);
+  }, [stats]);
+
+  const detailRows = useMemo(() => {
+    return contents.slice(0, 22).map(c => [
+      c.title,
+      titleCase(c.type),
+      titleCase(c.stage),
+      titleCase(c.priority),
+      c.campaign?.name || "—",
+      c.assignee?.name || "—",
+      fmtDate(c.dueDate),
+    ]);
+  }, [contents]);
+
+  return (
+    <LetterPage title="Content Pipeline Report" subtitle="Content by Stage, Type & Priority" page={1} totalPages={totalPages || 1} generatedAt={generatedAt}>
+      <p className="report-intro">
+        Comprehensive view of all content items in the production pipeline, categorized by stage,
+        content type, and priority level.
+      </p>
+
+      <div className="report-summary-grid">
+        <SummaryCard label="Total Content" value={fmtNumber(stats.total)} tone="accent" />
+        <SummaryCard label="In Pipeline" value={fmtNumber(stats.total - (stats.byStage['disseminate'] || 0) - (stats.byStage['archived'] || 0))} tone="positive" />
+        <SummaryCard label="Published" value={fmtNumber(stats.byStage['disseminate'] || 0)} tone="positive" />
+        <SummaryCard label="Overdue" value={fmtNumber(stats.overdue)} tone={stats.overdue > 0 ? "negative" : "default"} />
+      </div>
+
+      <ReportSectionHeading>Content by Stage</ReportSectionHeading>
+      {stageRows.length === 0 ? (
+        <p className="report-empty">No content on file.</p>
+      ) : (
+        <ReportTable
+          headers={["Stage", "Count", "% of Total"]}
+          rows={stageRows}
+          totals={["Total", fmtNumber(stats.total), "100.0%"]}
+          numericCols={[1, 2]}
+        />
+      )}
+
+      <ReportSectionHeading>Content Detail</ReportSectionHeading>
+      {detailRows.length === 0 ? (
+        <p className="report-empty">No content items recorded.</p>
+      ) : (
+        <ReportTable
+          headers={["Title", "Type", "Stage", "Priority", "Campaign", "Assignee", "Due Date"]}
+          rows={detailRows}
+        />
+      )}
+
+      <p className="report-note">
+        Content stages follow the production pipeline: Idea → Design → Edit → Review → Approve →
+        Disseminate. Overdue items have passed their due date without reaching the Disseminate stage.
+      </p>
+    </LetterPage>
+  );
+}
+
+// 26. Social Media Performance Report
+function SocialPerformanceReport({
+  posts,
+  generatedAt,
+  totalPages,
+}: {
+  posts: Post[];
+  generatedAt: Date;
+  totalPages: number;
+}) {
+  const stats = useMemo(() => {
+    const byPlatform: Record<string, { count: number; engagement: number; published: number }> = {};
+    for (const p of posts) {
+      const plat = p.platform || 'unknown';
+      if (!byPlatform[plat]) byPlatform[plat] = { count: 0, engagement: 0, published: 0 };
+      byPlatform[plat].count += 1;
+      if (p.status === 'published') byPlatform[plat].published += 1;
+      if (p.engagement) {
+        try {
+          const eng = JSON.parse(p.engagement);
+          const total = Object.values(eng).reduce((s: number, v: unknown) => s + (typeof v === 'number' ? v : 0), 0);
+          byPlatform[plat].engagement += total;
+        } catch { /* ignore */ }
+      }
+    }
+    const totalPosts = posts.length;
+    const totalPublished = posts.filter(p => p.status === 'published').length;
+    const totalScheduled = posts.filter(p => p.status === 'scheduled').length;
+    const totalDraft = posts.filter(p => p.status === 'draft').length;
+    const totalEngagement = Object.values(byPlatform).reduce((s, v) => s + v.engagement, 0);
+    return { byPlatform, totalPosts, totalPublished, totalScheduled, totalDraft, totalEngagement };
+  }, [posts]);
+
+  const platformRows = useMemo(() => {
+    return Object.entries(stats.byPlatform).map(([platform, v]) => [
+      titleCase(platform),
+      fmtNumber(v.count),
+      fmtNumber(v.published),
+      fmtNumber(v.engagement),
+      fmtNumber(v.count > 0 ? v.engagement / v.count : 0),
+    ]);
+  }, [stats]);
+
+  const detailRows = useMemo(() => {
+    return posts.slice(0, 22).map(p => {
+      let engagement = 0;
+      if (p.engagement) {
+        try {
+          const eng = JSON.parse(p.engagement);
+          engagement = Object.values(eng).reduce((s: number, v: unknown) => s + (typeof v === 'number' ? v : 0), 0);
+        } catch { /* ignore */ }
+      }
+      return [
+        titleCase(p.platform),
+        p.content.substring(0, 50) + (p.content.length > 50 ? '…' : ''),
+        titleCase(p.status),
+        fmtDate(p.publishedAt || p.scheduledAt),
+        fmtNumber(engagement),
+      ];
+    });
+  }, [posts]);
+
+  return (
+    <LetterPage title="Social Media Performance" subtitle="Posts by Platform & Engagement" page={1} totalPages={totalPages || 1} generatedAt={generatedAt}>
+      <p className="report-intro">
+        Performance summary of all social media posts across platforms, including publish status,
+        engagement metrics, and per-platform averages.
+      </p>
+
+      <div className="report-summary-grid">
+        <SummaryCard label="Total Posts" value={fmtNumber(stats.totalPosts)} tone="accent" />
+        <SummaryCard label="Published" value={fmtNumber(stats.totalPublished)} tone="positive" />
+        <SummaryCard label="Scheduled" value={fmtNumber(stats.totalScheduled)} tone="warning" />
+        <SummaryCard label="Total Engagement" value={fmtNumber(stats.totalEngagement)} tone="positive" />
+      </div>
+
+      <ReportSectionHeading>Performance by Platform</ReportSectionHeading>
+      {platformRows.length === 0 ? (
+        <p className="report-empty">No posts on file.</p>
+      ) : (
+        <ReportTable
+          headers={["Platform", "Total Posts", "Published", "Engagement", "Avg/Post"]}
+          rows={platformRows}
+          totals={["Total", fmtNumber(stats.totalPosts), fmtNumber(stats.totalPublished), fmtNumber(stats.totalEngagement), ""]}
+          numericCols={[1, 2, 3, 4]}
+        />
+      )}
+
+      <ReportSectionHeading>Post Detail</ReportSectionHeading>
+      {detailRows.length === 0 ? (
+        <p className="report-empty">No posts recorded.</p>
+      ) : (
+        <ReportTable
+          headers={["Platform", "Content", "Status", "Date", "Engagement"]}
+          rows={detailRows}
+          numericCols={[4]}
+        />
+      )}
+
+      <p className="report-note">
+        Engagement metrics include likes, comments, shares, and views where applicable. Average
+        engagement per post is calculated as total engagement divided by total posts on each platform.
+      </p>
+    </LetterPage>
+  );
+}
+
+// 27. Influencer ROI Report
+function InfluencerRoiReport({
+  influencers,
+  generatedAt,
+  totalPages,
+}: {
+  influencers: Influencer[];
+  generatedAt: Date;
+  totalPages: number;
+}) {
+  const stats = useMemo(() => {
+    const total = influencers.length;
+    const active = influencers.filter(i => i.status === 'active').length;
+    const totalFollowers = influencers.reduce((s, i) => s + Number(i.followers || 0), 0);
+    const totalReach = totalFollowers;
+    const avgEngagement = total > 0 ? influencers.reduce((s, i) => s + Number(i.engagementRate || 0), 0) / total : 0;
+    const totalSpend = influencers.reduce((s, i) => s + Number(i.rate || 0), 0);
+    const avgRate = total > 0 ? totalSpend / total : 0;
+    return { total, active, totalFollowers, totalReach, avgEngagement, totalSpend, avgRate };
+  }, [influencers]);
+
+  const rows = useMemo(() => {
+    return influencers
+      .slice()
+      .sort((a, b) => Number(b.followers || 0) - Number(a.followers || 0))
+      .map(i => [
+        i.name,
+        `@${i.username}`,
+        titleCase(i.platform),
+        fmtNumber(Number(i.followers || 0)),
+        fmtPercent(Number(i.engagementRate || 0)),
+        i.niche || "—",
+        fmtMoney(Number(i.rate || 0)),
+        titleCase(i.status),
+      ]);
+  }, [influencers]);
+
+  return (
+    <LetterPage title="Influencer ROI Report" subtitle="Performance & Engagement Metrics" page={1} totalPages={totalPages || 1} generatedAt={generatedAt}>
+      <p className="report-intro">
+        Return on investment analysis for all influencer partnerships, including follower counts,
+        engagement rates, and per-post costs.
+      </p>
+
+      <div className="report-summary-grid">
+        <SummaryCard label="Total Influencers" value={fmtNumber(stats.total)} tone="accent" />
+        <SummaryCard label="Active" value={fmtNumber(stats.active)} tone="positive" />
+        <SummaryCard label="Total Reach" value={fmtNumber(stats.totalReach)} tone="positive" hint="Combined followers" />
+        <SummaryCard label="Avg Engagement" value={fmtPercent(stats.avgEngagement)} tone="accent" />
+      </div>
+
+      <div className="report-summary-grid">
+        <SummaryCard label="Total Spend" value={fmtMoney(stats.totalSpend)} tone="negative" hint="Per-post rates" />
+        <SummaryCard label="Avg Rate/Post" value={fmtMoney(stats.avgRate)} tone="warning" />
+        <SummaryCard label="Cost per 1K Reach" value={fmtMoney(stats.totalReach > 0 ? (stats.totalSpend / (stats.totalReach / 1000)) : 0)} tone="accent" />
+        <SummaryCard label="CPM" value={fmtMoney(stats.totalFollowers > 0 ? (stats.totalSpend / (stats.totalFollowers / 1000)) : 0)} hint="Cost per mille" />
+      </div>
+
+      <ReportSectionHeading>Influencer Detail</ReportSectionHeading>
+      {rows.length === 0 ? (
+        <p className="report-empty">No influencers on file.</p>
+      ) : (
+        <ReportTable
+          headers={["Name", "Username", "Platform", "Followers", "Engagement", "Niche", "Rate/Post", "Status"]}
+          rows={rows}
+          numericCols={[3, 4, 6]}
+        />
+      )}
+
+      <p className="report-note">
+        CPM (Cost Per Mille) represents the cost per 1,000 followers reached. Lower CPM indicates
+        better value. Engagement rate is the average interaction rate on the influencer&apos;s content.
+        Rates are per-post unless otherwise noted.
+      </p>
+    </LetterPage>
+  );
+}
+
+// 28. Dissemination Performance Report
+function DisseminationPerformanceReport({
+  disseminators,
+  tasks,
+  generatedAt,
+  totalPages,
+}: {
+  disseminators: Disseminator[];
+  tasks: DisseminationTask[];
+  generatedAt: Date;
+  totalPages: number;
+}) {
+  const stats = useMemo(() => {
+    const totalTasks = tasks.length;
+    const completed = tasks.filter(t => t.status === 'completed').length;
+    const inProgress = tasks.filter(t => t.status === 'in-progress' || t.status === 'in_progress').length;
+    const assigned = tasks.filter(t => t.status === 'assigned' || t.status === 'pending').length;
+    const completionRate = totalTasks > 0 ? (completed / totalTasks) * 100 : 0;
+    const onTimeTasks = tasks.filter(t => t.status === 'completed' && t.completedAt && t.dueDate && new Date(t.completedAt) <= new Date(t.dueDate)).length;
+    const onTimeRate = completed > 0 ? (onTimeTasks / completed) * 100 : 0;
+    return { totalTasks, completed, inProgress, assigned, completionRate, onTimeRate };
+  }, [tasks]);
+
+  const disseminatorRows = useMemo(() => {
+    return disseminators
+      .slice()
+      .sort((a, b) => Number(b.totalTasksCompleted || 0) - Number(a.totalTasksCompleted || 0))
+      .map(d => {
+        const assignedTasks = tasks.filter(t => t.disseminatorId === d.id).length;
+        const completedTasks = tasks.filter(t => t.disseminatorId === d.id && t.status === 'completed').length;
+        return [
+          d.user?.name || "—",
+          d.speciality || "—",
+          fmtNumber(Number(d.totalTasksCompleted || 0)),
+          fmtNumber(Number(d.totalPostsPublished || 0)),
+          fmtPercent(Number(d.onTimeRate || 0)),
+          fmtNumber(Number(d.avgCompletionHours || 0), 1) + "h",
+          fmtPercent(Number(d.rating || 0) * 20),
+          titleCase(d.status),
+        ];
+      });
+  }, [disseminators, tasks]);
+
+  return (
+    <LetterPage title="Dissemination Performance" subtitle="Task Completion & Efficiency" page={1} totalPages={totalPages || 1} generatedAt={generatedAt}>
+      <p className="report-intro">
+        Performance analysis of the content dissemination team, including task completion rates,
+        on-time delivery, and per-disseminator efficiency metrics.
+      </p>
+
+      <div className="report-summary-grid">
+        <SummaryCard label="Total Tasks" value={fmtNumber(stats.totalTasks)} tone="accent" />
+        <SummaryCard label="Completed" value={fmtNumber(stats.completed)} tone="positive" />
+        <SummaryCard label="Completion Rate" value={fmtPercent(stats.completionRate)} tone="accent" />
+        <SummaryCard label="On-Time Rate" value={fmtPercent(stats.onTimeRate)} tone="positive" />
+      </div>
+
+      <ReportSectionHeading>Disseminator Performance</ReportSectionHeading>
+      {disseminatorRows.length === 0 ? (
+        <p className="report-empty">No disseminators on file.</p>
+      ) : (
+        <ReportTable
+          headers={["Name", "Speciality", "Tasks Done", "Posts Published", "On-Time %", "Avg Hours", "Rating", "Status"]}
+          rows={disseminatorRows}
+          numericCols={[2, 3, 4, 5, 6]}
+        />
+      )}
+
+      <ReportSectionHeading>Task Status Summary</ReportSectionHeading>
+      <ReportTable
+        headers={["Status", "Count", "% of Total"]}
+        rows={[
+          ["Completed", fmtNumber(stats.completed), fmtPercent(stats.totalTasks > 0 ? (stats.completed / stats.totalTasks) * 100 : 0)],
+          ["In Progress", fmtNumber(stats.inProgress), fmtPercent(stats.totalTasks > 0 ? (stats.inProgress / stats.totalTasks) * 100 : 0)],
+          ["Assigned / Pending", fmtNumber(stats.assigned), fmtPercent(stats.totalTasks > 0 ? (stats.assigned / stats.totalTasks) * 100 : 0)],
+        ]}
+        totals={["Total", fmtNumber(stats.totalTasks), "100.0%"]}
+        numericCols={[1, 2]}
+      />
+
+      <p className="report-note">
+        On-time rate measures the percentage of completed tasks delivered before their due date.
+        Average completion hours reflects the typical turnaround time from assignment to completion.
+        Ratings are on a 5-point scale converted to percentage.
       </p>
     </LetterPage>
   );

@@ -247,7 +247,7 @@ const jobPostings = [
 // ── Finance Accounts ────────────────────────────────────────────────
 const financeAccounts = [
   { id: 'fa1', code: '1000', name: 'Cash', type: 'asset', category: 'Current Assets', description: 'Cash on hand', normalBalance: 'debit', parentId: null, balance: 125000, isActive: true, organizationId: 'org-1', createdAt: iso(60), updatedAt: iso(1), parent: null, children: [], _count: { journalLines: 15 } },
-  { id: 'fa2', code: '1100', name: 'Accounts Receivable', type: 'asset', category: 'Current Assets', description: 'Money owed by clients', normalBalance: 'debit', parentId: null, balance: 89500, isActive: true, organizationId: 'org-1', createdAt: iso(60), updatedAt: iso(1), parent: null, children: [], _count: { journalLines: 22 } },
+  { id: 'fa2', code: '1100', name: 'Accounts Receivable', type: 'asset', category: 'Current Assets', description: 'Money owed by clients', normalBalance: 'debit', parentId: null, balance: 25500, isActive: true, organizationId: 'org-1', createdAt: iso(60), updatedAt: iso(1), parent: null, children: [], _count: { journalLines: 22 } },
   { id: 'fa3', code: '1200', name: 'Equipment', type: 'asset', category: 'Fixed Assets', description: 'Office equipment', normalBalance: 'debit', parentId: null, balance: 45000, isActive: true, organizationId: 'org-1', createdAt: iso(60), updatedAt: iso(30), parent: null, children: [], _count: { journalLines: 5 } },
   { id: 'fa4', code: '2000', name: 'Accounts Payable', type: 'liability', category: 'Current Liabilities', description: 'Money owed to vendors', normalBalance: 'credit', parentId: null, balance: 32000, isActive: true, organizationId: 'org-1', createdAt: iso(60), updatedAt: iso(2), parent: null, children: [], _count: { journalLines: 18 } },
   { id: 'fa5', code: '2100', name: 'Accrued Expenses', type: 'liability', category: 'Current Liabilities', description: 'Accrued operating expenses', normalBalance: 'credit', parentId: null, balance: 15500, isActive: true, organizationId: 'org-1', createdAt: iso(60), updatedAt: iso(5), parent: null, children: [], _count: { journalLines: 8 } },
@@ -419,6 +419,145 @@ const commContacts = [
   { id: 'cc6', name: 'TechGuru Dan', email: 'dan@techguru.com', phone: '+1-555-3006', whatsappNumber: null, company: null, role: 'Influencer', avatar: null, notes: 'Tech reviewer, 850k YouTube subscribers', preferredChannel: 'email', lastContactedAt: iso(7), isFavorite: true, tags: 'influencer,tech', clientId: null, influencerId: 'inf2', organizationId: 'org-1', createdAt: iso(18) },
 ]
 
+// ── Financial Report Data (computed from demo data) ─────────────────
+const revenueAccounts = financeAccounts.filter(a => a.type === 'revenue').map(a => ({ id: a.id, code: a.code, name: a.name, category: a.category, balance: a.balance }))
+const expenseAccounts = financeAccounts.filter(a => a.type === 'expense').map(a => ({ id: a.id, code: a.code, name: a.name, category: a.category, balance: a.balance }))
+const assetAccounts = financeAccounts.filter(a => a.type === 'asset').map(a => ({ id: a.id, code: a.code, name: a.name, category: a.category, balance: a.balance }))
+const liabilityAccounts = financeAccounts.filter(a => a.type === 'liability').map(a => ({ id: a.id, code: a.code, name: a.name, category: a.category, balance: a.balance }))
+const equityAccounts = financeAccounts.filter(a => a.type === 'equity').map(a => ({ id: a.id, code: a.code, name: a.name, category: a.category, balance: a.balance }))
+
+const totalRevenue = revenueAccounts.reduce((s, a) => s + a.balance, 0)
+const totalExpenses = expenseAccounts.reduce((s, a) => s + a.balance, 0)
+const netIncome = totalRevenue - totalExpenses
+const totalAssets = assetAccounts.reduce((s, a) => s + a.balance, 0)
+const totalLiabilities = liabilityAccounts.reduce((s, a) => s + a.balance, 0)
+const totalEquity = equityAccounts.reduce((s, a) => s + a.balance, 0)
+
+// Trial balance data — computed from journal entries
+const trialBalanceAccounts = financeAccounts.map(a => {
+  const lines = journalEntries.flatMap(je => je.lines.filter(l => l.accountId === a.id))
+  const debitTotal = lines.reduce((s, l) => s + l.debit, 0)
+  const creditTotal = lines.reduce((s, l) => s + l.credit, 0)
+  return { id: a.id, code: a.code, name: a.name, type: a.type, debitTotal, creditTotal }
+}).filter(a => a.debitTotal > 0 || a.creditTotal > 0)
+
+const totalDebits = trialBalanceAccounts.reduce((s, a) => s + a.debitTotal, 0)
+const totalCredits = trialBalanceAccounts.reduce((s, a) => s + a.creditTotal, 0)
+
+// ── Financial Reports by type (query param) ─────────────────────────
+const FINANCIAL_REPORTS: Record<string, unknown> = {
+  'overview': {
+    totalRevenue,
+    totalExpenses,
+    netIncome,
+    accountBalancesByType: {
+      asset: { count: assetAccounts.length, totalBalance: totalAssets },
+      liability: { count: liabilityAccounts.length, totalBalance: totalLiabilities },
+      equity: { count: equityAccounts.length, totalBalance: totalEquity },
+      revenue: { count: revenueAccounts.length, totalBalance: totalRevenue },
+      expense: { count: expenseAccounts.length, totalBalance: totalExpenses },
+    },
+    revenueAccounts,
+    expenseAccounts,
+  },
+  'balance-sheet': {
+    assets: assetAccounts,
+    liabilities: liabilityAccounts,
+    equity: equityAccounts,
+    netIncome,
+    totalAssets,
+    totalLiabilities,
+    totalEquity,
+    totalLiabilitiesAndEquity: totalLiabilities + totalEquity + netIncome,
+    isBalanced: Math.abs(totalAssets - (totalLiabilities + totalEquity + netIncome)) < 0.01,
+  },
+  'pnl': {
+    revenue: revenueAccounts,
+    expenses: expenseAccounts,
+    totalRevenue,
+    totalExpenses,
+    netIncome,
+  },
+  'trial-balance': {
+    accounts: trialBalanceAccounts,
+    totalDebits,
+    totalCredits,
+    isBalanced: Math.abs(totalDebits - totalCredits) < 0.01,
+  },
+  'cash-flow': {
+    cashAccounts: assetAccounts.filter(a => a.code === '1000' || a.name.toLowerCase().includes('cash')),
+    totalCash: totalAssets,
+    operatingCashFlow: netIncome,
+    investingCashFlow: 0,
+    financingCashFlow: 0,
+    netChange: netIncome,
+  },
+}
+
+// ── Employee Report Data ────────────────────────────────────────────
+const employeeReportData = {
+  employees: employees.map(e => ({
+    employeeId: e.employeeId,
+    fullName: `${e.firstName} ${e.lastName}`,
+    email: e.email,
+    phone: e.phone,
+    position: e.position,
+    department: e.department?.name || '—',
+    employmentType: e.employmentType,
+    status: e.status,
+    hireDate: e.hireDate,
+  })),
+  total: employees.length,
+  byStatus: {
+    active: employees.filter(e => e.status === 'active').length,
+    'on-leave': employees.filter(e => e.status === 'on-leave').length,
+    inactive: employees.filter(e => e.status === 'inactive').length,
+  },
+  byDepartment: departments.reduce((acc, d) => {
+    acc[d.name] = employees.filter(e => e.departmentId === d.id).length
+    return acc
+  }, {} as Record<string, number>),
+  byEmploymentType: {
+    'full-time': employees.filter(e => e.employmentType === 'full-time').length,
+    'part-time': employees.filter(e => e.employmentType === 'part-time').length,
+    'contract': employees.filter(e => e.employmentType === 'contract').length,
+    'internship': employees.filter(e => e.employmentType === 'internship').length,
+  },
+}
+
+// ── Attendance Report Data ──────────────────────────────────────────
+const attendanceReportData = {
+  employees: employees.map((e, idx) => {
+    const seed = idx + 1
+    const totalWorkDays = 22
+    const leaveDays = leaveRequests.filter(l => l.employeeId === e.id && l.status === 'approved').reduce((s, l) => s + l.days, 0)
+    const present = Math.max(0, totalWorkDays - leaveDays - (seed % 3))
+    const absent = seed % 2
+    const late = (seed * 3) % 4
+    const rate = (present / totalWorkDays) * 100
+    return {
+      employeeId: e.employeeId,
+      fullName: `${e.firstName} ${e.lastName}`,
+      department: e.department?.name || '—',
+      presentDays: present,
+      absentDays: absent,
+      leaveDays,
+      lateDays: late,
+      attendanceRate: rate,
+      totalLeaveRequests: leaveRequests.filter(l => l.employeeId === e.id).length,
+      pendingLeaveRequests: leaveRequests.filter(l => l.employeeId === e.id && l.status === 'pending').length,
+      approvedLeaveRequests: leaveRequests.filter(l => l.employeeId === e.id && l.status === 'approved').length,
+    }
+  }),
+  totals: {
+    totalEmployees: employees.length,
+    avgAttendanceRate: 95.2,
+    totalLeaveDays: leaveRequests.filter(l => l.status === 'approved').reduce((s, l) => s + l.days, 0),
+    totalPendingLeaves: leaveRequests.filter(l => l.status === 'pending').length,
+    totalWorkDays: 22,
+  },
+}
+
 // ── Export ──────────────────────────────────────────────────────────
 export const DEMO_DATA: Record<string, unknown> = {
   '/api/contents': { contents },
@@ -459,4 +598,13 @@ export const DEMO_DATA: Record<string, unknown> = {
   '/api/communications/conversations': { conversations },
   '/api/communications/templates': { templates: commTemplates },
   '/api/communications/contacts': { contacts: commContacts },
+}
+
+// Export financial report data keyed by type (for query-param lookup)
+export const FINANCIAL_REPORT_DATA: Record<string, unknown> = FINANCIAL_REPORTS
+
+// Export employee/attendance report data (for /api/reports/* routes)
+export const REPORT_DATA: Record<string, unknown> = {
+  '/api/reports/employees': { data: employeeReportData },
+  '/api/reports/attendance': { data: attendanceReportData },
 }
