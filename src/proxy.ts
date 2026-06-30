@@ -1,54 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { DEMO_DATA } from '@/lib/demo-data'
 
-// ── Sandbox Stability Middleware ────────────────────────────────────
+// ── Sandbox Stability Proxy ─────────────────────────────────────────
 // The sandbox dev server crashes when API routes use Prisma to connect to Neon.
-// This middleware intercepts API requests and returns empty data for most routes,
-// keeping the server stable. Only /api/dashboard and /api/seed are allowed through
-// (they return static data without DB calls).
+// This proxy intercepts API requests and returns demo data from the static
+// DEMO_DATA store, keeping the server stable while showing full workflow.
 //
-// To disable in production: set BYPASS_SANDBOX_MOCK=true
-
-const EMPTY_RESPONSES: Record<string, unknown> = {
-  '/api/contents': { contents: [] },
-  '/api/posts': { posts: [] },
-  '/api/teams': { teams: [] },
-  '/api/social-accounts': { data: [] },
-  '/api/campaigns': { data: [] },
-  '/api/clients': { data: [] },
-  '/api/automation': { data: [] },
-  '/api/calendar': { data: [] },
-  '/api/approvals': { data: [] },
-  '/api/invoices': { data: [] },
-  '/api/time-entries': { data: [] },
-  '/api/expenses': { data: [] },
-  '/api/assets': { data: [] },
-  '/api/notifications': { data: [] },
-  '/api/inbox': { data: [] },
-  '/api/influencers': { data: [] },
-  '/api/brand-kit': { data: [] },
-  '/api/departments': { data: [] },
-  '/api/employees': { data: [] },
-  '/api/attendance': { data: [] },
-  '/api/leave-requests': { data: [] },
-  '/api/payroll': { data: [] },
-  '/api/job-postings': { data: [] },
-  '/api/accounts': { data: [] },
-  '/api/tax-rates': { data: [] },
-  '/api/journal-entries': { data: [] },
-  '/api/products': { data: [] },
-  '/api/warehouses': { data: [] },
-  '/api/stock-movements': { data: [] },
-  '/api/vendors': { data: [] },
-  '/api/purchase-orders': { data: [] },
-  '/api/it-assets': { data: [] },
-  '/api/asset-issuances': { data: [] },
-  '/api/disseminators': { data: [] },
-  '/api/dissemination-tasks': { data: [] },
-  '/api/communications/conversations': { conversations: [] },
-  '/api/communications/templates': { templates: [] },
-  '/api/communications/contacts': { contacts: [] },
-}
+// Only /api/dashboard and /api/seed are allowed through (they return static data).
+// To use the real database: set USE_REAL_DB=true and remove this proxy.
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -58,15 +18,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Allow dashboard and seed to pass through (they return static data)
+  // Allow dashboard and seed to pass through (they return static data without DB)
   if (pathname === '/api/dashboard' || pathname === '/api/seed') {
     return NextResponse.next()
   }
 
-  // Return empty data for known routes
-  const emptyResponse = EMPTY_RESPONSES[pathname]
-  if (emptyResponse) {
-    return NextResponse.json(emptyResponse)
+  // Return demo data for known routes
+  const demoResponse = DEMO_DATA[pathname]
+  if (demoResponse) {
+    return NextResponse.json(demoResponse)
   }
 
   // For unknown API routes, return empty array

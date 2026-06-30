@@ -1702,3 +1702,1555 @@ Stage Summary:
 - **17 files needed no changes**: employees-view, attendance-view, payroll-view, it-assets-view, finance-accounts-view, invoicing-view, expenses-view, products-view, clients-view, teams-view, assets-view, accounts-view, automation-view, settings-view, archive-view, content-detail-modal, create-post-modal. These were already dark-mode compatible — either from the previous Task 2 sweep (which converted glass/blur patterns to solid `bg-white dark:bg-[#1c1c1e]` cards) or because they use semantic Tailwind tokens (`bg-card`, `bg-muted`, `text-muted-foreground`, `border`) that inherit dark mode via CSS variables defined in `globals.css`.
 - All previously-white patches in dark mode (influencer CRM header/tabs/search/filter/sort bars, influencer cards & list items, recruitment "Closed" status badge, vendor category & PO-status default badges, purchase-order "Draft" badge, brand-kit logo preview surfaces, report pages and report headers/labels/bars) now correctly render as `#1c1c1e`/`#2c2c2e` cards with `#38383a` borders and proper muted text in dark mode.
 - The recursive string-literal scanner correctly handled class strings nested inside `${...}` template-literal ternaries (e.g., vendor PO status badge default branch on line 358 of vendors-view.tsx).
+
+---
+
+# Task 3-a: Analyze Module Data Structures for All API Endpoints
+
+## Agent: general-purpose (sub agent)
+## Date: 2026-06-27
+
+## Summary
+Analyzed `/home/z/my-project/src/lib/store.ts` (1044 lines, all TypeScript interfaces) and `/home/z/my-project/src/app/page.tsx` (450 lines, API response parsing logic) to determine the exact data structure expected by each of the 38 module endpoints. Spot-checked view components (`pipeline-view.tsx`, `approvals-view.tsx`) to confirm that fields defined in store types are indeed rendered by views.
+
+## Files Reviewed
+- `/home/z/my-project/src/lib/store.ts` — All TypeScript interfaces (Content, Post, Team, etc.)
+- `/home/z/my-project/src/app/page.tsx` — API response parsing (lines 96-398)
+- `/home/z/my-project/src/components/erp/pipeline-view.tsx` (spot check)
+- `/home/z/my-project/src/components/erp/approvals-view.tsx` (spot check)
+- `/home/z/my-project/src/components/erp/` directory listing (36 view components)
+
+## Key Findings
+1. The store exports **40+ TypeScript interfaces** that fully define the shape of every entity in the ERP.
+2. `page.tsx` parses each endpoint with a tolerant pattern: `responseJson.<key> || responseJson.data || (array)`. This means an endpoint can return either `{ <key>: [...] }` or just a raw array `[...]` and both work.
+3. Several endpoints use a **module-specific key** (e.g., `contents`, `posts`, `accounts`, `approvals`, `invoices`, `timeEntries`, `assets`, `notifications`, `messages`, `influencers`, `brandKits`, `disseminators`, `tasks`, `conversations`, `templates`, `contacts`). All other endpoints default to `data`.
+4. `InvoiceItem` is **NOT** a separate endpoint — it is extracted from the `invoices` payload's nested `invoiceItems` array (page.tsx lines 326-334).
+5. `DashboardData` is a custom transform in page.tsx (lines 136-172) — the dashboard endpoint returns a different shape with fields like `postsPublishedThisWeek`, `socialAccountsCount`, `teamStats`, `platformBreakdown`, `recentActivity` that are mapped to `DashboardData`.
+6. Many entities carry **nested relations**: Content has `creator/assignee/team/campaign/posts/comments`; Invoice has `client/campaign/invoiceItems`; ITAsset has `assignedTo/issuances`; DisseminationTask has `assignee/disseminator/content/client/campaign`; Conversation has `client/influencer/assignedTo/messages`.
+
+## Comprehensive Data Structure Document
+
+Below is the full reference for every endpoint, response key, field list, and example object.
+
+```
+================================================================================
+ENDPOINT: /api/dashboard
+RESPONSE KEY: (root object — single object, not array)
+PARSING: Custom transform in page.tsx lines 136-172
+API FIELDS (what the endpoint returns):
+- totalContent: number
+- contentByStage: Record<ContentStage, number>   (object: {idea, design, edit, review, approve, disseminate, archived})
+- postsPublishedThisWeek: number                  → mapped to postsThisWeek
+- postsPublishedThisMonth: number                 → mapped to postsThisMonth
+- scheduledPosts: number
+- activeCampaigns: number
+- totalClients: number
+- socialAccountsCount: number                     → mapped to totalAccounts
+- teamStats: Array<{ name: string; contentByStage: Record<string, number>; contentCount: number }>  → mapped to teamProductivity
+- platformBreakdown: Array<{ platform: string; posts: number; engagement: number }>
+- recentActivity: Array<{ id, action, entity, entityId, details, actor: {id,name,email,avatar,role}, createdAt }>
+- pendingApprovals: number
+- totalRevenue: number
+- paidRevenue: number
+- outstandingRevenue: number
+- timeTrackedThisWeek: number
+- unreadInbox: number
+- assetCount: number
+EXAMPLE:
+{
+  "totalContent": 24,
+  "contentByStage": {"idea": 5, "design": 4, "edit": 6, "review": 3, "approve": 2, "disseminate": 3, "archived": 1},
+  "postsPublishedThisWeek": 12,
+  "postsPublishedThisMonth": 47,
+  "scheduledPosts": 8,
+  "activeCampaigns": 5,
+  "totalClients": 8,
+  "socialAccountsCount": 6,
+  "teamStats": [{"name":"Creative","contentByStage":{"idea":2,"design":1},"contentCount":3}],
+  "platformBreakdown": [{"platform":"instagram","posts":18,"engagement":4.5}],
+  "recentActivity": [{"id":"a1","action":"created","entity":"content","entityId":"c1","details":"Summer Campaign","actor":{"id":"u1","name":"Sarah","email":"sarah@vortexdigital.com","avatar":null,"role":"admin"},"createdAt":"2026-06-27T10:00:00.000Z"}],
+  "pendingApprovals": 3,
+  "totalRevenue": 124500,
+  "paidRevenue": 98000,
+  "outstandingRevenue": 26500,
+  "timeTrackedThisWeek": 142.5,
+  "unreadInbox": 7,
+  "assetCount": 86
+}
+
+================================================================================
+ENDPOINT: /api/contents
+RESPONSE KEY: contents  (fallback: data, raw array)
+TYPE: Content
+FIELDS:
+- id: string
+- title: string
+- description: string | null
+- type: 'post' | 'story' | 'reel' | 'carousel' | 'video' | 'graphic' | 'article'
+- stage: 'idea' | 'design' | 'edit' | 'review' | 'approve' | 'disseminate' | 'archived'
+- priority: 'low' | 'medium' | 'high' | 'urgent'
+- format: string | null
+- tags: string | null                     (comma-separated or JSON; view calls parseTags())
+- dueDate: string | null                  (ISO date)
+- publishedAt: string | null
+- campaignId: string | null
+- creatorId: string | null
+- assigneeId: string | null
+- teamId: string | null
+- creator: { id, email, name, avatar, role, organizationId } | null
+- assignee: { id, email, name, avatar, role, organizationId } | null
+- team: { id, name, type, color, icon, description, members } | null
+- campaign: { id, name, description, status, startDate, endDate, budget, client } | null
+- posts: Post[]                           (nested — see Post type)
+- comments: Comment[]                     (nested — see Comment type)
+- createdAt: string
+- updatedAt: string
+EXAMPLE:
+{
+  "id": "c1",
+  "title": "Summer Campaign Reel",
+  "description": "30-second promotional reel for summer launch",
+  "type": "reel",
+  "stage": "design",
+  "priority": "high",
+  "format": "9:16 vertical",
+  "tags": "summer,promo,video",
+  "dueDate": "2026-07-15T00:00:00.000Z",
+  "publishedAt": null,
+  "campaignId": "camp1",
+  "creatorId": "u1",
+  "assigneeId": "u2",
+  "teamId": "t1",
+  "creator": {"id":"u1","email":"sarah@vortexdigital.com","name":"Sarah Chen","avatar":null,"role":"admin","organizationId":"org-1"},
+  "assignee": {"id":"u2","email":"mike@vortexdigital.com","name":"Mike Johnson","avatar":null,"role":"creator","organizationId":"org-1"},
+  "team": {"id":"t1","name":"Creative Team","type":"creative","color":"#10b981","icon":null,"description":"Content creation","members":[]},
+  "campaign": {"id":"camp1","name":"Summer Launch 2026","description":null,"status":"active","startDate":"2026-06-01","endDate":"2026-08-31","budget":50000,"client":null},
+  "posts": [],
+  "comments": [],
+  "createdAt": "2026-06-20T10:00:00.000Z",
+  "updatedAt": "2026-06-27T12:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/posts
+RESPONSE KEY: posts  (fallback: data, raw array)
+TYPE: Post
+FIELDS:
+- id: string
+- content: string
+- mediaUrls: string | null               (JSON array string)
+- platform: 'instagram' | 'facebook' | 'twitter' | 'linkedin' | 'tiktok' | 'youtube' | 'pinterest' | 'snapchat'
+- status: 'draft' | 'scheduled' | 'publishing' | 'published' | 'failed'
+- scheduledAt: string | null
+- publishedAt: string | null
+- engagement: string | null              (JSON string of metrics: likes, comments, shares)
+- failureReason: string | null
+- socialAccountId: string
+- contentId: string | null
+- socialAccount: { id, platform, accountId, username, displayName, avatar, followers, isVerified, isActive, userId, user }
+- createdAt: string
+EXAMPLE:
+{
+  "id": "p1",
+  "content": "Summer is here! Get 20% off all items 🌞",
+  "mediaUrls": "[\"https://cdn.vortex.com/img1.jpg\"]",
+  "platform": "instagram",
+  "status": "scheduled",
+  "scheduledAt": "2026-07-01T14:00:00.000Z",
+  "publishedAt": null,
+  "engagement": "{\"likes\":1250,\"comments\":89,\"shares\":45}",
+  "failureReason": null,
+  "socialAccountId": "sa1",
+  "contentId": "c1",
+  "socialAccount": {"id":"sa1","platform":"instagram","accountId":"ig_123","username":"@vortexdigital","displayName":"Vortex Digital","avatar":null,"followers":45200,"isVerified":true,"isActive":true,"userId":"u1","user":{"id":"u1","email":"sarah@vortexdigital.com","name":"Sarah Chen","avatar":null,"role":"admin","organizationId":"org-1"}},
+  "createdAt": "2026-06-25T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/teams
+RESPONSE KEY: data  (or raw array)
+TYPE: Team
+FIELDS:
+- id: string
+- name: string
+- type: string
+- color: string                          (hex code)
+- icon: string | null
+- description: string | null
+- members: TeamMember[]                  (each: { id, userId, teamId, role, user })
+EXAMPLE:
+{
+  "id": "t1",
+  "name": "Creative Team",
+  "type": "creative",
+  "color": "#10b981",
+  "icon": null,
+  "description": "Content creation and design team",
+  "members": [
+    {"id":"tm1","userId":"u1","teamId":"t1","role":"lead","user":{"id":"u1","email":"sarah@vortexdigital.com","name":"Sarah Chen","avatar":null,"role":"admin","organizationId":"org-1"}}
+  ]
+}
+
+================================================================================
+ENDPOINT: /api/social-accounts
+RESPONSE KEY: accounts  (fallback: data, raw array)
+TYPE: SocialAccount
+FIELDS:
+- id: string
+- platform: Platform
+- accountId: string
+- username: string
+- displayName: string | null
+- avatar: string | null
+- followers: number
+- isVerified: boolean
+- isActive: boolean
+- userId: string
+- user: { id, email, name, avatar, role, organizationId }
+EXAMPLE:
+{
+  "id": "sa1",
+  "platform": "instagram",
+  "accountId": "ig_123456",
+  "username": "@vortexdigital",
+  "displayName": "Vortex Digital",
+  "avatar": null,
+  "followers": 45200,
+  "isVerified": true,
+  "isActive": true,
+  "userId": "u1",
+  "user": {"id":"u1","email":"sarah@vortexdigital.com","name":"Sarah Chen","avatar":null,"role":"admin","organizationId":"org-1"}
+}
+
+================================================================================
+ENDPOINT: /api/campaigns
+RESPONSE KEY: data  (or raw array)
+TYPE: Campaign
+FIELDS:
+- id: string
+- name: string
+- description: string | null
+- status: string                         ('active' | 'paused' | 'completed' | 'draft')
+- startDate: string | null
+- endDate: string | null
+- budget: number | null
+- client: { id, name, logo, industry, status } | null
+EXAMPLE:
+{
+  "id": "camp1",
+  "name": "Summer Launch 2026",
+  "description": "Q3 product launch campaign across all platforms",
+  "status": "active",
+  "startDate": "2026-06-01T00:00:00.000Z",
+  "endDate": "2026-08-31T00:00:00.000Z",
+  "budget": 50000,
+  "client": {"id":"cl1","name":"Acme Corp","logo":null,"industry":"Retail","status":"active"}
+}
+
+================================================================================
+ENDPOINT: /api/clients
+RESPONSE KEY: data  (or raw array)
+TYPE: Client
+FIELDS:
+- id: string
+- name: string
+- logo: string | null
+- industry: string | null
+- status: string                         ('active' | 'inactive' | 'lead' | 'archived')
+EXAMPLE:
+{
+  "id": "cl1",
+  "name": "Acme Corp",
+  "logo": null,
+  "industry": "Retail",
+  "status": "active"
+}
+
+================================================================================
+ENDPOINT: /api/automation
+RESPONSE KEY: data  (or raw array)
+TYPE: AutomationRule
+FIELDS:
+- id: string
+- name: string
+- description: string | null
+- trigger: string
+- conditions: string                     (JSON string)
+- actions: string                        (JSON string)
+- isActive: boolean
+EXAMPLE:
+{
+  "id": "ar1",
+  "name": "Auto-publish approved posts",
+  "description": "When a post is approved, schedule it for publishing",
+  "trigger": "approval.approved",
+  "conditions": "[{\"field\":\"type\",\"op\":\"eq\",\"value\":\"post\"}]",
+  "actions": "[{\"type\":\"publish\",\"delay\":\"1h\"}]",
+  "isActive": true
+}
+
+================================================================================
+ENDPOINT: /api/calendar
+RESPONSE KEY: data  (fallback: events, raw array)
+TYPE: CalendarEvent
+FIELDS:
+- id: string
+- title: string
+- date: string                           (ISO date)
+- type: 'content' | 'post' | 'campaign'
+- status: string
+- platform?: string                      (optional)
+- color: string                          (hex)
+EXAMPLE:
+{
+  "id": "ev1",
+  "title": "Summer Reel Publish",
+  "date": "2026-07-01T14:00:00.000Z",
+  "type": "post",
+  "status": "scheduled",
+  "platform": "instagram",
+  "color": "#10b981"
+}
+
+================================================================================
+ENDPOINT: /api/approvals
+RESPONSE KEY: approvals  (or raw array)
+TYPE: Approval
+FIELDS:
+- id: string
+- type: string                           ('content' | 'post' | 'campaign')
+- status: string                         ('pending' | 'approved' | 'rejected' | 'changes_requested')
+- comment: string | null
+- contentId: string | null
+- postId: string | null
+- requestedById: string
+- reviewedById: string | null
+- reviewedAt: string | null
+- requestedBy: { id, email, name, avatar, role, organizationId }
+- reviewedBy: { id, email, name, avatar, role, organizationId } | null
+- content: Content | null                (must include at least .title and .stage)
+- post: Post | null                      (must include at least .content, .platform, .status)
+- createdAt: string
+EXAMPLE:
+{
+  "id": "ap1",
+  "type": "post",
+  "status": "pending",
+  "comment": null,
+  "contentId": "c1",
+  "postId": "p1",
+  "requestedById": "u2",
+  "reviewedById": null,
+  "reviewedAt": null,
+  "requestedBy": {"id":"u2","email":"mike@vortexdigital.com","name":"Mike Johnson","avatar":null,"role":"creator","organizationId":"org-1"},
+  "reviewedBy": null,
+  "content": {"id":"c1","title":"Summer Campaign Reel","stage":"review","type":"reel","priority":"high","description":null,"format":null,"tags":null,"dueDate":null,"publishedAt":null,"campaignId":null,"creatorId":null,"assigneeId":null,"teamId":null,"creator":null,"assignee":null,"team":null,"campaign":null,"posts":[],"comments":[],"createdAt":"2026-06-20T10:00:00.000Z","updatedAt":"2026-06-27T12:00:00.000Z"},
+  "post": {"id":"p1","content":"Summer is here!","mediaUrls":null,"platform":"instagram","status":"scheduled","scheduledAt":"2026-07-01T14:00:00.000Z","publishedAt":null,"engagement":null,"failureReason":null,"socialAccountId":"sa1","contentId":"c1","socialAccount":null,"createdAt":"2026-06-25T10:00:00.000Z"},
+  "createdAt": "2026-06-26T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/invoices
+RESPONSE KEY: invoices  (or raw array)
+TYPE: Invoice   (also source for nested InvoiceItem extraction in page.tsx)
+FIELDS:
+- id: string
+- number: string                         (e.g., "INV-2026-001")
+- clientId: string
+- campaignId: string | null
+- status: string                         ('draft' | 'sent' | 'paid' | 'overdue' | 'cancelled')
+- subtotal: number
+- tax: number
+- total: number
+- dueDate: string | null
+- paidAt: string | null
+- notes: string | null
+- client: { id, name, logo, industry, status }
+- campaign: Campaign | null
+- invoiceItems: InvoiceItem[]           (each: { id, invoiceId, description, quantity, rate, amount, organizationId, createdAt, updatedAt })
+- createdAt: string
+EXAMPLE:
+{
+  "id": "inv1",
+  "number": "INV-2026-001",
+  "clientId": "cl1",
+  "campaignId": "camp1",
+  "status": "paid",
+  "subtotal": 10000,
+  "tax": 1500,
+  "total": 11500,
+  "dueDate": "2026-07-15T00:00:00.000Z",
+  "paidAt": "2026-07-10T00:00:00.000Z",
+  "notes": "Net 30",
+  "client": {"id":"cl1","name":"Acme Corp","logo":null,"industry":"Retail","status":"active"},
+  "campaign": {"id":"camp1","name":"Summer Launch 2026","description":null,"status":"active","startDate":"2026-06-01","endDate":"2026-08-31","budget":50000,"client":null},
+  "invoiceItems": [
+    {"id":"ii1","invoiceId":"inv1","description":"Creative services","quantity":10,"rate":500,"amount":5000,"organizationId":"org-1","createdAt":"2026-06-25T10:00:00.000Z","updatedAt":"2026-06-25T10:00:00.000Z"},
+    {"id":"ii2","invoiceId":"inv1","description":"Production","quantity":5,"rate":1000,"amount":5000,"organizationId":"org-1","createdAt":"2026-06-25T10:00:00.000Z","updatedAt":"2026-06-25T10:00:00.000Z"}
+  ],
+  "createdAt": "2026-06-25T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/time-entries
+RESPONSE KEY: timeEntries  (or raw array)
+TYPE: TimeEntry
+FIELDS:
+- id: string
+- description: string
+- hours: number
+- billable: boolean
+- date: string                           (ISO date)
+- userId: string
+- clientId: string | null
+- campaignId: string | null
+- contentId: string | null
+- user: { id, email, name, avatar, role, organizationId }
+- client: Client | null
+- campaign: Campaign | null
+- createdAt: string
+EXAMPLE:
+{
+  "id": "te1",
+  "description": "Script writing for Summer Reel",
+  "hours": 4.5,
+  "billable": true,
+  "date": "2026-06-23T00:00:00.000Z",
+  "userId": "u2",
+  "clientId": "cl1",
+  "campaignId": "camp1",
+  "contentId": "c1",
+  "user": {"id":"u2","email":"mike@vortexdigital.com","name":"Mike Johnson","avatar":null,"role":"creator","organizationId":"org-1"},
+  "client": {"id":"cl1","name":"Acme Corp","logo":null,"industry":"Retail","status":"active"},
+  "campaign": null,
+  "createdAt": "2026-06-23T18:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/expenses
+RESPONSE KEY: data  (or raw array)
+TYPE: Expense
+FIELDS:
+- id: string
+- title: string
+- description: string | null
+- amount: number
+- category: string                       ('Software' | 'Production' | 'Advertising' | 'Meals' | 'Travel' | 'Equipment' | 'Other')
+- date: string
+- status: string                         ('pending' | 'approved' | 'rejected' | 'paid')
+- receiptUrl: string | null
+- submittedById: string
+- approvedById: string | null
+- approvedAt: string | null
+- campaignId: string | null
+- clientId: string | null
+- submittedBy: { id, email, name, avatar, role, organizationId }
+- createdAt: string
+EXAMPLE:
+{
+  "id": "ex1",
+  "title": "Adobe Creative Cloud subscription",
+  "description": "Monthly subscription for design team",
+  "amount": 79.99,
+  "category": "Software",
+  "date": "2026-06-01T00:00:00.000Z",
+  "status": "approved",
+  "receiptUrl": null,
+  "submittedById": "u2",
+  "approvedById": "u1",
+  "approvedAt": "2026-06-02T00:00:00.000Z",
+  "campaignId": null,
+  "clientId": null,
+  "submittedBy": {"id":"u2","email":"mike@vortexdigital.com","name":"Mike Johnson","avatar":null,"role":"creator","organizationId":"org-1"},
+  "createdAt": "2026-06-01T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/assets
+RESPONSE KEY: assets  (or raw array)
+TYPE: Asset                              (media library asset, NOT IT asset)
+FIELDS:
+- id: string
+- name: string
+- type: string                           ('image' | 'video' | 'document' | 'template' | 'brand-guide' | 'audio')
+- url: string
+- thumbnailUrl: string | null
+- size: number                           (bytes)
+- mimeType: string | null
+- tags: string | null                    (comma-separated)
+- folder: string | null
+- metadata: string | null                (JSON string)
+- uploadedById: string
+- clientId: string | null
+- uploadedBy: { id, email, name, avatar, role, organizationId }
+- client: Client | null
+- createdAt: string
+EXAMPLE:
+{
+  "id": "as1",
+  "name": "Summer Hero Image",
+  "type": "image",
+  "url": "https://cdn.vortex.com/assets/summer-hero.jpg",
+  "thumbnailUrl": "https://cdn.vortex.com/assets/summer-hero-thumb.jpg",
+  "size": 2048576,
+  "mimeType": "image/jpeg",
+  "tags": "summer,campaign,hero",
+  "folder": "Summer 2026",
+  "metadata": "{\"width\":1920,\"height\":1080}",
+  "uploadedById": "u2",
+  "clientId": "cl1",
+  "uploadedBy": {"id":"u2","email":"mike@vortexdigital.com","name":"Mike Johnson","avatar":null,"role":"creator","organizationId":"org-1"},
+  "client": {"id":"cl1","name":"Acme Corp","logo":null,"industry":"Retail","status":"active"},
+  "createdAt": "2026-06-20T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/notifications
+RESPONSE KEY: notifications  (or raw array)
+TYPE: ERPNotification
+FIELDS:
+- id: string
+- title: string
+- message: string
+- type: string                           ('info' | 'success' | 'warning' | 'error')
+- category: string                       ('content' | 'post' | 'approval' | 'invoice' | 'system' etc.)
+- isRead: boolean
+- actionUrl: string | null
+- userId: string
+- createdAt: string
+EXAMPLE:
+{
+  "id": "n1",
+  "title": "New approval request",
+  "message": "Mike requested approval on 'Summer Campaign Reel'",
+  "type": "info",
+  "category": "approval",
+  "isRead": false,
+  "actionUrl": "/approvals",
+  "userId": "u1",
+  "createdAt": "2026-06-26T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/inbox
+RESPONSE KEY: messages  (or raw array)
+TYPE: InboxMessage
+FIELDS:
+- id: string
+- platform: Platform
+- senderName: string
+- senderAvatar: string | null
+- content: string
+- type: string                           ('comment' | 'dm' | 'mention')
+- status: string                         ('unread' | 'read' | 'replied' | 'archived')
+- postUrl: string | null
+- socialAccountId: string
+- repliedAt: string | null
+- createdAt: string
+EXAMPLE:
+{
+  "id": "im1",
+  "platform": "instagram",
+  "senderName": "@jane_doe",
+  "senderAvatar": null,
+  "content": "Love this campaign! Where can I buy?",
+  "type": "comment",
+  "status": "unread",
+  "postUrl": "https://instagram.com/p/abc123",
+  "socialAccountId": "sa1",
+  "repliedAt": null,
+  "createdAt": "2026-06-26T14:30:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/influencers
+RESPONSE KEY: influencers  (fallback: data, raw array)
+TYPE: Influencer
+FIELDS:
+- id: string
+- name: string
+- username: string
+- platform: Platform
+- followers: number
+- engagementRate: number                (percentage, e.g. 4.5)
+- niche: string | null
+- email: string | null
+- phone: string | null
+- notes: string | null
+- status: string                         ('active' | 'pending' | 'completed' | 'rejected')
+- rate: number | null                    (cost per post)
+- contractStart: string | null
+- contractEnd: string | null
+- clientId: string | null
+- campaignId: string | null
+- client: Client | null
+- campaign: Campaign | null
+- createdAt: string
+EXAMPLE:
+{
+  "id": "inf1",
+  "name": "StyleMaven Jane",
+  "username": "@stylemaven",
+  "platform": "instagram",
+  "followers": 250000,
+  "engagementRate": 4.5,
+  "niche": "Fashion",
+  "email": "jane@stylemaven.com",
+  "phone": "+1-555-0100",
+  "notes": "Great for fashion campaigns",
+  "status": "active",
+  "rate": 2500,
+  "contractStart": "2026-06-01T00:00:00.000Z",
+  "contractEnd": "2026-08-31T00:00:00.000Z",
+  "clientId": "cl1",
+  "campaignId": "camp1",
+  "client": {"id":"cl1","name":"Acme Corp","logo":null,"industry":"Retail","status":"active"},
+  "campaign": null,
+  "createdAt": "2026-05-15T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/brand-kit
+RESPONSE KEY: brandKits  (or raw array)
+TYPE: BrandKit
+FIELDS:
+- id: string
+- name: string
+- type: string                           ('color' | 'typography' | 'logo' | 'voice' | 'imagery')
+- value: string                          (JSON string or hex for colors)
+- clientId: string | null
+- client: Client | null
+- createdAt: string
+EXAMPLE:
+{
+  "id": "bk1",
+  "name": "Primary Color",
+  "type": "color",
+  "value": "#10b981",
+  "clientId": "cl1",
+  "client": {"id":"cl1","name":"Acme Corp","logo":null,"industry":"Retail","status":"active"},
+  "createdAt": "2026-06-01T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/departments
+RESPONSE KEY: data  (or raw array)
+TYPE: Department
+FIELDS:
+- id: string
+- name: string
+- description: string | null
+- color: string                          (hex)
+- headId: string | null
+- _count?: { employees: number; jobPostings: number }   (optional)
+- createdAt: string
+EXAMPLE:
+{
+  "id": "dept1",
+  "name": "Creative",
+  "description": "Content creation team",
+  "color": "#10b981",
+  "headId": "u1",
+  "_count": {"employees": 8, "jobPostings": 2},
+  "createdAt": "2026-01-15T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/employees
+RESPONSE KEY: data  (or raw array)
+TYPE: Employee
+FIELDS:
+- id: string
+- userId: string | null
+- employeeId: string                     (e.g., "EMP-001")
+- firstName: string
+- lastName: string
+- email: string
+- phone: string | null
+- avatar: string | null
+- position: string
+- departmentId: string
+- hireDate: string
+- status: string                         ('active' | 'on-leave' | 'terminated' | 'probation')
+- employmentType: string                 ('full-time' | 'part-time' | 'contract' | 'intern')
+- salary: number | null
+- salaryCurrency: string                 (e.g., "USD")
+- bankAccount: string | null
+- taxId: string | null
+- emergencyContact: string | null
+- address: string | null
+- notes: string | null
+- department: Department
+- user: User | null
+- createdAt: string
+EXAMPLE:
+{
+  "id": "emp1",
+  "userId": "u2",
+  "employeeId": "EMP-001",
+  "firstName": "Mike",
+  "lastName": "Johnson",
+  "email": "mike@vortexdigital.com",
+  "phone": "+1-555-0123",
+  "avatar": null,
+  "position": "Senior Designer",
+  "departmentId": "dept1",
+  "hireDate": "2024-03-15T00:00:00.000Z",
+  "status": "active",
+  "employmentType": "full-time",
+  "salary": 75000,
+  "salaryCurrency": "USD",
+  "bankAccount": "****1234",
+  "taxId": "TX-12345",
+  "emergencyContact": "Jane Johnson +1-555-0199",
+  "address": "123 Main St, Anytown USA",
+  "notes": null,
+  "department": {"id":"dept1","name":"Creative","description":"Content creation","color":"#10b981","headId":"u1","_count":{"employees":8,"jobPostings":2},"createdAt":"2026-01-15T10:00:00.000Z"},
+  "user": {"id":"u2","email":"mike@vortexdigital.com","name":"Mike Johnson","avatar":null,"role":"creator","organizationId":"org-1"},
+  "createdAt": "2024-03-15T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/attendance
+RESPONSE KEY: data  (or raw array)
+TYPE: Attendance
+FIELDS:
+- id: string
+- employeeId: string
+- date: string                           (ISO date)
+- clockIn: string | null                 (ISO datetime)
+- clockOut: string | null
+- status: string                         ('present' | 'absent' | 'late' | 'half-day' | 'remote' | 'leave')
+- workHours: number | null
+- notes: string | null
+- organizationId: string
+- createdAt: string
+- updatedAt: string
+- employee: Employee
+EXAMPLE:
+{
+  "id": "att1",
+  "employeeId": "emp1",
+  "date": "2026-06-27T00:00:00.000Z",
+  "clockIn": "2026-06-27T09:00:00.000Z",
+  "clockOut": "2026-06-27T17:30:00.000Z",
+  "status": "present",
+  "workHours": 8.5,
+  "notes": null,
+  "organizationId": "org-1",
+  "createdAt": "2026-06-27T09:00:00.000Z",
+  "updatedAt": "2026-06-27T17:30:00.000Z",
+  "employee": {"id":"emp1","userId":"u2","employeeId":"EMP-001","firstName":"Mike","lastName":"Johnson","email":"mike@vortexdigital.com","phone":"+1-555-0123","avatar":null,"position":"Senior Designer","departmentId":"dept1","hireDate":"2024-03-15T00:00:00.000Z","status":"active","employmentType":"full-time","salary":75000,"salaryCurrency":"USD","bankAccount":null,"taxId":null,"emergencyContact":null,"address":null,"notes":null,"department":null,"user":null,"createdAt":"2024-03-15T10:00:00.000Z"}
+}
+
+================================================================================
+ENDPOINT: /api/leave-requests
+RESPONSE KEY: data  (or raw array)
+TYPE: LeaveRequest
+FIELDS:
+- id: string
+- employeeId: string
+- type: string                           ('annual' | 'sick' | 'personal' | 'unpaid' | 'maternity' | 'paternity')
+- startDate: string
+- endDate: string
+- days: number
+- reason: string | null
+- status: string                         ('pending' | 'approved' | 'rejected' | 'cancelled')
+- approvedById: string | null
+- approvedAt: string | null
+- comment: string | null
+- employee: Employee
+- createdAt: string
+EXAMPLE:
+{
+  "id": "lr1",
+  "employeeId": "emp1",
+  "type": "annual",
+  "startDate": "2026-07-10T00:00:00.000Z",
+  "endDate": "2026-07-14T00:00:00.000Z",
+  "days": 5,
+  "reason": "Family vacation",
+  "status": "pending",
+  "approvedById": null,
+  "approvedAt": null,
+  "comment": null,
+  "employee": {"id":"emp1","userId":"u2","employeeId":"EMP-001","firstName":"Mike","lastName":"Johnson","email":"mike@vortexdigital.com","phone":null,"avatar":null,"position":"Senior Designer","departmentId":"dept1","hireDate":"2024-03-15T00:00:00.000Z","status":"active","employmentType":"full-time","salary":75000,"salaryCurrency":"USD","bankAccount":null,"taxId":null,"emergencyContact":null,"address":null,"notes":null,"department":null,"user":null,"createdAt":"2024-03-15T10:00:00.000Z"},
+  "createdAt": "2026-06-25T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/payroll
+RESPONSE KEY: data  (or raw array)
+TYPE: PayrollRun
+FIELDS:
+- id: string
+- period: string                         (e.g., "2026-06" or "June 2026")
+- status: string                         ('draft' | 'processing' | 'approved' | 'paid' | 'cancelled')
+- runDate: string
+- totalGross: number
+- totalDeductions: number
+- totalNet: number
+- items: PayrollItem[]                   (each: { id, payrollRunId, employeeId, baseSalary, overtime, bonuses, deductions, tax, netPay, employee, createdAt })
+- createdAt: string
+EXAMPLE:
+{
+  "id": "pr1",
+  "period": "June 2026",
+  "status": "paid",
+  "runDate": "2026-06-30T00:00:00.000Z",
+  "totalGross": 45000,
+  "totalDeductions": 11250,
+  "totalNet": 33750,
+  "items": [
+    {"id":"pi1","payrollRunId":"pr1","employeeId":"emp1","baseSalary":6250,"overtime":0,"bonuses":500,"deductions":1562.5,"tax":1250,"netPay":3937.5,"employee":null,"createdAt":"2026-06-30T10:00:00.000Z"}
+  ],
+  "createdAt": "2026-06-28T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/job-postings
+RESPONSE KEY: data  (or raw array)
+TYPE: JobPosting
+FIELDS:
+- id: string
+- title: string
+- departmentId: string
+- type: string                           ('full-time' | 'part-time' | 'contract' | 'internship')
+- location: string | null
+- salary_min: number | null              (NOTE: snake_case in store!)
+- salary_max: number | null
+- description: string
+- requirements: string | null
+- status: string                         ('open' | 'closed' | 'draft' | 'on-hold')
+- postedDate: string | null
+- closingDate: string | null
+- applicants: number
+- department: Department
+- createdAt: string
+EXAMPLE:
+{
+  "id": "jp1",
+  "title": "Senior Content Strategist",
+  "departmentId": "dept1",
+  "type": "full-time",
+  "location": "Remote / NYC",
+  "salary_min": 80000,
+  "salary_max": 110000,
+  "description": "Lead content strategy for major accounts",
+  "requirements": "5+ years content strategy experience",
+  "status": "open",
+  "postedDate": "2026-06-15T00:00:00.000Z",
+  "closingDate": "2026-07-31T00:00:00.000Z",
+  "applicants": 12,
+  "department": {"id":"dept1","name":"Creative","description":null,"color":"#10b981","headId":"u1","createdAt":"2026-01-15T10:00:00.000Z"},
+  "createdAt": "2026-06-15T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/accounts
+RESPONSE KEY: data  (or raw array)
+TYPE: Account (renamed to FinanceAccount in store)
+FIELDS:
+- id: string
+- code: string                           (e.g., "1000")
+- name: string
+- type: string                           ('asset' | 'liability' | 'equity' | 'revenue' | 'expense')
+- category: string | null
+- description: string | null
+- normalBalance: string                  ('debit' | 'credit')
+- parentId: string | null
+- balance: number
+- isActive: boolean
+- organizationId: string
+- createdAt: string
+- updatedAt: string
+- parent: { id, code, name } | null
+- children: { id, code, name, type, balance }[]
+- _count?: { journalLines: number }
+EXAMPLE:
+{
+  "id": "acc1",
+  "code": "1000",
+  "name": "Cash",
+  "type": "asset",
+  "category": "current",
+  "description": "Operating cash account",
+  "normalBalance": "debit",
+  "parentId": null,
+  "balance": 125000,
+  "isActive": true,
+  "organizationId": "org-1",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "updatedAt": "2026-06-27T00:00:00.000Z",
+  "parent": null,
+  "children": [{"id":"acc2","code":"1001","name":"Checking","type":"asset","balance":100000},{"id":"acc3","code":"1002","name":"Savings","type":"asset","balance":25000}],
+  "_count": {"journalLines": 45}
+}
+
+================================================================================
+ENDPOINT: /api/tax-rates
+RESPONSE KEY: data  (or raw array)
+TYPE: TaxRate
+FIELDS:
+- id: string
+- name: string                           (e.g., "VAT 15%")
+- rate: number                           (e.g., 15.0)
+- type: string                           ('percentage' | 'fixed')
+- isActive: boolean
+- createdAt: string
+EXAMPLE:
+{
+  "id": "tx1",
+  "name": "VAT 15%",
+  "rate": 15,
+  "type": "percentage",
+  "isActive": true,
+  "createdAt": "2026-01-01T00:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/journal-entries
+RESPONSE KEY: data  (or raw array)
+TYPE: JournalEntry
+FIELDS:
+- id: string
+- number: string                         (e.g., "JE-2026-001")
+- date: string
+- description: string
+- reference: string | null
+- source: string                         ('manual' | 'invoice' | 'expense' | 'payroll' | 'purchase_order')
+- sourceId: string | null
+- status: string                         ('draft' | 'posted' | 'reversed')
+- isAdjusting: boolean
+- period: string                         (e.g., "2026-06")
+- totalDebit: number
+- totalCredit: number
+- organizationId: string
+- createdById: string | null
+- createdAt: string
+- updatedAt: string
+- createdBy: { id, name, email } | null
+- lines: JournalEntryLine[]              (each: { id, journalEntryId, accountId, debit, credit, description, organizationId, createdAt, updatedAt, account: { id, code, name, type } })
+EXAMPLE:
+{
+  "id": "je1",
+  "number": "JE-2026-001",
+  "date": "2026-06-25T00:00:00.000Z",
+  "description": "Record invoice INV-2026-001 revenue",
+  "reference": "INV-2026-001",
+  "source": "invoice",
+  "sourceId": "inv1",
+  "status": "posted",
+  "isAdjusting": false,
+  "period": "2026-06",
+  "totalDebit": 11500,
+  "totalCredit": 11500,
+  "organizationId": "org-1",
+  "createdById": "u1",
+  "createdAt": "2026-06-25T10:00:00.000Z",
+  "updatedAt": "2026-06-25T10:00:00.000Z",
+  "createdBy": {"id":"u1","name":"Sarah Chen","email":"sarah@vortexdigital.com"},
+  "lines": [
+    {"id":"jl1","journalEntryId":"je1","accountId":"acc1","debit":11500,"credit":0,"description":"Cash received","organizationId":"org-1","createdAt":"2026-06-25T10:00:00.000Z","updatedAt":"2026-06-25T10:00:00.000Z","account":{"id":"acc1","code":"1000","name":"Cash","type":"asset"}},
+    {"id":"jl2","journalEntryId":"je1","accountId":"acc4","debit":0,"credit":10000,"description":"Service revenue","organizationId":"org-1","createdAt":"2026-06-25T10:00:00.000Z","updatedAt":"2026-06-25T10:00:00.000Z","account":{"id":"acc4","code":"4000","name":"Service Revenue","type":"revenue"}},
+    {"id":"jl3","journalEntryId":"je1","accountId":"acc5","debit":0,"credit":1500,"description":"VAT collected","organizationId":"org-1","createdAt":"2026-06-25T10:00:00.000Z","updatedAt":"2026-06-25T10:00:00.000Z","account":{"id":"acc5","code":"2000","name":"Sales Tax Payable","type":"liability"}}
+  ]
+}
+
+================================================================================
+ENDPOINT: /api/products
+RESPONSE KEY: data  (or raw array)
+TYPE: Product
+FIELDS:
+- id: string
+- name: string
+- sku: string
+- description: string | null
+- category: string | null
+- unit: string                           (e.g., "each", "kg", "hour")
+- unitPrice: number
+- costPrice: number
+- reorderLevel: number
+- imageUrl: string | null
+- tags: string | null
+- isActive: boolean
+- stockLevels: StockLevel[]             (each: { id, productId, warehouseId, quantity, reservedQuantity, warehouse })
+- createdAt: string
+EXAMPLE:
+{
+  "id": "prod1",
+  "name": "Branded T-Shirt",
+  "sku": "TSHIRT-001",
+  "description": "Company branded cotton t-shirt",
+  "category": "Merchandise",
+  "unit": "each",
+  "unitPrice": 25,
+  "costPrice": 12,
+  "reorderLevel": 50,
+  "imageUrl": null,
+  "tags": "merch,apparel",
+  "isActive": true,
+  "stockLevels": [
+    {"id":"sl1","productId":"prod1","warehouseId":"wh1","quantity":120,"reservedQuantity":10,"warehouse":{"id":"wh1","name":"Main Warehouse","code":"WH-01","location":"NYC","isDefault":true,"isActive":true,"_count":{"stockLevels":5,"stockMovements":12},"createdAt":"2026-01-01T00:00:00.000Z"}}
+  ],
+  "createdAt": "2026-02-15T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/warehouses
+RESPONSE KEY: data  (or raw array)
+TYPE: Warehouse
+FIELDS:
+- id: string
+- name: string
+- code: string                           (e.g., "WH-01")
+- location: string | null
+- isDefault: boolean
+- isActive: boolean
+- _count?: { stockLevels: number; stockMovements: number }
+- createdAt: string
+EXAMPLE:
+{
+  "id": "wh1",
+  "name": "Main Warehouse",
+  "code": "WH-01",
+  "location": "New York, NY",
+  "isDefault": true,
+  "isActive": true,
+  "_count": {"stockLevels": 25, "stockMovements": 142},
+  "createdAt": "2026-01-01T00:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/stock-movements
+RESPONSE KEY: data  (or raw array)
+TYPE: StockMovement
+FIELDS:
+- id: string
+- productId: string
+- warehouseId: string
+- type: string                           ('in' | 'out' | 'transfer' | 'adjustment' | 'return')
+- quantity: number
+- reference: string | null               (e.g., "PO-2026-001")
+- notes: string | null
+- product: Product                       (must include at least id, name, sku)
+- warehouse: Warehouse
+- createdAt: string
+EXAMPLE:
+{
+  "id": "sm1",
+  "productId": "prod1",
+  "warehouseId": "wh1",
+  "type": "in",
+  "quantity": 100,
+  "reference": "PO-2026-001",
+  "notes": "Initial stock receipt",
+  "product": {"id":"prod1","name":"Branded T-Shirt","sku":"TSHIRT-001","description":null,"category":"Merchandise","unit":"each","unitPrice":25,"costPrice":12,"reorderLevel":50,"imageUrl":null,"tags":null,"isActive":true,"stockLevels":[],"createdAt":"2026-02-15T10:00:00.000Z"},
+  "warehouse": {"id":"wh1","name":"Main Warehouse","code":"WH-01","location":"New York, NY","isDefault":true,"isActive":true,"_count":{"stockLevels":25,"stockMovements":142},"createdAt":"2026-01-01T00:00:00.000Z"},
+  "createdAt": "2026-06-20T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/vendors
+RESPONSE KEY: data  (or raw array)
+TYPE: Vendor
+FIELDS:
+- id: string
+- name: string
+- email: string | null
+- phone: string | null
+- address: string | null
+- category: string | null                (e.g., "Supplier", "Service Provider")
+- rating: number                         (0-5)
+- isActive: boolean
+- _count?: { purchaseOrders: number }
+- createdAt: string
+EXAMPLE:
+{
+  "id": "v1",
+  "name": "PrintPro Supplies",
+  "email": "sales@printpro.com",
+  "phone": "+1-555-0200",
+  "address": "456 Industrial Way, NYC",
+  "category": "Supplier",
+  "rating": 4.5,
+  "isActive": true,
+  "_count": {"purchaseOrders": 12},
+  "createdAt": "2026-01-01T00:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/purchase-orders
+RESPONSE KEY: data  (or raw array)
+TYPE: PurchaseOrder
+FIELDS:
+- id: string
+- number: string                         (e.g., "PO-2026-001")
+- vendorId: string
+- status: string                         ('draft' | 'sent' | 'received' | 'cancelled' | 'closed')
+- items: string                          (legacy JSON string of items — usually empty; real items in poItems)
+- subtotal: number
+- tax: number
+- total: number
+- orderDate: string
+- expectedDate: string | null
+- notes: string | null
+- vendor: Vendor
+- poItems: PurchaseOrderItem[]           (each: { id, purchaseOrderId, productId, quantity, unitPrice, total, product })
+- createdAt: string
+EXAMPLE:
+{
+  "id": "po1",
+  "number": "PO-2026-001",
+  "vendorId": "v1",
+  "status": "received",
+  "items": "[]",
+  "subtotal": 1200,
+  "tax": 180,
+  "total": 1380,
+  "orderDate": "2026-06-15T00:00:00.000Z",
+  "expectedDate": "2026-06-25T00:00:00.000Z",
+  "notes": "Rush order for summer campaign",
+  "vendor": {"id":"v1","name":"PrintPro Supplies","email":"sales@printpro.com","phone":"+1-555-0200","address":"456 Industrial Way, NYC","category":"Supplier","rating":4.5,"isActive":true,"_count":{"purchaseOrders":12},"createdAt":"2026-01-01T00:00:00.000Z"},
+  "poItems": [
+    {"id":"poi1","purchaseOrderId":"po1","productId":"prod1","quantity":100,"unitPrice":12,"total":1200,"product":{"id":"prod1","name":"Branded T-Shirt","sku":"TSHIRT-001","description":null,"category":"Merchandise","unit":"each","unitPrice":25,"costPrice":12,"reorderLevel":50,"imageUrl":null,"tags":null,"isActive":true,"stockLevels":[],"createdAt":"2026-02-15T10:00:00.000Z"}}
+  ],
+  "createdAt": "2026-06-15T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/it-assets
+RESPONSE KEY: data  (or raw array)
+TYPE: ITAsset  (different from media Asset)
+FIELDS:
+- id: string
+- assetTag: string                       (e.g., "IT-LAP-001")
+- name: string
+- category: string                       ('laptop' | 'desktop' | 'monitor' | 'phone' | 'tablet' | 'peripheral' | 'software' | 'network')
+- brand: string | null
+- model: string | null
+- serialNumber: string | null
+- specifications: string | null
+- purchaseDate: string | null
+- purchaseCost: number | null
+- warrantyExpiry: string | null
+- vendor: string | null                  (free text, not the Vendor entity)
+- invoiceNumber: string | null
+- condition: string                      ('new' | 'excellent' | 'good' | 'fair' | 'poor' | 'broken')
+- status: string                         ('in-use' | 'in-storage' | 'under-repair' | 'retired' | 'lost')
+- assignedToId: string | null
+- location: string | null
+- notes: string | null
+- imageUrl: string | null
+- organizationId: string
+- createdAt: string
+- updatedAt: string
+- assignedTo: User | null
+- issuances: AssetIssuance[]
+- _count?: { issuances: number }
+EXAMPLE:
+{
+  "id": "it1",
+  "assetTag": "IT-LAP-001",
+  "name": "MacBook Pro 16\"",
+  "category": "laptop",
+  "brand": "Apple",
+  "model": "MacBook Pro 16 M3 Max",
+  "serialNumber": "C02XX1234",
+  "specifications": "64GB RAM, 2TB SSD",
+  "purchaseDate": "2025-03-15T00:00:00.000Z",
+  "purchaseCost": 3499,
+  "warrantyExpiry": "2028-03-15T00:00:00.000Z",
+  "vendor": "Apple Store",
+  "invoiceNumber": "INV-APL-2025-123",
+  "condition": "excellent",
+  "status": "in-use",
+  "assignedToId": "u2",
+  "location": "HQ Floor 3",
+  "notes": "Assigned to design team lead",
+  "imageUrl": null,
+  "organizationId": "org-1",
+  "createdAt": "2025-03-15T10:00:00.000Z",
+  "updatedAt": "2026-06-01T10:00:00.000Z",
+  "assignedTo": {"id":"u2","email":"mike@vortexdigital.com","name":"Mike Johnson","avatar":null,"role":"creator","organizationId":"org-1"},
+  "issuances": [],
+  "_count": {"issuances": 1}
+}
+
+================================================================================
+ENDPOINT: /api/asset-issuances
+RESPONSE KEY: data  (or raw array)
+TYPE: AssetIssuance
+FIELDS:
+- id: string
+- assetId: string
+- issuedToId: string
+- issuedById: string
+- issueDate: string
+- expectedReturnDate: string | null
+- actualReturnDate: string | null
+- returnCondition: string | null
+- issueCondition: string | null
+- purpose: string | null
+- notes: string | null
+- status: string                         ('issued' | 'returned' | 'overdue' | 'lost')
+- organizationId: string
+- createdAt: string
+- updatedAt: string
+- asset: ITAsset
+- issuedTo: User
+- issuedBy: User
+EXAMPLE:
+{
+  "id": "ai1",
+  "assetId": "it1",
+  "issuedToId": "u2",
+  "issuedById": "u1",
+  "issueDate": "2025-03-20T00:00:00.000Z",
+  "expectedReturnDate": null,
+  "actualReturnDate": null,
+  "returnCondition": null,
+  "issueCondition": "new",
+  "purpose": "Daily work laptop",
+  "notes": "Long-term assignment",
+  "status": "issued",
+  "organizationId": "org-1",
+  "createdAt": "2025-03-20T10:00:00.000Z",
+  "updatedAt": "2025-03-20T10:00:00.000Z",
+  "asset": {"id":"it1","assetTag":"IT-LAP-001","name":"MacBook Pro 16\"","category":"laptop","brand":"Apple","model":"MacBook Pro 16","serialNumber":"C02XX1234","specifications":null,"purchaseDate":null,"purchaseCost":null,"warrantyExpiry":null,"vendor":null,"invoiceNumber":null,"condition":"excellent","status":"in-use","assignedToId":"u2","location":null,"notes":null,"imageUrl":null,"organizationId":"org-1","createdAt":"2025-03-15T10:00:00.000Z","updatedAt":"2026-06-01T10:00:00.000Z","assignedTo":null,"issuances":[]},
+  "issuedTo": {"id":"u2","email":"mike@vortexdigital.com","name":"Mike Johnson","avatar":null,"role":"creator","organizationId":"org-1"},
+  "issuedBy": {"id":"u1","email":"sarah@vortexdigital.com","name":"Sarah Chen","avatar":null,"role":"admin","organizationId":"org-1"}
+}
+
+================================================================================
+ENDPOINT: /api/disseminators
+RESPONSE KEY: disseminators  (fallback: data, raw array)
+TYPE: Disseminator
+FIELDS:
+- id: string
+- userId: string
+- teamId: string | null
+- speciality: string | null
+- platforms: string | null               (JSON array string e.g. "[\"instagram\",\"tiktok\"]")
+- workloadCapacity: number
+- status: string                         ('available' | 'busy' | 'offline' | 'on-leave')
+- rating: number                         (0-5)
+- totalTasksCompleted: number
+- totalPostsPublished: number
+- avgCompletionHours: number
+- onTimeRate: number                     (percentage 0-100)
+- notes: string | null
+- organizationId: string
+- createdAt: string
+- updatedAt: string
+- user: { id, name, email, avatar, role }   (partial User, not full)
+- team: { id, name, type, color } | null    (partial Team)
+- _count?: { assignedTasks: number }
+EXAMPLE:
+{
+  "id": "dis1",
+  "userId": "u3",
+  "teamId": "t2",
+  "speciality": "Instagram & TikTok",
+  "platforms": "[\"instagram\",\"tiktok\",\"youtube\"]",
+  "workloadCapacity": 10,
+  "status": "available",
+  "rating": 4.8,
+  "totalTasksCompleted": 142,
+  "totalPostsPublished": 387,
+  "avgCompletionHours": 2.5,
+  "onTimeRate": 96.5,
+  "notes": "Top performer for video content",
+  "organizationId": "org-1",
+  "createdAt": "2026-01-15T10:00:00.000Z",
+  "updatedAt": "2026-06-27T10:00:00.000Z",
+  "user": {"id":"u3","name":"Alex Rivera","email":"alex@vortexdigital.com","avatar":null,"role":"disseminator"},
+  "team": {"id":"t2","name":"Distribution Team","type":"distribution","color":"#3b82f6"},
+  "_count": {"assignedTasks": 4}
+}
+
+================================================================================
+ENDPOINT: /api/dissemination-tasks
+RESPONSE KEY: tasks  (fallback: data, raw array)
+TYPE: DisseminationTask
+FIELDS:
+- id: string
+- title: string
+- description: string | null
+- contentId: string | null
+- assigneeId: string | null
+- disseminatorId: string | null
+- clientId: string | null
+- campaignId: string | null
+- targetPlatforms: string | null         (JSON array string)
+- postContent: string | null
+- mediaUrls: string | null               (JSON array string)
+- hashtags: string | null                (comma-separated or space-separated)
+- scheduledAt: string | null
+- dueDate: string | null
+- priority: string                       ('low' | 'medium' | 'high' | 'urgent')
+- status: string                         ('assigned' | 'in-progress' | 'scheduled' | 'published' | 'failed' | 'cancelled')
+- startedAt: string | null
+- completedAt: string | null
+- postId: string | null
+- failureReason: string | null
+- assignedById: string | null
+- assignedAt: string | null
+- completionNotes: string | null
+- engagement: string | null              (JSON string of metrics)
+- organizationId: string
+- createdAt: string
+- updatedAt: string
+- assignee: { id, name, email, avatar } | null      (partial User)
+- disseminator: { id, userId, speciality, rating } | null
+- content: { id, title, type, stage } | null
+- client: { id, name, logo } | null
+- campaign: { id, name, status } | null
+EXAMPLE:
+{
+  "id": "dt1",
+  "title": "Publish Summer Reel to Instagram & TikTok",
+  "description": "Cross-post the summer campaign reel with branded hashtags",
+  "contentId": "c1",
+  "assigneeId": "u3",
+  "disseminatorId": "dis1",
+  "clientId": "cl1",
+  "campaignId": "camp1",
+  "targetPlatforms": "[\"instagram\",\"tiktok\"]",
+  "postContent": "Summer vibes are here! 🌞 Tap to shop.",
+  "mediaUrls": "[\"https://cdn.vortex.com/reel.mp4\"]",
+  "hashtags": "#summer #sale #vortex",
+  "scheduledAt": "2026-07-01T14:00:00.000Z",
+  "dueDate": "2026-06-30T00:00:00.000Z",
+  "priority": "high",
+  "status": "in-progress",
+  "startedAt": "2026-06-27T10:00:00.000Z",
+  "completedAt": null,
+  "postId": null,
+  "failureReason": null,
+  "assignedById": "u1",
+  "assignedAt": "2026-06-26T15:00:00.000Z",
+  "completionNotes": null,
+  "engagement": null,
+  "organizationId": "org-1",
+  "createdAt": "2026-06-26T15:00:00.000Z",
+  "updatedAt": "2026-06-27T10:00:00.000Z",
+  "assignee": {"id":"u3","name":"Alex Rivera","email":"alex@vortexdigital.com","avatar":null},
+  "disseminator": {"id":"dis1","userId":"u3","speciality":"Instagram & TikTok","rating":4.8},
+  "content": {"id":"c1","title":"Summer Campaign Reel","type":"reel","stage":"disseminate"},
+  "client": {"id":"cl1","name":"Acme Corp","logo":null},
+  "campaign": {"id":"camp1","name":"Summer Launch 2026","status":"active"}
+}
+
+================================================================================
+ENDPOINT: /api/communications/conversations
+RESPONSE KEY: conversations  (fallback: data, raw array)
+TYPE: Conversation
+FIELDS:
+- id: string
+- subject: string | null
+- type: string                           ('email' | 'whatsapp' | 'mixed')
+- status: string                         ('active' | 'archived' | 'closed')
+- priority: string                       ('low' | 'normal' | 'high' | 'urgent')
+- channel: string                        ('email' | 'whatsapp' | 'manual')
+- clientId: string | null
+- influencerId: string | null
+- campaignId: string | null
+- assignedToId: string | null
+- lastMessageAt: string
+- lastMessagePreview: string | null
+- unreadCount: number
+- tags: string | null
+- organizationId: string
+- createdAt: string
+- updatedAt: string
+- client: { id, name, logo } | null
+- influencer: { id, name, username, platform } | null
+- assignedTo: { id, name, email, avatar } | null
+- messages: CommunicationMessage[]       (each has many fields — see CommunicationMessage type)
+EXAMPLE:
+{
+  "id": "conv1",
+  "subject": "Q3 Campaign Proposal",
+  "type": "email",
+  "status": "active",
+  "priority": "high",
+  "channel": "email",
+  "clientId": "cl1",
+  "influencerId": null,
+  "campaignId": "camp1",
+  "assignedToId": "u1",
+  "lastMessageAt": "2026-06-27T09:30:00.000Z",
+  "lastMessagePreview": "Looks great, let's proceed...",
+  "unreadCount": 2,
+  "tags": "proposal,q3",
+  "organizationId": "org-1",
+  "createdAt": "2026-06-20T10:00:00.000Z",
+  "updatedAt": "2026-06-27T09:30:00.000Z",
+  "client": {"id":"cl1","name":"Acme Corp","logo":null},
+  "influencer": null,
+  "assignedTo": {"id":"u1","name":"Sarah Chen","email":"sarah@vortexdigital.com","avatar":null},
+  "messages": []
+}
+
+================================================================================
+ENDPOINT: /api/communications/templates
+RESPONSE KEY: templates  (fallback: data, raw array)
+TYPE: CommunicationTemplate
+FIELDS:
+- id: string
+- name: string
+- subject: string | null
+- body: string
+- type: string                           ('email' | 'whatsapp')
+- category: string | null                ('proposal' | 'follow-up' | 'invoice' | 'welcome')
+- variables: string | null               (JSON array string)
+- isDefault: boolean
+- isActive: boolean
+- organizationId: string
+- createdAt: string
+EXAMPLE:
+{
+  "id": "ct1",
+  "name": "Welcome Email",
+  "subject": "Welcome to Vortex Digital!",
+  "body": "Hi {{name}},\n\nWelcome aboard! We're excited to work with you...",
+  "type": "email",
+  "category": "welcome",
+  "variables": "[\"name\",\"company\"]",
+  "isDefault": true,
+  "isActive": true,
+  "organizationId": "org-1",
+  "createdAt": "2026-01-15T10:00:00.000Z"
+}
+
+================================================================================
+ENDPOINT: /api/communications/contacts
+RESPONSE KEY: contacts  (fallback: data, raw array)
+TYPE: CommunicationContact
+FIELDS:
+- id: string
+- name: string
+- email: string | null
+- phone: string | null
+- whatsappNumber: string | null
+- company: string | null
+- role: string | null
+- avatar: string | null
+- notes: string | null
+- preferredChannel: string               ('email' | 'whatsapp')
+- lastContactedAt: string | null
+- isFavorite: boolean
+- tags: string | null
+- clientId: string | null
+- influencerId: string | null
+- organizationId: string
+- createdAt: string
+EXAMPLE:
+{
+  "id": "cc1",
+  "name": "John Smith",
+  "email": "john@acme.com",
+  "phone": "+1-555-0300",
+  "whatsappNumber": "+1-555-0300",
+  "company": "Acme Corp",
+  "role": "Marketing Director",
+  "avatar": null,
+  "notes": "Primary point of contact for Q3 campaigns",
+  "preferredChannel": "email",
+  "lastContactedAt": "2026-06-26T14:00:00.000Z",
+  "isFavorite": true,
+  "tags": "vip,client",
+  "clientId": "cl1",
+  "influencerId": null,
+  "organizationId": "org-1",
+  "createdAt": "2026-01-20T10:00:00.000Z"
+}
+```
+
+## Summary Table — All 38 Endpoints
+
+| # | Endpoint | Response Key | Entity Type | Notes |
+|---|----------|--------------|-------------|-------|
+| 1 | /api/dashboard | (root) | DashboardData | Custom transform; not array |
+| 2 | /api/contents | `contents` | Content | has nested posts, comments, creator, assignee, team, campaign |
+| 3 | /api/posts | `posts` | Post | has nested socialAccount |
+| 4 | /api/teams | `data` | Team | has nested members[] |
+| 5 | /api/social-accounts | `accounts` | SocialAccount | has nested user |
+| 6 | /api/campaigns | `data` | Campaign | has nested client |
+| 7 | /api/clients | `data` | Client | flat |
+| 8 | /api/automation | `data` | AutomationRule | flat |
+| 9 | /api/calendar | `data` / `events` | CalendarEvent | flat |
+| 10 | /api/approvals | `approvals` | Approval | nested requestedBy, reviewedBy, content, post |
+| 11 | /api/invoices | `invoices` | Invoice | nested client, campaign, invoiceItems[] |
+| 12 | /api/time-entries | `timeEntries` | TimeEntry | nested user, client, campaign |
+| 13 | /api/expenses | `data` | Expense | nested submittedBy |
+| 14 | /api/assets | `assets` | Asset (media) | nested uploadedBy, client |
+| 15 | /api/notifications | `notifications` | ERPNotification | flat |
+| 16 | /api/inbox | `messages` | InboxMessage | flat |
+| 17 | /api/influencers | `influencers` | Influencer | nested client, campaign |
+| 18 | /api/brand-kit | `brandKits` | BrandKit | nested client |
+| 19 | /api/departments | `data` | Department | optional _count |
+| 20 | /api/employees | `data` | Employee | nested department, user |
+| 21 | /api/attendance | `data` | Attendance | nested employee |
+| 22 | /api/leave-requests | `data` | LeaveRequest | nested employee |
+| 23 | /api/payroll | `data` | PayrollRun | nested items[] |
+| 24 | /api/job-postings | `data` | JobPosting | nested department; snake_case salary_min/max |
+| 25 | /api/accounts | `data` | Account | parent, children[], _count |
+| 26 | /api/tax-rates | `data` | TaxRate | flat |
+| 27 | /api/journal-entries | `data` | JournalEntry | nested lines[], createdBy |
+| 28 | /api/products | `data` | Product | nested stockLevels[] |
+| 29 | /api/warehouses | `data` | Warehouse | optional _count |
+| 30 | /api/stock-movements | `data` | StockMovement | nested product, warehouse |
+| 31 | /api/vendors | `data` | Vendor | optional _count |
+| 32 | /api/purchase-orders | `data` | PurchaseOrder | nested vendor, poItems[] |
+| 33 | /api/it-assets | `data` | ITAsset | nested assignedTo, issuances[] |
+| 34 | /api/asset-issuances | `data` | AssetIssuance | nested asset, issuedTo, issuedBy |
+| 35 | /api/disseminators | `disseminators` | Disseminator | nested user, team; partial objects |
+| 36 | /api/dissemination-tasks | `tasks` | DisseminationTask | nested assignee, disseminator, content, client, campaign |
+| 37 | /api/communications/conversations | `conversations` | Conversation | nested client, influencer, assignedTo, messages[] |
+| 38 | /api/communications/templates | `templates` | CommunicationTemplate | flat |
+| 39 | /api/communications/contacts | `contacts` | CommunicationContact | flat |
+
+## Important Notes for Demo Data Creation
+
+1. **InvoiceItem is NOT a separate endpoint** — it lives inside `invoices[].invoiceItems[]`. The page.tsx extracts these into the `invoiceItems` store field.
+2. **JobPosting uses snake_case** for `salary_min` and `salary_max` (not camelCase) — this is intentional in the store interface.
+3. **Stringified JSON fields** (must be JSON-encoded strings, NOT actual arrays):
+   - Post.`mediaUrls`, Post.`engagement`
+   - AutomationRule.`conditions`, AutomationRule.`actions`
+   - Asset.`metadata`
+   - ITAsset — has no JSON-encoded fields, but `specifications` is plain text
+   - Disseminator.`platforms`
+   - DisseminationTask.`targetPlatforms`, `mediaUrls`, `engagement`
+   - CommunicationTemplate.`variables`
+   - Conversation — none, but `tags` is comma-separated
+4. **Comma-separated string fields** (NOT JSON):
+   - Content.`tags`, Asset.`tags`, Product.`tags`
+   - DisseminationTask.`hashtags`
+   - Conversation.`tags`, CommunicationContact.`tags`
+5. **Partial nested objects** — Disseminator and DisseminationTask use *partial* objects (e.g., `user: { id, name, email, avatar, role }` instead of full User). This is intentional for performance — demo data should match these minimal shapes.
+6. **ISO date format** — All date fields use full ISO 8601 format with timezone `Z` (e.g., `"2026-06-27T10:00:00.000Z"`).
+7. **`organizationId`** — Should be a consistent value across all entities (use `"org-1"`).
+8. **Currency** — `Employee.salaryCurrency` defaults to `"USD"`.
+9. **Invoice numbering** — Use `INV-YYYY-NNN` format. PO uses `PO-YYYY-NNN`. JE uses `JE-YYYY-NNN`.
+10. **Cross-entity references** — When creating demo data, ensure FK consistency:
+    - Content.campaignId → Campaign.id
+    - Content.creatorId / assigneeId / teamId → User.id / Team.id
+    - Invoice.clientId → Client.id
+    - Expense.submittedById → User.id
+    - ITAsset.assignedToId → User.id
+    - DisseminationTask.contentId → Content.id (must exist)
+    - DisseminationTask.disseminatorId → Disseminator.id (must exist)
+
+## Next Steps (for demo-data.ts author)
+1. Create a `demo-data.ts` file with one exported constant per endpoint (or a single `demoData` object keyed by endpoint).
+2. Use the exact response key for each endpoint (e.g., `{ contents: [...] }` for `/api/contents`).
+3. Ensure FK consistency by defining shared entities (users, clients, campaigns, teams) first and referencing them.
+4. Use at least 3-5 records per collection for visual variety.
+5. Keep nested relations minimal where partial objects are expected (Disseminator.user, DisseminationTask.content, etc.) to match the partial type definitions.
+6. Test by switching the API to return demo data when DB is unreachable (the page.tsx tolerant parsing already handles this).
+
+## Files Modified
+- None (this was an analysis-only task)
+- Appended this report to `/home/z/my-project/worklog.md`
