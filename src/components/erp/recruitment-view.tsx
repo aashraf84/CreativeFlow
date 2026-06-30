@@ -35,7 +35,7 @@ const itemVariants = {
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   open: { label: "Open", color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", dot: "bg-emerald-500" },
   filled: { label: "Filled", color: "text-teal-700", bg: "bg-teal-50 border-teal-200", dot: "bg-teal-500" },
-  closed: { label: "Closed", color: "text-gray-600", bg: "bg-gray-50 border-gray-200", dot: "bg-gray-400" },
+  closed: { label: "Closed", color: "text-gray-600 dark:text-gray-400", bg: "bg-gray-50 dark:bg-[#1c1c1e] border-gray-200 dark:border-[#38383a]", dot: "bg-gray-400" },
   draft: { label: "Draft", color: "text-amber-700", bg: "bg-amber-50 border-amber-200", dot: "bg-amber-500" },
 }
 

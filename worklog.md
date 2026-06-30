@@ -1599,3 +1599,106 @@ Stage Summary:
 - Server stability achieved by eliminating all Prisma/Neon connections in sandbox mode
 - Two commits pushed to GitHub: d732a31 (dashboard/proxy/db fixes), 6da9784 (auth route fixes)
 - Note: Server may still crash under heavy browser load; restart with `NODE_OPTIONS="--max-old-space-size=2048" bun run dev`
+
+---
+Task ID: 2-a
+Agent: frontend-styling-expert
+Task: Fix dark/light mode in chrome components (sidebar, header, auth-screen, page.tsx)
+
+Work Log:
+- Audited `/home/z/my-project/src/app/page.tsx`: Root wrapper (line 414) already has `bg-white dark:bg-black text-[#1d1d1f] dark:text-white`; loading spinner uses `border-black/10 dark:border-white/10` (semi-transparent, intentional) and `text-[#86868b] dark:text-[#aeaeb2]`. No missing `dark:` variants.
+- Audited `/home/z/my-project/src/components/erp/sidebar.tsx`: All hardcoded light colors already paired with `dark:` variants — `<aside>` uses `bg-[#f7f7f8] dark:bg-[#1c1c1e] border-r border-[#e5e5e7] dark:border-[#38383a]`; tooltip contents use `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a]`; NavButton active/hover states use `bg-black/[0.07] dark:bg-white/10 text-[#1d1d1f] dark:text-white` and `text-[#424245] dark:text-[#aeaeb2] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-[#1d1d1f] dark:hover:text-white`; collapse toggle button uses `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a]`; user-profile rows use `hover:bg-black/5 dark:hover:bg-white/5`; avatar fallbacks use `bg-gradient-to-br from-emerald-400 to-teal-500 text-white` (intentional gradient). No missing `dark:` variants.
+- Audited `/home/z/my-project/src/components/erp/header.tsx`: `<header>` uses `bg-white dark:bg-[#1c1c1e] border-b border-[#e5e5e7] dark:border-[#38383a]`; pill search input uses `bg-black/[0.04] dark:bg-white/[0.06]` with `placeholder:text-[#86868b] dark:placeholder:text-[#aeaeb2]` and focus states `focus-visible:bg-white dark:focus-visible:bg-white/10`; cmd-K `<kbd>` uses `border-[#e5e5e7] dark:border-[#38383a] bg-[#f7f7f8] dark:bg-white/10 text-[#86868b] dark:text-[#aeaeb2]`; both `DropdownMenuContent` panels use `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a]`; DEMO badge uses `bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-300`; notification ring uses `ring-white dark:ring-[#1c1c1e]`; user-menu header uses `border-b border-[#e5e5e7] dark:border-[#38383a] text-[#1d1d1f] dark:text-white text-[#86868b] dark:text-[#aeaeb2]`. No missing `dark:` variants.
+- Audited `/home/z/my-project/src/components/erp/auth-screen.tsx`: File is intentionally dark (root `bg-black text-white`); all interior surfaces use solid dark values — input fields `bg-[#1c1c1e] border-[#38383a] text-white`, demo buttons `bg-[#1c1c1e] border-[#38383a] text-white hover:bg-[#2c2c2e]`, gradient orbs `bg-emerald-600/25` `bg-teal-600/20` `bg-purple-600/15` (intentional semi-transparent overlays on black). All `bg-white/XX` occurrences are semi-transparent accent overlays (≤25% opacity) on dark backgrounds and work correctly in both modes per the design rules. No missing `dark:` variants.
+- Ran `bun run lint` — passes clean (no errors, no warnings). No edits were required because all hardcoded light colors in the four chrome files already have paired `dark:` variants from the prior "Solid conversion / dark mode" task documented earlier in this worklog.
+
+Stage Summary:
+- All 4 chrome components (`page.tsx`, `sidebar.tsx`, `header.tsx`, `auth-screen.tsx`) verified as already fully dark-mode-aware — every `bg-white`, `bg-gray-*`, `bg-slate-*`, `text-gray-*`, `text-slate-*`, `border-gray-*`, `border-slate-*`, `bg-[#f7f7f8]`, `bg-[#e5e5e7]`, `text-[#1d1d1f]`, and `text-[#86868b]` instance already carries its corresponding `dark:` variant.
+- No code edits were necessary; this task served as a verification audit confirming the prior solid-conversion work covered the chrome layer completely.
+- Lint passes clean; no functional or styling changes made.
+- Recommendation: Subsequent dark-mode tasks should focus on the per-view content components (e.g., `dashboard-view.tsx`, `invoicing-view.tsx`, etc.) rather than chrome, as chrome is already done.
+
+---
+Task ID: 2-b
+Agent: frontend-styling-expert
+Task: Fix dark/light mode in main views (dashboard, pipeline, dissemination, calendar, approvals, inbox, animated-kpi)
+
+Work Log:
+- `src/components/erp/animated-kpi.tsx`: Inspected — already correctly uses `dark:` variants on every hardcoded color (bg-white dark:bg-[#1c1c1e], border-[#e5e5e7] dark:border-[#38383a], text-[#1d1d1f] dark:text-white, text-[#86868b] dark:text-[#aeaeb2]). No changes needed.
+- `src/components/erp/dashboard-view.tsx`: Inspected — already fully dark-mode aware. All 14 `<Card>` instances use `bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a]`. All `text-[#1d1d1f]` already paired with `dark:text-white`, all `text-[#86868b]` paired with `dark:text-[#aeaeb2]`. The 3 remaining `bg-slate-100/text-slate-700` (lines 124, 169, 180) already include `dark:bg-slate-900/40 dark:text-slate-300`. No changes needed.
+- `src/components/erp/pipeline-view.tsx`: Inspected — uses semantic tokens throughout (`bg-card`, `bg-muted`, `bg-muted/20`, `bg-muted/30`, `text-foreground`, `text-muted-foreground`, `border-border`, `border-border/50`). All stage badge colors (`text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/50`, etc.) already have `dark:` variants. Colored type badges (`bg-emerald-100 ... dark:bg-emerald-900/40`) and priority dots (`bg-slate-400`, `bg-amber-400`, `bg-orange-500`, `bg-rose-500`) are intentional status colors. No changes needed.
+- `src/components/erp/dissemination-view.tsx`: Fixed 4 missing dark variants:
+  - Line 260 `TASK_STATUS_CONFIG.pending.color`: `"text-slate-600"` → `"text-slate-600 dark:text-slate-400"`.
+  - Line 1855 inline `statusColors.draft.color`: `"text-slate-600"` → `"text-slate-600 dark:text-slate-400"`.
+  - Line 1877 platform-icon fallback: `platformConf?.bgColor || "bg-slate-100"` → `platformConf?.bgColor || "bg-slate-100 dark:bg-[#2c2c2e]"`.
+  - Line 2239 platform-tile fallback: `config?.bgColor || "bg-slate-100"` → `config?.bgColor || "bg-slate-100 dark:bg-[#2c2c2e]"`.
+  - All other light-mode classes in this file already had `dark:` variants (e.g. `bg-slate-50 dark:bg-slate-900/30`, `border-slate-200 dark:border-slate-700`, `bg-amber-50 dark:bg-amber-900/20`, `bg-red-100 dark:bg-red-900/30`, etc.). Semi-transparent platform badges (`bg-rose-500/10`, `bg-neutral-500/10`) intentionally left unchanged per rules. Colored status dots (`bg-slate-400`, `bg-slate-500`, `bg-emerald-500`, accent props) left unchanged as intentional status colors.
+- `src/components/erp/calendar-view.tsx`: Inspected — uses semantic tokens (`text-muted-foreground`, `bg-muted`, `bg-muted/50`, `bg-border/30`, `bg-background`) and existing dark variants (`text-emerald-600 dark:text-emerald-400`, `bg-emerald-500/15 text-emerald-600 dark:text-emerald-400`). Colored elements (`bg-gradient-to-br from-emerald-500 to-teal-600`, `bg-emerald-500/10`, `bg-amber-500/15`, `bg-emerald-500`, `bg-teal-500`, `bg-amber-500`) are intentional. No changes needed.
+- `src/components/erp/approvals-view.tsx`: Inspected — uses semantic tokens (`bg-muted/40`, `bg-muted/50`, `bg-background`, `text-muted-foreground`, `border-border/50`, `border-border/30`, `border-border/50`). All colored elements already include dark variants (`bg-emerald-100 dark:bg-emerald-900/40`, `bg-amber-100 dark:bg-amber-900/40`, `text-emerald-600 dark:text-emerald-400`, `text-amber-600 dark:text-amber-400`, `text-rose-600 dark:text-rose-400`, `text-cyan-600 dark:text-cyan-400`, `border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-400 dark:hover:bg-rose-950/30`). No changes needed.
+- `src/components/erp/inbox-view.tsx`: Fixed 1 missing dark variant:
+  - Line 725 `StatusBadge` "archived": `bg-slate-500/15 text-slate-600` → `bg-slate-500/15 text-slate-600 dark:text-slate-400` (the `bg-slate-500/15` semi-transparent background left unchanged per rules; only the `text-slate-600` text color needed the dark variant).
+  - All other instances (`bg-slate-400` priority dots, `bg-slate-300` typing indicator, `bg-slate-500` analytics dot, `bg-white dark:bg-muted/50` chat bubbles, `bg-emerald-500/15 text-emerald-600` status badges) either already have dark variants or are intentional colored status accents.
+
+Stage Summary:
+- Audited all 7 target files for hardcoded light-only colors without `dark:` variants per the design-system mapping table.
+- 3 files (`dashboard-view.tsx`, `calendar-view.tsx`, `approvals-view.tsx`, `animated-kpi.tsx`, `pipeline-view.tsx`) were already fully dark-mode-aware — no edits required.
+- 2 files (`dissemination-view.tsx`, `inbox-view.tsx`) had a total of 5 missing dark variants, all now patched.
+- Followed all rules strictly: did NOT add duplicate `dark:` variants; did NOT touch semi-transparent colors (`bg-X/N`, `bg-white/10`, `bg-emerald-500/15`, etc.); did NOT change colored status badges/dots (`bg-emerald-500`, `bg-red-500`, `bg-amber-400`, `bg-slate-400` dots, accent props).
+- `bun run lint` — passes clean (no errors, no warnings).
+- No functionality changes; only color-class additions.
+
+---
+Task ID: 2-c
+Agent: frontend-styling-expert
+Task: Fix dark/light mode in remaining views (employees, it-assets, finance, invoicing, inbox, influencers, etc.)
+
+Work Log:
+- **Approach**: Wrote a Python script (`/tmp/fix_dark_mode_v2.py`) that recursively scans all string literals (double-quoted, backtick template literals, and string literals nested inside `${...}` expressions) and applies the design-system mapping table. For each light-only class token (e.g., `bg-white`, `text-gray-700`), the script checks whether a corresponding `dark:` prefix already exists anywhere in the same string-literal scope; if missing, it inserts the appropriate `dark:` variant right after the token. Semi-transparent classes like `bg-white/10`, colored status badges (`bg-emerald-500`, etc.), and existing `dark:` variants are left untouched.
+
+- **employees-view.tsx** — No changes required. All 9 `bg-white`, 5 `bg-[#f7f7f8]`, 10 `text-[#1d1d1f]`, 26 `text-[#86868b]` instances already had correct `dark:` variants on the same element (from previous Task 2 sweep).
+- **attendance-view.tsx** — No changes required. All 5 `bg-white` instances already had `dark:bg-[#1c1c1e]`.
+- **payroll-view.tsx** — No changes required. File uses semantic tokens (`bg-card`, `bg-muted`, `text-muted-foreground`, `border`) which inherit dark mode via CSS variables.
+- **recruitment-view.tsx** — 1 string literal modified: `STATUS_CONFIG.closed` entry gained `dark:text-gray-400`, `dark:bg-[#1c1c1e]`, `dark:border-[#38383a]` for its `text-gray-600`, `bg-gray-50`, `border-gray-200` classes.
+- **it-assets-view.tsx** — No changes required. All 23 `bg-white` (and many `bg-white/[0.0X]` translucent overlays) already had `dark:bg-[#1c1c1e]` or were translucent overlays that work in both modes. Other gray/slate tokens already had `dark:` variants.
+- **finance-accounts-view.tsx** — No changes required. All 27 `bg-white` (cards) and translucent overlay patterns already had correct dark variants.
+- **invoicing-view.tsx** — No changes required. All 17 `bg-white` and gray/slate tokens already had `dark:` variants.
+- **expenses-view.tsx** — No changes required. File uses semantic tokens only.
+- **influencers-view.tsx** — 27 string literals modified. Major fixes:
+  - `platformConfig.tiktok` and 7 fallback `|| { ... bg: "bg-gray-50" }` expressions → added `dark:bg-[#1c1c1e]`.
+  - `statusConfig.prospect` → added `dark:text-gray-300` and `dark:bg-[#2c2c2e]`.
+  - 7 `bg-white` header/panel/search-bar/sort-bar/list-item/card surfaces → added `dark:bg-[#1c1c1e]`.
+  - `text-gray-900` H1 → added `dark:text-white`.
+  - 6 `bg-gray-100` progress-bar tracks → added `dark:bg-[#2c2c2e]`.
+  - Status timeline bubble `bg-white border-gray-200` (else-branch of ternary inside `cn(...)`) → added `dark:bg-[#1c1c1e] dark:border-[#38383a]`.
+- **brand-kit-view.tsx** — 2 string literals modified: LogoCard preview surfaces `bg-white` and `text-slate-900` (light-mode branch of `parsed.background === "dark"` ternary) → added `dark:bg-[#1c1c1e]` and `dark:text-white`.
+- **products-view.tsx** — No changes required. All 10 `bg-white` and hex-text tokens already had `dark:` variants.
+- **purchase-orders-view.tsx** — 1 string literal modified: `StatusBadge.draft` config string `bg-slate-100 text-slate-700 border-slate-200` → added `dark:bg-[#2c2c2e] dark:text-slate-300 dark:border-[#38383a]`.
+- **vendors-view.tsx** — 2 string literals modified:
+  - `CategoryBadge` default fallback `"bg-slate-50 text-slate-700 border-slate-200"` (line 49) → added all three dark variants.
+  - Purchase-order status badge default fallback inside a template-literal `${...}` ternary (line 358) → added all three dark variants. (Caught by the recursive scanner.)
+- **clients-view.tsx** — No changes required. Status config strings already had `dark:bg-slate-900/40 dark:text-slate-300`.
+- **teams-view.tsx** — No changes required. File uses semantic tokens only.
+- **assets-view.tsx** — No changes required. File uses semantic tokens only.
+- **accounts-view.tsx** — No changes required. File uses semantic tokens only.
+- **automation-view.tsx** — No changes required. `bg-slate-100 text-slate-600` instance already had `dark:bg-slate-800 dark:text-slate-400`.
+- **reports-view.tsx** — 8 string literals modified:
+  - 2× `report-page bg-white text-slate-900` (LetterPage + ReportSkeleton) → added `dark:bg-[#1c1c1e] dark:text-white` (per task spec, also works on-screen in dark mode while preserving print white via CSS print styles).
+  - Header brand `text-slate-900` → `dark:text-white`; "Generated" label `text-slate-600` → `dark:text-slate-400`.
+  - SummaryCard tone fallback `text-slate-900` → `dark:text-white`.
+  - BarRow label `text-slate-700` → `dark:text-slate-300`; value `text-slate-900` → `dark:text-white`.
+  - EmptyReport message `text-slate-600` → `dark:text-slate-400`.
+- **settings-view.tsx** — No changes required. File uses semantic tokens only.
+- **archive-view.tsx** — No changes required. File uses semantic tokens only.
+- **content-detail-modal.tsx** — No changes required. All status/priority config strings already had `dark:bg-slate-800`, `dark:text-slate-300/400`, etc.
+- **create-post-modal.tsx** — No changes required. `bg-white dark:bg-zinc-950` (preview surface) and `bg-slate-100 ... dark:bg-slate-800 dark:text-slate-400` (mode pill) already had dark variants.
+
+Verification:
+- Post-fix survey script scanned all 23 files for any line containing a targeted light-only class without a corresponding `dark:` prefix on the same line → **0 potential issues** remaining.
+- `bun run lint` → passes clean (no errors, no warnings).
+- No functional changes — only color class additions. All animations, store interactions, event handlers, conditional logic preserved.
+
+Stage Summary:
+- **41 string literals modified across 6 files**: influencers-view (27), reports-view (8), brand-kit-view (2), vendors-view (2), recruitment-view (1), purchase-orders-view (1).
+- **17 files needed no changes**: employees-view, attendance-view, payroll-view, it-assets-view, finance-accounts-view, invoicing-view, expenses-view, products-view, clients-view, teams-view, assets-view, accounts-view, automation-view, settings-view, archive-view, content-detail-modal, create-post-modal. These were already dark-mode compatible — either from the previous Task 2 sweep (which converted glass/blur patterns to solid `bg-white dark:bg-[#1c1c1e]` cards) or because they use semantic Tailwind tokens (`bg-card`, `bg-muted`, `text-muted-foreground`, `border`) that inherit dark mode via CSS variables defined in `globals.css`.
+- All previously-white patches in dark mode (influencer CRM header/tabs/search/filter/sort bars, influencer cards & list items, recruitment "Closed" status badge, vendor category & PO-status default badges, purchase-order "Draft" badge, brand-kit logo preview surfaces, report pages and report headers/labels/bars) now correctly render as `#1c1c1e`/`#2c2c2e` cards with `#38383a` borders and proper muted text in dark mode.
+- The recursive string-literal scanner correctly handled class strings nested inside `${...}` template-literal ternaries (e.g., vendor PO status badge default branch on line 358 of vendors-view.tsx).

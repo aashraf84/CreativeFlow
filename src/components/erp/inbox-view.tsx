@@ -722,7 +722,7 @@ function ChannelBadge({ type }: { type: string }) {
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case "active": return <Badge className="bg-emerald-500/15 text-emerald-600 border-0 text-[10px] h-5">Active</Badge>
-    case "archived": return <Badge className="bg-slate-500/15 text-slate-600 border-0 text-[10px] h-5">Archived</Badge>
+    case "archived": return <Badge className="bg-slate-500/15 text-slate-600 dark:text-slate-400 border-0 text-[10px] h-5">Archived</Badge>
     case "closed": return <Badge className="bg-red-500/15 text-red-600 border-0 text-[10px] h-5">Closed</Badge>
     default: return <Badge variant="outline" className="text-[10px] h-5">{status}</Badge>
   }

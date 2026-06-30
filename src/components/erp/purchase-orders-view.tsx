@@ -24,7 +24,7 @@ const STATUS_TABS = ["All", "Draft", "Sent", "Partial", "Received", "Cancelled"]
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { className: string; label: string }> = {
-    draft: { className: "bg-slate-100 text-slate-700 border-slate-200", label: "Draft" },
+    draft: { className: "bg-slate-100 dark:bg-[#2c2c2e] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#38383a]", label: "Draft" },
     sent: { className: "bg-amber-50 text-amber-700 border-amber-200", label: "Sent" },
     partial: { className: "bg-teal-50 text-teal-700 border-teal-200", label: "Partial" },
     received: { className: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "Received" },

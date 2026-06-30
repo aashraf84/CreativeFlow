@@ -416,7 +416,7 @@ interface LetterPageProps {
 
 function LetterPage({ title, subtitle, page, totalPages, generatedAt, children }: LetterPageProps) {
   return (
-    <section className="report-page bg-white text-slate-900 shadow-macos-lg rounded-sm relative">
+    <section className="report-page bg-white dark:bg-[#1c1c1e] text-slate-900 dark:text-white shadow-macos-lg rounded-sm relative">
       {/* Header — 3 columns: logo | title | date+page */}
       <header className="report-header">
         <div className="flex items-center gap-2">
@@ -424,7 +424,7 @@ function LetterPage({ title, subtitle, page, totalPages, generatedAt, children }
             <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div className="leading-tight">
-            <p className="text-[13px] font-bold tracking-tight text-slate-900">Vortex Digital</p>
+            <p className="text-[13px] font-bold tracking-tight text-slate-900 dark:text-white">Vortex Digital</p>
             <p className="text-[8.5px] uppercase tracking-[0.12em] text-slate-500">
               Agency Intelligence Platform
             </p>
@@ -437,7 +437,7 @@ function LetterPage({ title, subtitle, page, totalPages, generatedAt, children }
           )}
         </div>
         <div className="text-right leading-tight">
-          <p className="text-[10px] text-slate-600">
+          <p className="text-[10px] text-slate-600 dark:text-slate-400">
             <span className="block font-semibold text-slate-800">Generated</span>
             {generatedAt.toLocaleString("en-US", {
               year: "numeric",
@@ -496,7 +496,7 @@ function SummaryCard({ label, value, hint, tone = "default" }: SummaryCardProps)
       ? "text-teal-700"
       : tone === "warning"
       ? "text-amber-700"
-      : "text-slate-900";
+      : "text-slate-900 dark:text-white";
   return (
     <div className="report-summary-card">
       <p className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</p>
@@ -584,11 +584,11 @@ function BarRow({ label, value, max }: { label: string; value: number; max: numb
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
     <div className="report-bar-row">
-      <span className="text-slate-700 truncate">{label}</span>
+      <span className="text-slate-700 dark:text-slate-300 truncate">{label}</span>
       <div className="report-bar-track">
         <div className="report-bar-fill" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-right tabular-nums text-slate-900 font-semibold">{fmtMoney(value)}</span>
+      <span className="text-right tabular-nums text-slate-900 dark:text-white font-semibold">{fmtMoney(value)}</span>
     </div>
   );
 }
@@ -607,7 +607,7 @@ function EmptyReport({
     <LetterPage title={title} page={1} totalPages={totalPages || 1} generatedAt={generatedAt}>
       <div className="flex flex-col items-center justify-center py-16 gap-3">
         <AlertCircle className="h-10 w-10 text-slate-400" />
-        <p className="text-sm text-slate-600">No data available for this report.</p>
+        <p className="text-sm text-slate-600 dark:text-slate-400">No data available for this report.</p>
         <p className="text-xs text-slate-500">
           Ensure the underlying module data has been seeded and try again.
         </p>
@@ -618,7 +618,7 @@ function EmptyReport({
 
 function ReportSkeleton({ title }: { title: string }) {
   return (
-    <div className="report-page bg-white text-slate-900 shadow-macos-lg rounded-sm">
+    <div className="report-page bg-white dark:bg-[#1c1c1e] text-slate-900 dark:text-white shadow-macos-lg rounded-sm">
       <div className="report-header">
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-5 w-48 mx-auto" />

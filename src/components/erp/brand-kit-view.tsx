@@ -734,11 +734,11 @@ function LogoCard({ item, parsed, onDelete }: {
         <div className="relative">
           <div className={cn(
             "h-32 flex items-center justify-center border-b",
-            parsed.background === "dark" ? "bg-slate-900" : "bg-white"
+            parsed.background === "dark" ? "bg-slate-900" : "bg-white dark:bg-[#1c1c1e]"
           )}>
             <div className={cn(
               "h-16 w-auto flex items-center justify-center rounded-lg",
-              parsed.background === "dark" ? "text-white" : "text-slate-900"
+              parsed.background === "dark" ? "text-white" : "text-slate-900 dark:text-white"
             )}>
               {parsed.url ? (
                 <img src={parsed.url} alt={parsed.name} className="max-h-16 max-w-[80%] object-contain" />

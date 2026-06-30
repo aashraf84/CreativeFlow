@@ -46,7 +46,7 @@ function CategoryBadge({ category }: { category: string | null }) {
     "Printing": "bg-amber-50 text-amber-700 border-amber-200",
     "Software": "bg-purple-50 text-purple-700 border-purple-200",
   }
-  const cls = config[category] || "bg-slate-50 text-slate-700 border-slate-200"
+  const cls = config[category] || "bg-slate-50 dark:bg-[#1c1c1e] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#38383a]"
   return <Badge variant="outline" className={`text-[10px] ${cls}`}>{category}</Badge>
 }
 
@@ -355,7 +355,7 @@ export function VendorsView() {
                                   po.status === "received" ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                                   po.status === "sent" ? "bg-amber-50 text-amber-700 border-amber-200" :
                                   po.status === "cancelled" ? "bg-red-50 text-red-600 border-red-200" :
-                                  "bg-slate-50 text-slate-700 border-slate-200"
+                                  "bg-slate-50 dark:bg-[#1c1c1e] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#38383a]"
                                 }`}
                               >
                                 {po.status}

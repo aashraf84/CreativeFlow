@@ -257,7 +257,7 @@ const TASK_STATUS_CONFIG: Record<
 > = {
   pending: {
     label: "Pending",
-    color: "text-slate-600",
+    color: "text-slate-600 dark:text-slate-400",
     bgColor: "bg-slate-50 dark:bg-slate-900/30",
     icon: Clock,
   },
@@ -1852,7 +1852,7 @@ export function DisseminationView() {
                     {}
                   );
                   const statusColors: Record<string, { color: string; bgColor: string; icon: React.ComponentType<{ className?: string }> }> = {
-                    draft: { color: "text-slate-600", bgColor: "bg-slate-50 dark:bg-slate-900/30", icon: FileEdit },
+                    draft: { color: "text-slate-600 dark:text-slate-400", bgColor: "bg-slate-50 dark:bg-slate-900/30", icon: FileEdit },
                     scheduled: { color: "text-amber-600", bgColor: "bg-amber-50 dark:bg-amber-900/20", icon: Clock },
                     publishing: { color: "text-blue-600", bgColor: "bg-blue-50 dark:bg-blue-900/20", icon: Send },
                     published: { color: "text-emerald-600", bgColor: "bg-emerald-50 dark:bg-emerald-900/20", icon: CheckCircle2 },
@@ -1874,7 +1874,7 @@ export function DisseminationView() {
                             {/* Platform Icon */}
                             <div
                               className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                                platformConf?.bgColor || "bg-slate-100"
+                                platformConf?.bgColor || "bg-slate-100 dark:bg-[#2c2c2e]"
                               }`}
                             >
                               {getPlatformIcon(post.platform, "h-4 w-4")}
@@ -2236,7 +2236,7 @@ export function DisseminationView() {
                           <div className="flex items-center gap-2 mb-3">
                             <div
                               className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                                config?.bgColor || "bg-slate-100"
+                                config?.bgColor || "bg-slate-100 dark:bg-[#2c2c2e]"
                               }`}
                             >
                               <Icon

@@ -108,14 +108,14 @@ const platformConfig: Record<string, { icon: React.ElementType; color: string; b
   facebook: { icon: Facebook, color: "text-blue-600", bg: "bg-blue-50" },
   twitter: { icon: Twitter, color: "text-sky-500", bg: "bg-sky-50" },
   linkedin: { icon: Linkedin, color: "text-sky-700", bg: "bg-sky-50" },
-  tiktok: { icon: CircleDot, color: "text-gray-900", bg: "bg-gray-50" },
+  tiktok: { icon: CircleDot, color: "text-gray-900 dark:text-white", bg: "bg-gray-50 dark:bg-[#1c1c1e]" },
   youtube: { icon: Youtube, color: "text-red-600", bg: "bg-red-50" },
   pinterest: { icon: Star, color: "text-red-500", bg: "bg-red-50" },
   snapchat: { icon: Zap, color: "text-yellow-500", bg: "bg-yellow-50" },
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; dotColor: string; icon: React.ElementType }> = {
-  prospect: { label: "Prospect", color: "text-gray-700", bg: "bg-gray-100", dotColor: "bg-gray-400", icon: Eye },
+  prospect: { label: "Prospect", color: "text-gray-700 dark:text-gray-300", bg: "bg-gray-100 dark:bg-[#2c2c2e]", dotColor: "bg-gray-400", icon: Eye },
   contacted: { label: "Contacted", color: "text-sky-700", bg: "bg-sky-100", dotColor: "bg-sky-400", icon: Send },
   negotiating: { label: "Negotiating", color: "text-amber-700", bg: "bg-amber-100", dotColor: "bg-amber-400", icon: Handshake },
   active: { label: "Active", color: "text-emerald-700", bg: "bg-emerald-100", dotColor: "bg-emerald-400", icon: UserCheck },
@@ -700,13 +700,13 @@ export function InfluencersView() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b bg-white">
+      <div className="flex items-center justify-between px-6 py-4 border-b bg-white dark:bg-[#1c1c1e]">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center">
             <Users className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Influencer CRM</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Influencer CRM</h1>
             <p className="text-xs text-muted-foreground">{influencers.length} influencers tracked</p>
           </div>
         </div>
@@ -720,7 +720,7 @@ export function InfluencersView() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-6 pt-3 border-b bg-white">
+        <div className="px-6 pt-3 border-b bg-white dark:bg-[#1c1c1e]">
           <TabsList className="bg-muted/50">
             <TabsTrigger value="overview" className="gap-1.5 data-[state=active]:bg-emerald-600 data-[state=active]:text-white">
               <BarChart3 className="h-3.5 w-3.5" /> Overview
@@ -791,7 +791,7 @@ export function InfluencersView() {
                       return (
                         <div key={tier.key} className="flex items-center gap-3">
                           <div className="w-20 text-xs font-medium text-muted-foreground">{tier.label}</div>
-                          <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="flex-1 h-6 bg-gray-100 dark:bg-[#2c2c2e] rounded-full overflow-hidden">
                             <motion.div
                               className={cn("h-full rounded-full", tier.color)}
                               initial={{ width: 0 }}
@@ -817,7 +817,7 @@ export function InfluencersView() {
                   <CardContent>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {analytics.byPlatform.map(p => {
-                        const cfg = platformConfig[p.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+                        const cfg = platformConfig[p.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50 dark:bg-[#1c1c1e]" }
                         return (
                           <div key={p.platform} className="rounded-lg border p-3 hover:shadow-md transition-shadow">
                             <div className="flex items-center gap-2 mb-2">
@@ -850,7 +850,7 @@ export function InfluencersView() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {analytics.topPerformers.map((inf, idx) => {
-                      const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+                      const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50 dark:bg-[#1c1c1e]" }
                       const engRate = Number(inf.engagementRate) || 0
                       return (
                         <div key={inf.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer" onClick={() => { setSelectedInfluencer(inf); setActiveTab("directory") }}>
@@ -883,7 +883,7 @@ export function InfluencersView() {
                       return (
                         <div key={item.niche} className="flex items-center gap-3">
                           <span className="w-24 text-xs truncate font-medium">{item.niche}</span>
-                          <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+                          <div className="flex-1 h-5 bg-gray-100 dark:bg-[#2c2c2e] rounded overflow-hidden">
                             <div className="h-full bg-emerald-400 rounded" style={{ width: `${pct}%` }} />
                           </div>
                           <span className="text-xs font-semibold w-6 text-right">{item.count}</span>
@@ -933,7 +933,7 @@ export function InfluencersView() {
         <TabsContent value="directory" className="flex-1 overflow-hidden flex m-0">
           <div className="flex-1 flex flex-col overflow-hidden">
             {/* Search Bar */}
-            <div className="px-6 pt-4 pb-2 bg-white">
+            <div className="px-6 pt-4 pb-2 bg-white dark:bg-[#1c1c1e]">
               <div ref={searchRef} className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -961,7 +961,7 @@ export function InfluencersView() {
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
-                      className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg overflow-hidden"
+                      className="absolute z-50 w-full mt-1 bg-white dark:bg-[#1c1c1e] border rounded-lg shadow-lg overflow-hidden"
                     >
                       {suggestions.map(s => (
                         <button
@@ -983,7 +983,7 @@ export function InfluencersView() {
             </div>
 
             {/* Filter Panel */}
-            <div className="px-6 pb-2 bg-white">
+            <div className="px-6 pb-2 bg-white dark:bg-[#1c1c1e]">
               <button
                 className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground py-1"
                 onClick={() => setFiltersOpen(!filtersOpen)}
@@ -1123,7 +1123,7 @@ export function InfluencersView() {
             </div>
 
             {/* Sort & View Controls */}
-            <div className="px-6 py-2 border-b bg-white flex items-center justify-between gap-4 flex-wrap">
+            <div className="px-6 py-2 border-b bg-white dark:bg-[#1c1c1e] flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <Label className="text-xs text-muted-foreground">Sort:</Label>
                 <Select value={sortField} onValueChange={v => setSortField(v as SortField)}>
@@ -1177,7 +1177,7 @@ export function InfluencersView() {
                         const snippet = String(wr.snippet || '')
                         const sourceUrl = String(wr.sourceUrl || '')
                         const hostName = String(wr.hostName || '')
-                        const cfg = platformConfig[platform as keyof typeof platformConfig] || { icon: Globe, color: "text-gray-500", bg: "bg-gray-50" }
+                        const cfg = platformConfig[platform as keyof typeof platformConfig] || { icon: Globe, color: "text-gray-500", bg: "bg-gray-50 dark:bg-[#1c1c1e]" }
                         const Icon = cfg.icon
                         return (
                           <div key={`web-${idx}`} className="rounded-xl border border-blue-200 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/20 p-3 hover:shadow-md transition-shadow">
@@ -1334,7 +1334,7 @@ export function InfluencersView() {
                         </thead>
                         <tbody>
                           {filteredInfluencers.map(inf => {
-                            const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+                            const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50 dark:bg-[#1c1c1e]" }
                             const stCfg = statusConfig[inf.status] || statusConfig.prospect
                             return (
                               <tr key={inf.id} className={cn("border-t hover:bg-muted/30 cursor-pointer", selectedIds.has(inf.id) && "bg-emerald-50/50")} onClick={() => setSelectedInfluencer(inf)}>
@@ -1470,7 +1470,7 @@ export function InfluencersView() {
                   </div>
                   <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
                     {displayInfluencers.map(inf => {
-                      const pCfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+                      const pCfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50 dark:bg-[#1c1c1e]" }
                       return (
                         <Card key={inf.id} className="border shadow-none">
                           <CardContent className="p-3">
@@ -1570,7 +1570,7 @@ export function InfluencersView() {
                       {compareIds.map(id => {
                         const inf = influencers.find(i => i.id === id)
                         if (!inf) return null
-                        const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+                        const cfg = platformConfig[inf.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50 dark:bg-[#1c1c1e]" }
                         return (
                           <th key={id} className="p-3 text-center">
                             <div className="flex flex-col items-center gap-1">
@@ -1660,7 +1660,7 @@ export function InfluencersView() {
                             <td key={idx} className="p-3 text-center">
                               <div className="font-medium">{val.display}</div>
                               {val.barPct > 0 && (
-                                <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden max-w-[120px] mx-auto">
+                                <div className="mt-1 h-1.5 bg-gray-100 dark:bg-[#2c2c2e] rounded-full overflow-hidden max-w-[120px] mx-auto">
                                   <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${val.barPct}%` }} />
                                 </div>
                               )}
@@ -1854,7 +1854,7 @@ function InfluencerCard({
   onCompare: () => void
   isCompared: boolean
 }) {
-  const cfg = platformConfig[influencer.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+  const cfg = platformConfig[influencer.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50 dark:bg-[#1c1c1e]" }
   const stCfg = statusConfig[influencer.status] || statusConfig.prospect
 
   return (
@@ -1912,7 +1912,7 @@ function InfluencerCard({
 
           {/* Engagement bar */}
           <div className="mb-3">
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gray-100 dark:bg-[#2c2c2e] rounded-full overflow-hidden">
               <div className={cn("h-full rounded-full", influencer.engagementRate > 5 ? "bg-emerald-500" : influencer.engagementRate > 2 ? "bg-amber-400" : "bg-gray-300")} style={{ width: `${Math.min(influencer.engagementRate * 10, 100)}%` }} />
             </div>
           </div>
@@ -1963,11 +1963,11 @@ function InfluencerListItem({
   onCompare: () => void
   isCompared: boolean
 }) {
-  const cfg = platformConfig[influencer.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+  const cfg = platformConfig[influencer.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50 dark:bg-[#1c1c1e]" }
   const stCfg = statusConfig[influencer.status] || statusConfig.prospect
 
   return (
-    <div className="flex items-center gap-4 p-3 rounded-lg border bg-white hover:shadow-sm transition-shadow cursor-pointer" onClick={onSelect}>
+    <div className="flex items-center gap-4 p-3 rounded-lg border bg-white dark:bg-[#1c1c1e] hover:shadow-sm transition-shadow cursor-pointer" onClick={onSelect}>
       <Avatar className="h-10 w-10">
         <AvatarFallback className={cn("text-xs", cfg.bg, cfg.color)}>{getInitials(influencer.name)}</AvatarFallback>
       </Avatar>
@@ -2033,7 +2033,7 @@ function InfluencerDetailPanel({
     onUpdateNotes(draftNotes)
     setEditingNotes(false)
   }, [draftNotes, onUpdateNotes])
-  const cfg = platformConfig[influencer.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50" }
+  const cfg = platformConfig[influencer.platform] || { icon: CircleDot, color: "text-gray-500", bg: "bg-gray-50 dark:bg-[#1c1c1e]" }
   const stCfg = statusConfig[influencer.status] || statusConfig.prospect
 
   // Status timeline
@@ -2085,7 +2085,7 @@ function InfluencerDetailPanel({
           <span className="text-muted-foreground">Engagement Rate</span>
           <span className="font-semibold">{influencer.engagementRate.toFixed(1)}%</span>
         </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-gray-100 dark:bg-[#2c2c2e] rounded-full overflow-hidden">
           <div className={cn("h-full rounded-full", influencer.engagementRate > 5 ? "bg-emerald-500" : influencer.engagementRate > 2 ? "bg-amber-400" : "bg-gray-300")} style={{ width: `${Math.min(influencer.engagementRate * 10, 100)}%` }} />
         </div>
       </div>
@@ -2104,7 +2104,7 @@ function InfluencerDetailPanel({
                   <div className="flex flex-col items-center gap-1">
                     <div className={cn(
                       "h-7 w-7 rounded-full flex items-center justify-center border-2",
-                      isCompleted ? "bg-emerald-500 border-emerald-500" : "bg-white border-gray-200"
+                      isCompleted ? "bg-emerald-500 border-emerald-500" : "bg-white dark:bg-[#1c1c1e] border-gray-200 dark:border-[#38383a]"
                     )}>
                       {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5 text-white" /> : <span className="h-2 w-2 rounded-full bg-gray-200" />}
                     </div>
