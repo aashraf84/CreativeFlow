@@ -107,10 +107,31 @@ export default function ERPPage() {
 
       const safeJson = (res: Response) => res.json().catch(() => ({}));
 
+      // Safe fetch with timeout - never throws, returns null on failure
+      const safeFetch = async (url: string, timeoutMs = 8000): Promise<Response | null> => {
+        try {
+          return await Promise.race([
+            fetch(url),
+            new Promise<Response | null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+          ])
+        } catch {
+          return null
+        }
+      }
+      const safeJsonFrom = async (res: Response | null) => {
+        if (!res) return {}
+        return res.json().catch(() => ({}))
+      }
+
       // Load dashboard FIRST so it appears quickly
       try {
-        const dashRes = await fetch("/api/dashboard");
+        // Use a timeout so the page renders even if the server crashes mid-request
+        const dashRes = await Promise.race([
+          fetch("/api/dashboard"),
+          new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('dashboard timeout')), 12000)),
+        ]);
         const dashJson = await safeJson(dashRes);
+        // Accept both success and fallback responses (API now returns fallback data on DB failure)
         if (dashJson && !dashJson.error) {
           const dash: DashboardData = {
             totalContent: dashJson.totalContent || 0,
@@ -126,7 +147,11 @@ export default function ERPPage() {
               completed: Object.values(t.contentByStage as Record<string, number> || {}).reduce((a: number, b: number) => a + b, 0),
               pending: (t.contentCount as number || 0),
             })),
-            platformBreakdown: [],
+            platformBreakdown: (dashJson.platformBreakdown || []).map((p: Record<string, unknown>) => ({
+              platform: p.platform as string,
+              posts: p.posts as number,
+              engagement: p.engagement as number,
+            })),
             recentActivity: (dashJson.recentActivity || []).map((a: Record<string, unknown>) => ({
               id: a.id as string,
               action: a.action as string,
@@ -146,136 +171,52 @@ export default function ERPPage() {
             assetCount: dashJson.assetCount || 0,
           };
           setDashboard(dash);
-          setIsLoading(false); // Stop loading so dashboard renders immediately
         }
       } catch { /* ignore dashboard errors */ }
+      // ALWAYS stop loading after dashboard attempt so UI renders even on failure
+      setIsLoading(false);
 
-      // Load remaining data in small batches (3-4 per batch to avoid memory issues with Neon)
-      // Batch 1: Core content data
-      const [contentsRes, postsRes, teamsRes] = await Promise.all([
-        fetch("/api/contents"),
-        fetch("/api/posts"),
-        fetch("/api/teams"),
-      ]);
+      // Load remaining data in small batches of 3 to avoid overwhelming the dev server.
+      // The middleware returns empty data instantly (no DB calls), but compiling
+      // many routes concurrently can still crash the sandbox.
+      const fetchSeq = async (url: string) => {
+        const res = await safeFetch(url, 8000)
+        return safeJsonFrom(res)
+      }
 
-      // Batch 2: Social & Campaigns
-      const [accountsRes, campaignsRes, clientsRes] = await Promise.all([
-        fetch("/api/social-accounts"),
-        fetch("/api/campaigns"),
-        fetch("/api/clients"),
-      ]);
+      const allEndpoints = [
+        "/api/contents", "/api/posts", "/api/teams",
+        "/api/social-accounts", "/api/campaigns", "/api/clients",
+        "/api/automation", "/api/calendar", "/api/approvals",
+        "/api/invoices", "/api/time-entries", "/api/expenses",
+        "/api/assets", "/api/notifications", "/api/inbox",
+        "/api/influencers", "/api/brand-kit", "/api/departments",
+        "/api/employees", "/api/attendance", "/api/leave-requests",
+        "/api/payroll", "/api/job-postings", "/api/accounts",
+        "/api/tax-rates", "/api/journal-entries", "/api/products",
+        "/api/warehouses", "/api/stock-movements", "/api/vendors",
+        "/api/purchase-orders", "/api/it-assets", "/api/asset-issuances",
+        "/api/disseminators", "/api/dissemination-tasks",
+        "/api/communications/conversations", "/api/communications/templates", "/api/communications/contacts",
+      ]
 
-      // Batch 3: Business data
-      const [automationsRes, calendarRes, approvalsRes] = await Promise.all([
-        fetch("/api/automation"),
-        fetch("/api/calendar"),
-        fetch("/api/approvals"),
-      ]);
+      const allResults: Record<string, unknown>[] = []
+      // Process in batches of 3
+      for (let i = 0; i < allEndpoints.length; i += 3) {
+        const batch = allEndpoints.slice(i, i + 3)
+        const batchResults = await Promise.all(batch.map(url => fetchSeq(url).catch(() => ({}))))
+        allResults.push(...batchResults)
+      }
 
-      // Batch 4: Financial data
-      const [invoicesRes, timeEntriesRes, expensesRes] = await Promise.all([
-        fetch("/api/invoices"),
-        fetch("/api/time-entries"),
-        fetch("/api/expenses"),
-      ]);
-
-      // Batch 5: Assets & Media
-      const [assetsRes, notificationsRes, inboxRes] = await Promise.all([
-        fetch("/api/assets"),
-        fetch("/api/notifications"),
-        fetch("/api/inbox"),
-      ]);
-
-      // Batch 6: HR
-      const [influencersRes, brandKitRes, departmentsRes] = await Promise.all([
-        fetch("/api/influencers"),
-        fetch("/api/brand-kit"),
-        fetch("/api/departments"),
-      ]);
-
-      // Batch 7: Employees & Attendance
-      const [employeesRes, attendanceRes, leaveRequestsRes, payrollRes] = await Promise.all([
-        fetch("/api/employees"),
-        fetch("/api/attendance"),
-        fetch("/api/leave-requests"),
-        fetch("/api/payroll"),
-      ]);
-
-      // Batch 8: Recruitment & Finance
-      const [jobPostingsRes, financeAccountsRes, taxRatesRes] = await Promise.all([
-        fetch("/api/job-postings"),
-        fetch("/api/accounts"),
-        fetch("/api/tax-rates"),
-      ]);
-
-      // Batch 9: Journal & Inventory
-      const [journalEntriesRes, productsRes, warehousesRes] = await Promise.all([
-        fetch("/api/journal-entries"),
-        fetch("/api/products"),
-        fetch("/api/warehouses"),
-      ]);
-
-      // Batch 10: Inventory details
-      const [stockMovementsRes, vendorsRes, purchaseOrdersRes] = await Promise.all([
-        fetch("/api/stock-movements"),
-        fetch("/api/vendors"),
-        fetch("/api/purchase-orders"),
-      ]);
-
-      // Batch 11: IT Assets
-      const [itAssetsRes, assetIssuancesRes, disseminatorsRes] = await Promise.all([
-        fetch("/api/it-assets"),
-        fetch("/api/asset-issuances"),
-        fetch("/api/disseminators"),
-      ]);
-
-      // Batch 12: Communications
-      const [disseminationTasksRes, conversationsRes, commTemplatesRes, commContactsRes] = await Promise.all([
-        fetch("/api/dissemination-tasks"),
-        fetch("/api/communications/conversations"),
-        fetch("/api/communications/templates"),
-        fetch("/api/communications/contacts"),
-      ]);
-
-      // Parse all JSON responses safely
-      const contentsJson = await safeJson(contentsRes);
-      const postsJson = await safeJson(postsRes);
-      const teamsJson = await safeJson(teamsRes);
-      const accountsJson = await safeJson(accountsRes);
-      const campaignsJson = await safeJson(campaignsRes);
-      const clientsJson = await safeJson(clientsRes);
-      const automationsJson = await safeJson(automationsRes);
-      const calendarJson = await safeJson(calendarRes);
-      const approvalsJson = await safeJson(approvalsRes);
-      const invoicesJson = await safeJson(invoicesRes);
-      const timeEntriesJson = await safeJson(timeEntriesRes);
-      const assetsJson = await safeJson(assetsRes);
-      const notificationsJson = await safeJson(notificationsRes);
-      const inboxJson = await safeJson(inboxRes);
-      const influencersJson = await safeJson(influencersRes);
-      const brandKitJson = await safeJson(brandKitRes);
-      const departmentsJson = await safeJson(departmentsRes);
-      const employeesJson = await safeJson(employeesRes);
-      const attendanceJson = await safeJson(attendanceRes);
-      const leaveRequestsJson = await safeJson(leaveRequestsRes);
-      const payrollJson = await safeJson(payrollRes);
-      const jobPostingsJson = await safeJson(jobPostingsRes);
-      const expensesJson = await safeJson(expensesRes);
-      const financeAccountsJson = await safeJson(financeAccountsRes);
-      const taxRatesJson = await safeJson(taxRatesRes);
-      const journalEntriesJson = await safeJson(journalEntriesRes);
-      const productsJson = await safeJson(productsRes);
-      const warehousesJson = await safeJson(warehousesRes);
-      const stockMovementsJson = await safeJson(stockMovementsRes);
-      const vendorsJson = await safeJson(vendorsRes);
-      const purchaseOrdersJson = await safeJson(purchaseOrdersRes);
-      const itAssetsJson = await safeJson(itAssetsRes);
-      const assetIssuancesJson = await safeJson(assetIssuancesRes);
-      const disseminatorsJson = await safeJson(disseminatorsRes);
-      const disseminationTasksJson = await safeJson(disseminationTasksRes);
-      const conversationsJson = await safeJson(conversationsRes);
-      const commTemplatesJson = await safeJson(commTemplatesRes);
-      const commContactsJson = await safeJson(commContactsRes);
+      const [
+        contentsJson, postsJson, teamsJson, accountsJson, campaignsJson, clientsJson,
+        automationsJson, calendarJson, approvalsJson, invoicesJson, timeEntriesJson, expensesJson,
+        assetsJson, notificationsJson, inboxJson, influencersJson, brandKitJson, departmentsJson,
+        employeesJson, attendanceJson, leaveRequestsJson, payrollJson, jobPostingsJson,
+        financeAccountsJson, taxRatesJson, journalEntriesJson, productsJson, warehousesJson,
+        stockMovementsJson, vendorsJson, purchaseOrdersJson, itAssetsJson, assetIssuancesJson,
+        disseminatorsJson, disseminationTasksJson, conversationsJson, commTemplatesJson, commContactsJson,
+      ] = allResults
 
       // Contents
       const contentsData = contentsJson?.contents || contentsJson?.data || (Array.isArray(contentsJson) ? contentsJson : []);

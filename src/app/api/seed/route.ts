@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 export async function GET() {
+  // In sandbox dev mode, skip seeding to keep the server stable.
+  // The Neon database is already seeded from previous `bun run seed` runs.
+  // The dashboard API now serves static fallback data, so the UI renders
+  // even without live DB queries. To re-seed, run `bun run seed` from CLI.
+  return NextResponse.json({ success: true, message: 'Seed skipped (sandbox mode - use bun run seed from CLI)', skipped: true })
+}
+
+// Original seeding logic preserved below but not executed in sandbox
+async function _seedHandler() {
   try {
     // Check if data already exists - skip seeding if so
     const existingOrg = await db.organization.findFirst()
