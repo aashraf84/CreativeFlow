@@ -233,7 +233,7 @@ function KPICard({ data }: { data: KPICardData }) {
         whileHover={{ scale: 1.03 }}
         transition={{ type: "spring", stiffness: 300, damping: 22 }}
       >
-        <Card className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+        <Card className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
           <motion.div
             style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
             className="relative"
@@ -476,6 +476,7 @@ export function DashboardView() {
     disseminators,
     disseminationTasks,
     setActiveView,
+    currentUser,
   } = useERPStore();
 
   // Loading state
@@ -634,11 +635,14 @@ export function DashboardView() {
       {/* ── Section Header ── */}
       <motion.div variants={itemVariants} className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white">
-            Dashboard Overview
+          <p className="text-xs text-[#86868b] dark:text-[#aeaeb2] mb-1">
+            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          </p>
+          <h2 className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white gradient-underline">
+            Welcome back, {currentUser?.name?.split(" ")[0] || "Sarah"}
           </h2>
-          <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] mt-1">
-            Work metrics &amp; pipeline performance
+          <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] mt-2">
+            Here's your agency overview &amp; pipeline performance
           </p>
         </div>
         <Badge variant="secondary" className="text-[10px] font-semibold gap-1.5 rounded-full bg-black/5 dark:bg-white/10 px-3 py-1">
@@ -656,7 +660,7 @@ export function DashboardView() {
 
       {/* ── Row 2: Animated Pipeline Workflow (HERO SECTION) ── */}
       <motion.div variants={itemVariants}>
-        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm overflow-hidden rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover overflow-hidden rounded-2xl">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div>
@@ -777,7 +781,7 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Tasks & Dissemination Queue */}
         <motion.div variants={itemVariants}>
-          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm h-full rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -905,7 +909,7 @@ export function DashboardView() {
 
         {/* Right: Team Performance (Enhanced) */}
         <motion.div variants={itemVariants}>
-          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm h-full rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -953,7 +957,7 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Left: Platform Activity (CSS-based) */}
         <motion.div variants={itemVariants}>
-          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm h-full rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -1040,7 +1044,7 @@ export function DashboardView() {
 
         {/* Right: Recent Activity Feed (Enhanced) */}
         <motion.div variants={itemVariants}>
-          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm h-full rounded-2xl">
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover h-full rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -1117,7 +1121,7 @@ export function DashboardView() {
 
       {/* ── Row 5: Quick Actions Bar ── */}
       <motion.div variants={itemVariants}>
-        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-3">
               <Zap className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -1162,7 +1166,7 @@ function DashboardSkeleton() {
       {/* KPI cards skeleton (6 cards) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+          <Card key={i} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
             <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div className="space-y-2 flex-1">
@@ -1178,7 +1182,7 @@ function DashboardSkeleton() {
       </div>
 
       {/* Pipeline skeleton */}
-      <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+      <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="space-y-1.5">
@@ -1215,7 +1219,7 @@ function DashboardSkeleton() {
       {/* Row 3 skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {Array.from({ length: 2 }).map((_, i) => (
-          <Card key={i} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+          <Card key={i} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
@@ -1238,7 +1242,7 @@ function DashboardSkeleton() {
 
       {/* Row 4 skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1.5">
@@ -1256,7 +1260,7 @@ function DashboardSkeleton() {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1.5">
@@ -1277,7 +1281,7 @@ function DashboardSkeleton() {
       </div>
 
       {/* Quick actions skeleton */}
-      <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+      <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
         <CardContent className="p-4">
           <Skeleton className="h-4 w-28 mb-3" />
           <div className="flex flex-wrap gap-2">

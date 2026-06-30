@@ -727,7 +727,7 @@ export function EmployeesView() {
           { label: "Departments", value: deptCount, icon: Building2, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-900/40" },
         ].map((kpi) => (
           <motion.div key={kpi.label} variants={itemVariants}>
-            <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl">
+            <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover hover-lift rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -839,7 +839,7 @@ export function EmployeesView() {
                   className="cursor-pointer"
                   onClick={() => handleSelectEmployee(emp)}
                 >
-                  <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl group">
+                  <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover hover-lift rounded-2xl group">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className={`h-12 w-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm`}>

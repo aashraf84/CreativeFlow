@@ -178,7 +178,7 @@ function KPICard({ icon: Icon, label, value, sub, colorClass }: {
 }) {
   return (
     <motion.div variants={itemVariants}>
-      <Card className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl">
+      <Card className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover hover-lift rounded-2xl">
         <CardContent className="p-4">
           <div className="flex items-start justify-between">
             <div className="space-y-1">

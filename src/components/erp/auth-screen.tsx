@@ -291,7 +291,7 @@ export function AuthScreen() {
                 {error && <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5">{error}</p>}
 
                 <Button onClick={handleSerialKeySubmit} disabled={loading}
-                  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-0 rounded-xl font-medium shadow-lg shadow-emerald-500/20">
+                  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 btn-glow text-white border-0 rounded-xl font-medium shadow-lg shadow-emerald-500/20">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowRight className="h-4 w-4 mr-2" />}
                   Register Device
                 </Button>
@@ -343,7 +343,7 @@ export function AuthScreen() {
                 {error && <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5">{error}</p>}
 
                 <Button onClick={handleLogin} disabled={loading}
-                  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white border-0 rounded-xl font-medium shadow-lg shadow-emerald-500/20">
+                  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 btn-glow text-white border-0 rounded-xl font-medium shadow-lg shadow-emerald-500/20">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogIn className="h-4 w-4 mr-2" />}
                   Sign In
                 </Button>

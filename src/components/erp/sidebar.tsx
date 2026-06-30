@@ -53,6 +53,16 @@ const SECTION_FINANCE = "#30d158";
 const SECTION_INVENTORY = "#ff3b30";
 const SECTION_INSIGHTS = "#af52de";
 
+// Section color display name for hover tooltips
+const SECTION_NAME_BY_COLOR: Record<string, string> = {
+  [SECTION_MAIN]: "Main",
+  [SECTION_MANAGE]: "Manage",
+  [SECTION_HR]: "Human Resources",
+  [SECTION_FINANCE]: "Finance",
+  [SECTION_INVENTORY]: "Inventory",
+  [SECTION_INSIGHTS]: "Insights",
+};
+
 const SECTION_COLOR_BY_VIEW: Record<string, string> = {};
 
 const mainNav: NavItem[] = [
@@ -105,13 +115,34 @@ const bottomNav: NavItem[] = [
 ];
 
 function SectionHeader({ label, color }: { label: string; color?: string }) {
+  const tooltipText = color ? SECTION_NAME_BY_COLOR[color] || label : label;
   return (
-    <div className="flex items-center gap-1.5 px-3 pt-4 pb-1.5">
-      {color && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />}
-      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#86868b] dark:text-[#aeaeb2]/80">
-        {label}
-      </p>
-    </div>
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>
+        <div className="group relative flex items-center gap-1.5 px-3 pt-4 pb-1.5 cursor-default">
+          {color && (
+            <span
+              className="h-1.5 w-1.5 rounded-full transition-transform duration-200 group-hover:scale-150"
+              style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}66` }}
+            />
+          )}
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#86868b] dark:text-[#aeaeb2]/80">
+            {label}
+          </p>
+          {/* Subtle divider line after each section header */}
+          <span
+            className="flex-1 h-px ml-2 rounded-full opacity-40"
+            style={{ background: color ? `linear-gradient(to right, ${color}40, transparent)` : undefined }}
+          />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="font-medium bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos">
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+          {tooltipText}
+        </span>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -155,7 +186,8 @@ export function Sidebar() {
         )}>
           {sidebarOpen ? (
             <div className="flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25">
+              {/* Breathing logo icon — subtle 3s scale 1.0 → 1.05 → 1.0 */}
+              <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25 breathe breathe">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               <div className="leading-none">
@@ -164,7 +196,7 @@ export function Sidebar() {
               </div>
             </div>
           ) : (
-            <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25">
+            <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25 breathe breathe">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
           )}
@@ -267,39 +299,49 @@ export function Sidebar() {
           {/* User profile row */}
           {sidebarOpen ? (
             <div className="mt-2 flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
-              <Avatar className="h-8 w-8 ring-1 ring-black/5 dark:ring-white/10">
-                <AvatarFallback className="text-[11px] font-semibold bg-gradient-to-br from-emerald-400 to-teal-500 text-white">
-                  {currentUser?.name?.split(" ").map(n => n[0]).join("") || "SC"}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-8 w-8 ring-1 ring-black/5 dark:ring-white/10">
+                  <AvatarFallback className="text-[11px] font-semibold bg-gradient-to-br from-emerald-400 to-teal-500 text-white">
+                    {currentUser?.name?.split(" ").map(n => n[0]).join("") || "SC"}
+                  </AvatarFallback>
+                </Avatar>
+                {/* Online status indicator (green dot) */}
+                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-[#f7f7f8] dark:border-[#1c1c1e]" />
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium truncate text-[#1d1d1f] dark:text-white">{currentUser?.name || "Sarah Chen"}</p>
-                <p className="text-[10px] text-[#86868b] dark:text-[#aeaeb2] truncate">Admin · {unreadNotifications} new</p>
+                <p className="text-[10px] text-[#86868b] dark:text-[#aeaeb2] truncate flex items-center gap-1">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Online · {unreadNotifications} new
+                </p>
               </div>
             </div>
           ) : (
             <div className="mt-2 flex justify-center">
-              <Avatar className="h-8 w-8 ring-1 ring-black/5 dark:ring-white/10">
-                <AvatarFallback className="text-[11px] font-semibold bg-gradient-to-br from-emerald-400 to-teal-500 text-white">
-                  {currentUser?.name?.split(" ").map(n => n[0]).join("") || "SC"}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-8 w-8 ring-1 ring-black/5 dark:ring-white/10">
+                  <AvatarFallback className="text-[11px] font-semibold bg-gradient-to-br from-emerald-400 to-teal-500 text-white">
+                    {currentUser?.name?.split(" ").map(n => n[0]).join("") || "SC"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-[#f7f7f8] dark:border-[#1c1c1e]" />
+              </div>
             </div>
           )}
         </div>
 
-        {/* Collapse Toggle — macOS pill style */}
+        {/* Collapse Toggle — macOS pill style with rotate-on-hover animation */}
         <Button
           variant="ghost"
           size="icon"
-          className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos hover:bg-black/5 dark:hover:bg-white/10 z-30"
+          className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos hover:bg-black/5 dark:hover:bg-white/10 z-30 group"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {sidebarOpen ? (
-            <ChevronLeft className="h-3 w-3" />
+            <ChevronLeft className="h-3 w-3 transition-transform duration-300 group-hover:-translate-x-0.5 group-hover:rotate-12" />
           ) : (
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-rotate-12" />
           )}
         </Button>
       </aside>
@@ -330,17 +372,21 @@ function NavButton({
     return "bg-black/5 text-[#86868b] dark:bg-white/10 dark:text-[#aeaeb2]";
   };
 
+  const activeGlowStyle = isActive && item.color
+    ? { boxShadow: `0 0 12px ${item.color}33, inset 2px 0 0 ${item.color}` }
+    : undefined;
+
   const button = (
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-150",
+        "w-full flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 relative",
         collapsed ? "justify-center px-2 py-2" : "px-2.5 py-1.5",
         isActive
           ? "bg-black/[0.07] dark:bg-white/10 text-[#1d1d1f] dark:text-white shadow-sm"
           : "text-[#424245] dark:text-[#aeaeb2] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-[#1d1d1f] dark:hover:text-white"
       )}
-      style={isActive && item.color ? { borderLeft: `2px solid ${item.color}` } : undefined}
+      style={activeGlowStyle}
     >
       <Icon className={cn(
         "shrink-0 transition-colors",

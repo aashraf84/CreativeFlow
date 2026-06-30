@@ -196,7 +196,7 @@ export function ProductsView() {
           { label: "Warehouses", value: warehouses.length, icon: Warehouse, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40" },
         ].map((kpi) => (
           <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm hover-lift rounded-2xl">
+            <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover hover-lift rounded-2xl">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -288,7 +288,7 @@ export function ProductsView() {
 
       {/* Product Grid/List */}
       {filteredProducts.length === 0 ? (
-        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+        <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
           <CardContent className="py-16 flex flex-col items-center gap-3">
             <div className="h-12 w-12 rounded-full bg-black/[0.05] dark:bg-white/[0.08] flex items-center justify-center">
               <PackageX className="h-6 w-6 text-muted-foreground" />
