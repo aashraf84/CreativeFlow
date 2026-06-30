@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
+import { toast } from "sonner";
 import { useERPStore, type Content, type ContentStage, type ContentType, type ContentPriority } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -500,10 +501,14 @@ export function PipelineView() {
         if (!res.ok) {
           // Revert on failure
           setContents(contents);
+          toast.error("Failed to move content");
+        } else {
+          toast.success(`Moved to ${nextStage}`);
         }
       } catch {
         // Revert on error
         setContents(contents);
+        toast.error("Failed to move content");
       } finally {
         setMovingIds((prev) => {
           const next = new Set(prev);

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { useERPStore, type ContentType, type ContentPriority, type ContentStage } from "@/lib/store";
 import {
   Dialog,
@@ -154,10 +155,12 @@ export function CreateContentModal() {
 
       const newContent = await res.json();
       setContents([newContent, ...contents]);
+      toast.success("Content created successfully!");
       resetForm();
       setShowCreateContent(false);
     } catch (error) {
       console.error("Failed to create content:", error);
+      toast.error("Failed to create content. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

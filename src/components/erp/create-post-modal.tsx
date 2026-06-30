@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { useERPStore, type Platform, type PostStatus } from "@/lib/store";
 import {
   Dialog,
@@ -194,10 +195,12 @@ export function CreatePostModal() {
 
       const newPost = await res.json();
       setPosts([newPost, ...posts]);
+      toast.success("Post created successfully!");
       resetForm();
       setShowCreatePost(false);
     } catch (error) {
       console.error("Failed to create post:", error);
+      toast.error("Failed to create post. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
