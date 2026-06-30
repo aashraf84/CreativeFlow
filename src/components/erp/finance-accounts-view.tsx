@@ -1,4 +1,5 @@
 "use client"
+import { AnimatedKPI } from "@/components/erp/animated-kpi"
 
 import React, { useState, useMemo, useCallback, useEffect } from "react"
 import { useERPStore, type Account, type TaxRate, type JournalEntry, type JournalEntryLine } from "@/lib/store"
@@ -432,27 +433,17 @@ export function FinanceAccountsView() {
         </motion.div>
 
         {/* KPIs */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
           {[
             { label: "Total Assets", value: kpis.totalAssets, icon: Wallet, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40" },
             { label: "Total Liabilities", value: kpis.totalLiabilities, icon: CreditCard, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/40" },
             { label: "Total Equity", value: kpis.totalEquity, icon: PiggyBank, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-900/40" },
             { label: "Total Revenue", value: kpis.totalRevenue, icon: TrendingUp, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-900/40" },
             { label: "Total Expenses", value: kpis.totalExpenses, icon: TrendingDown, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/40" },
-          ].map((kpi) => (
-            <Card key={kpi.label} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover hover-lift rounded-2xl">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${kpi.bg}`}><kpi.icon className={`h-4 w-4 ${kpi.color}`} /></div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">{kpi.label}</p>
-                    <p className="text-lg font-bold text-[#1d1d1f] dark:text-white truncate">{formatCurrency(kpi.value)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          ].map((kpi, i) => (
+            <AnimatedKPI key={kpi.label} icon={kpi.icon} label={kpi.label} value={kpi.value} prefix="$" colorClass={kpi.color} bgClass={kpi.bg} index={i} />
           ))}
-        </motion.div>
+        </div>
       </motion.div>
 
       {/* Tabs */}

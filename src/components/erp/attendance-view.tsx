@@ -1,4 +1,5 @@
 "use client"
+import { AnimatedKPI } from "@/components/erp/animated-kpi"
 
 import React, { useState, useMemo, useCallback } from "react"
 import { useERPStore, type Attendance } from "@/lib/store"
@@ -257,28 +258,16 @@ export function AttendanceView() {
       </motion.div>
 
       {/* KPI Cards */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "Present", value: kpis.present, icon: UserCheck, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/40" },
           { label: "Late", value: kpis.late, icon: Clock, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/40" },
           { label: "Absent", value: kpis.absent, icon: AlertCircle, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/40" },
           { label: "On Leave", value: kpis.leave, icon: Users, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-900/40" },
         ].map((kpi, i) => (
-          <motion.div key={kpi.label} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.05 }}>
-            <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${kpi.bg}`}><kpi.icon className={`h-4 w-4 ${kpi.color}`} /></div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                    <p className="text-xl font-bold tabular-nums">{kpi.value}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+          <AnimatedKPI key={kpi.label} icon={kpi.icon} label={kpi.label} value={kpi.value} colorClass={kpi.color} bgClass={kpi.bg} index={i} />
         ))}
-      </motion.div>
+      </div>
 
       {/* Quick Actions */}
       <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">

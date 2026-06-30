@@ -1,4 +1,5 @@
 "use client"
+import { AnimatedKPI } from "@/components/erp/animated-kpi"
 
 import React, { useState, useMemo } from "react"
 import { useERPStore, type Employee, type Department } from "@/lib/store"
@@ -725,22 +726,8 @@ export function EmployeesView() {
           { label: "Active", value: activeCount, icon: UserCheck, color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-900/40" },
           { label: "On Leave", value: onLeaveCount, icon: Clock, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/40" },
           { label: "Departments", value: deptCount, icon: Building2, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-900/40" },
-        ].map((kpi) => (
-          <motion.div key={kpi.label} variants={itemVariants}>
-            <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover hover-lift rounded-2xl">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] text-[#86868b] dark:text-[#aeaeb2] font-medium uppercase tracking-wide">{kpi.label}</p>
-                    <p className="text-3xl font-bold mt-1 text-[#1d1d1f] dark:text-white tabular-nums">{kpi.value}</p>
-                  </div>
-                  <div className={`h-10 w-10 rounded-xl ${kpi.bg} flex items-center justify-center`}>
-                    <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+        ].map((kpi, i) => (
+          <AnimatedKPI key={kpi.label} icon={kpi.icon} label={kpi.label} value={kpi.value} colorClass={kpi.color} bgClass={kpi.bg} index={i} />
         ))}
       </motion.div>
 

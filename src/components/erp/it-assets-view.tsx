@@ -1,4 +1,5 @@
 "use client"
+import { AnimatedCounter } from "@/components/erp/animated-counter"
 
 import React, { useState, useMemo, useCallback, useEffect } from "react"
 import { useERPStore, type ITAsset, type AssetIssuance, type User } from "@/lib/store"
@@ -173,22 +174,36 @@ function generateAssetTag(category: string, existingAssets: ITAsset[]): string {
 
 // ── Sub-components ───────────────────────────────────────────────────
 
-function KPICard({ icon: Icon, label, value, sub, colorClass }: {
-  icon: React.ElementType; label: string; value: string | number; sub?: string; colorClass: string
+function KPICard({ icon: Icon, label, value, sub, colorClass, index = 0 }: {
+  icon: React.ElementType; label: string; value: string | number; sub?: string; colorClass: string; index?: number
 }) {
+  const numValue = typeof value === 'number' ? value : 0
+  const isNumeric = typeof value === 'number'
   return (
-    <motion.div variants={itemVariants}>
-      <Card className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover hover-lift rounded-2xl">
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay: index * 0.06, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+      whileHover={{ y: -3 }}
+    >
+      <Card className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
         <CardContent className="p-4">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wider">{label}</p>
-              <p className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white tabular-nums">{value}</p>
+              <p className="text-2xl font-bold tracking-tight text-[#1d1d1f] dark:text-white tabular-nums">
+                {isNumeric ? <AnimatedCounter value={numValue} duration={1000} /> : value}
+              </p>
               {sub && <p className="text-xs text-[#86868b] dark:text-[#aeaeb2]">{sub}</p>}
             </div>
-            <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${colorClass}`}>
+            <motion.div
+              className={`h-9 w-9 rounded-lg flex items-center justify-center ${colorClass}`}
+              initial={{ scale: 0, rotate: -20 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: index * 0.06 + 0.15, type: "spring", stiffness: 300 }}
+            >
               <Icon className="h-4.5 w-4.5" />
-            </div>
+            </motion.div>
           </div>
         </CardContent>
       </Card>
@@ -1224,12 +1239,12 @@ export function ITAssetsView() {
           initial="hidden"
           animate="visible"
         >
-          <KPICard icon={Package} label="Total Assets" value={kpis.total} colorClass="bg-emerald-100 text-emerald-600" />
-          <KPICard icon={CheckCircle2} label="Available" value={kpis.available} sub="Ready to issue" colorClass="bg-teal-100 text-teal-600" />
-          <KPICard icon={ArrowRightLeft} label="Issued" value={kpis.issued} sub="In use" colorClass="bg-amber-100 text-amber-600" />
-          <KPICard icon={Wrench} label="In Maintenance" value={kpis.maintenance} colorClass="bg-cyan-100 text-cyan-600" />
-          <KPICard icon={DollarSign} label="Total Value" value={formatCurrency(kpis.totalValue)} colorClass="bg-emerald-100 text-emerald-600" />
-          <KPICard icon={AlertTriangle} label="Warranty Expiring" value={kpis.warrantyExpiring} sub="Within 30 days" colorClass="bg-rose-100 text-rose-600" />
+          <KPICard icon={Package} label="Total Assets" value={kpis.total} index={0} colorClass="bg-emerald-100 text-emerald-600" />
+          <KPICard icon={CheckCircle2} label="Available" index={1} value={kpis.available} sub="Ready to issue" colorClass="bg-teal-100 text-teal-600" />
+          <KPICard icon={ArrowRightLeft} label="Issued" index={2} value={kpis.issued} sub="In use" colorClass="bg-amber-100 text-amber-600" />
+          <KPICard icon={Wrench} label="In Maintenance" index={3} value={kpis.maintenance} colorClass="bg-cyan-100 text-cyan-600" />
+          <KPICard icon={DollarSign} label="Total Value" index={4} value={formatCurrency(kpis.totalValue)} colorClass="bg-emerald-100 text-emerald-600" />
+          <KPICard icon={AlertTriangle} label="Warranty Expiring" index={5} value={kpis.warrantyExpiring} sub="Within 30 days" colorClass="bg-rose-100 text-rose-600" />
         </motion.div>
       </div>
 
