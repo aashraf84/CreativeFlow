@@ -9,22 +9,23 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Eye, EyeOff, KeyRound, LogIn, Sparkles, Shield, Zap, Lock, ArrowRight,
   Loader2, User, Building2, TrendingUp, Globe, CheckCircle2, Star,
+  Workflow, BarChart3, Users, Palette,
 } from "lucide-react"
 
-// Auto-rotating hero stats
+// Auto-rotating hero stats — CreativeFlow's real metrics
 const HERO_STATS = [
-  { value: "26+", label: "Modules" },
-  { value: "10K+", label: "Active Users" },
-  { value: "99.9%", label: "Uptime SLA" },
-  { value: "Real-time", label: "Analytics" },
+  { value: "28+", label: "Integrated Modules" },
+  { value: "6", label: "Workflow Stages" },
+  { value: "8", label: "Role-Based Access" },
+  { value: "24/7", label: "Real-Time Sync" },
 ]
 
-// Floating feature badges
+// Floating feature badges — CreativeFlow's own features
 const FEATURES = [
-  { icon: Shield, title: "Enterprise Security", desc: "Serial key device authentication", color: "#34c759" },
-  { icon: Building2, title: "Multi-Tenant", desc: "Neon PostgreSQL serverless", color: "#0a84ff" },
-  { icon: TrendingUp, title: "Real-time Analytics", desc: "Live dashboards & reports", color: "#ff9500" },
-  { icon: Globe, title: "Web Search Integration", desc: "Search influencers on the internet", color: "#af52de" },
+  { icon: Workflow, title: "Creative Pipeline", desc: "Idea → Design → Edit → Review → Approve → Disseminate", color: "#34c759" },
+  { icon: Users, title: "Role-Based Access", desc: "8 roles with granular permissions", color: "#30d158" },
+  { icon: BarChart3, title: "28 Enterprise Reports", desc: "Financial, HR, CRM & Social analytics", color: "#0a84ff" },
+  { icon: Palette, title: "macOS 27 Tahoe UI", desc: "Translucent, vibrant, premium design", color: "#af52de" },
 ]
 
 export function AuthScreen() {
@@ -198,7 +199,7 @@ export function AuthScreen() {
               <span className="bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 bg-clip-text text-transparent">Agencies Thrive</span>
             </h2>
             <p className="text-lg text-white/60 max-w-md mb-8">
-              The all-in-one platform uniting creative workflows, finance, human resources, inventory, and analytics — engineered for scale.
+              The all-in-one platform for creative agencies — manage content pipelines, teams, finance, HR, inventory, and social media dissemination in one beautiful workspace.
             </p>
           </motion.div>
 
@@ -433,8 +434,8 @@ export function AuthScreen() {
           <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
             <p className="text-[10px] text-white/30">© 2026 CreativeFlow ERP · All rights reserved</p>
             <div className="flex items-center gap-1">
-              <Star className="h-3 w-3 text-emerald-400" />
-              <span className="text-[10px] text-white/30">Powered by Neon PostgreSQL</span>
+              <Zap className="h-3 w-3 text-emerald-400" fill="currentColor" />
+              <span className="text-[10px] text-white/30">Powered by ApexFlow</span>
             </div>
           </div>
         </div>
