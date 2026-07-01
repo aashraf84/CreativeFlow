@@ -51,15 +51,15 @@ async function main() {
   // ============================================
   const org = await prisma.organization.create({
     data: {
-      name: 'Vortex Digital',
-      slug: 'vortex-digital',
+      name: 'CreativeFlow Digital',
+      slug: 'creativeflow-digital',
       logo: '/logo.svg',
       plan: 'professional',
       maxUsers: 25,
       maxAccounts: 50,
     },
   })
-  console.log('✅ Created organization: Vortex Digital')
+  console.log('✅ Created organization: CreativeFlow Digital')
 
   // ============================================
   // 2. Users (8 total: 1 admin, 3 team leads, 4 members)
@@ -67,7 +67,7 @@ async function main() {
   const users = await Promise.all([
     prisma.user.create({
       data: {
-        email: 'sarah.chen@vortexdigital.com',
+        email: 'sarah.chen@creativeflowdigital.com',
         name: 'Sarah Chen',
         role: 'admin',
         organizationId: org.id,
@@ -76,7 +76,7 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        email: 'marcus.williams@vortexdigital.com',
+        email: 'marcus.williams@creativeflowdigital.com',
         name: 'Marcus Williams',
         role: 'lead',
         organizationId: org.id,
@@ -84,7 +84,7 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        email: 'priya.sharma@vortexdigital.com',
+        email: 'priya.sharma@creativeflowdigital.com',
         name: 'Priya Sharma',
         role: 'lead',
         organizationId: org.id,
@@ -92,7 +92,7 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        email: 'jake.morrison@vortexdigital.com',
+        email: 'jake.morrison@creativeflowdigital.com',
         name: 'Jake Morrison',
         role: 'lead',
         organizationId: org.id,
@@ -100,7 +100,7 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        email: 'luna.rodriguez@vortexdigital.com',
+        email: 'luna.rodriguez@creativeflowdigital.com',
         name: 'Luna Rodriguez',
         role: 'member',
         organizationId: org.id,
@@ -108,7 +108,7 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        email: 'david.kim@vortexdigital.com',
+        email: 'david.kim@creativeflowdigital.com',
         name: 'David Kim',
         role: 'member',
         organizationId: org.id,
@@ -116,7 +116,7 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        email: 'emma.thompson@vortexdigital.com',
+        email: 'emma.thompson@creativeflowdigital.com',
         name: 'Emma Thompson',
         role: 'member',
         organizationId: org.id,
@@ -124,7 +124,7 @@ async function main() {
     }),
     prisma.user.create({
       data: {
-        email: 'alex.nakamura@vortexdigital.com',
+        email: 'alex.nakamura@creativeflowdigital.com',
         name: 'Alex Nakamura',
         role: 'member',
         organizationId: org.id,
@@ -2236,7 +2236,7 @@ async function main() {
     prisma.notification.create({
       data: {
         title: 'System Update',
-        message: 'VortexERP has been updated to v2.5 with new invoicing and approval features',
+        message: 'CreativeFlow ERP has been updated to v2.5 with new invoicing and approval features',
         type: 'info',
         category: 'system',
         isRead: false,
@@ -2603,7 +2603,7 @@ async function main() {
         employeeId: 'EMP-001',
         firstName: 'Sarah',
         lastName: 'Chen',
-        email: 'sarah.chen@vortexdigital.com',
+        email: 'sarah.chen@creativeflowdigital.com',
         phone: '+1-555-0101',
         position: 'Chief Executive Officer',
         departmentId: departments[0].id,
@@ -2622,7 +2622,7 @@ async function main() {
         employeeId: 'EMP-002',
         firstName: 'Marcus',
         lastName: 'Williams',
-        email: 'marcus.williams@vortexdigital.com',
+        email: 'marcus.williams@creativeflowdigital.com',
         phone: '+1-555-0102',
         position: 'Creative Director',
         departmentId: departments[0].id,
@@ -2641,7 +2641,7 @@ async function main() {
         employeeId: 'EMP-003',
         firstName: 'Priya',
         lastName: 'Sharma',
-        email: 'priya.sharma@vortexdigital.com',
+        email: 'priya.sharma@creativeflowdigital.com',
         phone: '+1-555-0103',
         position: 'Operations Manager',
         departmentId: departments[1].id,
@@ -2660,7 +2660,7 @@ async function main() {
         employeeId: 'EMP-004',
         firstName: 'Jake',
         lastName: 'Morrison',
-        email: 'jake.morrison@vortexdigital.com',
+        email: 'jake.morrison@creativeflowdigital.com',
         phone: '+1-555-0104',
         position: 'Finance Manager',
         departmentId: departments[2].id,
@@ -2679,7 +2679,7 @@ async function main() {
         employeeId: 'EMP-005',
         firstName: 'Luna',
         lastName: 'Rodriguez',
-        email: 'luna.rodriguez@vortexdigital.com',
+        email: 'luna.rodriguez@creativeflowdigital.com',
         phone: '+1-555-0105',
         position: 'Graphic Designer',
         departmentId: departments[0].id,
@@ -2698,7 +2698,7 @@ async function main() {
         employeeId: 'EMP-006',
         firstName: 'David',
         lastName: 'Kim',
-        email: 'david.kim@vortexdigital.com',
+        email: 'david.kim@creativeflowdigital.com',
         phone: '+1-555-0106',
         position: 'HR Specialist',
         departmentId: departments[3].id,
@@ -2717,7 +2717,7 @@ async function main() {
         employeeId: 'EMP-007',
         firstName: 'Emma',
         lastName: 'Thompson',
-        email: 'emma.thompson@vortexdigital.com',
+        email: 'emma.thompson@creativeflowdigital.com',
         phone: '+1-555-0107',
         position: 'Content Writer',
         departmentId: departments[0].id,
@@ -2736,7 +2736,7 @@ async function main() {
         employeeId: 'EMP-008',
         firstName: 'Alex',
         lastName: 'Rivera',
-        email: 'alex.rivera@vortexdigital.com',
+        email: 'alex.rivera@creativeflowdigital.com',
         phone: '+1-555-0108',
         position: 'Social Media Coordinator',
         departmentId: departments[1].id,

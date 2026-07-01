@@ -170,7 +170,7 @@ export function AccountsView() {
   const handleAccountSaved = (account: SocialAccount) => {
     const defaultUser = account.user || {
       id: "u-current",
-      email: "you@vortex.com",
+      email: "you@creativeflow.com",
       name: "You",
       avatar: null,
       role: "admin",

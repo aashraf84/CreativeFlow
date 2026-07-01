@@ -169,9 +169,9 @@ export function AuthScreen() {
       <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-12 relative overflow-hidden">
         {/* Solid colored gradient orbs */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-emerald-600/25 vortex-float" />
-          <div className="absolute top-1/3 -right-32 h-96 w-96 rounded-full bg-teal-600/20 vortex-float" style={{ animationDelay: "1s" }} />
-          <div className="absolute bottom-0 left-1/4 h-80 w-80 rounded-full bg-purple-600/15 vortex-float" style={{ animationDelay: "2s" }} />
+          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-emerald-600/25 creativeflow-float" />
+          <div className="absolute top-1/3 -right-32 h-96 w-96 rounded-full bg-teal-600/20 creativeflow-float" style={{ animationDelay: "1s" }} />
+          <div className="absolute bottom-0 left-1/4 h-80 w-80 rounded-full bg-purple-600/15 creativeflow-float" style={{ animationDelay: "2s" }} />
           {/* Grid overlay */}
           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
         </div>
@@ -183,7 +183,7 @@ export function AuthScreen() {
               <Zap className="h-8 w-8 text-white" fill="white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">VortexERP</h1>
+              <h1 className="text-2xl font-bold tracking-tight">CreativeFlow ERP</h1>
               <p className="text-xs text-white/50">Agency Operating System</p>
             </div>
           </motion.div>
@@ -268,7 +268,7 @@ export function AuthScreen() {
             <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500">
               <Zap className="h-5 w-5 text-white" fill="white" />
             </div>
-            <span className="text-lg font-bold">VortexERP</span>
+            <span className="text-lg font-bold">CreativeFlow ERP</span>
           </div>
 
           {/* Step indicator */}
@@ -336,7 +336,7 @@ export function AuthScreen() {
                   <Label htmlFor="email" className="text-xs font-medium text-white/70">Email or Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-white/30" />
-                    <Input id="email" type="text" placeholder="sarah / admin@vortexdigital.com" value={email}
+                    <Input id="email" type="text" placeholder="sarah / admin@creativeflowdigital.com" value={email}
                       onChange={(e) => setEmail(e.target.value)} onKeyPress={(e) => handleKeyPress(e, handleLogin)}
                       className="pl-10 bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl h-12 focus-visible:bg-white/[0.08] focus-visible:border-emerald-400/40 focus-visible:ring-2 focus-visible:ring-emerald-500/20 transition-all duration-300" disabled={loading} />
                   </div>
@@ -376,7 +376,7 @@ export function AuthScreen() {
 
                 {/* ── Quick Employee Login ── */}
                 <div className="pt-2">
-                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-2.5 text-center">Quick Employee Login (password: Vortex@2024)</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-2.5 text-center">Quick Employee Login (password: CreativeFlow@2024)</p>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
                       { username: 'sarah', role: 'Admin', initial: 'S' },
@@ -394,7 +394,7 @@ export function AuthScreen() {
                         disabled={loading}
                         onClick={() => {
                           setEmail(emp.username)
-                          setPassword('Vortex@2024')
+                          setPassword('CreativeFlow@2024')
                         }}
                         className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-200 text-white/70 hover:text-white disabled:opacity-50"
                       >
@@ -419,7 +419,7 @@ export function AuthScreen() {
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-            <p className="text-[10px] text-white/30">© 2026 VortexERP · All rights reserved</p>
+            <p className="text-[10px] text-white/30">© 2026 CreativeFlow ERP · All rights reserved</p>
             <div className="flex items-center gap-1">
               <Star className="h-3 w-3 text-emerald-400" />
               <span className="text-[10px] text-white/30">Powered by Neon PostgreSQL</span>

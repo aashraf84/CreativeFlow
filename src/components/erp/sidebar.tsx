@@ -215,7 +215,7 @@ export function Sidebar() {
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               <div className="leading-none">
-                <h1 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-white">VortexERP</h1>
+                <h1 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-white">CreativeFlow ERP</h1>
                 <p className="text-[10px] text-[#86868b] dark:text-[#aeaeb2] mt-0.5">Agency Platform</p>
               </div>
             </div>

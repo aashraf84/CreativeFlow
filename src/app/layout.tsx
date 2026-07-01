@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VortexERP - Social Media Agency Management Platform",
+  title: "CreativeFlow ERP - Social Media Agency Management Platform",
   description: "Enterprise-grade ERP for social media, advertising, and digital agencies. Manage content pipelines, dissemination, teams, and multi-platform publishing.",
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 const themeBootstrap = `
 (function() {
   try {
-    var t = localStorage.getItem('vortex-theme');
+    var t = localStorage.getItem('creativeflow-theme');
     var mql = window.matchMedia('(prefers-color-scheme: dark)');
     if (t === 'dark' || (!t && mql.matches)) {
       document.documentElement.classList.add('dark');

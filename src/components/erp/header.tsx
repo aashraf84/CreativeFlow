@@ -121,7 +121,7 @@ export function Header() {
     setIsDark(currentlyDark);
 
     // If no preference is saved yet, fall back to system preference
-    const savedTheme = localStorage.getItem("vortex-theme");
+    const savedTheme = localStorage.getItem("creativeflow-theme");
     if (!savedTheme) {
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       if (prefersDark && !currentlyDark) {
@@ -139,10 +139,10 @@ export function Header() {
     setIsDark(newDark);
     if (newDark) {
       document.documentElement.classList.add("dark");
-      localStorage.setItem("vortex-theme", "dark");
+      localStorage.setItem("creativeflow-theme", "dark");
     } else {
       document.documentElement.classList.remove("dark");
-      localStorage.setItem("vortex-theme", "light");
+      localStorage.setItem("creativeflow-theme", "light");
     }
   };
 
@@ -182,7 +182,7 @@ export function Header() {
       <div className="relative hidden md:flex flex-1 max-w-md items-center">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#86868b] dark:text-[#aeaeb2] pointer-events-none" />
         <Input
-          placeholder="Search VortexERP…"
+          placeholder="Search CreativeFlow ERP…"
           onFocus={() => setSearchFocused(true)}
           onBlur={() => setSearchFocused(false)}
           className={cn(
@@ -212,7 +212,7 @@ export function Header() {
             <Button
               className={cn(
                 "h-9 px-4 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-tahoe-sm hover:shadow-tahoe btn-tahoe gap-1.5 border-0",
-                hasPending && "animate-[vortex-glow_2.4s_ease-in-out_infinite]"
+                hasPending && "animate-[creativeflow-glow_2.4s_ease-in-out_infinite]"
               )}
             >
               <Plus className="h-4 w-4" />
@@ -294,7 +294,7 @@ export function Header() {
           size="icon"
           className={cn(
             "h-9 w-9 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-all duration-200 relative",
-            hasUnread && "animate-[vortex-pulse_1.6s_ease-in-out_infinite]"
+            hasUnread && "animate-[creativeflow-pulse_1.6s_ease-in-out_infinite]"
           )}
           aria-label="Notifications"
         >

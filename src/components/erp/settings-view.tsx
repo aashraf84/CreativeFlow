@@ -122,7 +122,7 @@ export function SettingsView() {
   const { currentUser, socialAccounts } = useERPStore();
 
   // ── Organization Settings state ────────────────────────────────
-  const [orgName, setOrgName] = useState("Vortex Digital");
+  const [orgName, setOrgName] = useState("CreativeFlow Digital");
   const [orgPlan, setOrgPlan] = useState("Professional");
   const [orgUsage, setOrgUsage] = useState<UsageData>({ userCount: 0, accountCount: 0 });
   const [orgMaxUsers, setOrgMaxUsers] = useState(50);
@@ -130,7 +130,7 @@ export function SettingsView() {
 
   // ── User Profile state ─────────────────────────────────────────
   const [userName, setUserName] = useState(currentUser?.name || "Sarah Chen");
-  const [userEmail, setUserEmail] = useState(currentUser?.email || "sarah@vortexdigital.com");
+  const [userEmail, setUserEmail] = useState(currentUser?.email || "sarah@creativeflowdigital.com");
   const [userRole, setUserRole] = useState(currentUser?.role || "admin");
 
   // ── Notification Preferences ───────────────────────────────────

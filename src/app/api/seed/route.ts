@@ -120,8 +120,8 @@ async function _seedHandler() {
     // ============================================
     const org = await db.organization.create({
       data: {
-        name: 'Vortex Digital',
-        slug: 'vortex-digital',
+        name: 'CreativeFlow Digital',
+        slug: 'creativeflow-digital',
         logo: '/logo.svg',
         plan: 'professional',
         maxUsers: 25,
@@ -135,40 +135,40 @@ async function _seedHandler() {
     // ============================================
     const users = await Promise.all([
       db.user.create({
-        data: { email: 'sarah.chen@vortexdigital.com', name: 'Sarah Chen', role: 'admin', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'sarah.chen@creativeflowdigital.com', name: 'Sarah Chen', role: 'admin', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'marcus.williams@vortexdigital.com', name: 'Marcus Williams', role: 'lead', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'marcus.williams@creativeflowdigital.com', name: 'Marcus Williams', role: 'lead', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'priya.sharma@vortexdigital.com', name: 'Priya Sharma', role: 'lead', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'priya.sharma@creativeflowdigital.com', name: 'Priya Sharma', role: 'lead', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'jake.morrison@vortexdigital.com', name: 'Jake Morrison', role: 'lead', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'jake.morrison@creativeflowdigital.com', name: 'Jake Morrison', role: 'lead', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'luna.rodriguez@vortexdigital.com', name: 'Luna Rodriguez', role: 'member', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'luna.rodriguez@creativeflowdigital.com', name: 'Luna Rodriguez', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'david.kim@vortexdigital.com', name: 'David Kim', role: 'member', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'david.kim@creativeflowdigital.com', name: 'David Kim', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'emma.thompson@vortexdigital.com', name: 'Emma Thompson', role: 'member', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'emma.thompson@creativeflowdigital.com', name: 'Emma Thompson', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'alex.nakamura@vortexdigital.com', name: 'Alex Nakamura', role: 'member', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'alex.nakamura@creativeflowdigital.com', name: 'Alex Nakamura', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'maya.patel@vortexdigital.com', name: 'Maya Patel', role: 'member', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'maya.patel@creativeflowdigital.com', name: 'Maya Patel', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'jordan.lee@vortexdigital.com', name: 'Jordan Lee', role: 'member', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'jordan.lee@creativeflowdigital.com', name: 'Jordan Lee', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'sam.rodriguez@vortexdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'sam.rodriguez@creativeflowdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
       db.user.create({
-        data: { email: 'riley.kim@vortexdigital.com', name: 'Riley Kim', role: 'member', organizationId: org.id, tenantId: tenant.id },
+        data: { email: 'riley.kim@creativeflowdigital.com', name: 'Riley Kim', role: 'member', organizationId: org.id, tenantId: tenant.id },
       }),
     ])
 
@@ -436,20 +436,20 @@ async function _seedHandler() {
     // HR: Employees
     // ============================================
     const employees = await Promise.all([
-      db.employee.create({ data: { employeeId: 'EMP-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@vortexdigital.com', phone: '+1-555-0101', position: 'CEO', departmentId: engDept.id, hireDate: new Date('2021-01-15'), status: 'active', employmentType: 'full-time', salary: 185000, salaryCurrency: 'USD', bankAccount: '****4521', taxId: 'SSN-***-**-1234', emergencyContact: 'James Chen +1-555-0102', address: '123 Tech Ave, San Francisco, CA', userId: sarah.id, organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-002', firstName: 'Marcus', lastName: 'Williams', email: 'marcus.williams@vortexdigital.com', phone: '+1-555-0103', position: 'VP of Engineering', departmentId: engDept.id, hireDate: new Date('2021-03-01'), status: 'active', employmentType: 'full-time', salary: 165000, salaryCurrency: 'USD', bankAccount: '****7832', taxId: 'SSN-***-**-5678', emergencyContact: 'Lisa Williams +1-555-0104', address: '456 Code St, San Francisco, CA', userId: marcus.id, organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-003', firstName: 'Priya', lastName: 'Sharma', email: 'priya.sharma@vortexdigital.com', phone: '+1-555-0105', position: 'Marketing Director', departmentId: mktDept.id, hireDate: new Date('2021-06-15'), status: 'active', employmentType: 'full-time', salary: 145000, salaryCurrency: 'USD', bankAccount: '****3291', taxId: 'SSN-***-**-9012', emergencyContact: 'Raj Sharma +1-555-0106', address: '789 Market Blvd, San Jose, CA', userId: priya.id, organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-004', firstName: 'Jake', lastName: 'Morrison', email: 'jake.morrison@vortexdigital.com', phone: '+1-555-0107', position: 'Creative Director', departmentId: designDept.id, hireDate: new Date('2021-09-01'), status: 'active', employmentType: 'full-time', salary: 135000, salaryCurrency: 'USD', bankAccount: '****6543', taxId: 'SSN-***-**-3456', emergencyContact: 'Amy Morrison +1-555-0108', address: '321 Design Ln, Oakland, CA', userId: jake.id, organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-005', firstName: 'Luna', lastName: 'Rodriguez', email: 'luna.rodriguez@vortexdigital.com', phone: '+1-555-0109', position: 'HR Manager', departmentId: hrDept.id, hireDate: new Date('2022-01-10'), status: 'active', employmentType: 'full-time', salary: 115000, salaryCurrency: 'USD', bankAccount: '****8765', taxId: 'SSN-***-**-7890', emergencyContact: 'Carlos Rodriguez +1-555-0110', address: '654 People Dr, San Francisco, CA', userId: luna.id, organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-006', firstName: 'David', lastName: 'Kim', email: 'david.kim@vortexdigital.com', phone: '+1-555-0111', position: 'Finance Director', departmentId: finDept.id, hireDate: new Date('2022-03-15'), status: 'active', employmentType: 'full-time', salary: 140000, salaryCurrency: 'USD', bankAccount: '****2345', taxId: 'SSN-***-**-2345', emergencyContact: 'Suki Kim +1-555-0112', address: '987 Finance Way, Palo Alto, CA', userId: david.id, organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-007', firstName: 'Emma', lastName: 'Thompson', email: 'emma.thompson@vortexdigital.com', phone: '+1-555-0113', position: 'Operations Manager', departmentId: opsDept.id, hireDate: new Date('2022-06-01'), status: 'active', employmentType: 'full-time', salary: 120000, salaryCurrency: 'USD', bankAccount: '****5678', taxId: 'SSN-***-**-6789', emergencyContact: 'Tom Thompson +1-555-0114', address: '147 Ops Circle, Mountain View, CA', userId: emma.id, organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-008', firstName: 'Alex', lastName: 'Nakamura', email: 'alex.nakamura@vortexdigital.com', phone: '+1-555-0115', position: 'Senior Developer', departmentId: engDept.id, hireDate: new Date('2022-09-15'), status: 'on_leave', employmentType: 'full-time', salary: 130000, salaryCurrency: 'USD', bankAccount: '****9012', taxId: 'SSN-***-**-0123', emergencyContact: 'Yuki Nakamura +1-555-0116', address: '258 Dev Road, San Francisco, CA', userId: alex.id, organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-009', firstName: 'Mia', lastName: 'Chang', email: 'mia.chang@vortexdigital.com', phone: '+1-555-0117', position: 'Content Strategist', departmentId: mktDept.id, hireDate: new Date('2023-01-20'), status: 'active', employmentType: 'full-time', salary: 95000, salaryCurrency: 'USD', bankAccount: '****3456', taxId: 'SSN-***-**-4567', emergencyContact: 'Wei Chang +1-555-0118', address: '369 Content Ave, San Jose, CA', organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-010', firstName: 'Ryan', lastName: 'O\'Brien', email: 'ryan.obrien@vortexdigital.com', phone: '+1-555-0119', position: 'UX Designer', departmentId: designDept.id, hireDate: new Date('2023-04-01'), status: 'probation', employmentType: 'full-time', salary: 90000, salaryCurrency: 'USD', bankAccount: '****7890', taxId: 'SSN-***-**-8901', emergencyContact: 'Kate O\'Brien +1-555-0120', address: '481 Design Blvd, Oakland, CA', organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-011', firstName: 'Sophie', lastName: 'Martinez', email: 'sophie.martinez@vortexdigital.com', phone: '+1-555-0121', position: 'Junior Developer', departmentId: engDept.id, hireDate: new Date('2024-01-15'), status: 'probation', employmentType: 'full-time', salary: 78000, salaryCurrency: 'USD', bankAccount: '****1357', taxId: 'SSN-***-**-2468', emergencyContact: 'Pablo Martinez +1-555-0122', address: '592 Code Way, San Francisco, CA', organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-012', firstName: 'James', lastName: 'Wilson', email: 'james.wilson@vortexdigital.com', phone: '+1-555-0123', position: 'Accountant', departmentId: finDept.id, hireDate: new Date('2022-11-01'), status: 'active', employmentType: 'full-time', salary: 85000, salaryCurrency: 'USD', bankAccount: '****2468', taxId: 'SSN-***-**-1357', emergencyContact: 'Mary Wilson +1-555-0124', address: '703 Ledger St, Palo Alto, CA', organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-013', firstName: 'Olivia', lastName: 'Patel', email: 'olivia.patel@vortexdigital.com', phone: '+1-555-0125', position: 'Social Media Manager', departmentId: mktDept.id, hireDate: new Date('2023-07-01'), status: 'active', employmentType: 'part-time', salary: 65000, salaryCurrency: 'USD', bankAccount: '****3579', taxId: 'SSN-***-**-4680', emergencyContact: 'Ravi Patel +1-555-0126', address: '814 Social Ave, San Jose, CA', organizationId: org.id } }),
-      db.employee.create({ data: { employeeId: 'EMP-014', firstName: 'Nathan', lastName: 'Brooks', email: 'nathan.brooks@vortexdigital.com', phone: '+1-555-0127', position: 'Backend Developer', departmentId: engDept.id, hireDate: new Date('2021-05-20'), status: 'terminated', employmentType: 'full-time', salary: 125000, salaryCurrency: 'USD', bankAccount: '****4680', taxId: 'SSN-***-**-5791', emergencyContact: 'Diana Brooks +1-555-0128', address: '925 Server Ln, San Francisco, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-001', firstName: 'Sarah', lastName: 'Chen', email: 'sarah.chen@creativeflowdigital.com', phone: '+1-555-0101', position: 'CEO', departmentId: engDept.id, hireDate: new Date('2021-01-15'), status: 'active', employmentType: 'full-time', salary: 185000, salaryCurrency: 'USD', bankAccount: '****4521', taxId: 'SSN-***-**-1234', emergencyContact: 'James Chen +1-555-0102', address: '123 Tech Ave, San Francisco, CA', userId: sarah.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-002', firstName: 'Marcus', lastName: 'Williams', email: 'marcus.williams@creativeflowdigital.com', phone: '+1-555-0103', position: 'VP of Engineering', departmentId: engDept.id, hireDate: new Date('2021-03-01'), status: 'active', employmentType: 'full-time', salary: 165000, salaryCurrency: 'USD', bankAccount: '****7832', taxId: 'SSN-***-**-5678', emergencyContact: 'Lisa Williams +1-555-0104', address: '456 Code St, San Francisco, CA', userId: marcus.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-003', firstName: 'Priya', lastName: 'Sharma', email: 'priya.sharma@creativeflowdigital.com', phone: '+1-555-0105', position: 'Marketing Director', departmentId: mktDept.id, hireDate: new Date('2021-06-15'), status: 'active', employmentType: 'full-time', salary: 145000, salaryCurrency: 'USD', bankAccount: '****3291', taxId: 'SSN-***-**-9012', emergencyContact: 'Raj Sharma +1-555-0106', address: '789 Market Blvd, San Jose, CA', userId: priya.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-004', firstName: 'Jake', lastName: 'Morrison', email: 'jake.morrison@creativeflowdigital.com', phone: '+1-555-0107', position: 'Creative Director', departmentId: designDept.id, hireDate: new Date('2021-09-01'), status: 'active', employmentType: 'full-time', salary: 135000, salaryCurrency: 'USD', bankAccount: '****6543', taxId: 'SSN-***-**-3456', emergencyContact: 'Amy Morrison +1-555-0108', address: '321 Design Ln, Oakland, CA', userId: jake.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-005', firstName: 'Luna', lastName: 'Rodriguez', email: 'luna.rodriguez@creativeflowdigital.com', phone: '+1-555-0109', position: 'HR Manager', departmentId: hrDept.id, hireDate: new Date('2022-01-10'), status: 'active', employmentType: 'full-time', salary: 115000, salaryCurrency: 'USD', bankAccount: '****8765', taxId: 'SSN-***-**-7890', emergencyContact: 'Carlos Rodriguez +1-555-0110', address: '654 People Dr, San Francisco, CA', userId: luna.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-006', firstName: 'David', lastName: 'Kim', email: 'david.kim@creativeflowdigital.com', phone: '+1-555-0111', position: 'Finance Director', departmentId: finDept.id, hireDate: new Date('2022-03-15'), status: 'active', employmentType: 'full-time', salary: 140000, salaryCurrency: 'USD', bankAccount: '****2345', taxId: 'SSN-***-**-2345', emergencyContact: 'Suki Kim +1-555-0112', address: '987 Finance Way, Palo Alto, CA', userId: david.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-007', firstName: 'Emma', lastName: 'Thompson', email: 'emma.thompson@creativeflowdigital.com', phone: '+1-555-0113', position: 'Operations Manager', departmentId: opsDept.id, hireDate: new Date('2022-06-01'), status: 'active', employmentType: 'full-time', salary: 120000, salaryCurrency: 'USD', bankAccount: '****5678', taxId: 'SSN-***-**-6789', emergencyContact: 'Tom Thompson +1-555-0114', address: '147 Ops Circle, Mountain View, CA', userId: emma.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-008', firstName: 'Alex', lastName: 'Nakamura', email: 'alex.nakamura@creativeflowdigital.com', phone: '+1-555-0115', position: 'Senior Developer', departmentId: engDept.id, hireDate: new Date('2022-09-15'), status: 'on_leave', employmentType: 'full-time', salary: 130000, salaryCurrency: 'USD', bankAccount: '****9012', taxId: 'SSN-***-**-0123', emergencyContact: 'Yuki Nakamura +1-555-0116', address: '258 Dev Road, San Francisco, CA', userId: alex.id, organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-009', firstName: 'Mia', lastName: 'Chang', email: 'mia.chang@creativeflowdigital.com', phone: '+1-555-0117', position: 'Content Strategist', departmentId: mktDept.id, hireDate: new Date('2023-01-20'), status: 'active', employmentType: 'full-time', salary: 95000, salaryCurrency: 'USD', bankAccount: '****3456', taxId: 'SSN-***-**-4567', emergencyContact: 'Wei Chang +1-555-0118', address: '369 Content Ave, San Jose, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-010', firstName: 'Ryan', lastName: 'O\'Brien', email: 'ryan.obrien@creativeflowdigital.com', phone: '+1-555-0119', position: 'UX Designer', departmentId: designDept.id, hireDate: new Date('2023-04-01'), status: 'probation', employmentType: 'full-time', salary: 90000, salaryCurrency: 'USD', bankAccount: '****7890', taxId: 'SSN-***-**-8901', emergencyContact: 'Kate O\'Brien +1-555-0120', address: '481 Design Blvd, Oakland, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-011', firstName: 'Sophie', lastName: 'Martinez', email: 'sophie.martinez@creativeflowdigital.com', phone: '+1-555-0121', position: 'Junior Developer', departmentId: engDept.id, hireDate: new Date('2024-01-15'), status: 'probation', employmentType: 'full-time', salary: 78000, salaryCurrency: 'USD', bankAccount: '****1357', taxId: 'SSN-***-**-2468', emergencyContact: 'Pablo Martinez +1-555-0122', address: '592 Code Way, San Francisco, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-012', firstName: 'James', lastName: 'Wilson', email: 'james.wilson@creativeflowdigital.com', phone: '+1-555-0123', position: 'Accountant', departmentId: finDept.id, hireDate: new Date('2022-11-01'), status: 'active', employmentType: 'full-time', salary: 85000, salaryCurrency: 'USD', bankAccount: '****2468', taxId: 'SSN-***-**-1357', emergencyContact: 'Mary Wilson +1-555-0124', address: '703 Ledger St, Palo Alto, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-013', firstName: 'Olivia', lastName: 'Patel', email: 'olivia.patel@creativeflowdigital.com', phone: '+1-555-0125', position: 'Social Media Manager', departmentId: mktDept.id, hireDate: new Date('2023-07-01'), status: 'active', employmentType: 'part-time', salary: 65000, salaryCurrency: 'USD', bankAccount: '****3579', taxId: 'SSN-***-**-4680', emergencyContact: 'Ravi Patel +1-555-0126', address: '814 Social Ave, San Jose, CA', organizationId: org.id } }),
+      db.employee.create({ data: { employeeId: 'EMP-014', firstName: 'Nathan', lastName: 'Brooks', email: 'nathan.brooks@creativeflowdigital.com', phone: '+1-555-0127', position: 'Backend Developer', departmentId: engDept.id, hireDate: new Date('2021-05-20'), status: 'terminated', employmentType: 'full-time', salary: 125000, salaryCurrency: 'USD', bankAccount: '****4680', taxId: 'SSN-***-**-5791', emergencyContact: 'Diana Brooks +1-555-0128', address: '925 Server Ln, San Francisco, CA', organizationId: org.id } }),
     ])
 
     const [empSarah, empMarcus, empPriya, empJake, empLuna, empDavid, empEmma, empAlex, empMia, empRyan, empSophie, empJames, empOlivia, empNathan] = employees
@@ -1060,24 +1060,24 @@ async function seedDisseminators(orgId: string) {
   // Create disseminator users if they don't exist
   const [maya, jordan, sam, riley] = await Promise.all([
     db.user.upsert({
-      where: { email: 'maya.patel@vortexdigital.com' },
+      where: { email: 'maya.patel@creativeflowdigital.com' },
       update: {},
-      create: { email: 'maya.patel@vortexdigital.com', name: 'Maya Patel', role: 'member', organizationId: orgId },
+      create: { email: 'maya.patel@creativeflowdigital.com', name: 'Maya Patel', role: 'member', organizationId: orgId },
     }),
     db.user.upsert({
-      where: { email: 'jordan.lee@vortexdigital.com' },
+      where: { email: 'jordan.lee@creativeflowdigital.com' },
       update: {},
-      create: { email: 'jordan.lee@vortexdigital.com', name: 'Jordan Lee', role: 'member', organizationId: orgId },
+      create: { email: 'jordan.lee@creativeflowdigital.com', name: 'Jordan Lee', role: 'member', organizationId: orgId },
     }),
     db.user.upsert({
-      where: { email: 'sam.rodriguez@vortexdigital.com' },
+      where: { email: 'sam.rodriguez@creativeflowdigital.com' },
       update: {},
-      create: { email: 'sam.rodriguez@vortexdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: orgId },
+      create: { email: 'sam.rodriguez@creativeflowdigital.com', name: 'Sam Rodriguez', role: 'member', organizationId: orgId },
     }),
     db.user.upsert({
-      where: { email: 'riley.kim@vortexdigital.com' },
+      where: { email: 'riley.kim@creativeflowdigital.com' },
       update: {},
-      create: { email: 'riley.kim@vortexdigital.com', name: 'Riley Kim', role: 'member', organizationId: orgId },
+      create: { email: 'riley.kim@creativeflowdigital.com', name: 'Riley Kim', role: 'member', organizationId: orgId },
     }),
   ])
 
@@ -1176,9 +1176,9 @@ async function seedDisseminators(orgId: string) {
   const fashionCampaign = await db.campaign.findFirst({ where: { name: 'FashionHub Summer Collection', organizationId: orgId } })
   const autodriveCampaign = await db.campaign.findFirst({ where: { name: 'AutoDrive EV Awareness', organizationId: orgId } })
   const foodvibeCampaign = await db.campaign.findFirst({ where: { name: 'FoodVibe Recipe Series', organizationId: orgId } })
-  const sarah = await db.user.findUnique({ where: { email: 'sarah@vortexdigital.com' } })
-  const marcus = await db.user.findUnique({ where: { email: 'marcus.johnson@vortexdigital.com' } })
-  const priya = await db.user.findUnique({ where: { email: 'priya.sharma@vortexdigital.com' } })
+  const sarah = await db.user.findUnique({ where: { email: 'sarah@creativeflowdigital.com' } })
+  const marcus = await db.user.findUnique({ where: { email: 'marcus.johnson@creativeflowdigital.com' } })
+  const priya = await db.user.findUnique({ where: { email: 'priya.sharma@creativeflowdigital.com' } })
 
   // Get some content items for linking
   const contentItems = await db.content.findMany({ where: { organizationId: orgId }, take: 20 })
@@ -1468,9 +1468,9 @@ async function seedCommunications(orgId: string) {
   const hourMs = 3600000
 
   // Find existing users
-  const sarah = await db.user.findUnique({ where: { email: 'sarah@vortexdigital.com' } })
-  const marcus = await db.user.findUnique({ where: { email: 'marcus.johnson@vortexdigital.com' } })
-  const priya = await db.user.findUnique({ where: { email: 'priya.sharma@vortexdigital.com' } })
+  const sarah = await db.user.findUnique({ where: { email: 'sarah@creativeflowdigital.com' } })
+  const marcus = await db.user.findUnique({ where: { email: 'marcus.johnson@creativeflowdigital.com' } })
+  const priya = await db.user.findUnique({ where: { email: 'priya.sharma@creativeflowdigital.com' } })
 
   // Find existing clients and influencers
   const techcorp = await db.client.findFirst({ where: { name: 'TechCorp', organizationId: orgId } })
@@ -1744,7 +1744,7 @@ async function seedCommunications(orgId: string) {
             senderName: 'Alex Thompson',
             senderEmail: 'alex.thompson@techcorp.io',
             recipientName: 'Sarah Chen',
-            recipientEmail: 'sarah@vortexdigital.com',
+            recipientEmail: 'sarah@creativeflowdigital.com',
             subject: 'TechCorp Product Launch - Content Calendar',
             body: 'Hi Sarah,\n\nWe\'re finalizing the product launch timeline and wanted to align on the content calendar. Can we schedule a call this week to go over the key dates and deliverables?\n\nWe have some new feature announcements that we\'d like to stagger across platforms.\n\nBest regards,\nAlex Thompson\nTechCorp',
             type: 'email',
@@ -1760,7 +1760,7 @@ async function seedCommunications(orgId: string) {
           {
             senderId: sarah?.id || null,
             senderName: 'Sarah Chen',
-            senderEmail: 'sarah@vortexdigital.com',
+            senderEmail: 'sarah@creativeflowdigital.com',
             recipientName: 'Alex Thompson',
             recipientEmail: 'alex.thompson@techcorp.io',
             subject: 'Re: TechCorp Product Launch - Content Calendar',
@@ -1781,7 +1781,7 @@ async function seedCommunications(orgId: string) {
             senderName: 'Alex Thompson',
             senderEmail: 'alex.thompson@techcorp.io',
             recipientName: 'Sarah Chen',
-            recipientEmail: 'sarah@vortexdigital.com',
+            recipientEmail: 'sarah@creativeflowdigital.com',
             subject: 'Re: TechCorp Product Launch - Content Calendar',
             body: 'Hi Sarah,\n\nThanks for the updated timeline. We\'ll review and get back to you by EOD.\n\nThe 3-phase approach looks solid. One addition — we\'d like to add a live Q&A session in Week 3 for the developer community.\n\nTalk soon,\nAlex',
             type: 'email',
@@ -1979,11 +1979,11 @@ async function seedCommunications(orgId: string) {
           {
             senderId: sarah?.id || null,
             senderName: 'Sarah Chen',
-            senderEmail: 'sarah@vortexdigital.com',
+            senderEmail: 'sarah@creativeflowdigital.com',
             recipientName: 'Raj Patel',
             recipientEmail: 'raj@innovateai.com',
             subject: 'Q3 Marketing Partnership Proposal',
-            body: 'Dear Raj,\n\nFollowing our discussion at the Tech Summit last week, I\'m pleased to share our Q3 partnership proposal.\n\nThe proposal outlines a comprehensive marketing collaboration that leverages both our strengths in AI-driven content and your platform\'s reach.\n\nKey highlights:\n- Joint webinar series\n- Co-branded content creation\n- Cross-platform promotion\n- Shared analytics dashboard\n\nI\'d love to discuss this further at your convenience.\n\nBest regards,\nSarah Chen\nCEO, Vortex Digital',
+            body: 'Dear Raj,\n\nFollowing our discussion at the Tech Summit last week, I\'m pleased to share our Q3 partnership proposal.\n\nThe proposal outlines a comprehensive marketing collaboration that leverages both our strengths in AI-driven content and your platform\'s reach.\n\nKey highlights:\n- Joint webinar series\n- Co-branded content creation\n- Cross-platform promotion\n- Shared analytics dashboard\n\nI\'d love to discuss this further at your convenience.\n\nBest regards,\nSarah Chen\nCEO, CreativeFlow Digital',
             type: 'email',
             direction: 'outbound',
             status: 'read',
@@ -1999,7 +1999,7 @@ async function seedCommunications(orgId: string) {
             senderName: 'Raj Patel',
             senderEmail: 'raj@innovateai.com',
             recipientName: 'Sarah Chen',
-            recipientEmail: 'sarah@vortexdigital.com',
+            recipientEmail: 'sarah@creativeflowdigital.com',
             subject: 'Re: Q3 Marketing Partnership Proposal',
             body: 'Hi Sarah,\n\nThank you for the detailed proposal. We\'ve reviewed it with our team and are very interested in the joint webinar series and co-branded content.\n\nWe\'d like to proceed with the partnership. Can we schedule a kickoff meeting next week?\n\nBest,\nRaj Patel\nInnovateAI',
             type: 'email',
@@ -2036,11 +2036,11 @@ async function seedCommunications(orgId: string) {
           {
             senderId: marcus?.id || null,
             senderName: 'Marcus Johnson',
-            senderEmail: 'marcus.johnson@vortexdigital.com',
+            senderEmail: 'marcus.johnson@creativeflowdigital.com',
             recipientName: 'Emma Wilson',
             recipientEmail: 'emma@foodvibe.com',
             subject: 'Invoice #INV-2024-089 - Payment Reminder',
-            body: 'Hi Emma,\n\nThis is a friendly reminder that invoice #INV-2024-089 for $4,500.00 was due on March 1st.\n\nIf you\'ve already processed the payment, please disregard this message. Otherwise, please let us know if you need any clarification on the invoice.\n\nThank you for your prompt attention.\n\nBest regards,\nMarcus Johnson\nVortex Digital',
+            body: 'Hi Emma,\n\nThis is a friendly reminder that invoice #INV-2024-089 for $4,500.00 was due on March 1st.\n\nIf you\'ve already processed the payment, please disregard this message. Otherwise, please let us know if you need any clarification on the invoice.\n\nThank you for your prompt attention.\n\nBest regards,\nMarcus Johnson\nCreativeFlow Digital',
             type: 'email',
             direction: 'outbound',
             status: 'read',
@@ -2055,7 +2055,7 @@ async function seedCommunications(orgId: string) {
             senderName: 'Emma Wilson',
             senderEmail: 'emma@foodvibe.com',
             recipientName: 'Marcus Johnson',
-            recipientEmail: 'marcus.johnson@vortexdigital.com',
+            recipientEmail: 'marcus.johnson@creativeflowdigital.com',
             subject: 'Re: Invoice #INV-2024-089 - Payment Reminder',
             body: 'Hi Marcus,\n\nApologies for the delay. Payment has been processed. Should reflect in your account within 2-3 business days.\n\nThanks for your patience.\n\nEmma',
             type: 'email',
@@ -2094,7 +2094,7 @@ async function seedCommunications(orgId: string) {
             senderName: 'Sophia Martinez',
             senderEmail: 'sophia@fashionhub.com',
             recipientName: 'Priya Sharma',
-            recipientEmail: 'priya.sharma@vortexdigital.com',
+            recipientEmail: 'priya.sharma@creativeflowdigital.com',
             subject: 'Brand Guidelines Update - Q1',
             body: 'Hi Priya,\n\nWe\'ve updated our brand guidelines for Q1. Key changes include:\n- New primary color palette\n- Updated logo usage rules\n- Fresh typography guidelines\n\nPlease ensure all future content follows the new guidelines.\n\nThanks,\nSophia',
             type: 'email',
@@ -2110,7 +2110,7 @@ async function seedCommunications(orgId: string) {
           {
             senderId: priya?.id || null,
             senderName: 'Priya Sharma',
-            senderEmail: 'priya.sharma@vortexdigital.com',
+            senderEmail: 'priya.sharma@creativeflowdigital.com',
             recipientName: 'Sophia Martinez',
             recipientEmail: 'sophia@fashionhub.com',
             subject: 'Re: Brand Guidelines Update - Q1',
@@ -2200,7 +2200,7 @@ async function seedCommunications(orgId: string) {
           {
             senderId: priya?.id || null,
             senderName: 'Priya Sharma',
-            senderEmail: 'priya.sharma@vortexdigital.com',
+            senderEmail: 'priya.sharma@creativeflowdigital.com',
             recipientName: 'Emma Wilson',
             recipientEmail: 'emma@foodvibe.com',
             subject: 'FoodVibe Recipe Series - Content Review',
@@ -2779,7 +2779,7 @@ async function seedMissingModules(orgId: string) {
       data: { name: 'AutoDrive EV Promo Video', type: 'video', url: '/assets/autodrive-ev-promo.mp4', thumbnailUrl: '/assets/thumbs/autodrive-ev-promo.jpg', size: 85000000, mimeType: 'video/mp4', tags: 'promo,video,ev,autodrive', folder: '/clients/autodrive', metadata: JSON.stringify({ duration: 180, width: 1920, height: 1080, fps: 30 }), organizationId: orgId, uploadedById: member2.id, clientId: client4.id },
     }),
     db.asset.create({
-      data: { name: 'Vortex Brand Guidelines 2025', type: 'brand-guide', url: '/assets/vortex-brand-guide.pdf', thumbnailUrl: null, size: 5200000, mimeType: 'application/pdf', tags: 'brand,guidelines,internal', folder: '/internal/brand', metadata: JSON.stringify({ pages: 32 }), organizationId: orgId, uploadedById: adminUser.id, clientId: null },
+      data: { name: 'CreativeFlow Brand Guidelines 2025', type: 'brand-guide', url: '/assets/creativeflow-brand-guide.pdf', thumbnailUrl: null, size: 5200000, mimeType: 'application/pdf', tags: 'brand,guidelines,internal', folder: '/internal/brand', metadata: JSON.stringify({ pages: 32 }), organizationId: orgId, uploadedById: adminUser.id, clientId: null },
     }),
     db.asset.create({
       data: { name: 'FoodVibe Recipe Template', type: 'template', url: '/assets/foodvibe-template.psd', thumbnailUrl: '/assets/thumbs/foodvibe-template.jpg', size: 3200000, mimeType: 'image/vnd.adobe.photoshop', tags: 'template,recipe,foodvibe', folder: '/clients/foodvibe/templates', metadata: JSON.stringify({ width: 1080, height: 1080, layers: 12 }), organizationId: orgId, uploadedById: member3.id, clientId: client3.id },
@@ -2833,19 +2833,19 @@ async function seedMissingModules(orgId: string) {
   // ============================================
   const products = await Promise.all([
     db.product.create({
-      data: { name: 'Vortex Branded T-Shirt', sku: 'VOR-TSH-001', description: 'Company branded cotton t-shirt for events', category: 'Merchandise', unit: 'pcs', unitPrice: 25, costPrice: 12, reorderLevel: 50, tags: 'merch,clothing,branded', isActive: true, organizationId: orgId },
+      data: { name: 'CreativeFlow Branded T-Shirt', sku: 'VOR-TSH-001', description: 'Company branded cotton t-shirt for events', category: 'Merchandise', unit: 'pcs', unitPrice: 25, costPrice: 12, reorderLevel: 50, tags: 'merch,clothing,branded', isActive: true, organizationId: orgId },
     }),
     db.product.create({
-      data: { name: 'Vortex Branded Notebook', sku: 'VOR-NBK-001', description: 'Premium hardcover notebook with Vortex branding', category: 'Merchandise', unit: 'pcs', unitPrice: 15, costPrice: 6, reorderLevel: 100, tags: 'merch,stationery,branded', isActive: true, organizationId: orgId },
+      data: { name: 'CreativeFlow Branded Notebook', sku: 'VOR-NBK-001', description: 'Premium hardcover notebook with CreativeFlow branding', category: 'Merchandise', unit: 'pcs', unitPrice: 15, costPrice: 6, reorderLevel: 100, tags: 'merch,stationery,branded', isActive: true, organizationId: orgId },
     }),
     db.product.create({
-      data: { name: 'Vortex Sticker Pack', sku: 'VOR-STK-001', description: 'Pack of 20 branded stickers for events and promotions', category: 'Merchandise', unit: 'pack', unitPrice: 8, costPrice: 2, reorderLevel: 200, tags: 'merch,sticker,promotional', isActive: true, organizationId: orgId },
+      data: { name: 'CreativeFlow Sticker Pack', sku: 'VOR-STK-001', description: 'Pack of 20 branded stickers for events and promotions', category: 'Merchandise', unit: 'pack', unitPrice: 8, costPrice: 2, reorderLevel: 200, tags: 'merch,sticker,promotional', isActive: true, organizationId: orgId },
     }),
     db.product.create({
       data: { name: 'Portable Power Bank', sku: 'VOR-PWR-001', description: '10000mAh power bank for client gifting', category: 'Gifts', unit: 'pcs', unitPrice: 35, costPrice: 18, reorderLevel: 30, tags: 'gift,electronics,client', isActive: true, organizationId: orgId },
     }),
     db.product.create({
-      data: { name: 'Vortex Coffee Mug', sku: 'VOR-MUG-001', description: 'Ceramic mug with Vortex logo for office and client gifts', category: 'Merchandise', unit: 'pcs', unitPrice: 12, costPrice: 5, reorderLevel: 80, tags: 'merch,kitchen,branded', isActive: true, organizationId: orgId },
+      data: { name: 'CreativeFlow Coffee Mug', sku: 'VOR-MUG-001', description: 'Ceramic mug with CreativeFlow logo for office and client gifts', category: 'Merchandise', unit: 'pcs', unitPrice: 12, costPrice: 5, reorderLevel: 80, tags: 'merch,kitchen,branded', isActive: true, organizationId: orgId },
     }),
   ])
 
@@ -2986,7 +2986,7 @@ async function seedMissingModules(orgId: string) {
       data: { title: 'New Comment on Content', message: 'Sarah Chen commented on "FashionHub Summer Sale Announcement"', type: 'mention', category: 'content', isRead: false, actionUrl: '/content', userId: member3.id, organizationId: orgId },
     }),
     db.notification.create({
-      data: { title: 'System Update', message: 'VortexERP v2.5 has been deployed with new features. Check the changelog for details.', type: 'info', category: 'system', isRead: true, actionUrl: null, userId: adminUser.id, organizationId: orgId },
+      data: { title: 'System Update', message: 'CreativeFlow ERP v2.5 has been deployed with new features. Check the changelog for details.', type: 'info', category: 'system', isRead: true, actionUrl: null, userId: adminUser.id, organizationId: orgId },
     }),
   ])
 

@@ -802,7 +802,7 @@ function ComposeTab({ templates, contacts, currentUser }: {
       }
       if (channel === "email") {
         payload.subject = subject
-        payload.senderEmail = currentUser?.email || "sarah@vortexdigital.com"
+        payload.senderEmail = currentUser?.email || "sarah@creativeflowdigital.com"
       }
       const res = await fetch(endpoint, {
         method: "POST",

@@ -775,50 +775,50 @@
 }
 
 /* ───────────────────────────────────────────────────────────────────
-   Vortex Animation Utilities (kept for backward compatibility)
+   CreativeFlow Animation Utilities (kept for backward compatibility)
    ─────────────────────────────────────────────────────────────────── */
-@keyframes vortex-pulse {
+@keyframes creativeflow-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: 0.6; transform: scale(1.04); }
 }
-@keyframes vortex-shimmer {
+@keyframes creativeflow-shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
-@keyframes vortex-float {
+@keyframes creativeflow-float {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-6px); }
 }
-@keyframes vortex-glow {
+@keyframes creativeflow-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.0); }
   50%      { box-shadow: 0 0 18px 4px rgba(52, 199, 89, 0.35); }
 }
-@keyframes vortex-spin {
+@keyframes creativeflow-spin {
   to { transform: rotate(360deg); }
 }
-@keyframes vortex-fade-in {
+@keyframes creativeflow-fade-in {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes vortex-scale-in {
+@keyframes creativeflow-scale-in {
   from { opacity: 0; transform: scale(0.95); }
   to   { opacity: 1; transform: scale(1); }
 }
 
-.vortex-pulse    { animation: vortex-pulse 2.4s var(--ease-smooth) infinite; }
-.vortex-shimmer {
+.creativeflow-pulse    { animation: creativeflow-pulse 2.4s var(--ease-smooth) infinite; }
+.creativeflow-shimmer {
   background: linear-gradient(90deg,
     transparent 0%,
     rgba(255, 255, 255, 0.18) 50%,
     transparent 100%);
   background-size: 200% 100%;
-  animation: vortex-shimmer 2.2s linear infinite;
+  animation: creativeflow-shimmer 2.2s linear infinite;
 }
-.vortex-float    { animation: vortex-float 3.2s var(--ease-smooth) infinite; }
-.vortex-glow     { animation: vortex-glow 2.4s var(--ease-smooth) infinite; }
-.vortex-spin     { animation: vortex-spin 1s linear infinite; }
-.vortex-fade-in  { animation: vortex-fade-in 0.4s var(--ease-smooth) both; }
-.vortex-scale-in { animation: vortex-scale-in 0.32s var(--ease-tahoe) both; }
+.creativeflow-float    { animation: creativeflow-float 3.2s var(--ease-smooth) infinite; }
+.creativeflow-glow     { animation: creativeflow-glow 2.4s var(--ease-smooth) infinite; }
+.creativeflow-spin     { animation: creativeflow-spin 1s linear infinite; }
+.creativeflow-fade-in  { animation: creativeflow-fade-in 0.4s var(--ease-smooth) both; }
+.creativeflow-scale-in { animation: creativeflow-scale-in 0.32s var(--ease-tahoe) both; }
 
 /* ───────────────────────────────────────────────────────────────────
    prefers-reduced-motion: respect user accessibility preferences
@@ -835,11 +835,11 @@
 
   /* Disable the 3D tilt / hover lift micro-interactions */
   .hover-lift:hover,
-  .vortex-pulse,
-  .vortex-shimmer,
-  .vortex-float,
-  .vortex-glow,
-  .vortex-spin,
+  .creativeflow-pulse,
+  .creativeflow-shimmer,
+  .creativeflow-float,
+  .creativeflow-glow,
+  .creativeflow-spin,
   .breathe,
   .pulse-dot::after,
   .empty-state-bounce,

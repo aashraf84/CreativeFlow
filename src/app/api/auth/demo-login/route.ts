@@ -8,7 +8,7 @@ export async function POST(_request: Request) {
     success: true,
     user: {
       id: 'u1',
-      email: 'sarah@vortex.com',
+      email: 'sarah@creativeflow.com',
       name: 'Sarah Chen',
       avatar: null,
       role: 'admin',
@@ -16,8 +16,8 @@ export async function POST(_request: Request) {
       organizationId: 'org-1',
       organization: {
         id: 'org-1',
-        name: 'Vortex Digital',
-        slug: 'vortex-digital',
+        name: 'CreativeFlow Digital',
+        slug: 'creativeflow-digital',
         logo: null,
         plan: 'enterprise',
         tenantId: 'tenant-1',

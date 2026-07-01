@@ -36,8 +36,8 @@ export async function getCurrentOrg() {
     // Create org for this tenant if it doesn't exist
     return db.organization.create({
       data: {
-        name: 'Vortex Digital',
-        slug: 'vortex-digital',
+        name: 'CreativeFlow Digital',
+        slug: 'creativeflow-digital',
         plan: 'professional',
         tenantId: tenant.id,
       },

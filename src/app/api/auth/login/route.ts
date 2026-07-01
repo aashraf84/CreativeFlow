@@ -7,14 +7,14 @@ import { NextResponse } from 'next/server'
 
 // Demo user accounts (mirrors src/lib/demo-data.ts userAccounts)
 const EMPLOYEE_ACCOUNTS = [
-  { userId: 'u1', username: 'sarah', password: 'Vortex@2024', role: 'admin', email: 'sarah@vortex.com', name: 'Sarah Chen' },
-  { userId: 'u2', username: 'mike', password: 'Vortex@2024', role: 'manager', email: 'mike@vortex.com', name: 'Mike Ross' },
-  { userId: 'u3', username: 'alex', password: 'Vortex@2024', role: 'disseminator', email: 'alex@vortex.com', name: 'Alex Rivera' },
-  { userId: 'u4', username: 'emma', password: 'Vortex@2024', role: 'designer', email: 'emma@vortex.com', name: 'Emma Stone' },
-  { userId: 'u5', username: 'james', password: 'Vortex@2024', role: 'editor', email: 'james@vortex.com', name: 'James Wilson' },
-  { userId: 'u6', username: 'lisa', password: 'Vortex@2024', role: 'creative_lead', email: 'lisa@vortex.com', name: 'Lisa Park' },
-  { userId: 'u7', username: 'david', password: 'Vortex@2024', role: 'reviewer', email: 'david@vortex.com', name: 'David Kim' },
-  { userId: 'u8', username: 'rachel', password: 'Vortex@2024', role: 'approver', email: 'rachel@vortex.com', name: 'Rachel Green' },
+  { userId: 'u1', username: 'sarah', password: 'CreativeFlow@2024', role: 'admin', email: 'sarah@creativeflow.com', name: 'Sarah Chen' },
+  { userId: 'u2', username: 'mike', password: 'CreativeFlow@2024', role: 'manager', email: 'mike@creativeflow.com', name: 'Mike Ross' },
+  { userId: 'u3', username: 'alex', password: 'CreativeFlow@2024', role: 'disseminator', email: 'alex@creativeflow.com', name: 'Alex Rivera' },
+  { userId: 'u4', username: 'emma', password: 'CreativeFlow@2024', role: 'designer', email: 'emma@creativeflow.com', name: 'Emma Stone' },
+  { userId: 'u5', username: 'james', password: 'CreativeFlow@2024', role: 'editor', email: 'james@creativeflow.com', name: 'James Wilson' },
+  { userId: 'u6', username: 'lisa', password: 'CreativeFlow@2024', role: 'creative_lead', email: 'lisa@creativeflow.com', name: 'Lisa Park' },
+  { userId: 'u7', username: 'david', password: 'CreativeFlow@2024', role: 'reviewer', email: 'david@creativeflow.com', name: 'David Kim' },
+  { userId: 'u8', username: 'rachel', password: 'CreativeFlow@2024', role: 'approver', email: 'rachel@creativeflow.com', name: 'Rachel Green' },
 ]
 
 export async function POST(request: Request) {
@@ -32,20 +32,20 @@ export async function POST(request: Request) {
     const normalizedEmail = email.toLowerCase().trim()
 
     // Check super-admin credentials
-    if (normalizedEmail === 'admin@vortexdigital.com' && password === 'Vortex@Admin2024') {
+    if (normalizedEmail === 'admin@creativeflowdigital.com' && password === 'CreativeFlow@Admin2024') {
       return NextResponse.json({
         success: true,
         user: {
           id: 'u1',
-          email: 'admin@vortexdigital.com',
+          email: 'admin@creativeflowdigital.com',
           name: 'Sarah Chen',
           avatar: null,
           role: 'admin',
           organizationId: 'org-1',
           organization: {
             id: 'org-1',
-            name: 'Vortex Digital',
-            slug: 'vortex-digital',
+            name: 'CreativeFlow Digital',
+            slug: 'creativeflow-digital',
             logo: null,
             plan: 'enterprise',
             tenantId: 'tenant-1',
@@ -71,8 +71,8 @@ export async function POST(request: Request) {
           organizationId: 'org-1',
           organization: {
             id: 'org-1',
-            name: 'Vortex Digital',
-            slug: 'vortex-digital',
+            name: 'CreativeFlow Digital',
+            slug: 'creativeflow-digital',
             logo: null,
             plan: 'enterprise',
             tenantId: 'tenant-1',

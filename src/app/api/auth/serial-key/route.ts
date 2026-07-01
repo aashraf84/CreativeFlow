@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 // Returns static serial key validation without DB call to keep sandbox server stable.
-// Valid serial key: VORTEX-SUPER-ADMIN-9X7K
+// Valid serial key: CREATIVEFLOW-SUPER-ADMIN-9X7K
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -12,10 +12,10 @@ export async function POST(request: Request) {
     }
 
     // Accept the known valid serial key
-    if (serialKey.trim() === 'VORTEX-SUPER-ADMIN-9X7K') {
+    if (serialKey.trim() === 'CREATIVEFLOW-SUPER-ADMIN-9X7K') {
       return NextResponse.json({
         success: true,
-        tenant: { id: 'tenant-1', name: 'Vortex Digital', slug: 'vortex-digital', plan: 'enterprise' },
+        tenant: { id: 'tenant-1', name: 'CreativeFlow Digital', slug: 'creativeflow-digital', plan: 'enterprise' },
       })
     }
 

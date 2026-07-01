@@ -384,7 +384,7 @@ export default function ERPPage() {
       // Set current user (matches demo data user id so My Tasks shows assigned content)
       setCurrentUser({
         id: "u1",
-        email: "sarah@vortex.com",
+        email: "sarah@creativeflow.com",
         name: "Sarah Chen",
         avatar: null,
         role: "admin",
@@ -429,7 +429,7 @@ export default function ERPPage() {
                   <div className="absolute inset-0 rounded-full border-4 border-black/10 dark:border-white/10" />
                   <div className="absolute inset-0 rounded-full border-4 border-t-emerald-500 animate-spin" />
                 </div>
-                <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] font-medium">Loading VortexERP…</p>
+                <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] font-medium">Loading CreativeFlow ERP…</p>
               </div>
             </div>
           ) : (
