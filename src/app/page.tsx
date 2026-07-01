@@ -381,10 +381,10 @@ export default function ERPPage() {
       const commContactsData = commContactsJson?.contacts || commContactsJson?.data || (Array.isArray(commContactsJson) ? commContactsJson : []);
       if (Array.isArray(commContactsData)) setCommunicationContacts(commContactsData as CommunicationContact[]);
 
-      // Set current user
+      // Set current user (matches demo data user id so My Tasks shows assigned content)
       setCurrentUser({
-        id: "user-admin",
-        email: "sarah@vortexdigital.com",
+        id: "u1",
+        email: "sarah@vortex.com",
         name: "Sarah Chen",
         avatar: null,
         role: "admin",
