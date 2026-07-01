@@ -28,6 +28,7 @@ import {
   CirclePause, Circle,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 // ── Animation variants ──────────────────────────────────────────────
 const containerVariants = {
@@ -316,10 +317,13 @@ function AddAssetDialog({ open, onOpenChange, users }: {
       if (res.ok) {
         const asset = await res.json()
         setItAssets([...itAssets, asset])
+        toast.success("IT asset added")
         onOpenChange(false)
+      } else {
+        toast.error("Failed to add IT asset")
       }
     } catch {
-      // silent
+      toast.error("Failed to add IT asset")
     } finally {
       setLoading(false)
     }
@@ -494,23 +498,23 @@ function IssueAssetDialog({ asset, open, onOpenChange, users }: {
         }),
       })
       if (res.ok) {
-        const issuance = await res.json()
         // Refresh the assets list
         const assetsRes = await fetch("/api/it-assets")
         const assetsJson = await assetsRes.json()
         const assetsData = assetsJson?.data || []
         setItAssets(assetsData as ITAsset[])
+        toast.success("Asset issued successfully")
         onOpenChange(false)
         setIssuedToId("")
         setPurpose("")
         setExpectedReturn("")
         setNotes("")
       } else {
-        const err = await res.json()
-        alert(err.error || "Failed to issue asset")
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error || "Failed to issue asset")
       }
     } catch {
-      // silent
+      toast.error("Failed to issue asset")
     } finally {
       setLoading(false)
     }
@@ -596,15 +600,16 @@ function ReturnAssetDialog({ asset, open, onOpenChange }: {
         const assetsJson = await assetsRes.json()
         const assetsData = assetsJson?.data || []
         setItAssets(assetsData as ITAsset[])
+        toast.success("Asset returned successfully")
         onOpenChange(false)
         setReturnCondition("good")
         setNotes("")
       } else {
-        const err = await res.json()
-        alert(err.error || "Failed to return asset")
+        const err = await res.json().catch(() => ({}))
+        toast.error(err.error || "Failed to return asset")
       }
     } catch {
-      // silent
+      toast.error("Failed to return asset")
     } finally {
       setLoading(false)
     }
@@ -688,9 +693,13 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
         const updated = await res.json()
         const { itAssets } = useERPStore.getState()
         setItAssets(itAssets.map(a => a.id === updated.id ? updated : a))
+        toast.success("Asset marked for maintenance")
+        onOpenChange(false)
+      } else {
+        toast.error("Failed to mark asset for maintenance")
       }
     } catch {
-      // silent
+      toast.error("Failed to mark asset for maintenance")
     } finally {
       setActionLoading(false)
     }
@@ -708,9 +717,13 @@ function AssetDetailSheet({ asset, open, onOpenChange, onIssue, onReturn }: {
         const updated = await res.json()
         const { itAssets } = useERPStore.getState()
         setItAssets(itAssets.map(a => a.id === updated.id ? updated : a))
+        toast.success("Asset retired")
+        onOpenChange(false)
+      } else {
+        toast.error("Failed to retire asset")
       }
     } catch {
-      // silent
+      toast.error("Failed to retire asset")
     } finally {
       setActionLoading(false)
     }

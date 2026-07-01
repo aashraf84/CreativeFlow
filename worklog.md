@@ -3280,3 +3280,114 @@ Stage Summary:
 - Toast notifications give user feedback on success/failure
 - Server stability remains a sandbox limitation (crashes under heavy concurrent load)
 - The fix ensures buttons work when server is running; if server crashes, user can refresh
+
+---
+
+# Task ID: crud-fix
+## Agent: frontend-styling-expert
+## Date: 2026-06-27
+
+## Summary
+Fixed CRUD operations across 10 VortexERP views by replacing silent error handling (`// handle error silently`, `// silent`, `/* ignore */`) with proper toast notifications (`sonner`) and ensuring local state updates after successful API calls. Previously, buttons appeared non-functional because views swallowed errors silently and provided no feedback to users.
+
+## Root Cause
+- All API calls go through a proxy that always returns success, so failures don't actually happen at the network layer
+- However, the views' catch blocks were silently swallowing errors and there were no `toast.success` notifications confirming successful operations
+- Some views updated local state correctly; others relied on it without showing any feedback
+
+## Changes Made
+
+### 1. `src/components/erp/recruitment-view.tsx`
+- Added `import { toast } from "sonner"`
+- `CreateJobPostingDialog.handleSubmit`: added `toast.success("Job posting created successfully")` + `toast.error("Failed to create job posting")` on `!res.ok` and catch
+- `handleUpdateStatus`: added `toast.success("Job posting updated to ${status}")` + `toast.error`
+- `handleDelete`: added `toast.success("Job posting deleted")` + `toast.error`
+- State updates (setJobPostings) were already in place — preserved
+
+### 2. `src/components/erp/payroll-view.tsx`
+- Added `import { toast } from "sonner"`
+- `AddLeaveRequestDialog.handleSubmit`: added `toast.success("Leave request submitted")` + `toast.error`
+- `handleApproveLeave`: added `toast.success("Leave request approved")` + `toast.error`
+- `handleRejectLeave`: added `toast.success("Leave request rejected")` + `toast.error`
+- `handleRunPayroll`: added `toast.success("Payroll run for ${period} created")` + `toast.error`
+
+### 3. `src/components/erp/purchase-orders-view.tsx`
+- Added `import { toast } from "sonner"`
+- `handleCreatePO`: added `toast.success("Purchase order created")` + `toast.error`
+- `handleStatusChange`: added `toast.success("Purchase order marked as ${newStatus}")` + `toast.error`
+- State refresh via `useERPStore.getState().setPurchaseOrders(poArr)` was already in place — preserved
+
+### 4. `src/components/erp/finance-accounts-view.tsx`
+- Added `import { toast } from "sonner"`
+- `saveAccount`: refactored to capture `res` and check `res.ok`; added `toast.success("Account updated"/"Account created")` + `toast.error`
+- `deleteAccount`: replaced `alert()` with `toast.error(data.error || "Cannot delete account")`; added `toast.success("Account deleted")`
+- `saveJEntry`: replaced 3 `alert()` validation calls with `toast.error`; added `toast.success("Journal entry posted"/"Journal entry saved as draft")`
+- `postJEntry`: added `toast.success("Journal entry posted")` + `toast.error`
+- `voidJEntry`: added `toast.success("Journal entry voided")` + `toast.error`
+- `saveTaxRate`: refactored to capture `res` and check `res.ok`; added `toast.success("Tax rate updated"/"Tax rate created")` + `toast.error`
+- `deleteTaxRate`: refactored to capture `res` and check `res.ok`; added `toast.success("Tax rate deleted")` + `toast.error`
+- Left `/* ignore */` catches on refresh/load functions (`refreshAccounts`, `loadGeneralLedger`, `refreshJournalEntries`, `loadReport`, `refreshTaxRates`) untouched — these are read-only refetches where error toasts would be excessive
+
+### 5. `src/components/erp/expenses-view.tsx`
+- Added `import { toast } from "sonner"`
+- `handleSubmit`: added `toast.success("Expense submitted")` + `toast.error`
+- `handleStatusChange`: added `toast.success("Expense ${status}")` + `toast.error`
+- State updates (setExpenses) were already in place — preserved
+
+### 6. `src/components/erp/invoicing-view.tsx`
+- Added `import { toast } from "sonner"`
+- `handleCreateInvoice`: added `toast.success("Invoice created")` + `toast.error`
+- `handleUpdateInvoiceStatus`: added `toast.success("Invoice marked as ${status}")` + `toast.error`
+- `handleDeleteInvoice`: added `toast.success("Invoice deleted")` + `toast.error`
+- `handleAddTimeEntry`: added `toast.success("Time entry added")` + `toast.error`
+
+### 7. `src/components/erp/it-assets-view.tsx`
+- Added `import { toast } from "sonner"`
+- `AddAssetDialog.handleSubmit`: added `toast.success("IT asset added")` + `toast.error`
+- `IssueAssetDialog.handleIssue`: replaced `alert(err.error)` with `toast.error`; added `toast.success("Asset issued successfully")` + catch `toast.error`
+- `ReturnAssetDialog.handleReturn`: replaced `alert(err.error)` with `toast.error`; added `toast.success("Asset returned successfully")` + catch `toast.error`
+- `AssetDetailSheet.handleMarkMaintenance`: added `toast.success("Asset marked for maintenance")` + `toast.error`; closes sheet on success
+- `AssetDetailSheet.handleRetire`: added `toast.success("Asset retired")` + `toast.error`; closes sheet on success
+- All `await res.json()` error reads wrapped with `.catch(() => ({}))` to avoid throwing on non-JSON error responses
+
+### 8. `src/components/erp/brand-kit-view.tsx`
+- **No changes required** — already uses `useToast` hook with proper toast notifications on create/update/delete and proper state updates (setBrandKits). The `/* ignore */` catches on `parseColorValue`, `parseFontValue`, `parseLogoValue`, `parseVoiceValue`, `parseGuidelineValue` are JSON parse helpers (returning null on bad JSON is correct behavior — not API errors)
+
+### 9. `src/components/erp/vendors-view.tsx`
+- Added `import { toast } from "sonner"`
+- `handleAddVendor`: added `toast.success("Vendor created")` + `toast.error`
+- `handleEditVendor`: added `toast.success("Vendor updated")` + `toast.error`
+- `handleDeleteVendor`: added `toast.success("Vendor deleted")` + `toast.error`
+- State refresh via `useERPStore.getState().setVendors(vArr)` was already in place — preserved
+- Fixed an inadvertently introduced extra closing paren in `handleAddVendor` callback closure (`}, []))` → `}, [])`)
+
+### 10. `src/components/erp/attendance-view.tsx`
+- **No changes required** — already imports `toast` from `sonner` and uses `toast.success`/`toast.error`/`toast.warning`/`toast.info` throughout `handleSave`, `handleDelete`, `handleClockIn`, `handleClockOut`. State updates handled via `refreshData()`. The single `/* ignore */` is on the read-only `refreshData` helper
+
+## Verification
+- `bun run lint` — passed with exit code 0, no errors
+- `bun run tsc --noEmit` — pre-existing errors in unrelated files (prisma seed, framer-motion Variants typing, products-view, etc.) remain; **no new TypeScript errors introduced** by these changes (verified by comparing against `git stash` baseline)
+- Grep for `// handle error silently`, `// silent` returns 0 matches in `/src/components/erp/`
+- Grep for `/* ignore */` returns only intentional read-only refresh/load functions (no user-initiated CRUD catch blocks remain silent)
+
+## Files Modified
+1. `src/components/erp/recruitment-view.tsx`
+2. `src/components/erp/payroll-view.tsx`
+3. `src/components/erp/purchase-orders-view.tsx`
+4. `src/components/erp/finance-accounts-view.tsx`
+5. `src/components/erp/expenses-view.tsx`
+6. `src/components/erp/invoicing-view.tsx`
+7. `src/components/erp/it-assets-view.tsx`
+8. `src/components/erp/vendors-view.tsx`
+
+## Files Reviewed, No Changes Needed
+1. `src/components/erp/brand-kit-view.tsx` (uses `useToast` hook already)
+2. `src/components/erp/attendance-view.tsx` (uses sonner `toast` already)
+
+## Key Design Decisions
+- Used `sonner` toast consistently across all views for visual consistency
+- Replaced all `alert()` calls (finance-accounts-view, it-assets-view) with `toast.error()` for non-blocking UX
+- Wrapped `await res.json()` error reads with `.catch(() => ({}))` to avoid throwing on non-JSON error responses
+- Kept silent catches on read-only refresh/load functions — showing toasts on every background refetch failure would be noisy
+- Did NOT change any business logic — only added feedback + verified state updates
+- For views already using a different toast system (brand-kit uses `useToast` hook), left as-is rather than introducing a parallel `sonner` import

@@ -21,6 +21,7 @@ import {
   PackageCheck, PackageX
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 const CATEGORIES = ["All", "Stationery", "Electronics", "Print Materials", "Merchandise", "Software"]
 
@@ -125,9 +126,13 @@ export function ProductsView() {
         const data = await res.json()
         useERPStore.getState().setProducts([...products, data.product || data])
         setShowAddProduct(false)
+        toast.success("Product added successfully!")
+        form.reset()
+      } else {
+        toast.error("Failed to add product")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to add product")
     }
   }, [products])
 
@@ -161,9 +166,12 @@ export function ProductsView() {
         const pArr = pData.data || (Array.isArray(pData) ? pData : [])
         useERPStore.getState().setProducts(pArr)
         setShowStockMovement(false)
+        toast.success("Stock movement recorded!")
+      } else {
+        toast.error("Failed to record stock movement")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to record stock movement")
     }
   }, [])
 

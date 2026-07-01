@@ -53,6 +53,7 @@ import {
   Megaphone,
 } from "lucide-react"
 import { format, parseISO } from "date-fns"
+import { toast } from "sonner"
 
 // ── Animation variants ──────────────────────────────────────────────
 const containerVariants = {
@@ -209,11 +210,15 @@ export function ExpensesView() {
       if (res.ok) {
         const newExpense = await res.json()
         setExpenses([newExpense, ...expenses])
+        toast.success("Expense submitted")
         setShowSubmitDialog(false)
         resetForm()
+      } else {
+        toast.error("Failed to submit expense")
       }
     } catch (err) {
       console.error("Failed to submit expense:", err)
+      toast.error("Failed to submit expense")
     } finally {
       setSubmitting(false)
     }
@@ -231,9 +236,13 @@ export function ExpensesView() {
       if (res.ok) {
         const updated = await res.json()
         setExpenses(expenses.map(e => e.id === id ? { ...e, ...updated } : e))
+        toast.success(`Expense ${status}`)
+      } else {
+        toast.error(`Failed to ${status} expense`)
       }
     } catch (err) {
       console.error("Failed to update expense:", err)
+      toast.error(`Failed to ${status} expense`)
     } finally {
       setActionLoading(null)
     }

@@ -19,6 +19,7 @@ import {
   CheckCircle2, XCircle, Trash2, AlertCircle
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 const STATUS_TABS = ["All", "Draft", "Sent", "Partial", "Received", "Cancelled"]
 
@@ -139,11 +140,14 @@ export function PurchaseOrdersView() {
         const poData = await poRes.json()
         const poArr = poData.data || (Array.isArray(poData) ? poData : [])
         useERPStore.getState().setPurchaseOrders(poArr)
+        toast.success("Purchase order created")
         setShowCreatePO(false)
         resetPOForm()
+      } else {
+        toast.error("Failed to create purchase order")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to create purchase order")
     }
   }, [poVendorId, poNotes, poLineItems])
 
@@ -159,9 +163,12 @@ export function PurchaseOrdersView() {
         const poData = await poRes.json()
         const poArr = poData.data || (Array.isArray(poData) ? poData : [])
         useERPStore.getState().setPurchaseOrders(poArr)
+        toast.success(`Purchase order marked as ${newStatus}`)
+      } else {
+        toast.error("Failed to update purchase order status")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to update purchase order status")
     }
   }, [])
 

@@ -22,6 +22,7 @@ import {
   Trash2, Edit3, Eye, Send, Ban, RefreshCw, Download, Minus, Calculator,
 } from "lucide-react"
 import { format } from "date-fns"
+import { toast } from "sonner"
 
 // ── Animation variants ──────────────────────────────────────────────
 const containerVariants = {
@@ -256,22 +257,36 @@ export function FinanceAccountsView() {
       category: accountForm.category || null,
     }
     try {
-      if (editingAccount) {
-        await fetch(`/api/accounts/${editingAccount.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      const res = editingAccount
+        ? await fetch(`/api/accounts/${editingAccount.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+        : await fetch("/api/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      if (res.ok) {
+        toast.success(editingAccount ? "Account updated" : "Account created")
+        setShowAccountDialog(false)
+        refreshAccounts()
       } else {
-        await fetch("/api/accounts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+        toast.error("Failed to save account")
       }
-      setShowAccountDialog(false)
-      refreshAccounts()
-    } catch (e) { console.error("Save account error:", e) }
+    } catch (e) {
+      console.error("Save account error:", e)
+      toast.error("Failed to save account")
+    }
   }
 
   const deleteAccount = async (id: string) => {
     try {
       const res = await fetch(`/api/accounts/${id}`, { method: "DELETE" })
-      if (res.ok) refreshAccounts()
-      else { const data = await res.json(); alert(data.error || "Cannot delete account") }
-    } catch (e) { console.error("Delete error:", e) }
+      if (res.ok) {
+        toast.success("Account deleted")
+        refreshAccounts()
+      } else {
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || "Cannot delete account")
+      }
+    } catch (e) {
+      console.error("Delete error:", e)
+      toast.error("Failed to delete account")
+    }
   }
 
   const refreshAccounts = async () => {
@@ -312,33 +327,55 @@ export function FinanceAccountsView() {
   const saveJEntry = async (postNow: boolean) => {
     const totalDebit = jEntryForm.lines.reduce((s, l) => s + (l.debit || 0), 0)
     const totalCredit = jEntryForm.lines.reduce((s, l) => s + (l.credit || 0), 0)
-    if (Math.abs(totalDebit - totalCredit) > 0.01) { alert("Total debits must equal total credits"); return }
-    if (!jEntryForm.description) { alert("Description is required"); return }
-    if (!jEntryForm.period) { alert("Period is required"); return }
+    if (Math.abs(totalDebit - totalCredit) > 0.01) { toast.error("Total debits must equal total credits"); return }
+    if (!jEntryForm.description) { toast.error("Description is required"); return }
+    if (!jEntryForm.period) { toast.error("Period is required"); return }
     try {
       const payload = {
         ...jEntryForm,
         status: postNow ? "posted" : "draft",
         lines: jEntryForm.lines.map((l) => ({ ...l, debit: l.debit || 0, credit: l.credit || 0 })),
       }
-      await fetch("/api/journal-entries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
-      setShowJEntryDialog(false)
-      refreshJournalEntries()
-    } catch (e) { console.error("Save JE error:", e) }
+      const res = await fetch("/api/journal-entries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      if (res.ok) {
+        toast.success(postNow ? "Journal entry posted" : "Journal entry saved as draft")
+        setShowJEntryDialog(false)
+        refreshJournalEntries()
+      } else {
+        toast.error("Failed to save journal entry")
+      }
+    } catch (e) {
+      console.error("Save JE error:", e)
+      toast.error("Failed to save journal entry")
+    }
   }
 
   const postJEntry = async (id: string) => {
     try {
-      await fetch(`/api/journal-entries/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "posted" }) })
-      refreshJournalEntries()
-    } catch { /* ignore */ }
+      const res = await fetch(`/api/journal-entries/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "posted" }) })
+      if (res.ok) {
+        toast.success("Journal entry posted")
+        refreshJournalEntries()
+      } else {
+        toast.error("Failed to post journal entry")
+      }
+    } catch {
+      toast.error("Failed to post journal entry")
+    }
   }
 
   const voidJEntry = async (id: string) => {
     try {
-      await fetch(`/api/journal-entries/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "void" }) })
-      refreshJournalEntries()
-    } catch { /* ignore */ }
+      const res = await fetch(`/api/journal-entries/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "void" }) })
+      if (res.ok) {
+        toast.success("Journal entry voided")
+        refreshJournalEntries()
+      } else {
+        toast.error("Failed to void journal entry")
+      }
+    } catch {
+      toast.error("Failed to void journal entry")
+    }
   }
 
   const refreshJournalEntries = async () => {
@@ -396,18 +433,33 @@ export function FinanceAccountsView() {
 
   const saveTaxRate = async () => {
     try {
-      if (editingTax) {
-        await fetch(`/api/tax-rates/${editingTax.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(taxForm) })
+      const res = editingTax
+        ? await fetch(`/api/tax-rates/${editingTax.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(taxForm) })
+        : await fetch("/api/tax-rates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(taxForm) })
+      if (res.ok) {
+        toast.success(editingTax ? "Tax rate updated" : "Tax rate created")
+        setShowTaxDialog(false)
+        refreshTaxRates()
       } else {
-        await fetch("/api/tax-rates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(taxForm) })
+        toast.error("Failed to save tax rate")
       }
-      setShowTaxDialog(false)
-      refreshTaxRates()
-    } catch { /* ignore */ }
+    } catch {
+      toast.error("Failed to save tax rate")
+    }
   }
 
   const deleteTaxRate = async (id: string) => {
-    try { await fetch(`/api/tax-rates/${id}`, { method: "DELETE" }); refreshTaxRates() } catch { /* ignore */ }
+    try {
+      const res = await fetch(`/api/tax-rates/${id}`, { method: "DELETE" })
+      if (res.ok) {
+        toast.success("Tax rate deleted")
+        refreshTaxRates()
+      } else {
+        toast.error("Failed to delete tax rate")
+      }
+    } catch {
+      toast.error("Failed to delete tax rate")
+    }
   }
 
   const refreshTaxRates = async () => {

@@ -20,6 +20,7 @@ import {
   UserCheck, TrendingUp, Building2, AlertCircle
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 const VENDOR_CATEGORIES = ["All", "Office Supplies", "Electronics", "Printing", "Software"]
 
@@ -118,10 +119,13 @@ export function VendorsView() {
         const vData = await vRes.json()
         const vArr = vData.data || (Array.isArray(vData) ? vData : [])
         useERPStore.getState().setVendors(vArr)
+        toast.success("Vendor created")
         setShowAddVendor(false)
+      } else {
+        toast.error("Failed to create vendor")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to create vendor")
     }
   }, [])
 
@@ -154,9 +158,12 @@ export function VendorsView() {
           const updated = vArr.find((v: Vendor) => v.id === editingVendor.id)
           if (updated) setSelectedVendor(updated)
         }
+        toast.success("Vendor updated")
+      } else {
+        toast.error("Failed to update vendor")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to update vendor")
     }
   }, [editingVendor, selectedVendor])
 
@@ -174,9 +181,12 @@ export function VendorsView() {
         useERPStore.getState().setVendors(vArr)
         setDeleteConfirm(null)
         if (selectedVendor?.id === vendorId) setSelectedVendor(null)
+        toast.success("Vendor deleted")
+      } else {
+        toast.error("Failed to delete vendor")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to delete vendor")
     }
   }, [selectedVendor])
 

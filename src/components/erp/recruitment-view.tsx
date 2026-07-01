@@ -15,6 +15,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 import {
   Briefcase, Users, Clock, UserCheck, Plus, MapPin, DollarSign,
   Calendar, MoreHorizontal, XCircle, CheckCircle2, Trash2,
@@ -95,10 +96,13 @@ function CreateJobPostingDialog() {
       if (res.ok) {
         const job = await res.json()
         setJobPostings([job, ...jobPostings])
+        toast.success("Job posting created successfully")
         setOpen(false)
+      } else {
+        toast.error("Failed to create job posting")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to create job posting")
     } finally {
       setLoading(false)
     }
@@ -364,9 +368,12 @@ export function RecruitmentView() {
       if (res.ok) {
         const updated = await res.json()
         setJobPostings(jobPostings.map((j) => (j.id === id ? { ...j, ...updated } : j)))
+        toast.success(`Job posting updated to ${status}`)
+      } else {
+        toast.error("Failed to update job posting")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to update job posting")
     }
   }
 
@@ -375,9 +382,12 @@ export function RecruitmentView() {
       const res = await fetch(`/api/job-postings/${id}`, { method: "DELETE" })
       if (res.ok) {
         setJobPostings(jobPostings.filter((j) => j.id !== id))
+        toast.success("Job posting deleted")
+      } else {
+        toast.error("Failed to delete job posting")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to delete job posting")
     }
   }
 

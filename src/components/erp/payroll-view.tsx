@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts"
 import {
   Banknote, DollarSign, TrendingDown, Wallet, Play, CheckCircle2, XCircle,
@@ -174,10 +175,13 @@ function AddLeaveRequestDialog() {
       if (res.ok) {
         const lr = await res.json()
         setLeaveRequests([...leaveRequests, lr])
+        toast.success("Leave request submitted")
         setOpen(false)
+      } else {
+        toast.error("Failed to submit leave request")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to submit leave request")
     } finally {
       setLoading(false)
     }
@@ -284,9 +288,12 @@ export function PayrollView() {
       if (res.ok) {
         const updated = await res.json()
         setLeaveRequests(leaveRequests.map((l) => (l.id === lr.id ? { ...l, ...updated } : l)))
+        toast.success("Leave request approved")
+      } else {
+        toast.error("Failed to approve leave request")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to approve leave request")
     }
   }
 
@@ -300,9 +307,12 @@ export function PayrollView() {
       if (res.ok) {
         const updated = await res.json()
         setLeaveRequests(leaveRequests.map((l) => (l.id === lr.id ? { ...l, ...updated } : l)))
+        toast.success("Leave request rejected")
+      } else {
+        toast.error("Failed to reject leave request")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to reject leave request")
     }
   }
 
@@ -331,9 +341,12 @@ export function PayrollView() {
       if (res.ok) {
         const newRun = await res.json()
         setPayrollRuns([newRun, ...payrollRuns])
+        toast.success(`Payroll run for ${period} created`)
+      } else {
+        toast.error("Failed to run payroll")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to run payroll")
     } finally {
       setRunningPayroll(false)
     }

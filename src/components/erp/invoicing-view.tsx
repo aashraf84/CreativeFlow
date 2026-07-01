@@ -55,6 +55,7 @@ import {
   Receipt,
   Banknote,
 } from "lucide-react"
+import { toast } from "sonner"
 
 // ── Animation variants ──────────────────────────────────────────────
 const containerVariants = {
@@ -276,11 +277,15 @@ export function InvoicingView() {
       if (res.ok) {
         const data = await res.json()
         setInvoices([data.invoice, ...invoices])
+        toast.success("Invoice created")
         resetForm()
         setShowCreateDialog(false)
+      } else {
+        toast.error("Failed to create invoice")
       }
     } catch (error) {
       console.error("Failed to create invoice:", error)
+      toast.error("Failed to create invoice")
     }
   }, [formClientId, formCampaignId, formLineItems, formSubtotal, formTax, formTotal, formDueDate, formNotes, invoices, setInvoices, resetForm])
 
@@ -294,9 +299,13 @@ export function InvoicingView() {
       if (res.ok) {
         const data = await res.json()
         setInvoices(invoices.map((inv) => (inv.id === invoiceId ? data.invoice : inv)))
+        toast.success(`Invoice marked as ${status}`)
+      } else {
+        toast.error("Failed to update invoice")
       }
     } catch (error) {
       console.error("Failed to update invoice:", error)
+      toast.error("Failed to update invoice")
     }
   }, [invoices, setInvoices])
 
@@ -305,9 +314,13 @@ export function InvoicingView() {
       const res = await fetch(`/api/invoices/${invoiceId}`, { method: "DELETE" })
       if (res.ok) {
         setInvoices(invoices.filter((inv) => inv.id !== invoiceId))
+        toast.success("Invoice deleted")
+      } else {
+        toast.error("Failed to delete invoice")
       }
     } catch (error) {
       console.error("Failed to delete invoice:", error)
+      toast.error("Failed to delete invoice")
     }
   }, [invoices, setInvoices])
 
@@ -330,11 +343,15 @@ export function InvoicingView() {
       if (res.ok) {
         const data = await res.json()
         setTimeEntries([data.timeEntry, ...timeEntries])
+        toast.success("Time entry added")
         resetTimeForm()
         setShowAddTimeDialog(false)
+      } else {
+        toast.error("Failed to add time entry")
       }
     } catch (error) {
       console.error("Failed to add time entry:", error)
+      toast.error("Failed to add time entry")
     }
   }, [timeFormDescription, timeFormHours, timeFormBillable, timeFormDate, timeFormClientId, timeEntries, setTimeEntries, resetTimeForm])
 
