@@ -107,8 +107,8 @@ export default function ERPPage() {
 
       const safeJson = (res: Response) => res.json().catch(() => ({}));
 
-      // Safe fetch with timeout - never throws, returns null on failure
-      const safeFetch = async (url: string, timeoutMs = 8000): Promise<Response | null> => {
+      // Safe fetch with short timeout - never throws, returns null on failure
+      const safeFetch = async (url: string, timeoutMs = 5000): Promise<Response | null> => {
         try {
           return await Promise.race([
             fetch(url),
@@ -180,7 +180,7 @@ export default function ERPPage() {
       // The middleware returns empty data instantly (no DB calls), but compiling
       // many routes concurrently can still crash the sandbox.
       const fetchSeq = async (url: string) => {
-        const res = await safeFetch(url, 8000)
+        const res = await safeFetch(url, 5000)
         return safeJsonFrom(res)
       }
 
@@ -201,11 +201,10 @@ export default function ERPPage() {
       ]
 
       const allResults: Record<string, unknown>[] = []
-      // Process in batches of 3
-      for (let i = 0; i < allEndpoints.length; i += 3) {
-        const batch = allEndpoints.slice(i, i + 3)
-        const batchResults = await Promise.all(batch.map(url => fetchSeq(url).catch(() => ({}))))
-        allResults.push(...batchResults)
+      // Process sequentially to avoid crashing the sandbox server with concurrent requests
+      for (const url of allEndpoints) {
+        const result = await fetchSeq(url).catch(() => ({}))
+        allResults.push(result)
       }
 
       const [
@@ -227,7 +226,7 @@ export default function ERPPage() {
       if (Array.isArray(postsData)) setPosts(postsData as Post[]);
 
       // Teams
-      const teamsData = teamsJson?.data || (Array.isArray(teamsJson) ? teamsJson : []);
+      const teamsData = teamsJson?.teams || teamsJson?.data || (Array.isArray(teamsJson) ? teamsJson : []);
       if (Array.isArray(teamsData)) setTeams(teamsData as Team[]);
 
       // Social Accounts
@@ -424,12 +423,18 @@ export default function ERPPage() {
         <main className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center h-full min-h-[60vh]">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative h-12 w-12">
-                  <div className="absolute inset-0 rounded-full border-4 border-black/10 dark:border-white/10" />
-                  <div className="absolute inset-0 rounded-full border-4 border-t-emerald-500 animate-spin" />
+              <div className="flex flex-col items-center gap-5">
+                {/* Creative flow animation — 3 dots morphing */}
+                <div className="relative flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-emerald-500 animate-[flowBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "0s" }} />
+                  <div className="h-3 w-3 rounded-full bg-teal-500 animate-[flowBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "0.2s" }} />
+                  <div className="h-3 w-3 rounded-full bg-cyan-500 animate-[flowBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "0.4s" }} />
+                  {/* Pulsing ring */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-full border-2 border-emerald-500/20 animate-[flowPulse_1.4s_ease-out_infinite]" />
+                  </div>
                 </div>
-                <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] font-medium">Loading CreativeFlow ERP…</p>
+                <p className="text-sm text-[#86868b] dark:text-[#aeaeb2] font-medium animate-pulse">Loading CreativeFlow ERP…</p>
               </div>
             </div>
           ) : (
