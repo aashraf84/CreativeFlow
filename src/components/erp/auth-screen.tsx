@@ -148,14 +148,23 @@ export function AuthScreen() {
 
   if (authState === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+      <div className="min-h-screen flex items-center justify-center bg-black relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-[#0a0a0a] to-[#050505]" />
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-400 relative z-10" />
       </div>
     )
   }
 
   return (
     <div className="min-h-screen flex bg-black text-white relative overflow-hidden">
+      {/* Subtle gradient mesh background (macOS 27 Tahoe) */}
+      <div className="absolute inset-0 bg-gradient-to-br from-black via-[#0a0a0a] to-[#050505]" />
+      <div className="absolute inset-0 opacity-30 pointer-events-none" style={{
+        backgroundImage: `radial-gradient(circle at 20% 50%, rgba(52, 199, 89, 0.08) 0%, transparent 50%),
+                          radial-gradient(circle at 80% 80%, rgba(48, 209, 88, 0.06) 0%, transparent 50%),
+                          radial-gradient(circle at 50% 20%, rgba(10, 132, 255, 0.04) 0%, transparent 50%)`
+      }} />
+
       {/* LEFT PANEL — Hero / Branding (macOS lock screen style) */}
       <div className="hidden lg:flex lg:w-[55%] flex-col justify-between p-12 relative overflow-hidden">
         {/* Solid colored gradient orbs */}
@@ -247,7 +256,13 @@ export function AuthScreen() {
           <div className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-purple-600/15" />
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative z-10 w-full max-w-md">
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+          className="relative z-10 w-full max-w-md"
+        >
+        <div className="glass-card rounded-3xl p-6 sm:p-8 shadow-tahoe-xl">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500">
@@ -273,7 +288,7 @@ export function AuthScreen() {
             {authState === "serial-key" && (
               <motion.div key="serial-key" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
                 <div>
-                  <h2 className="text-2xl font-bold mb-1">Device Registration</h2>
+                  <h2 className="text-3xl font-bold tracking-tight mb-1.5">Device Registration</h2>
                   <p className="text-sm text-white/50">Enter your serial key to register this device</p>
                 </div>
 
@@ -284,14 +299,14 @@ export function AuthScreen() {
                     <Input id="serialKey" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" value={serialKey}
                       onChange={(e) => setSerialKey(e.target.value.toUpperCase())}
                       onKeyPress={(e) => handleKeyPress(e, handleSerialKeySubmit)}
-                      className="pl-10 font-mono tracking-wider bg-[#1c1c1e] border-[#38383a] text-white placeholder:text-white/25 rounded-xl h-12 focus-visible:ring-emerald-500/40" disabled={loading} />
+                      className="pl-10 font-mono tracking-wider bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl h-12 focus-visible:bg-white/[0.08] focus-visible:border-emerald-400/40 focus-visible:ring-2 focus-visible:ring-emerald-500/20 transition-all duration-300" disabled={loading} />
                   </div>
                 </div>
 
                 {error && <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5">{error}</p>}
 
                 <Button onClick={handleSerialKeySubmit} disabled={loading}
-                  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 btn-glow text-white border-0 rounded-xl font-medium shadow-lg shadow-emerald-500/20">
+                  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 btn-tahoe text-white border-0 rounded-xl font-semibold text-[15px] shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all duration-300">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowRight className="h-4 w-4 mr-2" />}
                   Register Device
                 </Button>
@@ -313,7 +328,7 @@ export function AuthScreen() {
             {authState === "login" && (
               <motion.div key="login" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
                 <div>
-                  <h2 className="text-2xl font-bold mb-1">Sign In</h2>
+                  <h2 className="text-3xl font-bold tracking-tight mb-1.5">Sign In</h2>
                   <p className="text-sm text-white/50">Enter your credentials to access the platform</p>
                 </div>
 
@@ -323,7 +338,7 @@ export function AuthScreen() {
                     <User className="absolute left-3 top-3 h-4 w-4 text-white/30" />
                     <Input id="email" type="text" placeholder="sarah / admin@vortexdigital.com" value={email}
                       onChange={(e) => setEmail(e.target.value)} onKeyPress={(e) => handleKeyPress(e, handleLogin)}
-                      className="pl-10 bg-[#1c1c1e] border-[#38383a] text-white placeholder:text-white/25 rounded-xl h-12 focus-visible:ring-emerald-500/40" disabled={loading} />
+                      className="pl-10 bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl h-12 focus-visible:bg-white/[0.08] focus-visible:border-emerald-400/40 focus-visible:ring-2 focus-visible:ring-emerald-500/20 transition-all duration-300" disabled={loading} />
                   </div>
                 </div>
 
@@ -333,8 +348,8 @@ export function AuthScreen() {
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-white/30" />
                     <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password}
                       onChange={(e) => setPassword(e.target.value)} onKeyPress={(e) => handleKeyPress(e, handleLogin)}
-                      className="pl-10 pr-10 bg-[#1c1c1e] border-[#38383a] text-white placeholder:text-white/25 rounded-xl h-12 focus-visible:ring-emerald-500/40" disabled={loading} />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-white/30 hover:text-white">
+                      className="pl-10 pr-10 bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl h-12 focus-visible:bg-white/[0.08] focus-visible:border-emerald-400/40 focus-visible:ring-2 focus-visible:ring-emerald-500/20 transition-all duration-300" disabled={loading} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-white/30 hover:text-white transition-colors">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
@@ -343,7 +358,7 @@ export function AuthScreen() {
                 {error && <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5">{error}</p>}
 
                 <Button onClick={handleLogin} disabled={loading}
-                  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 btn-glow text-white border-0 rounded-xl font-medium shadow-lg shadow-emerald-500/20">
+                  className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 btn-tahoe text-white border-0 rounded-xl font-semibold text-[15px] shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all duration-300">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogIn className="h-4 w-4 mr-2" />}
                   Sign In
                 </Button>
@@ -361,17 +376,17 @@ export function AuthScreen() {
 
                 {/* ── Quick Employee Login ── */}
                 <div className="pt-2">
-                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-2 text-center">Quick Employee Login (password: Vortex@2024)</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-2.5 text-center">Quick Employee Login (password: Vortex@2024)</p>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { username: 'sarah', role: 'Admin', color: 'hover:border-emerald-400' },
-                      { username: 'emma', role: 'Designer', color: 'hover:border-teal-400' },
-                      { username: 'james', role: 'Editor', color: 'hover:border-cyan-400' },
-                      { username: 'lisa', role: 'Lead', color: 'hover:border-green-400' },
-                      { username: 'david', role: 'Reviewer', color: 'hover:border-amber-400' },
-                      { username: 'rachel', role: 'Approver', color: 'hover:border-orange-400' },
-                      { username: 'alex', role: 'Dissem.', color: 'hover:border-purple-400' },
-                      { username: 'mike', role: 'Manager', color: 'hover:border-blue-400' },
+                      { username: 'sarah', role: 'Admin', initial: 'S' },
+                      { username: 'emma', role: 'Designer', initial: 'E' },
+                      { username: 'james', role: 'Editor', initial: 'J' },
+                      { username: 'lisa', role: 'Lead', initial: 'L' },
+                      { username: 'david', role: 'Reviewer', initial: 'D' },
+                      { username: 'rachel', role: 'Approver', initial: 'R' },
+                      { username: 'alex', role: 'Dissem.', initial: 'A' },
+                      { username: 'mike', role: 'Manager', initial: 'M' },
                     ].map((emp) => (
                       <button
                         key={emp.username}
@@ -381,10 +396,13 @@ export function AuthScreen() {
                           setEmail(emp.username)
                           setPassword('Vortex@2024')
                         }}
-                        className={`flex flex-col items-center gap-0.5 p-2 rounded-lg bg-[#1c1c1e] border border-[#38383a] ${emp.color} transition-all text-white/70 hover:text-white disabled:opacity-50`}
+                        className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-200 text-white/70 hover:text-white disabled:opacity-50"
                       >
-                        <span className="text-xs font-semibold capitalize">{emp.username}</span>
-                        <span className="text-[9px] text-white/40">{emp.role}</span>
+                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500/80 to-teal-600/80 flex items-center justify-center text-xs font-bold text-white">
+                          {emp.initial}
+                        </div>
+                        <span className="text-[10px] font-medium capitalize">{emp.username}</span>
+                        <span className="text-[8px] text-white/40">{emp.role}</span>
                       </button>
                     ))}
                   </div>
@@ -407,6 +425,7 @@ export function AuthScreen() {
               <span className="text-[10px] text-white/30">Powered by Neon PostgreSQL</span>
             </div>
           </div>
+        </div>
         </motion.div>
       </div>
     </div>

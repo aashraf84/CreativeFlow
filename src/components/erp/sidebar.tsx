@@ -114,6 +114,15 @@ const bottomNav: NavItem[] = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
+/** Convert a raw role string (e.g. "creative_lead") into a human-readable label. */
+function formatRoleLabel(role?: string): string {
+  if (!role) return "Agency Platform";
+  return role
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 function SectionHeader({ label, color }: { label: string; color?: string }) {
   const tooltipText = color ? SECTION_NAME_BY_COLOR[color] || label : label;
   return (
@@ -126,7 +135,7 @@ function SectionHeader({ label, color }: { label: string; color?: string }) {
               style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}66` }}
             />
           )}
-          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#86868b] dark:text-[#aeaeb2]/80">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#86868b] dark:text-[#aeaeb2]">
             {label}
           </p>
           {/* Subtle divider line after each section header */}
@@ -136,7 +145,7 @@ function SectionHeader({ label, color }: { label: string; color?: string }) {
           />
         </div>
       </TooltipTrigger>
-      <TooltipContent side="right" className="font-medium bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos">
+      <TooltipContent side="right" className="font-medium bg-white dark:bg-[#1c1c1e] border border-black/10 dark:border-white/10 shadow-tahoe">
         <span className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
           {tooltipText}
@@ -169,35 +178,46 @@ export function Sidebar() {
     return item?.badge;
   };
 
+  // ── User profile derived values ──
+  const userName = currentUser?.name || "Sarah Chen";
+  const userRole = formatRoleLabel(currentUser?.role);
+  const initials =
+    currentUser?.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "SC";
+
   return (
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
           "relative flex flex-col h-screen sticky top-0 z-20",
-          "bg-[#f7f7f8] dark:bg-[#1c1c1e] border-r border-[#e5e5e7] dark:border-[#38383a]",
-          "transition-[width] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+          "glass-sidebar shadow-tahoe border-r border-black/5 dark:border-white/5",
+          "transition-all duration-300 ease-in-out",
           sidebarOpen ? "w-64" : "w-[68px]"
         )}
       >
-        {/* macOS Traffic Light Dots + Logo */}
-        <div className={cn(
-          "flex items-center h-14 px-4",
-          sidebarOpen ? "justify-between" : "justify-center"
-        )}>
-          {sidebarOpen ? (
-            <div className="flex items-center gap-2.5">
-              {/* Breathing logo icon — subtle 3s scale 1.0 → 1.05 → 1.0 */}
-              <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25 breathe breathe">
+        {/* macOS Traffic Light Dots + Branding */}
+        <div
+          className={cn(
+            "flex items-center px-4 py-3 gap-3",
+            sidebarOpen ? "justify-between" : "justify-start"
+          )}
+        >
+          {/* macOS window controls */}
+          <div className="traffic-lights">
+            <div className="traffic-light traffic-light-close" />
+            <div className="traffic-light traffic-light-minimize" />
+            <div className="traffic-light traffic-light-maximize" />
+          </div>
+
+          {/* Branding — only shown when sidebar is expanded */}
+          {sidebarOpen && (
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25 breathe">
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               <div className="leading-none">
                 <h1 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-white">VortexERP</h1>
                 <p className="text-[10px] text-[#86868b] dark:text-[#aeaeb2] mt-0.5">Agency Platform</p>
               </div>
-            </div>
-          ) : (
-            <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25 breathe breathe">
-              <Sparkles className="h-4 w-4 text-white" />
             </div>
           )}
         </div>
@@ -284,8 +304,8 @@ export function Sidebar() {
           </div>
         </nav>
 
-        {/* Bottom: Settings + User */}
-        <div className="px-2 pb-3 pt-2 border-t border-[#e5e5e7] dark:border-[#38383a] space-y-1">
+        {/* Bottom: Settings + User Profile */}
+        <div className="px-2 pb-3 pt-2 border-t border-black/5 dark:border-white/5 space-y-1">
           {bottomNav.map((item) => (
             <NavButton
               key={item.id}
@@ -298,33 +318,33 @@ export function Sidebar() {
 
           {/* User profile row */}
           {sidebarOpen ? (
-            <div className="mt-2 flex items-center gap-2.5 rounded-xl px-2 py-2 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+            <div className="mt-2 flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors cursor-pointer">
               <div className="relative">
-                <Avatar className="h-8 w-8 ring-1 ring-black/5 dark:ring-white/10">
-                  <AvatarFallback className="text-[11px] font-semibold bg-gradient-to-br from-emerald-400 to-teal-500 text-white">
-                    {currentUser?.name?.split(" ").map(n => n[0]).join("") || "SC"}
+                <Avatar className="h-7 w-7 rounded-full ring-1 ring-black/5 dark:ring-white/10">
+                  <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-semibold rounded-full">
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
-                {/* Online status indicator (green dot) */}
-                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-[#f7f7f8] dark:border-[#1c1c1e]" />
+                {/* Online status indicator */}
+                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 border-2 border-[#f7f7f8] dark:border-[#1c1c1e]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate text-[#1d1d1f] dark:text-white">{currentUser?.name || "Sarah Chen"}</p>
+                <p className="text-xs font-medium text-[#1d1d1f] dark:text-white truncate">{userName}</p>
                 <p className="text-[10px] text-[#86868b] dark:text-[#aeaeb2] truncate flex items-center gap-1">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  Online · {unreadNotifications} new
+                  {userRole} · {unreadNotifications} new
                 </p>
               </div>
             </div>
           ) : (
             <div className="mt-2 flex justify-center">
               <div className="relative">
-                <Avatar className="h-8 w-8 ring-1 ring-black/5 dark:ring-white/10">
-                  <AvatarFallback className="text-[11px] font-semibold bg-gradient-to-br from-emerald-400 to-teal-500 text-white">
-                    {currentUser?.name?.split(" ").map(n => n[0]).join("") || "SC"}
+                <Avatar className="h-7 w-7 rounded-full ring-1 ring-black/5 dark:ring-white/10">
+                  <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-semibold rounded-full">
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-[#f7f7f8] dark:border-[#1c1c1e]" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 border-2 border-[#f7f7f8] dark:border-[#1c1c1e]" />
               </div>
             </div>
           )}
@@ -334,7 +354,7 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="icon"
-          className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos hover:bg-black/5 dark:hover:bg-white/10 z-30 group"
+          className="absolute -right-3 top-20 h-6 w-6 rounded-full bg-white dark:bg-[#1c1c1e] border border-black/10 dark:border-white/10 shadow-tahoe hover:bg-black/5 dark:hover:bg-white/10 z-30 group"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
@@ -361,6 +381,8 @@ function NavButton({
   collapsed: boolean;
 }) {
   const Icon = item.icon;
+  // Section color is used for the left accent bar + active icon tint; falls back to emerald.
+  const accentColor = item.color || "#34c759";
 
   const badgeColor = (badge: string) => {
     if (badge === "Live") return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
@@ -372,35 +394,46 @@ function NavButton({
     return "bg-black/5 text-[#86868b] dark:bg-white/10 dark:text-[#aeaeb2]";
   };
 
-  const activeGlowStyle = isActive && item.color
-    ? { boxShadow: `0 0 12px ${item.color}33, inset 2px 0 0 ${item.color}` }
-    : undefined;
-
   const button = (
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-150 relative",
-        collapsed ? "justify-center px-2 py-2" : "px-2.5 py-1.5",
+        "w-full flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-200 relative group",
+        collapsed ? "justify-center px-2 py-2" : "px-3 py-2",
         isActive
-          ? "bg-black/[0.07] dark:bg-white/10 text-[#1d1d1f] dark:text-white shadow-sm"
-          : "text-[#424245] dark:text-[#aeaeb2] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-[#1d1d1f] dark:hover:text-white"
+          ? "vibrant-active font-medium"
+          : "text-[#1d1d1f] dark:text-white/80 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-[#1d1d1f] dark:hover:text-white"
       )}
-      style={activeGlowStyle}
     >
-      <Icon className={cn(
-        "shrink-0 transition-colors",
-        collapsed ? "h-[18px] w-[18px]" : "h-4 w-4",
-        isActive && item.color ? "" : isActive ? "text-emerald-600 dark:text-emerald-400" : "text-[#86868b] dark:text-[#aeaeb2]"
-      )} style={isActive && item.color ? { color: item.color } : undefined} />
+      {/* Left accent bar — visible only on the active item */}
+      {isActive && (
+        <div
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full"
+          style={{ backgroundColor: accentColor }}
+        />
+      )}
+      <Icon
+        className={cn(
+          "shrink-0 transition-colors h-[18px] w-[18px]",
+          !isActive && "text-[#86868b] dark:text-[#aeaeb2]"
+        )}
+        style={isActive && item.color ? { color: item.color } : undefined}
+      />
       {!collapsed && (
         <>
-          <span className="flex-1 text-left truncate">{item.label}</span>
+          <span
+            className="flex-1 text-left truncate"
+            style={isActive && item.color ? { color: item.color } : undefined}
+          >
+            {item.label}
+          </span>
           {item.badge && (
-            <span className={cn(
-              "px-1.5 py-0.5 text-[10px] font-semibold rounded-md leading-none",
-              badgeColor(item.badge)
-            )}>
+            <span
+              className={cn(
+                "px-1.5 py-0.5 text-[10px] font-semibold rounded-md leading-none",
+                badgeColor(item.badge)
+              )}
+            >
               {item.badge}
             </span>
           )}
@@ -415,7 +448,7 @@ function NavButton({
         <TooltipTrigger asChild>
           {button}
         </TooltipTrigger>
-        <TooltipContent side="right" className="font-medium bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos">
+        <TooltipContent side="right" className="font-medium bg-white dark:bg-[#1c1c1e] border border-black/10 dark:border-white/10 shadow-tahoe">
           {item.label}
           {item.badge && ` (${item.badge})`}
         </TooltipContent>

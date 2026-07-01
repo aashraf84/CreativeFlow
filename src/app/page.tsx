@@ -411,9 +411,15 @@ export default function ERPPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-white dark:bg-black text-[#1d1d1f] dark:text-white antialiased selection:bg-emerald-500/25">
+    <div className="min-h-screen flex bg-gradient-to-br from-[#e8e8ed] via-[#f5f5f7] to-[#e0e0e3] dark:from-[#0c0c0e] dark:via-[#0a0a0c] dark:to-[#08080a] text-[#1d1d1f] dark:text-white antialiased selection:bg-emerald-500/25">
+      {/* Subtle ambient color orbs for depth (visible through translucent panels) */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-emerald-500/8 dark:bg-emerald-500/5 blur-[100px]" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] rounded-full bg-teal-500/6 dark:bg-teal-500/4 blur-[120px]" />
+        <div className="absolute top-[40%] right-[20%] w-[300px] h-[300px] rounded-full bg-cyan-500/4 dark:bg-cyan-500/3 blur-[100px]" />
+      </div>
       <Sidebar />
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden relative z-10">
         <Header />
         <main className="flex-1 overflow-y-auto">
           {isLoading ? (

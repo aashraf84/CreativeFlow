@@ -232,10 +232,10 @@
   }
 
   body {
-    @apply bg-background text-foreground;
     font-family: var(--font-sf);
     letter-spacing: -0.011em;
-    background-color: var(--macos-bg);
+    /* Use transparent background so page gradient shows through */
+    background-color: transparent;
     /* Smooth transition when toggling between dark/light modes */
     transition: background-color 0.32s var(--ease-smooth),
                 color 0.32s var(--ease-smooth);
@@ -338,10 +338,10 @@
     background-color: var(--macos-card);
   }
   .glass-sidebar {
-    background-color: var(--macos-sidebar);
+    /* Translucent sidebar — overridden by enhanced rules at EOF */
   }
   .glass-toolbar {
-    background-color: var(--macos-toolbar);
+    /* Translucent toolbar — overridden by enhanced rules at EOF */
   }
 
   /* Subtle Tahoe shadow utilities */
@@ -350,6 +350,49 @@
   }
   .shadow-macos-lg {
     box-shadow: var(--macos-shadow-lg);
+  }
+
+  /* ── macOS 27 (Tahoe) refined shadow scale ──
+     Tahoe ships softer, more diffused shadows with a subtle cool tint,
+     giving UI elements a floating, premium feel. */
+  .shadow-tahoe-sm {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 1px 1px rgba(0, 0, 0, 0.02);
+  }
+  .shadow-tahoe {
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.06),
+      0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+  .dark .shadow-tahoe-sm {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.28),
+      0 1px 1px rgba(0, 0, 0, 0.18);
+  }
+  .dark .shadow-tahoe {
+    box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.4),
+      0 1px 2px rgba(0, 0, 0, 0.28);
+  }
+
+  /* ── Tahoe primary button affordance ──
+     Adds a subtle press/scale micro-interaction on top of gradients.
+     Pair with `bg-gradient-to-br from-emerald-500 to-teal-600`. */
+  .btn-tahoe {
+    transition:
+      transform 0.18s var(--ease-tahoe),
+      box-shadow 0.22s var(--ease-smooth),
+      background-image 0.22s var(--ease-smooth);
+  }
+  .btn-tahoe:active {
+    transform: scale(0.97);
+  }
+  .btn-tahoe:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--macos-toolbar),
+      0 0 0 4px rgba(52, 199, 89, 0.45);
   }
 
   /* Subtle hover elevation (1px lift, not 2px) */
@@ -502,6 +545,67 @@
   }
   .btn-glow:active {
     transform: translateY(0) scale(0.98);
+  }
+
+  /* ── macOS 27 (Tahoe) auth-screen utilities ── */
+
+  /* Frosted-glass card with layered backdrop + tinted border highlights.
+     Designed for the login window on a near-black backdrop. */
+  .glass-card {
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%),
+      rgba(20, 20, 22, 0.55);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.10),
+      inset 0 -1px 0 0 rgba(0, 0, 0, 0.40),
+      0 1px 2px 0 rgba(0, 0, 0, 0.30);
+  }
+  .glass-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(120% 80% at 50% 0%, rgba(52, 199, 89, 0.08) 0%, transparent 60%);
+    pointer-events: none;
+    opacity: 0.7;
+  }
+
+  /* Extra-deep, soft Tahoe shadow for floating glass surfaces. */
+  .shadow-tahoe-xl {
+    box-shadow:
+      0 24px 60px -12px rgba(0, 0, 0, 0.75),
+      0 8px 24px -8px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* Premium gradient CTA button: emerald → teal with refined halo + press. */
+  .btn-tahoe {
+    position: relative;
+    overflow: hidden;
+    transition:
+      transform 0.22s var(--ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+      box-shadow 0.3s var(--ease-smooth, cubic-bezier(0.4, 0, 0.2, 1)),
+      filter 0.2s var(--ease-smooth, cubic-bezier(0.4, 0, 0.2, 1));
+  }
+  .btn-tahoe::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, transparent 45%);
+    pointer-events: none;
+    opacity: 0.9;
+  }
+  .btn-tahoe:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+  }
+  .btn-tahoe:active {
+    transform: translateY(0) scale(0.985);
   }
 
   /* Gradient border effect (emerald → teal) using border-image */
@@ -1218,4 +1322,160 @@
 /* Badge depth */
 .badge-depth {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   macOS 27 (Tahoe) ENHANCED — Translucency, Premium Shadows & Vibrancy
+   Additive layer: enhances the SOLID Retina base with frosted glass,
+   premium layered shadows, refined buttons, vibrant selection, and
+   smoother typography. All utilities work in BOTH light and dark mode.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── macOS 27 Tahoe Translucency ── */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.dark .glass-panel {
+  background: rgba(28, 28, 30, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-sidebar {
+  background: rgba(245, 245, 247, 0.78);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+}
+.dark .glass-sidebar {
+  background: rgba(22, 22, 24, 0.78);
+}
+
+.glass-toolbar {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+.dark .glass-toolbar {
+  background: rgba(28, 28, 30, 0.72);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.80);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+.dark .glass-card {
+  background: rgba(30, 30, 32, 0.80);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ── macOS 27 Premium Shadows (layered, premium) ── */
+.shadow-tahoe-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.shadow-tahoe {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.03);
+}
+.shadow-tahoe-lg {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.03);
+}
+.shadow-tahoe-xl {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.10), 0 4px 16px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.03);
+}
+.dark .shadow-tahoe-sm {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.dark .shadow-tahoe {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+.dark .shadow-tahoe-lg {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+.dark .shadow-tahoe-xl {
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* ── macOS 27 Button Styles ── */
+.btn-tahoe {
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: all 0.2s var(--ease-smooth);
+}
+.btn-tahoe:hover {
+  transform: translateY(-1px);
+}
+.btn-tahoe:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ── macOS 27 Card Hover ── */
+.card-tahoe {
+  transition: transform 0.3s var(--ease-smooth), box-shadow 0.3s var(--ease-smooth);
+}
+.card-tahoe:hover {
+  transform: translateY(-2px);
+}
+
+/* ── macOS 27 Traffic Light Dots (macOS window controls) ── */
+.traffic-lights {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px;
+}
+.traffic-light {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  transition: all 0.2s var(--ease-smooth);
+  display: inline-block;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.traffic-light-close { background: #ff5f57; }
+.traffic-light-minimize { background: #febc2e; }
+.traffic-light-maximize { background: #28c840; }
+.traffic-lights:hover .traffic-light {
+  transform: scale(1.15);
+}
+
+/* ── macOS 27 Vibrant Selection (macOS-style active state) ── */
+.vibrant-active {
+  background: rgba(52, 199, 89, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.dark .vibrant-active {
+  background: rgba(52, 199, 89, 0.18);
+}
+
+/* ── macOS 27 overlay scrollbar - appears on hover ── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(135, 135, 140, 0.3);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(135, 135, 140, 0.5);
+}
+
+/* ── Typography Enhancement (additive to existing body rule) ── */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv01", "cv02", "cv03";
 }

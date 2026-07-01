@@ -3462,3 +3462,339 @@ Added full create/edit/delete functionality to 3 VortexERP views whose primary a
 ## Files Created
 None — all changes are in-place modifications to existing files.
 
+
+---
+
+# Task: Enhance globals.css to macOS 27 (Tahoe) Design Language
+
+## Agent: frontend-styling-expert
+## Date: 2026-06-27
+## Task ID: ui-globals
+
+## Summary
+Enhanced the existing "macOS 27 SOLID Retina" design system in `/home/z/my-project/src/app/globals.css` with an additive layer of translucency/vibrancy (frosted glass), premium layered shadows, refined button + card interactions, traffic-light window controls, vibrant selection state, smoother overlay scrollbar, and premium typography. All additions are appended to the END of the file; no existing styles were removed.
+
+## Changes Made
+
+### File: `/home/z/my-project/src/app/globals.css`
+
+Appended a new "macOS 27 (Tahoe) ENHANCED" section (lines ~1327–1478) containing:
+
+1. **Translucency / Vibrancy (frosted glass)** — new utility classes:
+   - `.glass-panel` — 72% white, `backdrop-filter: blur(40px) saturate(180%)`, light hairline border. Dark mode: 72% near-black with 8% white border.
+   - `.glass-sidebar` — 78% light-gray with 40px blur+saturation. Dark mode: 78% deep-gray. (Overrides the SOLID version with translucency — unlayered rule wins over the existing `@layer components` rule.)
+   - `.glass-toolbar` — 72% white with bottom hairline border. Dark mode: 72% near-black.
+   - `.glass-card` — 80% white with 20px blur+saturation. Dark mode: 80% near-charcoal.
+   - Each has an explicit `.dark` variant.
+
+2. **Premium layered shadows** — 4 depth tiers:
+   - `.shadow-tahoe-sm`, `.shadow-tahoe`, `.shadow-tahoe-lg`, `.shadow-tahoe-xl` — each composed of 2–3 layered box-shadows (ambient + key + 1px hairline ring) for that signature Tahoe depth.
+   - Matching `.dark` variants with stronger alpha values and a 5% white hairline ring (since shadows on true-black need lighter outlines, not darker).
+
+3. **Enhanced Button Styles** — `.btn-tahoe`:
+   - 10px radius, 600 weight, `-0.01em` tracking, `transition: all 0.2s var(--ease-smooth)`.
+   - `:hover` → `translateY(-1px)` (1px lift).
+   - `:active` → `translateY(0) scale(0.98)` (press feedback).
+
+4. **Enhanced Card Hover** — `.card-tahoe`:
+   - 0.3s smooth transition on transform + box-shadow.
+   - `:hover` → `translateY(-2px)` lift.
+
+5. **Traffic Light Dots** — full set of macOS window controls:
+   - `.traffic-lights` flex container with 8px gap.
+   - `.traffic-light` base dot (12px, 50% radius, smooth transition).
+   - `.traffic-light-close` (#ff5f57), `.traffic-light-minimize` (#febc2e), `.traffic-light-maximize` (#28c840).
+   - `.traffic-lights:hover .traffic-light` → all dots scale to 1.1 (macOS-group hover behavior).
+   - Overrides existing `.traffic-light` in `@layer components` (unlayered wins).
+
+6. **Vibrant Selection** — `.vibrant-active`:
+   - Emerald-tinted translucent background (12% in light, 18% in dark) with 10px backdrop blur for that "selected row in Finder" feel.
+
+7. **Overlay scrollbar enhancement** — overrides existing scrollbar styles:
+   - 8×8px (down from 9×9) for a slimmer profile.
+   - 30% alpha thumb (50% on hover), 999px radius, 2px transparent padding-box border for the floating-pill look.
+   - Transparent track (overlay style).
+
+8. **Typography enhancement** — additive `body` rule:
+   - `-webkit-font-smoothing: antialiased`, `-moz-osx-font-smoothing: grayscale`, `text-rendering: optimizeLegibility`.
+   - `font-feature-settings: "ss01", "cv01", "cv02", "cv03"` for SF Pro stylistic alternates (additive — doesn't override existing body properties; merges via source order).
+
+## How the Override Mechanism Works
+The existing design system has many rules inside `@layer base` and `@layer components` (e.g. `.glass`, `.glass-sidebar`, `.glass-toolbar`, `.traffic-light`, `::-webkit-scrollbar`, `body`). In CSS cascade layers, **unlayered styles always take precedence over layered ones** at equal specificity. The new enhancement rules are appended outside any `@layer`, so they cleanly override the SOLID variants where there's a property conflict (turning solid surfaces into frosted glass, etc.) without touching the original source. Where the new selectors don't conflict (e.g. `.glass-panel`, `.glass-card`, `.shadow-tahoe-*`, `.btn-tahoe`, `.card-tahoe`, `.vibrant-active`), they simply add new utilities.
+
+## Testing
+- `bun run lint` (`eslint .`) passed with no errors and no warnings after the changes (CSS-only edit, no TS/JSX touched).
+- No component files were modified — only `globals.css`.
+- All new utilities support both light and dark mode via explicit `.dark` variants.
+- `prefers-reduced-motion` rules earlier in the file still apply to the new `.btn-tahoe:hover` and `.card-tahoe:hover` transforms (the existing reduced-motion media query targets `*` transitions and animations globally, so the new transform-based hovers are also neutralized for users with motion sensitivity).
+
+## Files Modified
+- `/home/z/my-project/src/app/globals.css` — appended ~150 lines of new enhancement CSS at the end (no removals).
+
+## Files Created
+None.
+
+## Next Actions (suggested, out of scope for this task)
+- Component-level refactor: swap existing `bg-card` / solid backgrounds on top-level layout chrome (sidebar, header, dialogs) to use the new `glass-panel` / `glass-sidebar` / `glass-toolbar` classes to actually surface the translucency. Until a `backdrop-filter`-able element sits behind these utilities, the blur won't be visibly distinguishable from a solid surface.
+- Replace `shadow-macos` / `shadow-macos-lg` usages on cards/modals with `shadow-tahoe-lg` / `shadow-tahoe-xl` for the premium layered look.
+- Apply `btn-tahoe` to primary CTA buttons and `card-tahoe` to dashboard KPI cards.
+- Consider gating `backdrop-filter` behind a `@supports (backdrop-filter: blur(1px))` fallback for legacy browsers (currently relies on `-webkit-` prefix only).
+
+---
+
+# Task: Redesign Header for macOS 27 (Tahoe) Design Language
+
+## Agent: frontend-styling-expert
+## Date: 2026-06-27
+## Task ID: ui-header
+
+## Summary
+Redesigned the VortexERP header/toolbar component (`src/components/erp/header.tsx`) to match the macOS 27 (Tahoe) design language: frosted translucent toolbar background, refined rounded-rect search bar that expands on focus, premium gradient Create button with Tahoe micro-interactions, hover-polished action buttons, premium notification bell with badge, and a clean user avatar dropdown with first-name label. Added three new supporting CSS utility classes (`shadow-tahoe-sm`, `shadow-tahoe`, `btn-tahoe`) to `globals.css` because they were referenced by the spec but not yet defined.
+
+## Changes Made
+
+### File: `/home/z/my-project/src/app/globals.css`
+**Added new Tahoe utility classes** (immediately after the existing `.shadow-macos-lg` block, inside the `@layer components` block):
+
+1. **`.shadow-tahoe-sm`** — Subtle 2-layer floating shadow (`0 1px 2px rgba(0,0,0,0.04)` + `0 1px 1px rgba(0,0,0,0.02)`). Used on the header bar and the default Create button state. Dark-mode variant increases alpha for visibility on dark surfaces.
+2. **`.shadow-tahoe`** — Slightly stronger hover-state shadow (`0 2px 6px rgba(0,0,0,0.06)` + `0 1px 2px rgba(0,0,0,0.04)`). Used on the Create button hover. Dark-mode variant included.
+3. **`.btn-tahoe`** — Premium button affordance that adds:
+   - Smooth transition on `transform` (using `--ease-tahoe` spring curve), `box-shadow`, and `background-image`
+   - `:active` press-down micro-interaction (`scale(0.97)`)
+   - `:focus-visible` 2-ring focus halo using `--macos-toolbar` ring + emerald accent ring (replaces the default Tailwind ring for a more refined, app-like focus indicator)
+
+### File: `/home/z/my-project/src/components/erp/header.tsx`
+**Full redesign of the header** — all existing functionality preserved (search, notifications, create menu, theme toggle, demo indicator, user dropdown, logout). Specific changes:
+
+1. **Toolbar container (line 137)**:
+   - Replaced `bg-white dark:bg-[#1c1c1e]` with `glass-toolbar` (frosted-glass class backed by `--macos-toolbar` CSS variable)
+   - Added `shadow-tahoe-sm` for the subtle floating effect
+   - Kept `sticky top-0 z-30 h-14` and the border with `border-[#e5e5e7] dark:border-[#38383a]`
+
+2. **Page title**:
+   - Changed `<h2>` (section-color text) to `<h1>` with `text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-white`
+   - Section color is now carried exclusively by the existing colored dot indicator (still `SECTION_COLOR_BY_VIEW[activeView]`), giving a cleaner, more refined look while preserving section-color signaling
+   - Added `pageTitle` const = `viewLabels[activeView]` for clarity
+   - Kept AnimatePresence/motion.div fade transition and the pipeline/dissemination Badge
+
+3. **Search bar**:
+   - Changed from `rounded-full` (pill) to `rounded-lg` per macOS 27 spec
+   - Refined icon positioning using `top-1/2 -translate-y-1/2` (more robust than absolute offset)
+   - Added `focus-visible:bg-white dark:focus-visible:bg-[#1c1c1e]` and `focus-visible:border-emerald-400/40` + `focus-visible:ring-2 focus-visible:ring-emerald-400/30`
+   - Preserved expand-on-focus behavior (`w-52` → `w-72` on focus) and the ⌘K kbd hint (now using `top-1/2 -translate-y-1/2` for vertical centering)
+   - Search icon size bumped from `h-3.5 w-3.5` to `h-4 w-4` for better visual weight
+
+4. **Action buttons (theme toggle)**:
+   - Changed from `rounded-full` to `rounded-lg`, added `transition-all duration-200`
+   - Kept hover bg `hover:bg-black/[0.05] dark:hover:bg-white/[0.08]`
+   - Theme icons (Sun/Moon) bumped from `h-4 w-4` to `h-[18px] w-[18px]` per spec
+
+5. **Notification bell**:
+   - Changed from `rounded-full` to `rounded-lg`, added `transition-all duration-200`
+   - Bell icon bumped from `h-4 w-4` to `h-[18px] w-[18px]`
+   - Badge repositioned to `top-1 right-1` with `h-4 min-w-[16px]` and `bg-red-500` per spec (was `top-1.5 right-1.5 h-3.5 min-w-[14px] bg-rose-500`)
+   - Preserved `hasUnread` pulse animation and `>9` count truncation
+   - Kept white/dark ring around badge for legibility on the toolbar
+
+6. **Create button**:
+   - Changed from `rounded-full` to `rounded-lg`
+   - Added `shadow-tahoe-sm` + `hover:shadow-tahoe` + `btn-tahoe` classes for the premium press/scale micro-interaction
+   - Replaced the previous `shadow-md shadow-emerald-500/25` with the Tahoe shadow scale
+   - Plus icon bumped from `h-3.5 w-3.5` to `h-4 w-4`
+   - Text styling: `text-[13px] font-semibold`
+   - Preserved `hasPending` glow animation and pending-approvals count badge
+
+7. **User avatar**:
+   - Replaced the raw `<button>` wrapper with a proper `<Button variant="ghost">` for consistent focus/keyboard handling
+   - New classes: `h-9 px-2 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-all duration-200 gap-2`
+   - Avatar size reduced from `h-8 w-8` to `h-7 w-7` (cleaner, more app-like)
+   - Avatar fallback gradient changed from `from-emerald-400 to-teal-500` to `from-emerald-500 to-teal-600` to match the Create button's primary gradient
+   - Added first-name label: `<span className="text-[13px] font-medium hidden sm:block text-[#1d1d1f] dark:text-white">{firstName}</span>`
+   - Added `initials` and `firstName` derived consts from `currentUser?.name` (with sensible "Sarah Chen" / "SC" fallbacks)
+   - All dropdown menu items and logout behavior preserved verbatim
+
+8. **Demo indicator**: Wrapped in `hidden sm:flex` so it doesn't crowd the action cluster on narrow screens (small UX polish; still renders on sm+ screens as before).
+
+## Key Design Decisions
+- **Title color**: The spec asked for a neutral `text-[#1d1d1f] dark:text-white` title. To preserve the section-color signal that was carefully built in prior tasks (per worklog), I moved the section color to live exclusively on the existing dot indicator while the title text adopts the refined neutral. Both signals coexist without redundancy.
+- **Search shape**: Spec calls for `rounded-lg`; I removed the pill shape but kept the expand-on-focus behavior (mentioned in the goal section) and the ⌘K hint, since these are existing functionality that the rules say to preserve.
+- **New CSS utilities**: The spec referenced `shadow-tahoe-sm`, `shadow-tahoe`, and `btn-tahoe` but these did not exist anywhere in the codebase (verified via grep). Rather than swap them for the older `shadow-macos*` equivalents (which would lose the Tahoe refinement) or skip them (which would defeat the redesign), I added them as new `@layer components` utilities co-located with the existing `shadow-macos*` family. They use the existing `--ease-tahoe`, `--ease-smooth`, and `--macos-toolbar` CSS variables for visual consistency.
+- **Avatar as Button**: Upgrading the avatar trigger from a raw `<button>` to `<Button variant="ghost">` gives us consistent focus-visible rings, disabled-state handling, and tab order for free. The DropdownMenuTrigger `asChild` propagation still works correctly.
+
+## Testing
+- `bun run lint` — **PASSED** with no errors and no warnings.
+- All existing functionality preserved by inspection:
+  - Search input (focus state, expand, ⌘K hint)
+  - Notifications button with unread count + pulse animation
+  - Create dropdown (New Content, New Post, New Campaign, New Client) with `setShowCreateContent`/`setShowCreatePost` callbacks
+  - Theme toggle (Sun/Moon rotation, localStorage persistence, system-preference fallback)
+  - Demo mode indicator (when `isViewOnly`)
+  - User dropdown (Profile, Preferences, Log out via `logout()`)
+
+## Files Touched
+- `/home/z/my-project/src/app/globals.css` — added 3 new utility classes (~43 lines)
+- `/home/z/my-project/src/components/erp/header.tsx` — full redesign, kept all imports and store wiring
+
+
+---
+
+# Task: Redesign Sidebar for macOS 27 (Tahoe) Design Language
+
+## Agent: frontend-styling-expert
+## Task ID: ui-sidebar
+## Date: 2026-06-27
+
+## Summary
+Redesigned `/home/z/my-project/src/components/erp/sidebar.tsx` to align with the macOS 27 (Tahoe) design language. The redesign introduces macOS window-control traffic lights at the top, a translucent `glass-sidebar` material with `shadow-tahoe` depth, vibrant selection styling for the active nav item (with a colored left accent bar), refined uppercase section headers, a refreshed bottom user-profile section, and a smoother collapse animation — all while preserving every piece of existing functionality (navigation, active states, section colors, badges, tooltips, collapse toggle, unread counts).
+
+## File Touched
+- `/home/z/my-project/src/components/erp/sidebar.tsx` — full redesign
+
+## CSS Classes Used (already present in `globals.css`)
+Verified via grep that the following classes already exist in `/home/z/my-project/src/app/globals.css` — no CSS changes were needed:
+- `glass-sidebar` (line 340) — solid translucent sidebar material tied to `--macos-sidebar`
+- `shadow-tahoe` (line 1381) + `.dark .shadow-tahoe` (line 1393) — premium layered shadow
+- `vibrant-active` (line 1445) + `.dark .vibrant-active` (line 1450) — emerald-tinted active selection with subtle backdrop blur
+- `traffic-lights` (line 1426) — flex container for window-control dots
+- `traffic-light` (line 1431) — 12px round dot with smooth scale-on-hover
+- `traffic-light-close` / `traffic-light-minimize` / `traffic-light-maximize` (lines 1437–1439) — macOS red/yellow/green window controls
+
+## Changes Made
+
+### 1. Sidebar Container — Translucent Material + Smooth Collapse
+Replaced the solid `bg-[#f7f7f8] dark:bg-[#1c1c1e]` background with `glass-sidebar shadow-tahoe` for the frosted macOS sidebar look. The right border was softened from `border-[#e5e5e7] dark:border-[#38383a]` to `border-black/5 dark:border-white/5`. Switched the width transition from `transition-[width] duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]` to `transition-all duration-300 ease-in-out` per spec for a smoother, broader transition.
+
+### 2. Traffic Light Dots + Branding (Top Row)
+Replaced the old logo-only header with a single row containing the three macOS traffic-light dots (`traffic-light-close`, `traffic-light-minimize`, `traffic-light-maximize`) wrapped in a `traffic-lights` container. When the sidebar is expanded, the VortexERP logo + title sit on the right side of the same row (`justify-between`); when collapsed, only the traffic lights remain (left-aligned, fitting the 68px collapsed width perfectly). The breathing Sparkles logo and "Agency Platform" subtitle were preserved.
+
+### 3. Refined Navigation Items (`NavButton`)
+Reworked each nav button to match the Tahoe spec:
+- **Active state**: uses the `vibrant-active` class (emerald-tinted translucent selection) instead of the previous flat `bg-black/[0.07]`. A colored left accent bar (`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full`) appears on the active item, tinted with the section color (or emerald fallback) — preserving the per-section color signal from the previous design.
+- **Hover**: `hover:bg-black/[0.04] dark:hover:bg-white/[0.06]` with `transition-all duration-200`.
+- **Icons**: bumped from `h-4 w-4` to `h-[18px] w-[18px]` for both expanded and collapsed states (the spec called for slightly larger icons).
+- **Padding**: `px-3 py-2` (was `px-2.5 py-1.5`) for better breathing room; collapsed state stays `px-2 py-2` centered.
+- **Rounded corners**: kept at `rounded-lg` (8px).
+- **Section color tinting**: when an item with a `color` is active, the icon and label receive the section color via inline `style` (same approach as before), so each section's identity still shines through on the active item.
+- Removed the previous `activeGlowStyle` inset-box-shadow hack — the new accent bar + `vibrant-active` background is cleaner and more macOS-native.
+
+### 4. Section Headers — Refined Typography
+Kept the existing sophisticated section header (color dot + uppercase label + gradient divider line + hover tooltip) but tightened the typography to match the spec: `tracking-[0.08em]` → `tracking-[0.1em]`, and the muted color is now `text-[#86868b] dark:text-[#aeaeb2]` (was `dark:text-[#aeaeb2]/80`). Tooltip containers updated from `shadow-macos` to `shadow-tahoe` for consistency with the new system, and borders softened to `border-black/10 dark:border-white/10`.
+
+### 5. User Profile at Bottom
+Refreshed the bottom user-profile row to match the spec:
+- Avatar size `h-7 w-7 rounded-full` with `from-emerald-500 to-teal-600` gradient fallback (was `h-8 w-8` with `from-emerald-400 to-teal-500`).
+- Cleaner hover treatment: `hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors` on a `rounded-lg` row.
+- Online status dot preserved (slightly smaller — `h-2 w-2` vs the previous `h-2.5 w-2.5` — to balance the smaller avatar).
+- Subtitle line now shows `{userRole} · {unreadNotifications} new` (was `Online · {n} new`). Added a small `formatRoleLabel()` helper that converts raw role strings like `creative_lead` into `Creative Lead` for human-readable display.
+- Derived `userName`, `userRole`, and `initials` consts from `currentUser` (with "Sarah Chen" / "Agency Platform" / "SC" fallbacks).
+- Collapsed state shows just the avatar with online dot, centered — same as before but with the new sizing/colors.
+
+### 6. Collapse Toggle Button
+Updated the floating collapse-toggle button's border and shadow from `border-[#e5e5e7] dark:border-[#38383a] shadow-macos` to `border-black/10 dark:border-white/10 shadow-tahoe` to match the rest of the refreshed surface treatments. All existing rotation/translate hover animations on the chevron icon are preserved.
+
+## Key Design Decisions
+- **Preserved section colors**: The previous design carefully assigned each nav section (Main, Manage, HR, Finance, Inventory, Insights) its own Apple-system color. Rather than flatten to a single emerald active state (which the spec example implies), I kept the section color on the left accent bar AND on the active item's icon/label text via inline `style`. This honors Rule #1 ("Keep ALL existing functionality") while still using the new `vibrant-active` background treatment.
+- **No CSS file changes needed**: The spec listed `glass-sidebar`, `vibrant-active`, `shadow-tahoe`, `traffic-lights`, `traffic-light`, and the three `traffic-light-*` color variants as "new CSS classes from globals.css". A grep confirmed all of them already exist in `globals.css` (lines 340, 1445, 1381, 1426, 1431, 1437–1439), so no CSS edits were required. (The `shadow-tahoe-sm`/`shadow-tahoe`/`btn-tahoe` classes referenced in the prior header task were also already added by that earlier work.)
+- **Traffic lights + logo share a row**: Rather than stack the traffic lights above the logo (which would have added vertical height and pushed the first nav section down), I placed them on the same row with `justify-between`. This matches the macOS 27 sidebar density where window controls and the app's inline branding coexist on the title bar.
+- **Role formatting**: Added a small `formatRoleLabel()` helper rather than introducing a dependency on `ROLE_DEFINITIONS` from the store, to keep the sidebar self-contained and avoid coupling display logic to permission tables.
+- **Text label fade on collapse**: The spec mentioned "Hide text labels smoothly with opacity". The existing implementation conditionally mounts labels (`{!collapsed && (...)}`), which makes an opacity transition impossible without a larger refactor. I kept the conditional mount (cleaner, no DOM bloat when collapsed) and instead relied on the smooth `transition-all duration-300 ease-in-out` width animation to carry the perceived smoothness. The width transition is the dominant visual cue during collapse and reads as smooth on its own.
+
+## Testing
+- `bun run lint` — **PASSED** with no errors and no warnings (clean exit, no output beyond `$ eslint .`).
+- All existing functionality preserved by inspection:
+  - Active view highlighting (`activeView === item.id`) with section-color tinting
+  - `setActiveView(id)` navigation handler on every nav button
+  - Dynamic badges: unread inbox count, pending approvals count, "Live"/"Pro"/"New" static badges
+  - Collapsed-mode tooltips (showing label + badge count) via `Tooltip`/`TooltipTrigger`/`TooltipContent`
+  - Section header color dots with `SECTION_NAME_BY_COLOR` tooltips
+  - Collapse toggle button (`setSidebarOpen(!sidebarOpen)`) with chevron rotation/translate hover animation
+  - User profile row derived from `currentUser` (name, role, initials)
+  - Online status indicator + unread notifications count
+  - Sticky positioning (`sticky top-0 z-20`), `macos-scroll` overlay scrollbar on nav
+  - Breathing animation on the Sparkles logo icon
+
+## Next Actions (Optional Polish)
+- If a true text-fade-on-collapse is desired later, the labels could be kept mounted with `opacity-0 w-0` when collapsed, transitioning opacity alongside the width. This would require restructuring the `{!collapsed && (...)}` conditional into a permanent render with class-based visibility.
+- The traffic light dots are currently decorative (no click handlers). If real window controls are desired in an Electron/Tauri wrapper, click handlers can be wired to `traffic-light-close`/`-minimize`/`-maximize` later.
+- `SECTION_COLOR_BY_VIEW` (line 66) is an empty `Record<string, string>` that was unused in the previous version and remains unused. It was kept to avoid touching unrelated code; could be removed in a future cleanup pass.
+
+
+---
+
+# Task ui-auth: macOS 27 (Tahoe) Lock-Screen Aesthetic for Auth Screen
+
+## Agent: frontend-styling-expert
+## Date: 2026-06-27
+
+## Summary
+Restyled the VortexERP auth/login screen (`src/components/erp/auth-screen.tsx`) to match the macOS 27 (Tahoe) lock-screen aesthetic. Added a deeper near-black gradient mesh background, frosted-glass login card via new utility classes, refined SF Pro typography, smoother spring-physics entrance animation, premium quick-login buttons with avatar initials, and macOS-style form inputs with emerald focus rings. All existing functionality (serial-key registration, email/password login, demo view-only login, quick employee login, theme bootstrap, device/session storage) was preserved unchanged.
+
+## Changes Made
+
+### File: `/home/z/my-project/src/app/globals.css`
+Added three new component-layer utility classes inside the existing `@layer components` block (after `.btn-glow`):
+
+1. **`.glass-card`** — Frosted-glass surface for the login window:
+   - Layered background: vertical white tint gradient + 55% opaque dark base
+   - `backdrop-filter: blur(40px) saturate(180%)` with `-webkit-` prefix for Safari
+   - Subtle 1px white/8% border, inset top highlight + inset bottom shadow for depth
+   - `::before` pseudo-element adds a soft emerald radial glow at the top edge
+
+2. **`.shadow-tahoe-xl`** — Deep, soft shadow for floating glass:
+   - Three-layer box-shadow: 24px blur long drop, 8px blur medium drop, 1px hairline rim
+   - Inset 1px top highlight to enhance the "floating" feel
+
+3. **`.btn-tahoe`** — Premium gradient CTA button refinement:
+   - Smooth transitions for transform, box-shadow, and filter (uses `--ease-smooth`)
+   - `::after` pseudo adds a top-down white sheen overlay (180deg gradient, 18% → transparent)
+   - Hover lifts `-1px` + brightness boost; active press scales to `0.985`
+
+### File: `/home/z/my-project/src/components/erp/auth-screen.tsx`
+Applied all visual enhancements while keeping every handler (`handleSerialKeySubmit`, `handleLogin`, `handleDemoLogin`, `handleKeyPress`) and every piece of state (`serialKey`, `email`, `password`, `showPassword`, `loading`, `error`, `statIndex`, `deviceId`) intact:
+
+1. **Enhanced background** — Added two absolute-positioned layers at the root container:
+   - `bg-gradient-to-br from-black via-[#0a0a0a] to-[#050505]` (deeper, richer black)
+   - Radial mesh with three colored orbs (emerald 8%, teal 6%, blue 4%) at 30% opacity, `pointer-events-none`
+
+2. **Loading state** — Added the same gradient background to the `authState === "loading"` spinner screen for consistency.
+
+3. **Glass card wrapper** — Wrapped the entire right-panel auth form (mobile logo, step indicator, AnimatePresence forms, footer) in `<div className="glass-card rounded-3xl p-6 sm:p-8 shadow-tahoe-xl">`. The left panel hero text, stats, and feature badges remain unchanged.
+
+4. **Smoother entrance animation** — Upgraded the right-panel `motion.div` from linear `duration: 0.5` to spring-style easing:
+   ```tsx
+   initial={{ opacity: 0, y: 20, scale: 0.96 }}
+   animate={{ opacity: 1, y: 0, scale: 1 }}
+   transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+   ```
+   The overshoot cubic-bezier (`[0.34, 1.56, 0.64, 1]`) gives a subtle "settle" pop.
+
+5. **Enhanced typography** — Bumped both auth headings (`Device Registration` and `Sign In`) from `text-2xl font-bold mb-1` to `text-3xl font-bold tracking-tight mb-1.5` for tighter, larger, more macOS-like display type. SF Pro stack is already applied globally via `--font-sf`.
+
+6. **Refined form inputs** — Replaced the dark-grey `bg-[#1c1c1e] border-[#38383a]` styling on all three inputs (serial key, email, password) with translucent macOS-style:
+   - `bg-white/[0.06] border-white/[0.08]` (resting)
+   - `focus-visible:bg-white/[0.08] focus-visible:border-emerald-400/40 focus-visible:ring-2 focus-visible:ring-emerald-500/20` (focus)
+   - `transition-all duration-300` for smooth color shifts
+   - `placeholder:text-white/30` for softer placeholders
+   - Added `transition-colors` to the password show/hide toggle button.
+
+7. **Premium quick-login buttons** — Reworked the 8-button employee grid:
+   - Replaced per-employee `color` hover-border classes with a unified frosted style: `bg-white/[0.04] border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]`
+   - Added a circular avatar with gradient fill (`from-emerald-500/80 to-teal-600/80`) showing the employee's initial (S, E, J, L, D, R, A, M)
+   - Resized text: username `text-[10px] font-medium`, role `text-[8px] text-white/40`
+   - Bumped padding to `p-2.5`, gap to `gap-1`, radius to `rounded-xl`
+   - `transition-all duration-200` for snappy hover response
+
+8. **Sign In / Register Device buttons** — Swapped `btn-glow` for the new `btn-tahoe` class, and bumped font weight/size to `font-semibold text-[15px]` with `hover:shadow-emerald-500/30` and `transition-all duration-300` for a more refined CTA.
+
+## Verification
+- `bun run lint` passed with **zero errors** (`eslint .` returned clean)
+- All imports retained: React, `useERPStore`, `Button`, `Input`, `Label`, `motion`/`AnimatePresence`, and all lucide-react icons
+- All state variables and handlers untouched
+- All form `onChange`/`onKeyPress`/`onClick` wiring preserved exactly
+- LocalStorage logic (`erp_device_id`, `erp_device_registered`, `erp_serial_key`, `erp_session`) untouched
+- Auto-rotating hero stats and floating feature badges on the left panel untouched
+
+## Files Touched
+- `/home/z/my-project/src/app/globals.css` — added 3 new utility classes (~60 lines)
+- `/home/z/my-project/src/components/erp/auth-screen.tsx` — full visual refresh, all handlers/state preserved
+
