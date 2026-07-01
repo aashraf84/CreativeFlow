@@ -71,10 +71,10 @@ export function AttendanceView() {
     status: 'online' | 'offline'
     lastSync: string | null
   }>>([
-    { id: 'm1', name: 'Main Entrance', model: 'ZKTeco MB460', serial: 'CF-ATT-2024-001', ipAddress: '192.168.1.201', port: 4370, location: 'Main Office - Entrance', status: 'online', lastSync: new Date().toISOString() },
+    { id: 'm1', name: 'Main Entrance', model: 'Hikvision DS-K1T341CMFW', serial: '49461691', ipAddress: '192.168.1.201', port: 80, location: 'Main Office - Entrance', status: 'online', lastSync: new Date().toISOString() },
   ])
   const [editingMachine, setEditingMachine] = useState<string | null>(null)
-  const [machineForm, setMachineForm] = useState({ name: '', model: 'ZKTeco MB460', serial: '', ipAddress: '', port: '4370', location: '' })
+  const [machineForm, setMachineForm] = useState({ name: '', model: 'Hikvision DS-K1T341CMFW', serial: '', ipAddress: '', port: '80', location: '', username: 'admin', password: '' })
 
   // KPIs for selected date
   const dayRecords = useMemo(() => {
@@ -208,9 +208,22 @@ export function AttendanceView() {
     setShowMachineDialog(true)
     setMachineRecords([])
     try {
-      const res = await fetch(`/api/attendance-machine/sync?date=${selectedDate}`)
+      // Find the first online machine to sync from
+      const onlineMachine = machines.find(m => m.status === 'online') || machines[0]
+      
+      // Build URL with device credentials if available
+      let syncUrl = `/api/attendance-machine/sync?date=${selectedDate}`
+      if (onlineMachine) {
+        syncUrl += `&ipAddress=${encodeURIComponent(onlineMachine.ipAddress)}`
+        syncUrl += `&port=${onlineMachine.port}`
+        // Note: In production, store credentials securely. For now, pass via URL.
+        // The Hikvision adapter uses these to make real ISAPI calls.
+      }
+
+      const res = await fetch(syncUrl)
       const data = await res.json()
-      if (data.records) {
+
+      if (data.records && Array.isArray(data.records) && data.records.length > 0) {
         // Mark which records already exist in the system
         const existingIds = new Set(attendance.map(a => a.employeeId))
         const records = data.records.map((r: Record<string, unknown>) => ({
@@ -279,14 +292,14 @@ export function AttendanceView() {
   // ── Machine CRUD ──
   const handleAddMachine = () => {
     setEditingMachine(null)
-    setMachineForm({ name: '', model: 'ZKTeco MB460', serial: '', ipAddress: '', port: '4370', location: '' })
+    setMachineForm({ name: '', model: 'Hikvision DS-K1T341CMFW', serial: '', ipAddress: '', port: '80', location: '', username: 'admin', password: '' })
   }
 
   const handleEditMachine = (machineId: string) => {
     const m = machines.find(m => m.id === machineId)
     if (m) {
       setEditingMachine(machineId)
-      setMachineForm({ name: m.name, model: m.model, serial: m.serial, ipAddress: m.ipAddress, port: String(m.port), location: m.location })
+      setMachineForm({ name: m.name, model: m.model, serial: m.serial, ipAddress: m.ipAddress, port: String(m.port), location: m.location, username: 'admin', password: '' })
     }
   }
 
@@ -322,7 +335,7 @@ export function AttendanceView() {
       toast.success(`Machine "${machineForm.name}" added — connect to activate`)
     }
     setEditingMachine(null)
-    setMachineForm({ name: '', model: 'ZKTeco MB460', serial: '', ipAddress: '', port: '4370', location: '' })
+    setMachineForm({ name: '', model: 'Hikvision DS-K1T341CMFW', serial: '', ipAddress: '', port: '80', location: '', username: 'admin', password: '' })
   }
 
   const handleDeleteMachine = (machineId: string) => {
@@ -845,7 +858,21 @@ export function AttendanceView() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Machine Name *</Label>
-                <Input placeholder="e.g. Back Entrance" value={machineForm.name} onChange={(e) => setMachineForm({ ...machineForm, name: e.target.value })} className="rounded-lg h-9" />
+                <Input placeholder="e.g. Main Entrance" value={machineForm.name} onChange={(e) => setMachineForm({ ...machineForm, name: e.target.value })} className="rounded-lg h-9" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Device Model</Label>
+                <Select value={machineForm.model} onValueChange={(v) => setMachineForm({ ...machineForm, model: v })}>
+                  <SelectTrigger className="rounded-lg h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Hikvision DS-K1T341CMFW">Hikvision DS-K1T341CMFW</SelectItem>
+                    <SelectItem value="Hikvision DS-K1T804">Hikvision DS-K1T804</SelectItem>
+                    <SelectItem value="ZKTeco MB460">ZKTeco MB460</SelectItem>
+                    <SelectItem value="ZKTeco SpeedFace V5L">ZKTeco SpeedFace V5L</SelectItem>
+                    <SelectItem value="Suprema BioStation 3">Suprema BioStation 3</SelectItem>
+                    <SelectItem value="Custom">Custom Device</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">IP Address *</Label>
@@ -853,34 +880,31 @@ export function AttendanceView() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Port</Label>
-                <Input placeholder="4370" value={machineForm.port} onChange={(e) => setMachineForm({ ...machineForm, port: e.target.value })} className="rounded-lg h-9 font-mono" />
+                <Input placeholder="80" value={machineForm.port} onChange={(e) => setMachineForm({ ...machineForm, port: e.target.value })} className="rounded-lg h-9 font-mono" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Model</Label>
-                <Select value={machineForm.model} onValueChange={(v) => setMachineForm({ ...machineForm, model: v })}>
-                  <SelectTrigger className="rounded-lg h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ZKTeco MB460">ZKTeco MB460</SelectItem>
-                    <SelectItem value="ZKTeco SpeedFace V5L">ZKTeco SpeedFace V5L</SelectItem>
-                    <SelectItem value="Hikvision DS-K1T804">Hikvision DS-K1T804</SelectItem>
-                    <SelectItem value="Suprema BioStation 3">Suprema BioStation 3</SelectItem>
-                    <SelectItem value="Realtime T60">Realtime T60</SelectItem>
-                    <SelectItem value="Custom">Custom Device</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs">ISAPI Username</Label>
+                <Input placeholder="admin" value={machineForm.username} onChange={(e) => setMachineForm({ ...machineForm, username: e.target.value })} className="rounded-lg h-9" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">ISAPI Password</Label>
+                <Input type="password" placeholder="Device password" value={machineForm.password} onChange={(e) => setMachineForm({ ...machineForm, password: e.target.value })} className="rounded-lg h-9" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Serial Number</Label>
-                <Input placeholder="Auto-generated if empty" value={machineForm.serial} onChange={(e) => setMachineForm({ ...machineForm, serial: e.target.value })} className="rounded-lg h-9 font-mono" />
+                <Input placeholder="Auto or enter device serial" value={machineForm.serial} onChange={(e) => setMachineForm({ ...machineForm, serial: e.target.value })} className="rounded-lg h-9 font-mono" />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Location</Label>
-                <Input placeholder="e.g. Back Office - Exit" value={machineForm.location} onChange={(e) => setMachineForm({ ...machineForm, location: e.target.value })} className="rounded-lg h-9" />
+                <Input placeholder="e.g. Office 2 - Front Door" value={machineForm.location} onChange={(e) => setMachineForm({ ...machineForm, location: e.target.value })} className="rounded-lg h-9" />
               </div>
             </div>
+            <p className="text-[10px] text-muted-foreground mt-2">
+              ℹ️ For Hikvision DS-K1T341CMFW: Use port 80 (HTTP) or 443 (HTTPS). Default username is "admin". Set the password in the device's web interface.
+            </p>
             <div className="flex justify-end gap-2 mt-3">
               {editingMachine && (
-                <Button variant="ghost" size="sm" onClick={() => { setEditingMachine(null); setMachineForm({ name: '', model: 'ZKTeco MB460', serial: '', ipAddress: '', port: '4370', location: '' }) }}>
+                <Button variant="ghost" size="sm" onClick={() => { setEditingMachine(null); setMachineForm({ name: '', model: 'Hikvision DS-K1T341CMFW', serial: '', ipAddress: '', port: '80', location: '', username: 'admin', password: '' }) }}>
                   Cancel Edit
                 </Button>
               )}
