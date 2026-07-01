@@ -61,7 +61,7 @@ export function AuthScreen() {
         const sessionData = JSON.parse(session)
         if (sessionData.user) {
           setCurrentUser(sessionData.user)
-          setIsViewOnly(sessionData.user.isDemo || false)
+          setIsViewOnly(false)
           setAuthState("authenticated")
           return
         }
@@ -129,10 +129,10 @@ export function AuthScreen() {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || "Demo login failed"); setLoading(false); return }
-      const userData = { id: data.user.id, email: data.user.email, name: data.user.name, avatar: data.user.avatar, role: "demo", organizationId: data.user.organizationId }
+      const userData = { id: data.user.id, email: data.user.email, name: data.user.name, avatar: data.user.avatar, role: data.user.role || "admin", organizationId: data.user.organizationId }
       setCurrentUser(userData)
-      setIsViewOnly(true)
-      localStorage.setItem("erp_session", JSON.stringify({ user: userData, isDemo: true }))
+      setIsViewOnly(false)
+      localStorage.setItem("erp_session", JSON.stringify({ user: userData, isDemo: false }))
       localStorage.setItem("erp_device_registered", "true")
       setDeviceRegistered(true)
       setAuthState("authenticated")

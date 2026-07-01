@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 import {
   Image as ImageIcon,
   Video,
@@ -215,9 +216,13 @@ export function AssetsView() {
       if (res.ok) {
         setAssets(assets.filter((a) => a.id !== assetId))
         if (selectedAssetId === assetId) setSelectedAssetId(null)
+        toast.success("Asset deleted")
+      } else {
+        toast.error("Failed to delete asset")
       }
     } catch (error) {
       console.error("Failed to delete asset:", error)
+      toast.error("Failed to delete asset")
     }
   }
 
@@ -243,12 +248,16 @@ export function AssetsView() {
       })
       if (res.ok) {
         const data = await res.json()
-        setAssets([data.asset, ...assets])
+        setAssets([data.asset || data, ...assets])
         resetUploadForm()
         setShowUploadDialog(false)
+        toast.success("Asset uploaded successfully!")
+      } else {
+        toast.error("Failed to upload asset")
       }
     } catch (error) {
       console.error("Failed to upload asset:", error)
+      toast.error("Failed to upload asset")
     }
   }
 
@@ -265,12 +274,16 @@ export function AssetsView() {
       })
       if (res.ok) {
         const data = await res.json()
-        setAssets(assets.map((a) => (a.id === editAssetId ? data.asset : a)))
+        setAssets(assets.map((a) => (a.id === editAssetId ? (data.asset || data) : a)))
         setShowEditDialog(false)
         setEditAssetId(null)
+        toast.success("Asset updated!")
+      } else {
+        toast.error("Failed to update asset")
       }
     } catch (error) {
       console.error("Failed to update asset:", error)
+      toast.error("Failed to update asset")
     }
   }
 

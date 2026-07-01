@@ -6,10 +6,28 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Briefcase,
   Plus,
@@ -29,6 +47,8 @@ import {
   BarChart3,
   Sparkles,
   FileText,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -70,10 +90,28 @@ const industryIcons: Record<string, React.ComponentType<{ className?: string }>>
   Health: BarChart3,
 };
 
+// ── Form options ────────────────────────────────────────────────────
+const CLIENT_INDUSTRIES = [
+  "Technology",
+  "Fashion",
+  "Automotive",
+  "Wellness",
+  "Food & Beverage",
+  "Travel",
+  "Other",
+];
+
+const CLIENT_STATUSES = [
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
+
 export function ClientsView() {
-  const { clients, campaigns } = useERPStore();
+  const { clients, campaigns, setClients } = useERPStore();
   const [search, setSearch] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   const filteredClients = useMemo(() => {
     if (!search) return clients;
@@ -93,6 +131,47 @@ export function ClientsView() {
   const activeCampaigns = campaigns.filter(c => c.status === "active").length;
   const totalBudget = campaigns.reduce((sum, c) => sum + (c.budget || 0), 0);
 
+  const handleClientSaved = (client: Client) => {
+    if (editingClient) {
+      setClients(
+        clients.map((c) =>
+          c.id === editingClient.id
+            ? { ...c, ...client, id: c.id }
+            : c
+        )
+      );
+      if (selectedClient?.id === editingClient.id) {
+        setSelectedClient({ ...selectedClient, ...client, id: selectedClient.id });
+      }
+      setEditingClient(null);
+    } else {
+      setClients([
+        ...clients,
+        {
+          ...client,
+          logo: client.logo ?? null,
+          industry: client.industry ?? null,
+          status: client.status ?? "active",
+        },
+      ]);
+    }
+  };
+
+  const handleDeleteClient = async (client: Client) => {
+    try {
+      const res = await fetch(`/api/clients/${client.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setClients(clients.filter((c) => c.id !== client.id));
+        if (selectedClient?.id === client.id) setSelectedClient(null);
+        toast.success("Client deleted!");
+      } else {
+        toast.error("Failed to delete client");
+      }
+    } catch {
+      toast.error("Failed to delete client");
+    }
+  };
+
   return (
     <motion.div className="p-4 lg:p-6 space-y-6" variants={containerVariants} initial="hidden" animate="visible">
       {/* Header */}
@@ -101,7 +180,13 @@ export function ClientsView() {
           <h2 className="text-xl font-bold tracking-tight">Clients & Campaigns</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Manage your clients and their campaigns</p>
         </div>
-        <Button className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+        <Button
+          className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+          onClick={() => {
+            setEditingClient(null);
+            setShowAddClient(true);
+          }}
+        >
           <Plus className="h-4 w-4" /> Add Client
         </Button>
       </motion.div>
@@ -159,6 +244,11 @@ export function ClientsView() {
                   campaigns={campaigns.filter(c => c.client?.id === client.id)}
                   isSelected={selectedClient?.id === client.id}
                   onSelect={() => setSelectedClient(client)}
+                  onEdit={(c) => {
+                    setEditingClient(c);
+                    setShowAddClient(true);
+                  }}
+                  onDelete={handleDeleteClient}
                 />
               ))}
               {filteredClients.length === 0 && (
@@ -168,13 +258,13 @@ export function ClientsView() {
 
             <TabsContent value="active" className="mt-3 space-y-2">
               {filteredClients.filter(c => c.status === "active").map(client => (
-                <ClientCard key={client.id} client={client} campaigns={campaigns.filter(c => c.client?.id === client.id)} isSelected={selectedClient?.id === client.id} onSelect={() => setSelectedClient(client)} />
+                <ClientCard key={client.id} client={client} campaigns={campaigns.filter(c => c.client?.id === client.id)} isSelected={selectedClient?.id === client.id} onSelect={() => setSelectedClient(client)} onEdit={(c) => { setEditingClient(c); setShowAddClient(true); }} onDelete={handleDeleteClient} />
               ))}
             </TabsContent>
 
             <TabsContent value="prospect" className="mt-3 space-y-2">
               {filteredClients.filter(c => c.status === "prospect").map(client => (
-                <ClientCard key={client.id} client={client} campaigns={campaigns.filter(c => c.client?.id === client.id)} isSelected={selectedClient?.id === client.id} onSelect={() => setSelectedClient(client)} />
+                <ClientCard key={client.id} client={client} campaigns={campaigns.filter(c => c.client?.id === client.id)} isSelected={selectedClient?.id === client.id} onSelect={() => setSelectedClient(client)} onEdit={(c) => { setEditingClient(c); setShowAddClient(true); }} onDelete={handleDeleteClient} />
               ))}
             </TabsContent>
           </Tabs>
@@ -335,7 +425,134 @@ export function ClientsView() {
           ))}
         </div>
       </motion.div>
+
+      {/* Add/Edit Client Dialog */}
+      <AddClientDialog
+        open={showAddClient}
+        onOpenChange={(open) => {
+          setShowAddClient(open);
+          if (!open) setEditingClient(null);
+        }}
+        onSaved={handleClientSaved}
+        editing={editingClient}
+      />
     </motion.div>
+  );
+}
+
+// ── Add/Edit Client Dialog ──────────────────────────────────────────
+function AddClientDialog({
+  open,
+  onOpenChange,
+  onSaved,
+  editing,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: (client: Client) => void;
+  editing: Client | null;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const form = new FormData(e.currentTarget);
+    try {
+      const url = editing ? `/api/clients/${editing.id}` : "/api/clients";
+      const method = editing ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.get("name"),
+          industry: form.get("industry"),
+          status: form.get("status"),
+          description: form.get("description"),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onSaved(data);
+        toast.success(editing ? "Client updated!" : "Client created!");
+        onOpenChange(false);
+      } else {
+        toast.error("Failed to save client");
+      }
+    } catch {
+      toast.error("Failed to save client");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{editing ? "Edit Client" : "Add Client"}</DialogTitle>
+        </DialogHeader>
+        <form key={editing?.id ?? "new"} onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="client-name">Name</Label>
+            <Input
+              id="client-name"
+              name="name"
+              defaultValue={editing?.name ?? ""}
+              placeholder="e.g. TechCorp Inc."
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="client-industry">Industry</Label>
+            <Select name="industry" defaultValue={editing?.industry ?? "Technology"}>
+              <SelectTrigger id="client-industry" className="w-full">
+                <SelectValue placeholder="Select industry" />
+              </SelectTrigger>
+              <SelectContent>
+                {CLIENT_INDUSTRIES.map((ind) => (
+                  <SelectItem key={ind} value={ind}>
+                    {ind}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="client-status">Status</Label>
+            <Select name="status" defaultValue={editing?.status ?? "active"}>
+              <SelectTrigger id="client-status" className="w-full">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                {CLIENT_STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="client-description">Description</Label>
+            <Textarea
+              id="client-description"
+              name="description"
+              rows={3}
+              placeholder="Brief description of the client..."
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -344,11 +561,15 @@ function ClientCard({
   campaigns,
   isSelected,
   onSelect,
+  onEdit,
+  onDelete,
 }: {
   client: Client;
   campaigns: Campaign[];
   isSelected: boolean;
   onSelect: () => void;
+  onEdit: (client: Client) => void;
+  onDelete: (client: Client) => void;
 }) {
   const activeCampaigns = campaigns.filter(c => c.status === "active").length;
 
@@ -395,9 +616,16 @@ function ClientCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={e => e.stopPropagation()}>Edit Client</DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(client); }}>
+                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit Client
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={e => e.stopPropagation()}>View Campaigns</DropdownMenuItem>
-                <DropdownMenuItem onClick={e => e.stopPropagation()} className="text-rose-600">Deactivate</DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onDelete(client); }}
+                  className="text-rose-600 focus:text-rose-700"
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Client
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

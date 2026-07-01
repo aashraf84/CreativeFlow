@@ -22,6 +22,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Share2,
@@ -131,9 +149,10 @@ function getRelativeTime(dateString: string): string {
 
 // ── Main Component ──────────────────────────────────────────────────
 export function AccountsView() {
-  const { socialAccounts, posts } = useERPStore();
+  const { socialAccounts, posts, setSocialAccounts } = useERPStore();
   const [activePlatform, setActivePlatform] = useState<string>("all");
   const [accountStates, setAccountStates] = useState<Record<string, boolean>>({});
+  const [showConnect, setShowConnect] = useState(false);
 
   // Toggle account active state (local only)
   const toggleAccountActive = (accountId: string) => {
@@ -146,6 +165,31 @@ export function AccountsView() {
   // Get effective active state
   const getIsActive = (account: SocialAccount): boolean => {
     return accountStates[account.id] ?? account.isActive;
+  };
+
+  const handleAccountSaved = (account: SocialAccount) => {
+    const defaultUser = account.user || {
+      id: "u-current",
+      email: "you@vortex.com",
+      name: "You",
+      avatar: null,
+      role: "admin",
+      organizationId: "org-1",
+    };
+    const newAccount: SocialAccount = {
+      id: account.id,
+      platform: account.platform,
+      accountId: account.accountId || account.id,
+      username: account.username || "",
+      displayName: account.displayName || null,
+      avatar: account.avatar || null,
+      followers: Number(account.followers) || 0,
+      isVerified: account.isVerified ?? false,
+      isActive: account.isActive ?? true,
+      userId: account.userId || defaultUser.id,
+      user: defaultUser,
+    };
+    setSocialAccounts([...socialAccounts, newAccount]);
   };
 
   // Filter accounts by platform
@@ -203,6 +247,7 @@ export function AccountsView() {
         <Button
           className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-md shadow-emerald-500/25"
           size="sm"
+          onClick={() => setShowConnect(true)}
         >
           <Plus className="h-4 w-4 mr-1.5" />
           Connect Account
@@ -512,7 +557,11 @@ export function AccountsView() {
                   ? "Connect your first social media account to get started"
                   : `Try connecting a ${PLATFORM_CONFIG[activePlatform]?.label || activePlatform} account`}
               </p>
-              <Button className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white" size="sm">
+              <Button
+                className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white"
+                size="sm"
+                onClick={() => setShowConnect(true)}
+              >
                 <Plus className="h-4 w-4 mr-1.5" />
                 Connect Account
               </Button>
@@ -520,6 +569,119 @@ export function AccountsView() {
           </Card>
         </motion.div>
       )}
+
+      {/* Connect Account Dialog */}
+      <ConnectAccountDialog
+        open={showConnect}
+        onOpenChange={setShowConnect}
+        onSaved={handleAccountSaved}
+      />
     </motion.div>
+  );
+}
+
+// ── Connect Account Dialog ──────────────────────────────────────────
+function ConnectAccountDialog({
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: (account: SocialAccount) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const form = new FormData(e.currentTarget);
+    try {
+      const res = await fetch("/api/social-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform: form.get("platform"),
+          username: form.get("username"),
+          displayName: form.get("displayName"),
+          followers: Number(form.get("followers")) || 0,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onSaved(data);
+        toast.success("Account connected!");
+        onOpenChange(false);
+      } else {
+        toast.error("Failed to connect account");
+      }
+    } catch {
+      toast.error("Failed to connect account");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Connect Social Account</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="acc-platform">Platform</Label>
+            <Select name="platform" defaultValue="instagram">
+              <SelectTrigger id="acc-platform" className="w-full">
+                <SelectValue placeholder="Select platform" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(PLATFORM_CONFIG) as Platform[]).map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {PLATFORM_CONFIG[p].label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="acc-username">Username</Label>
+            <Input
+              id="acc-username"
+              name="username"
+              placeholder="e.g. @yourbrand"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="acc-display-name">Display Name</Label>
+            <Input
+              id="acc-display-name"
+              name="displayName"
+              placeholder="e.g. Your Brand"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="acc-followers">Followers</Label>
+            <Input
+              id="acc-followers"
+              name="followers"
+              type="number"
+              min={0}
+              defaultValue={0}
+              placeholder="e.g. 12500"
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Connecting..." : "Connect"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

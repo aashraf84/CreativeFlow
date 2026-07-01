@@ -32,7 +32,28 @@ import {
   LayoutGrid,
   Workflow,
   Sparkles,
+  Pencil,
+  Trash2,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
 
 // ── Animation variants ──────────────────────────────────────────────
 const containerVariants = {
@@ -113,11 +134,31 @@ function getRoleIcon(role: string) {
   return null;
 }
 
+// ── Form options ────────────────────────────────────────────────────
+const TEAM_TYPES = [
+  { value: "creative", label: "Creative" },
+  { value: "production", label: "Production" },
+  { value: "strategy", label: "Strategy" },
+  { value: "distribution", label: "Distribution" },
+];
+
+const TEAM_COLORS = [
+  { value: "#10b981", label: "Emerald" },
+  { value: "#06b6d4", label: "Cyan" },
+  { value: "#f59e0b", label: "Amber" },
+  { value: "#8b5cf6", label: "Violet" },
+  { value: "#ec4899", label: "Pink" },
+  { value: "#ef4444", label: "Red" },
+  { value: "#14b8a6", label: "Teal" },
+];
+
 // ── Main Component ──────────────────────────────────────────────────
 export function TeamsView() {
-  const { teams, contents } = useERPStore();
+  const { teams, contents, setTeams } = useERPStore();
   const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [showAddTeam, setShowAddTeam] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
 
   // Compute workload per team
   const teamWorkloads = useMemo(() => {
@@ -150,6 +191,50 @@ export function TeamsView() {
 
   const selectTeam = (teamId: string) => {
     setSelectedTeamId(selectedTeamId === teamId ? null : teamId);
+  };
+
+  const handleTeamSaved = (team: Team) => {
+    if (editingTeam) {
+      setTeams(
+        teams.map((t) =>
+          t.id === editingTeam.id
+            ? {
+                ...t,
+                ...team,
+                id: t.id,
+                members: t.members,
+              }
+            : t
+        )
+      );
+      setEditingTeam(null);
+    } else {
+      setTeams([
+        ...teams,
+        {
+          ...team,
+          icon: team.icon ?? null,
+          description: team.description ?? null,
+          members: team.members ?? [],
+        },
+      ]);
+    }
+  };
+
+  const handleDeleteTeam = async (team: Team) => {
+    try {
+      const res = await fetch(`/api/teams/${team.id}`, { method: "DELETE" });
+      if (res.ok) {
+        setTeams(teams.filter((t) => t.id !== team.id));
+        if (selectedTeamId === team.id) setSelectedTeamId(null);
+        if (expandedTeamId === team.id) setExpandedTeamId(null);
+        toast.success("Team deleted!");
+      } else {
+        toast.error("Failed to delete team");
+      }
+    } catch {
+      toast.error("Failed to delete team");
+    }
   };
 
   const selectedTeam = teams.find((t) => t.id === selectedTeamId);
@@ -187,6 +272,10 @@ export function TeamsView() {
         <Button
           className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-md shadow-emerald-500/25"
           size="sm"
+          onClick={() => {
+            setEditingTeam(null);
+            setShowAddTeam(true);
+          }}
         >
           <Plus className="h-4 w-4 mr-1.5" />
           Add Team
@@ -265,10 +354,33 @@ export function TeamsView() {
                               <p className="text-[10px] text-muted-foreground capitalize mt-0.5">{team.type} Team</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+                          <div className="flex items-center gap-0.5">
+                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5 mr-1">
                               {team.members.length} {team.members.length === 1 ? "member" : "members"}
                             </Badge>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTeam(team);
+                                setShowAddTeam(true);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTeam(team);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -413,7 +525,13 @@ export function TeamsView() {
 
             {/* Add Team Card */}
             <motion.div variants={itemVariants}>
-              <Card className="border-dashed border-2 hover:border-emerald-500/50 hover:bg-emerald-500/[0.02] transition-colors cursor-pointer h-full min-h-[200px]">
+              <Card
+                className="border-dashed border-2 hover:border-emerald-500/50 hover:bg-emerald-500/[0.02] transition-colors cursor-pointer h-full min-h-[200px]"
+                onClick={() => {
+                  setEditingTeam(null);
+                  setShowAddTeam(true);
+                }}
+              >
                 <CardContent className="flex flex-col items-center justify-center h-full p-6">
                   <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-3">
                     <Plus className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
@@ -567,7 +685,14 @@ export function TeamsView() {
               </div>
               <p className="text-sm font-semibold text-muted-foreground">No teams yet</p>
               <p className="text-xs text-muted-foreground/60 mt-1">Create your first team to get started</p>
-              <Button className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white" size="sm">
+              <Button
+                className="mt-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white"
+                size="sm"
+                onClick={() => {
+                  setEditingTeam(null);
+                  setShowAddTeam(true);
+                }}
+              >
                 <Plus className="h-4 w-4 mr-1.5" />
                 Create Team
               </Button>
@@ -575,6 +700,140 @@ export function TeamsView() {
           </Card>
         </motion.div>
       )}
+
+      {/* Add/Edit Team Dialog */}
+      <AddTeamDialog
+        open={showAddTeam}
+        onOpenChange={(open) => {
+          setShowAddTeam(open);
+          if (!open) setEditingTeam(null);
+        }}
+        onSaved={handleTeamSaved}
+        editing={editingTeam}
+      />
     </motion.div>
+  );
+}
+
+// ── Add/Edit Team Dialog ────────────────────────────────────────────
+function AddTeamDialog({
+  open,
+  onOpenChange,
+  onSaved,
+  editing,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSaved: (team: Team) => void;
+  editing: Team | null;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const form = new FormData(e.currentTarget);
+    try {
+      const url = editing ? `/api/teams/${editing.id}` : "/api/teams";
+      const method = editing ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.get("name"),
+          type: form.get("type"),
+          color: form.get("color"),
+          description: form.get("description"),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onSaved(data);
+        toast.success(editing ? "Team updated!" : "Team created!");
+        onOpenChange(false);
+      } else {
+        toast.error("Failed to save team");
+      }
+    } catch {
+      toast.error("Failed to save team");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{editing ? "Edit Team" : "Add Team"}</DialogTitle>
+        </DialogHeader>
+        <form key={editing?.id ?? "new"} onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="team-name">Name</Label>
+            <Input
+              id="team-name"
+              name="name"
+              defaultValue={editing?.name ?? ""}
+              placeholder="e.g. Creative Team"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="team-type">Type</Label>
+            <Select name="type" defaultValue={editing?.type ?? "creative"}>
+              <SelectTrigger id="team-type" className="w-full">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                {TEAM_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="team-color">Color</Label>
+            <Select name="color" defaultValue={editing?.color ?? "#10b981"}>
+              <SelectTrigger id="team-color" className="w-full">
+                <SelectValue placeholder="Select color" />
+              </SelectTrigger>
+              <SelectContent>
+                {TEAM_COLORS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="h-3 w-3 rounded-full border border-black/10"
+                        style={{ backgroundColor: c.value }}
+                      />
+                      {c.label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="team-description">Description</Label>
+            <Textarea
+              id="team-description"
+              name="description"
+              defaultValue={editing?.description ?? ""}
+              rows={3}
+              placeholder="What does this team do?"
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -26,7 +26,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 }
 
 export function AttendanceView() {
-  const { attendance, employees, setAttendance, isViewOnly } = useERPStore()
+  const { attendance, employees, setAttendance } = useERPStore()
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [search, setSearch] = useState("")
@@ -113,10 +113,6 @@ export function AttendanceView() {
   }
 
   const handleSave = async () => {
-    if (isViewOnly) {
-      toast.warning("Demo mode: Editing is not available")
-      return
-    }
     if (!formEmployeeId) {
       toast.error("Please select an employee")
       return
@@ -160,10 +156,6 @@ export function AttendanceView() {
   }
 
   const handleDelete = async (id: string) => {
-    if (isViewOnly) {
-      toast.warning("Demo mode: Deleting is not available")
-      return
-    }
     try {
       await fetch(`/api/attendance/${id}`, { method: "DELETE" })
       toast.success("Attendance deleted")
@@ -288,10 +280,10 @@ export function AttendanceView() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleClockIn} disabled={loading || isViewOnly} className="bg-emerald-600 hover:bg-emerald-700 rounded-full">
+            <Button onClick={handleClockIn} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 rounded-full">
               <LogIn className="h-4 w-4 mr-1" /> Clock In
             </Button>
-            <Button onClick={handleClockOut} disabled={loading || isViewOnly} variant="outline" className="rounded-full border-emerald-200">
+            <Button onClick={handleClockOut} disabled={loading} variant="outline" className="rounded-full border-emerald-200">
               <LogOut className="h-4 w-4 mr-1" /> Clock Out
             </Button>
           </div>
