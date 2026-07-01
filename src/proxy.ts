@@ -88,6 +88,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Allow attendance-machine sync to pass through (simulated device API)
+  if (pathname === '/api/attendance-machine/sync' && method === 'GET') {
+    return NextResponse.next()
+  }
+
   // ── GET: Return demo data ────────────────────────────────────────
   if (method === 'GET') {
     // Handle /api/financial-reports?type=... (query-param based)

@@ -9,11 +9,12 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { motion } from "framer-motion"
-import { Clock, Plus, Search, Edit3, Trash2, LogIn, LogOut, Calendar, Users, AlertCircle, UserCheck } from "lucide-react"
+import { Clock, Plus, Search, Edit3, Trash2, LogIn, LogOut, Calendar, Users, AlertCircle, UserCheck, Fingerprint, RefreshCw, Download, CheckCircle2, Cpu } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 
@@ -42,6 +43,20 @@ export function AttendanceView() {
   const [formClockOut, setFormClockOut] = useState("")
   const [formStatus, setFormStatus] = useState("present")
   const [formNotes, setFormNotes] = useState("")
+
+  // ── Attendance Machine Sync state ──
+  const [showMachineDialog, setShowMachineDialog] = useState(false)
+  const [machineSyncing, setMachineSyncing] = useState(false)
+  const [machineRecords, setMachineRecords] = useState<Array<{
+    employeeId: string
+    employeeName: string
+    clockIn: string
+    clockOut: string | null
+    status: string
+    workHours: number | null
+    selected: boolean
+  }>>([])
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
 
   // KPIs for selected date
   const dayRecords = useMemo(() => {
@@ -169,6 +184,80 @@ export function AttendanceView() {
     }
   }
 
+  // ── Attendance Machine: Fetch records from device ──
+  const handleMachineSync = async () => {
+    setMachineSyncing(true)
+    setShowMachineDialog(true)
+    setMachineRecords([])
+    try {
+      const res = await fetch(`/api/attendance-machine/sync?date=${selectedDate}`)
+      const data = await res.json()
+      if (data.records) {
+        // Mark which records already exist in the system
+        const existingIds = new Set(attendance.map(a => a.employeeId))
+        const records = data.records.map((r: Record<string, unknown>) => ({
+          employeeId: r.employeeId as string,
+          employeeName: r.employeeName as string,
+          clockIn: r.clockIn as string,
+          clockOut: r.clockOut as string | null,
+          status: r.status as string,
+          workHours: r.workHours as number | null,
+          selected: !existingIds.has(r.employeeId as string), // auto-select new records
+        }))
+        setMachineRecords(records)
+        setLastSyncTime(new Date())
+        toast.success(`Fetched ${records.length} records from attendance machine`)
+      } else {
+        toast.error("No records found on device")
+      }
+    } catch {
+      toast.error("Failed to connect to attendance machine")
+    }
+    setMachineSyncing(false)
+  }
+
+  // ── Import selected machine records ──
+  const handleImportMachineRecords = async () => {
+    const selected = machineRecords.filter(r => r.selected)
+    if (selected.length === 0) {
+      toast.error("Select at least one record to import")
+      return
+    }
+    setLoading(true)
+    let imported = 0
+    for (const record of selected) {
+      try {
+        await fetch("/api/attendance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            employeeId: record.employeeId,
+            date: `${selectedDate}T00:00:00.000Z`,
+            clockIn: record.clockIn,
+            clockOut: record.clockOut,
+            status: record.status,
+            workHours: record.workHours,
+            notes: "Synced from attendance machine",
+          }),
+        })
+        imported++
+      } catch { /* skip failed */ }
+    }
+    setLoading(false)
+    setShowMachineDialog(false)
+    setMachineRecords([])
+    refreshData()
+    toast.success(`${imported} record(s) imported from attendance machine`)
+  }
+
+  const toggleMachineRecord = (idx: number) => {
+    setMachineRecords(prev => prev.map((r, i) => i === idx ? { ...r, selected: !r.selected } : r))
+  }
+
+  const toggleAllMachineRecords = (select: boolean) => {
+    setMachineRecords(prev => prev.map(r => ({ ...r, selected: select })))
+  }
+
   const handleClockIn = async () => {
     if (!formEmployeeId) {
       toast.error("Select an employee first")
@@ -256,10 +345,33 @@ export function AttendanceView() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Track employee attendance, clock in/out, and time worked</p>
         </div>
-        <Button onClick={openAdd} className="bg-emerald-600 hover:bg-emerald-700 rounded-full">
-          <Plus className="h-4 w-4 mr-1" /> Add Record
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleMachineSync}
+            disabled={machineSyncing}
+            variant="outline"
+            className="rounded-full border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 gap-2"
+          >
+            {machineSyncing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+            Sync from Machine
+          </Button>
+          <Button onClick={openAdd} className="bg-emerald-600 hover:bg-emerald-700 rounded-full">
+            <Plus className="h-4 w-4 mr-1" /> Add Record
+          </Button>
+        </div>
       </motion.div>
+
+      {/* Machine status indicator */}
+      {lastSyncTime && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Cpu className="h-3.5 w-3.5 text-emerald-500" />
+          <span>Last machine sync: {format(lastSyncTime, "MMM d, HH:mm:ss")}</span>
+          <Badge variant="outline" className="text-[9px] gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Device Online
+          </Badge>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -449,6 +561,123 @@ export function AttendanceView() {
             <Button onClick={handleSave} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700 rounded-full">
               {loading ? "Saving..." : editingRecord ? "Update" : "Save"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Attendance Machine Sync Dialog ── */}
+      <Dialog open={showMachineDialog} onOpenChange={setShowMachineDialog}>
+        <DialogContent className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Fingerprint className="h-5 w-5 text-emerald-600" />
+              Attendance Machine Sync
+            </DialogTitle>
+            <DialogDescription>
+              Fetch check-in/check-out records from the biometric attendance device for {selectedDate}
+            </DialogDescription>
+          </DialogHeader>
+
+          {machineSyncing ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <div className="relative flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-emerald-500 animate-[flowBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "0s" }} />
+                <div className="h-3 w-3 rounded-full bg-teal-500 animate-[flowBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "0.2s" }} />
+                <div className="h-3 w-3 rounded-full bg-cyan-500 animate-[flowBounce_1.4s_ease-in-out_infinite]" style={{ animationDelay: "0.4s" }} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-full border-2 border-emerald-500/20 animate-[flowPulse_1.4s_ease-out_infinite]" />
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">Connecting to attendance device...</p>
+            </div>
+          ) : machineRecords.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Fingerprint className="h-12 w-12 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">No records found on device for this date</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-muted-foreground">
+                  {machineRecords.length} records found · {machineRecords.filter(r => r.selected).length} selected
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => toggleAllMachineRecords(true)}>
+                    Select All
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => toggleAllMachineRecords(false)}>
+                    Deselect All
+                  </Button>
+                </div>
+              </div>
+              <ScrollArea className="max-h-[400px] rounded-lg border border-black/5 dark:border-white/5">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-8"></TableHead>
+                      <TableHead className="text-xs">Employee</TableHead>
+                      <TableHead className="text-xs">Clock In</TableHead>
+                      <TableHead className="text-xs">Clock Out</TableHead>
+                      <TableHead className="text-xs">Hours</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {machineRecords.map((record, idx) => {
+                      const alreadyExists = attendance.some(a => a.employeeId === record.employeeId)
+                      return (
+                        <TableRow key={idx} className={record.selected ? "bg-emerald-50/50 dark:bg-emerald-900/10" : ""}>
+                          <TableCell>
+                            <input
+                              type="checkbox"
+                              checked={record.selected}
+                              onChange={() => toggleMachineRecord(idx)}
+                              className="h-4 w-4 rounded accent-emerald-600"
+                            />
+                          </TableCell>
+                          <TableCell className="text-xs font-medium">
+                            {record.employeeName}
+                            {alreadyExists && (
+                              <Badge variant="outline" className="ml-1.5 text-[8px] text-amber-600 border-amber-200">
+                                Exists
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs tabular-nums">
+                            {(() => { try { return format(new Date(record.clockIn), "HH:mm") } catch { return "—" } })()}
+                          </TableCell>
+                          <TableCell className="text-xs tabular-nums">
+                            {record.clockOut ? (() => { try { return format(new Date(record.clockOut), "HH:mm") } catch { return "—" } })() : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs tabular-nums">{record.workHours ? `${record.workHours}h` : "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={`text-[9px] ${STATUS_CONFIG[record.status]?.color || ""} ${STATUS_CONFIG[record.status]?.bg || ""}`}>
+                              {STATUS_CONFIG[record.status]?.label || record.status}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMachineDialog(false)} className="rounded-full">
+              Close
+            </Button>
+            {machineRecords.length > 0 && (
+              <Button
+                onClick={handleImportMachineRecords}
+                disabled={loading || machineRecords.filter(r => r.selected).length === 0}
+                className="bg-emerald-600 hover:bg-emerald-700 rounded-full gap-2"
+              >
+                {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                Import {machineRecords.filter(r => r.selected).length} Record(s)
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
