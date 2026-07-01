@@ -336,7 +336,7 @@ export function AuthScreen() {
                   <Label htmlFor="email" className="text-xs font-medium text-white/70">Email or Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-white/30" />
-                    <Input id="email" type="text" placeholder="sarah / admin@creativeflowdigital.com" value={email}
+                    <Input id="email" type="text" placeholder="sarah / admin@creativeflow.ai" value={email}
                       onChange={(e) => setEmail(e.target.value)} onKeyPress={(e) => handleKeyPress(e, handleLogin)}
                       className="pl-10 bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl h-12 focus-visible:bg-white/[0.08] focus-visible:border-emerald-400/40 focus-visible:ring-2 focus-visible:ring-emerald-500/20 transition-all duration-300" disabled={loading} />
                   </div>

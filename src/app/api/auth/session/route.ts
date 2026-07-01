@@ -12,7 +12,7 @@ export async function GET(request: Request) {
       authenticated: true,
       user: {
         id: userId,
-        email: 'admin@creativeflowdigital.com',
+        email: 'admin@creativeflow.ai',
         name: 'Sarah Chen',
         avatar: null,
         role: 'admin',

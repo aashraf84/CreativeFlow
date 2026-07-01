@@ -32,12 +32,12 @@ export async function POST(request: Request) {
     const normalizedEmail = email.toLowerCase().trim()
 
     // Check super-admin credentials
-    if (normalizedEmail === 'admin@creativeflowdigital.com' && password === 'CreativeFlow@Admin2024') {
+    if (normalizedEmail === 'admin@creativeflow.ai' && password === 'Admin@7867') {
       return NextResponse.json({
         success: true,
         user: {
           id: 'u1',
-          email: 'admin@creativeflowdigital.com',
+          email: 'admin@creativeflow.ai',
           name: 'Sarah Chen',
           avatar: null,
           role: 'admin',
