@@ -119,7 +119,7 @@ const PLAN_DISPLAY: Record<string, string> = {
 };
 
 export function SettingsView() {
-  const { currentUser, socialAccounts } = useERPStore();
+  const { currentUser, socialAccounts, setSocialAccounts } = useERPStore();
 
   // ── Organization Settings state ────────────────────────────────
   const [orgName, setOrgName] = useState("CreativeFlow Digital");
@@ -200,14 +200,62 @@ export function SettingsView() {
     loadSettings();
   }, [loadSettings]);
 
-  // ── Toggle platform connection ─────────────────────────────────
-  function togglePlatform(platform: string) {
-    setLocalConnected((prev) => {
-      const next = new Set(prev);
-      if (next.has(platform)) next.delete(platform);
-      else next.add(platform);
-      return next;
-    });
+  // ── Toggle platform connection (real-time API) ──────────────────
+  const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null)
+  async function togglePlatform(platform: string) {
+    setConnectingPlatform(platform)
+    const isConnected = localConnected.has(platform)
+
+    if (isConnected) {
+      // Disconnect: find and delete all social accounts for this platform
+      try {
+        const accountsToDelete = socialAccounts.filter((sa) => sa.platform === platform)
+        for (const sa of accountsToDelete) {
+          await fetch(`/api/social-accounts/${sa.id}`, { method: "DELETE" }).catch(() => {})
+        }
+        setSocialAccounts(socialAccounts.filter((sa) => sa.platform !== platform))
+        setLocalConnected((prev) => {
+          const next = new Set(prev)
+          next.delete(platform)
+          return next
+        })
+        toast.success(`${platform} disconnected`)
+      } catch {
+        toast.error(`Failed to disconnect ${platform}`)
+      }
+    } else {
+      // Connect: create a new social account for this platform
+      try {
+        const res = await fetch("/api/social-accounts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            platform,
+            username: `@creativeflow_${platform}`,
+            displayName: platform.charAt(0).toUpperCase() + platform.slice(1),
+            followers: 0,
+            isVerified: false,
+            isActive: true,
+            userId: currentUser?.id || "u1",
+          }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          const newAccount = {
+            ...data,
+            user: currentUser || { id: "u1", email: "", name: "User", avatar: null, role: "admin", organizationId: "org-1" },
+          }
+          setSocialAccounts([...socialAccounts, newAccount])
+          setLocalConnected((prev) => new Set(prev).add(platform))
+          toast.success(`${platform} connected successfully`)
+        } else {
+          toast.error(`Failed to connect ${platform}`)
+        }
+      } catch {
+        toast.error(`Failed to connect ${platform}`)
+      }
+    }
+    setConnectingPlatform(null)
   }
 
   // ── Save handler — calls the API ───────────────────────────────
@@ -654,6 +702,7 @@ export function SettingsView() {
                       <Button
                         variant={isConnected ? "outline" : "default"}
                         size="sm"
+                        disabled={connectingPlatform === integration.platform}
                         className={cn(
                           "shrink-0",
                           isConnected
@@ -662,7 +711,11 @@ export function SettingsView() {
                         )}
                         onClick={() => togglePlatform(integration.platform)}
                       >
-                        {isConnected ? "Disconnect" : "Connect"}
+                        {connectingPlatform === integration.platform
+                          ? "..."
+                          : isConnected
+                          ? "Disconnect"
+                          : "Connect"}
                       </Button>
                     </div>
                   );

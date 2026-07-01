@@ -39,6 +39,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -110,8 +111,10 @@ import {
   ChevronUp,
   ExternalLink,
   Repeat,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
   format,
   formatDistanceToNow,
@@ -418,6 +421,7 @@ export function DisseminationView() {
     disseminationTasks,
     posts,
     socialAccounts,
+    setSocialAccounts,
     clients,
     campaigns,
     setDisseminationTasks,
@@ -1066,6 +1070,199 @@ export function DisseminationView() {
     );
   }
 
+  // ─── Disseminator Social Accounts Manager ─────────────────────────────────
+
+  function DisseminatorSocialAccounts({ d }: { d: Disseminator }) {
+    const [showAddDialog, setShowAddDialog] = useState(false)
+    const [addPlatform, setAddPlatform] = useState("facebook")
+    const [addUsername, setAddUsername] = useState("")
+    const [addFollowers, setAddFollowers] = useState("0")
+    const [connecting, setConnecting] = useState(false)
+
+    // Get social accounts for this disseminator (by userId)
+    const myAccounts = socialAccounts.filter((sa) => sa.userId === d.userId)
+
+    // Group by platform
+    const accountsByPlatform = useMemo(() => {
+      const map: Record<string, typeof socialAccounts> = {}
+      for (const sa of myAccounts) {
+        if (!map[sa.platform]) map[sa.platform] = []
+        map[sa.platform].push(sa)
+      }
+      return map
+    }, [myAccounts])
+
+    const handleConnect = async () => {
+      if (!addUsername.trim()) {
+        toast.error("Please enter a username")
+        return
+      }
+      setConnecting(true)
+      try {
+        const res = await fetch("/api/social-accounts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            platform: addPlatform,
+            username: addUsername.trim(),
+            displayName: addUsername.trim(),
+            followers: parseInt(addFollowers) || 0,
+            isVerified: false,
+            isActive: true,
+            userId: d.userId,
+          }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setSocialAccounts([...socialAccounts, { ...data, user: d.user }])
+          toast.success(`${addPlatform} account connected for ${d.user.name}`)
+          setAddUsername("")
+          setAddFollowers("0")
+          setShowAddDialog(false)
+        } else {
+          toast.error("Failed to connect account")
+        }
+      } catch {
+        toast.error("Failed to connect account")
+      }
+      setConnecting(false)
+    }
+
+    const handleDisconnect = async (accountId: string, platform: string) => {
+      try {
+        await fetch(`/api/social-accounts/${accountId}`, { method: "DELETE" })
+        setSocialAccounts(socialAccounts.filter((sa) => sa.id !== accountId))
+        toast.success(`${platform} account disconnected`)
+      } catch {
+        toast.error("Failed to disconnect account")
+      }
+    }
+
+    const PLATFORM_COLORS: Record<string, string> = {
+      instagram: "#E4405F", facebook: "#1877F2", twitter: "#1DA1F2",
+      linkedin: "#0A66C2", tiktok: "#000000", youtube: "#FF0000",
+      pinterest: "#E60023", snapchat: "#FFFC00",
+    }
+
+    return (
+      <>
+        <div className="space-y-2 pt-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Connected Accounts ({myAccounts.length})
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-6 text-[10px] gap-1 rounded-md"
+              onClick={() => setShowAddDialog(true)}
+            >
+              <Plus className="h-3 w-3" /> Add Account
+            </Button>
+          </div>
+
+          {myAccounts.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic py-1">
+              No social accounts connected. Click "Add Account" to connect.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {Object.entries(accountsByPlatform).map(([platform, accounts]) => {
+                const color = PLATFORM_COLORS[platform] || "#6b7280"
+                return (
+                  <div key={platform} className="rounded-md border border-border/40 overflow-hidden">
+                    <div className="flex items-center gap-1.5 px-2 py-1 bg-muted/30">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {platform} ({accounts.length})
+                      </span>
+                    </div>
+                    {accounts.map((sa) => (
+                      <div key={sa.id} className="flex items-center gap-2 px-2 py-1.5 text-xs">
+                        <span className="font-medium truncate flex-1">{sa.username}</span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {sa.followers.toLocaleString()} followers
+                        </span>
+                        {sa.isVerified && (
+                          <Badge variant="outline" className="text-[8px] px-1 py-0 gap-0.5">
+                            ✓ Verified
+                          </Badge>
+                        )}
+                        <button
+                          onClick={() => handleDisconnect(sa.id, platform)}
+                          className="text-red-400 hover:text-red-600 transition-colors shrink-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Add Account Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Connect Social Account</DialogTitle>
+              <DialogDescription>
+                Connect a social account for {d.user.name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Platform</Label>
+                <Select value={addPlatform} onValueChange={setAddPlatform}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="facebook">Facebook</SelectItem>
+                    <SelectItem value="youtube">YouTube</SelectItem>
+                    <SelectItem value="tiktok">TikTok</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="twitter">Twitter / X</SelectItem>
+                    <SelectItem value="linkedin">LinkedIn</SelectItem>
+                    <SelectItem value="pinterest">Pinterest</SelectItem>
+                    <SelectItem value="snapchat">Snapchat</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Username / Handle</Label>
+                <Input
+                  placeholder="@username"
+                  value={addUsername}
+                  onChange={(e) => setAddUsername(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium">Followers</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={addFollowers}
+                  onChange={(e) => setAddFollowers(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
+              <Button
+                onClick={handleConnect}
+                disabled={connecting || !addUsername.trim()}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {connecting ? "Connecting..." : "Connect Account"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    )
+  }
+
   // ─── Disseminator Card Component ───────────────────────────────────────────
 
   function DisseminatorCard({ d }: { d: Disseminator }) {
@@ -1280,6 +1477,9 @@ export function DisseminationView() {
                         </>
                       );
                     })()}
+
+                    {/* ── Connected Social Accounts ── */}
+                    <DisseminatorSocialAccounts d={d} />
                   </div>
                 </motion.div>
               )}

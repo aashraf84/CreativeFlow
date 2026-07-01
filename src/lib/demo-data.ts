@@ -57,12 +57,22 @@ const teams = [
 ]
 
 const socialAccounts = [
+  // Alex Rivera (u3 - disseminator) - multiple accounts per platform
   { id: 'sa1', platform: 'instagram', accountId: 'ig_techcorp', username: '@techcorp', displayName: 'TechCorp', avatar: null, followers: 125000, isVerified: true, isActive: true, userId: 'u3', user: users[2] },
   { id: 'sa2', platform: 'tiktok', accountId: 'tt_fashionhub', username: '@fashionhub', displayName: 'FashionHub', avatar: null, followers: 89000, isVerified: true, isActive: true, userId: 'u3', user: users[2] },
   { id: 'sa3', platform: 'facebook', accountId: 'fb_autodrive', username: 'AutoDrive', displayName: 'AutoDrive Official', avatar: null, followers: 67000, isVerified: false, isActive: true, userId: 'u3', user: users[2] },
   { id: 'sa4', platform: 'twitter', accountId: 'tw_greenlife', username: '@greenlife', displayName: 'GreenLife', avatar: null, followers: 45000, isVerified: true, isActive: true, userId: 'u3', user: users[2] },
   { id: 'sa5', platform: 'youtube', accountId: 'yt_foodieapp', username: 'FoodieApp', displayName: 'FoodieApp Channel', avatar: null, followers: 210000, isVerified: true, isActive: true, userId: 'u3', user: users[2] },
   { id: 'sa6', platform: 'linkedin', accountId: 'li_creativeflow', username: 'CreativeFlow Digital', displayName: 'CreativeFlow Digital', avatar: null, followers: 12000, isVerified: false, isActive: true, userId: 'u3', user: users[2] },
+  // Alex Rivera - additional Facebook accounts (multi-account per platform)
+  { id: 'sa7', platform: 'facebook', accountId: 'fb_techcorp_2', username: 'TechCorp Page', displayName: 'TechCorp Official Page', avatar: null, followers: 45000, isVerified: true, isActive: true, userId: 'u3', user: users[2] },
+  { id: 'sa8', platform: 'facebook', accountId: 'fb_fashionhub_2', username: 'FashionHub FB', displayName: 'FashionHub Store', avatar: null, followers: 89000, isVerified: false, isActive: true, userId: 'u3', user: users[2] },
+  { id: 'sa9', platform: 'youtube', accountId: 'yt_techcorp_2', username: 'TechCorp TV', displayName: 'TechCorp TV', avatar: null, followers: 156000, isVerified: true, isActive: true, userId: 'u3', user: users[2] },
+  { id: 'sa10', platform: 'tiktok', accountId: 'tt_autodrive', username: '@autodrive', displayName: 'AutoDrive TikTok', avatar: null, followers: 230000, isVerified: true, isActive: true, userId: 'u3', user: users[2] },
+  // James Wilson (u5 - editor/disseminator) - multiple accounts
+  { id: 'sa11', platform: 'youtube', accountId: 'yt_james_edits', username: 'James Edits', displayName: 'James Wilson Edits', avatar: null, followers: 34000, isVerified: false, isActive: true, userId: 'u5', user: users[4] },
+  { id: 'sa12', platform: 'facebook', accountId: 'fb_james_page', username: 'James Studio', displayName: 'James Studio FB', avatar: null, followers: 12000, isVerified: false, isActive: true, userId: 'u5', user: users[4] },
+  { id: 'sa13', platform: 'tiktok', accountId: 'tt_james_clips', username: '@jamesclips', displayName: 'James Clips', avatar: null, followers: 56000, isVerified: true, isActive: true, userId: 'u5', user: users[4] },
 ]
 
 // ── Content ─────────────────────────────────────────────────────────
