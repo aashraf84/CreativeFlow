@@ -1,0 +1,10 @@
+{
+  "name": "creativeflow-attendance-bridge",
+  "version": "1.0.0",
+  "description": "Local bridge agent that connects Hikvision attendance devices to CreativeFlow ERP cloud",
+  "scripts": {
+    "dev": "bun --hot index.ts",
+    "start": "bun index.ts"
+  },
+  "dependencies": {}
+}

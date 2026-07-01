@@ -93,6 +93,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Allow attendance bridge to pass through (receives data from local agent)
+  if (pathname === '/api/attendance-bridge') {
+    return NextResponse.next()
+  }
+
   // ── GET: Return demo data ────────────────────────────────────────
   if (method === 'GET') {
     // Handle /api/financial-reports?type=... (query-param based)
