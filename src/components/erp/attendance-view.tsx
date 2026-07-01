@@ -65,8 +65,12 @@ export function AttendanceView() {
     let result = attendance
     // Date filter
     result = result.filter(a => {
-      const aDate = new Date(a.date).toISOString().split("T")[0]
-      return aDate === selectedDate
+      try {
+        const aDate = new Date(a.date).toISOString().split("T")[0]
+        return aDate === selectedDate
+      } catch {
+        return false
+      }
     })
     // Status filter
     if (statusFilter !== "all") result = result.filter(a => a.status === statusFilter)
@@ -173,8 +177,12 @@ export function AttendanceView() {
     const now = new Date()
     const todayStr = now.toISOString().split("T")[0]
     const existing = attendance.find(a => {
-      const aDate = new Date(a.date).toISOString().split("T")[0]
-      return aDate === todayStr && a.employeeId === formEmployeeId
+      try {
+        const aDate = new Date(a.date).toISOString().split("T")[0]
+        return aDate === todayStr && a.employeeId === formEmployeeId
+      } catch {
+        return false
+      }
     })
     if (existing) {
       toast.info("Already clocked in today")
@@ -210,8 +218,12 @@ export function AttendanceView() {
     const now = new Date()
     const todayStr = now.toISOString().split("T")[0]
     const existing = attendance.find(a => {
-      const aDate = new Date(a.date).toISOString().split("T")[0]
-      return aDate === todayStr && a.employeeId === formEmployeeId && a.clockIn && !a.clockOut
+      try {
+        const aDate = new Date(a.date).toISOString().split("T")[0]
+        return aDate === todayStr && a.employeeId === formEmployeeId && a.clockIn && !a.clockOut
+      } catch {
+        return false
+      }
     })
     if (!existing) {
       toast.error("No active clock-in found for today")
@@ -351,8 +363,8 @@ export function AttendanceView() {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs">{record.employee?.department?.name || "-"}</TableCell>
-                      <TableCell className="text-xs tabular-nums">{record.clockIn ? format(new Date(record.clockIn), "HH:mm") : "-"}</TableCell>
-                      <TableCell className="text-xs tabular-nums">{record.clockOut ? format(new Date(record.clockOut), "HH:mm") : "-"}</TableCell>
+                      <TableCell className="text-xs tabular-nums">{record.clockIn ? ((() => { try { return format(new Date(record.clockIn), "HH:mm") } catch { return "-" } })()) : "-"}</TableCell>
+                      <TableCell className="text-xs tabular-nums">{record.clockOut ? ((() => { try { return format(new Date(record.clockOut), "HH:mm") } catch { return "-" } })()) : "-"}</TableCell>
                       <TableCell className="text-xs text-right tabular-nums font-medium">{record.workHours !== null ? `${record.workHours}h` : "-"}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`text-[10px] ${cfg.color} ${cfg.bg}`}>
