@@ -160,7 +160,10 @@ export function AutomationView() {
   function parseJSON<T>(str: string | null, fallback: T[]): T[] {
     if (!str) return fallback;
     try {
-      return JSON.parse(str);
+      const parsed = JSON.parse(str);
+      if (Array.isArray(parsed)) return parsed as T[];
+      // If it's an object (not array), convert to array format or return fallback
+      return fallback;
     } catch {
       return fallback;
     }

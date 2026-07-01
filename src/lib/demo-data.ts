@@ -398,10 +398,10 @@ const disseminationTasks = [
 
 // ── Automation Rules ────────────────────────────────────────────────
 const automations = [
-  { id: 'ar1', name: 'Auto-assign to Creative Team', description: 'New content ideas are auto-assigned to the Creative team', trigger: 'content_created', conditions: JSON.stringify({ stage: 'idea', type: ['reel', 'carousel'] }), actions: JSON.stringify({ assignTeam: 't1', setPriority: 'medium' }), isActive: true },
-  { id: 'ar2', name: 'Notify on Approval', description: 'Send notification when approval is requested', trigger: 'approval_requested', conditions: JSON.stringify({ priority: ['high', 'urgent'] }), actions: JSON.stringify({ notify: ['u1'], sendEmail: true }), isActive: true },
-  { id: 'ar3', name: 'Archive Old Content', description: 'Move content to archive after 90 days', trigger: 'scheduled', conditions: JSON.stringify({ olderThan: 90, stage: 'disseminate' }), actions: JSON.stringify({ setStage: 'archived' }), isActive: true },
-  { id: 'ar4', name: 'Welcome New Client', description: 'Send welcome email when new client is added', trigger: 'client_created', conditions: JSON.stringify({}), actions: JSON.stringify({ sendEmail: true, templateId: 'tmpl1' }), isActive: false },
+  { id: 'ar1', name: 'Auto-assign to Creative Team', description: 'New content ideas are auto-assigned to the Creative team', trigger: 'content_created', conditions: JSON.stringify([{ key: 'stage', operator: 'equals', value: 'idea' }, { key: 'type', operator: 'contains', value: 'reel' }]), actions: JSON.stringify([{ type: 'assign_to_team', team: 'Creative' }, { type: 'set_priority', priority: 'medium' }]), isActive: true },
+  { id: 'ar2', name: 'Notify on Approval', description: 'Send notification when approval is requested', trigger: 'approval_requested', conditions: JSON.stringify([{ key: 'priority', operator: 'equals', value: 'urgent' }]), actions: JSON.stringify([{ type: 'send_notification', message: 'Urgent approval needed' }]), isActive: true },
+  { id: 'ar3', name: 'Archive Old Content', description: 'Move content to archive after 90 days', trigger: 'scheduled', conditions: JSON.stringify([{ key: 'days_published', operator: 'greater_than', value: '90' }]), actions: JSON.stringify([{ type: 'move_to_stage', stage: 'archived' }]), isActive: true },
+  { id: 'ar4', name: 'Welcome New Client', description: 'Send welcome email when new client is added', trigger: 'client_created', conditions: JSON.stringify([]), actions: JSON.stringify([{ type: 'send_notification', message: 'Welcome to CreativeFlow!' }]), isActive: false },
 ]
 
 // ── Calendar Events ─────────────────────────────────────────────────
