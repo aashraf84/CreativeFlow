@@ -200,11 +200,11 @@ function KPICard({ data }: { data: KPICardData }) {
   // ── 3D tilt on hover (subtle, springy) ──
   const xMotion = useMotionValue(0);
   const yMotion = useMotionValue(0);
-  const rotateX = useSpring(useTransform(yMotion, [-0.5, 0.5], [6, -6]), {
+  const rotateX = useSpring(useTransform(yMotion, [-0.5, 0.5], [4, -4]), {
     stiffness: 200,
     damping: 18,
   });
-  const rotateY = useSpring(useTransform(xMotion, [-0.5, 0.5], [-6, 6]), {
+  const rotateY = useSpring(useTransform(xMotion, [-0.5, 0.5], [-4, 4]), {
     stiffness: 200,
     damping: 18,
   });
@@ -225,63 +225,80 @@ function KPICard({ data }: { data: KPICardData }) {
   const isNumeric = typeof data.value === "number";
 
   return (
-    <motion.div variants={itemVariants}>
+    <motion.div variants={itemVariants} className="h-full">
       <motion.div
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         style={{ perspective: 1000 }}
-        whileHover={{ scale: 1.03 }}
+        whileHover={{ y: -4 }}
         transition={{ type: "spring", stiffness: 300, damping: 22 }}
+        className="h-full"
       >
-        <Card className="relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
+        <Card className="group relative overflow-hidden bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.08),0_4px_10px_rgba(0,0,0,0.04)] transition-all duration-300 h-full flex flex-col">
           <motion.div
             style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-            className="relative"
+            className="relative flex-1 flex flex-col"
           >
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wide">
-                    {data.title}
-                  </p>
-                  <div className="mt-2 flex items-baseline gap-2">
-                    <h3 className="text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-white tabular-nums">
-                      {isNumeric ? (
-                        <AnimatedCounter value={data.value as number} duration={1000} />
-                      ) : (
-                        data.value
-                      )}
-                    </h3>
-                    {data.badge && (
-                      <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-md leading-none ${data.badgeColor}`}>
-                        {data.badge}
-                      </span>
-                    )}
-                  </div>
-                  {data.change !== undefined && (
-                    <div className="mt-1.5 flex items-center gap-1">
-                      <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                      <span className={`text-xs font-medium ${data.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                        {Math.abs(data.change)}%
-                      </span>
-                      {data.changeLabel && (
-                        <span className="text-[10px] text-[#86868b] dark:text-[#aeaeb2]">{data.changeLabel}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
+            <CardContent className="p-4 sm:p-5 flex-1 flex flex-col">
+              {/* ── Top row: Icon + Badge ── */}
+              <div className="flex items-center justify-between mb-3">
                 <motion.div
-                  className={`h-10 w-10 rounded-xl bg-gradient-to-br ${data.gradient} flex items-center justify-center shadow-md shadow-emerald-500/20 shrink-0`}
+                  className={`h-11 w-11 rounded-xl bg-gradient-to-br ${data.gradient} flex items-center justify-center shadow-lg shrink-0`}
                   style={{ transform: "translateZ(40px)" }}
-                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  whileHover={{ scale: 1.08, rotate: 3 }}
                   transition={{ type: "spring", stiffness: 400, damping: 15 }}
                 >
-                  <Icon className={`h-5 w-5 ${data.iconColor}`} />
+                  <Icon className="h-5 w-5 text-white" />
                 </motion.div>
+                {data.badge ? (
+                  <span className={`inline-flex items-center px-2 py-1 text-[10px] font-semibold rounded-full leading-none ${data.badgeColor}`}>
+                    {data.badge}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2 py-1 text-[10px] font-medium rounded-full leading-none bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500">
+                    —
+                  </span>
+                )}
+              </div>
+
+              {/* ── Middle: Title ── */}
+              <p className="text-[11px] font-semibold text-[#86868b] dark:text-[#aeaeb2] uppercase tracking-wider truncate">
+                {data.title}
+              </p>
+
+              {/* ── Number (large, prominent) ── */}
+              <div className="mt-1.5 flex items-baseline gap-1.5">
+                <h3 className="text-[28px] sm:text-3xl font-bold tracking-tight text-[#1d1d1f] dark:text-white tabular-nums leading-none">
+                  {isNumeric ? (
+                    <AnimatedCounter value={data.value as number} duration={1000} />
+                  ) : (
+                    data.value
+                  )}
+                </h3>
+              </div>
+
+              {/* ── Footer: Change indicator or status (fixed height for uniformity) ── */}
+              <div className="mt-auto pt-3 min-h-[24px] flex items-center">
+                {data.change !== undefined ? (
+                  <div className="flex items-center gap-1">
+                    <div className={`flex items-center justify-center h-4 w-4 rounded-full ${data.change >= 0 ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-rose-100 dark:bg-rose-900/40"}`}>
+                      <ArrowUpRight className={`h-3 w-3 ${data.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400 rotate-90"}`} />
+                    </div>
+                    <span className={`text-xs font-bold ${data.change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                      {Math.abs(data.change)}%
+                    </span>
+                    {data.changeLabel && (
+                      <span className="text-[10px] text-[#86868b] dark:text-[#aeaeb2] font-medium">{data.changeLabel}</span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-[10px] text-[#86868b] dark:text-[#aeaeb2] font-medium italic">Current period</span>
+                )}
               </div>
             </CardContent>
           </motion.div>
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent" />
+          {/* ── Bottom accent line (gradient) ── */}
+          <div className={`absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r ${data.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
         </Card>
       </motion.div>
     </motion.div>
@@ -652,7 +669,7 @@ export function DashboardView() {
       </motion.div>
 
       {/* ── Row 1: KPI Cards (6 cards) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 auto-rows-fr">
         {kpiCards.map((card) => (
           <KPICard key={card.title} data={card} />
         ))}
@@ -1164,17 +1181,18 @@ function DashboardSkeleton() {
       </div>
 
       {/* KPI cards skeleton (6 cards) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 auto-rows-fr">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Card key={i} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm card-hover rounded-2xl">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2 flex-1">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-7 w-16" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-                <Skeleton className="h-10 w-10 rounded-xl" />
+          <Card key={i} className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl">
+            <CardContent className="p-4 sm:p-5 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-3">
+                <Skeleton className="h-11 w-11 rounded-xl" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-20 mb-2" />
+              <Skeleton className="h-8 w-16" />
+              <div className="mt-auto pt-3">
+                <Skeleton className="h-3 w-24" />
               </div>
             </CardContent>
           </Card>
