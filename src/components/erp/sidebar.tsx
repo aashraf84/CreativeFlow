@@ -194,32 +194,25 @@ export function Sidebar() {
           sidebarOpen ? "w-64" : "w-[68px]"
         )}
       >
-        {/* macOS Traffic Light Dots + Branding */}
+        {/* Branding */}
         <div
           className={cn(
             "flex items-center px-4 py-3 gap-3",
             sidebarOpen ? "justify-between" : "justify-start"
           )}
         >
-          {/* macOS window controls */}
-          <div className="traffic-lights">
-            <div className="traffic-light traffic-light-close" />
-            <div className="traffic-light traffic-light-minimize" />
-            <div className="traffic-light traffic-light-maximize" />
-          </div>
-
-          {/* Branding — only shown when sidebar is expanded */}
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25 breathe">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
+          {/* Logo — always shown */}
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-md shadow-emerald-500/25 breathe">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            {sidebarOpen && (
               <div className="leading-none">
                 <h1 className="text-[15px] font-semibold tracking-tight text-[#1d1d1f] dark:text-white">CreativeFlow ERP</h1>
                 <p className="text-[10px] text-[#86868b] dark:text-[#aeaeb2] mt-0.5">Agency Platform</p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Navigation */}
