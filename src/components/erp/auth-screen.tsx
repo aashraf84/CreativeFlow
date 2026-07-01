@@ -340,23 +340,32 @@ export function AuthScreen() {
 
             {authState === "login" && (
               <motion.div key="login" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
-                <div>
-                  <h2 className="text-3xl font-bold tracking-tight mb-1.5">Sign In</h2>
-                  <p className="text-sm text-white/50">Enter your credentials to access the platform</p>
+                {/* macOS-style avatar + greeting */}
+                <div className="flex flex-col items-center text-center mb-2">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-xl shadow-emerald-500/30 mb-3">
+                    <User className="h-7 w-7 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold tracking-tight">Welcome Back</h2>
+                  <p className="text-sm text-white/50 mt-0.5">Sign in to your CreativeFlow workspace</p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-xs font-medium text-white/70">Email or Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-white/30" />
-                    <Input id="email" type="text" placeholder="sarah / admin@creativeflow.ai" value={email}
+                    <Input id="email" type="text" placeholder="admin@creativeflow.ai" value={email}
                       onChange={(e) => setEmail(e.target.value)} onKeyPress={(e) => handleKeyPress(e, handleLogin)}
                       className="pl-10 bg-white/[0.06] border-white/[0.08] text-white placeholder:text-white/30 rounded-xl h-12 focus-visible:bg-white/[0.08] focus-visible:border-emerald-400/40 focus-visible:ring-2 focus-visible:ring-emerald-500/20 transition-all duration-300" disabled={loading} />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-xs font-medium text-white/70">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-xs font-medium text-white/70">Password</Label>
+                    <button type="button" className="text-[11px] text-emerald-400/60 hover:text-emerald-400 transition-colors">
+                      Forgot?
+                    </button>
+                  </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-white/30" />
                     <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password}
@@ -387,42 +396,8 @@ export function AuthScreen() {
                   Explore Demo (View Only)
                 </Button>
 
-                {/* ── Quick Employee Login ── */}
-                <div className="pt-2">
-                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-2.5 text-center">Quick Employee Login (password: CreativeFlow@2024)</p>
-                  <div className="grid grid-cols-4 gap-1.5">
-                    {[
-                      { username: 'sarah', role: 'Admin', initial: 'S' },
-                      { username: 'emma', role: 'Designer', initial: 'E' },
-                      { username: 'james', role: 'Editor', initial: 'J' },
-                      { username: 'lisa', role: 'Lead', initial: 'L' },
-                      { username: 'david', role: 'Reviewer', initial: 'D' },
-                      { username: 'rachel', role: 'Approver', initial: 'R' },
-                      { username: 'alex', role: 'Dissem.', initial: 'A' },
-                      { username: 'mike', role: 'Manager', initial: 'M' },
-                    ].map((emp) => (
-                      <button
-                        key={emp.username}
-                        type="button"
-                        disabled={loading}
-                        onClick={() => {
-                          setEmail(emp.username)
-                          setPassword('CreativeFlow@2024')
-                        }}
-                        className="flex flex-col items-center gap-1 p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-200 text-white/70 hover:text-white disabled:opacity-50"
-                      >
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500/80 to-teal-600/80 flex items-center justify-center text-xs font-bold text-white">
-                          {emp.initial}
-                        </div>
-                        <span className="text-[10px] font-medium capitalize">{emp.username}</span>
-                        <span className="text-[8px] text-white/40">{emp.role}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Device registered badge */}
-                <div className="flex items-center justify-center gap-1.5 pt-2">
+                <div className="flex items-center justify-center gap-1.5 pt-1">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
                   <span className="text-xs text-white/40">Device registered — serial key not needed again</span>
                 </div>
