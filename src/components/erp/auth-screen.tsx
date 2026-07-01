@@ -318,10 +318,10 @@ export function AuthScreen() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-xs font-medium text-white/70">Email</Label>
+                  <Label htmlFor="email" className="text-xs font-medium text-white/70">Email or Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-white/30" />
-                    <Input id="email" type="email" placeholder="admin@vortexdigital.com" value={email}
+                    <Input id="email" type="text" placeholder="sarah / admin@vortexdigital.com" value={email}
                       onChange={(e) => setEmail(e.target.value)} onKeyPress={(e) => handleKeyPress(e, handleLogin)}
                       className="pl-10 bg-[#1c1c1e] border-[#38383a] text-white placeholder:text-white/25 rounded-xl h-12 focus-visible:ring-emerald-500/40" disabled={loading} />
                   </div>
@@ -358,6 +358,37 @@ export function AuthScreen() {
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2 text-emerald-400" />}
                   Explore Demo (View Only)
                 </Button>
+
+                {/* ── Quick Employee Login ── */}
+                <div className="pt-2">
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-2 text-center">Quick Employee Login (password: Vortex@2024)</p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { username: 'sarah', role: 'Admin', color: 'hover:border-emerald-400' },
+                      { username: 'emma', role: 'Designer', color: 'hover:border-teal-400' },
+                      { username: 'james', role: 'Editor', color: 'hover:border-cyan-400' },
+                      { username: 'lisa', role: 'Lead', color: 'hover:border-green-400' },
+                      { username: 'david', role: 'Reviewer', color: 'hover:border-amber-400' },
+                      { username: 'rachel', role: 'Approver', color: 'hover:border-orange-400' },
+                      { username: 'alex', role: 'Dissem.', color: 'hover:border-purple-400' },
+                      { username: 'mike', role: 'Manager', color: 'hover:border-blue-400' },
+                    ].map((emp) => (
+                      <button
+                        key={emp.username}
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setEmail(emp.username)
+                          setPassword('Vortex@2024')
+                        }}
+                        className={`flex flex-col items-center gap-0.5 p-2 rounded-lg bg-[#1c1c1e] border border-[#38383a] ${emp.color} transition-all text-white/70 hover:text-white disabled:opacity-50`}
+                      >
+                        <span className="text-xs font-semibold capitalize">{emp.username}</span>
+                        <span className="text-[9px] text-white/40">{emp.role}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
                 {/* Device registered badge */}
                 <div className="flex items-center justify-center gap-1.5 pt-2">

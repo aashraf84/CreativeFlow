@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useERPStore, type ContentStage, type ActivityLog } from "@/lib/store";
+import { useERPStore, type ContentStage, type ActivityLog, getRolePermissions, type RolePermissions } from "@/lib/store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ import {
   Twitter,
   Linkedin,
   AlertCircle,
+  ChevronRight,
 } from "lucide-react";
 import { AnimatedCounter } from "@/components/erp/animated-counter";
 
@@ -494,7 +495,45 @@ export function DashboardView() {
     disseminationTasks,
     setActiveView,
     currentUser,
+    setContents,
+    setDisseminationTasks,
   } = useERPStore();
+
+  // ── Role-based permissions for current user ──
+  const userRole = currentUser?.role || 'employee'
+  const permissions: RolePermissions = getRolePermissions(userRole)
+
+  // ── My Tasks: content assigned to current user that matches their allowed stages ──
+  const myContentTasks = contents.filter(c => {
+    if (c.stage === 'archived' || c.stage === 'disseminate') return false
+    const assignedToMe = c.assigneeId === currentUser?.id
+    const inMyStages = permissions.allowedStages.includes(c.stage)
+    return assignedToMe || (inMyStages && permissions.canMoveStage)
+  }).slice(0, 6)
+
+  const myDisseminationTasks = disseminationTasks.filter(t => {
+    if (t.status === 'completed') return false
+    return t.assigneeId === currentUser?.id || (permissions.canPublish && t.status === 'assigned')
+  }).slice(0, 4)
+
+  // ── Workflow stage advancement ──
+  const STAGE_ORDER: ContentStage[] = ['idea', 'design', 'edit', 'review', 'approve', 'disseminate']
+  const handleAdvanceStage = async (contentId: string, currentStage: ContentStage) => {
+    const nextStage = STAGE_ORDER[STAGE_ORDER.indexOf(currentStage) + 1]
+    if (!nextStage) return
+    // Optimistic update
+    setContents(contents.map(c => c.id === contentId ? { ...c, stage: nextStage, updatedAt: new Date().toISOString() } : c))
+    try {
+      await fetch(`/api/contents/${contentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: nextStage }),
+      })
+    } catch {
+      // Revert on error
+      setContents(contents)
+    }
+  }
 
   // Loading state
   if (isLoading || !dashboard) {
@@ -674,6 +713,90 @@ export function DashboardView() {
           <KPICard key={card.title} data={card} />
         ))}
       </div>
+
+      {/* ── My Tasks: Workflow assignments for current user ── */}
+      {(myContentTasks.length > 0 || myDisseminationTasks.length > 0) && (
+        <motion.div variants={itemVariants}>
+          <Card className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-sm rounded-2xl overflow-hidden">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md">
+                    <ClipboardCheck className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-bold">My Tasks</CardTitle>
+                    <CardDescription className="text-xs">
+                      {myContentTasks.length + myDisseminationTasks.length} task(s) assigned to you · Role: {userRole.replace('_', ' ')}
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setActiveView('pipeline')} className="text-xs gap-1 rounded-lg">
+                  View All <ChevronRight className="h-3 w-3" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* Content workflow tasks */}
+                {myContentTasks.map((task) => {
+                  const nextStage = STAGE_ORDER[STAGE_ORDER.indexOf(task.stage) + 1]
+                  const stageColor = PIPELINE_STAGES.find(s => s.key === task.stage)?.color || '#10b981'
+                  return (
+                    <div key={task.id} className="relative p-3 rounded-xl border border-[#e5e5e7] dark:border-[#38383a] hover:shadow-md transition-all group">
+                      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl" style={{ background: stageColor }} />
+                      <div className="flex items-start justify-between mb-2">
+                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wide font-semibold rounded-md" style={{ color: stageColor, backgroundColor: `${stageColor}15` }}>
+                          {task.stage}
+                        </Badge>
+                        <Badge variant="outline" className="text-[9px] capitalize">{task.priority}</Badge>
+                      </div>
+                      <p className="text-sm font-semibold text-[#1d1d1f] dark:text-white truncate mb-1">{task.title}</p>
+                      <p className="text-[11px] text-[#86868b] dark:text-[#aeaeb2] mb-2">
+                        {task.campaign?.name || 'No campaign'} · Due {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                      </p>
+                      {nextStage && permissions.canMoveStage && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleAdvanceStage(task.id, task.stage)}
+                          className="w-full h-7 text-[11px] gap-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
+                        >
+                          <ArrowRight className="h-3 w-3" />
+                          Send to {nextStage}
+                        </Button>
+                      )}
+                    </div>
+                  )
+                })}
+                {/* Dissemination tasks */}
+                {myDisseminationTasks.map((task) => (
+                  <div key={task.id} className="relative p-3 rounded-xl border border-purple-200 dark:border-purple-800/50 bg-purple-50/30 dark:bg-purple-950/10 hover:shadow-md transition-all">
+                    <div className="absolute top-0 left-0 right-0 h-1 rounded-t-xl bg-purple-500" />
+                    <div className="flex items-start justify-between mb-2">
+                      <Badge variant="secondary" className="text-[9px] uppercase tracking-wide font-semibold rounded-md bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                        Disseminate
+                      </Badge>
+                      <Badge variant="outline" className="text-[9px] capitalize">{task.status}</Badge>
+                    </div>
+                    <p className="text-sm font-semibold text-[#1d1d1f] dark:text-white truncate mb-1">{task.title}</p>
+                    <p className="text-[11px] text-[#86868b] dark:text-[#aeaeb2] mb-2">
+                      {task.client?.name || '—'} · {task.targetPlatforms ? JSON.parse(task.targetPlatforms).join(', ') : '—'}
+                    </p>
+                    <Button
+                      size="sm"
+                      onClick={() => setActiveView('dissemination')}
+                      className="w-full h-7 text-[11px] gap-1 rounded-lg bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white"
+                    >
+                      <Send className="h-3 w-3" />
+                      Open Dissemination
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* ── Row 2: Animated Pipeline Workflow (HERO SECTION) ── */}
       <motion.div variants={itemVariants}>

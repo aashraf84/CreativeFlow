@@ -10,10 +10,26 @@ const future = (daysAhead: number) => new Date(now.getTime() + daysAhead * 86400
 const users = [
   { id: 'u1', email: 'sarah@vortex.com', name: 'Sarah Chen', avatar: null, role: 'admin', organizationId: 'org-1' },
   { id: 'u2', email: 'mike@vortex.com', name: 'Mike Ross', avatar: null, role: 'manager', organizationId: 'org-1' },
-  { id: 'u3', email: 'alex@vortex.com', name: 'Alex Rivera', avatar: null, role: 'social_manager', organizationId: 'org-1' },
+  { id: 'u3', email: 'alex@vortex.com', name: 'Alex Rivera', avatar: null, role: 'disseminator', organizationId: 'org-1' },
   { id: 'u4', email: 'emma@vortex.com', name: 'Emma Stone', avatar: null, role: 'designer', organizationId: 'org-1' },
   { id: 'u5', email: 'james@vortex.com', name: 'James Wilson', avatar: null, role: 'editor', organizationId: 'org-1' },
-  { id: 'u6', email: 'lisa@vortex.com', name: 'Lisa Park', avatar: null, role: 'strategist', organizationId: 'org-1' },
+  { id: 'u6', email: 'lisa@vortex.com', name: 'Lisa Park', avatar: null, role: 'creative_lead', organizationId: 'org-1' },
+  { id: 'u7', email: 'david@vortex.com', name: 'David Kim', avatar: null, role: 'reviewer', organizationId: 'org-1' },
+  { id: 'u8', email: 'rachel@vortex.com', name: 'Rachel Green', avatar: null, role: 'approver', organizationId: 'org-1' },
+]
+
+// ── User Accounts (login credentials) ───────────────────────────────
+// Each employee has a login account with username/password and role-based permissions.
+// Roles: admin, creative_lead, designer, editor, reviewer, approver, disseminator, manager
+const userAccounts = [
+  { id: 'ua1', userId: 'u1', username: 'sarah', password: 'Vortex@2024', role: 'admin', email: 'sarah@vortex.com', name: 'Sarah Chen', isActive: true, organizationId: 'org-1' },
+  { id: 'ua2', userId: 'u2', username: 'mike', password: 'Vortex@2024', role: 'manager', email: 'mike@vortex.com', name: 'Mike Ross', isActive: true, organizationId: 'org-1' },
+  { id: 'ua3', userId: 'u3', username: 'alex', password: 'Vortex@2024', role: 'disseminator', email: 'alex@vortex.com', name: 'Alex Rivera', isActive: true, organizationId: 'org-1' },
+  { id: 'ua4', userId: 'u4', username: 'emma', password: 'Vortex@2024', role: 'designer', email: 'emma@vortex.com', name: 'Emma Stone', isActive: true, organizationId: 'org-1' },
+  { id: 'ua5', userId: 'u5', username: 'james', password: 'Vortex@2024', role: 'editor', email: 'james@vortex.com', name: 'James Wilson', isActive: true, organizationId: 'org-1' },
+  { id: 'ua6', userId: 'u6', username: 'lisa', password: 'Vortex@2024', role: 'creative_lead', email: 'lisa@vortex.com', name: 'Lisa Park', isActive: true, organizationId: 'org-1' },
+  { id: 'ua7', userId: 'u7', username: 'david', password: 'Vortex@2024', role: 'reviewer', email: 'david@vortex.com', name: 'David Kim', isActive: true, organizationId: 'org-1' },
+  { id: 'ua8', userId: 'u8', username: 'rachel', password: 'Vortex@2024', role: 'approver', email: 'rachel@vortex.com', name: 'Rachel Green', isActive: true, organizationId: 'org-1' },
 ]
 
 const clients = [
@@ -560,6 +576,7 @@ const attendanceReportData = {
 
 // ── Export ──────────────────────────────────────────────────────────
 export const DEMO_DATA: Record<string, unknown> = {
+  '/api/users': { data: userAccounts },
   '/api/contents': { contents },
   '/api/posts': { posts },
   '/api/teams': { teams: teamsWithMembers },

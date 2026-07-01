@@ -26,6 +26,121 @@ export interface User {
   organizationId: string
 }
 
+// ── Role-based access control ───────────────────────────────────────
+export type UserRole = 'admin' | 'creative_lead' | 'designer' | 'editor' | 'reviewer' | 'approver' | 'disseminator' | 'manager' | 'employee'
+
+export interface RolePermissions {
+  canCreateContent: boolean
+  canEditContent: boolean
+  canDeleteContent: boolean
+  canMoveStage: boolean
+  canAssignTasks: boolean
+  canApprove: boolean
+  canPublish: boolean
+  canManageEmployees: boolean
+  canViewAllModules: boolean
+  canAccessFinance: boolean
+  allowedStages: ContentStage[]  // stages this role can work on
+  defaultLandingView: ActiveView  // where they land after login
+}
+
+export const ROLE_DEFINITIONS: Record<UserRole, { label: string; permissions: RolePermissions }> = {
+  admin: {
+    label: 'Administrator',
+    permissions: {
+      canCreateContent: true, canEditContent: true, canDeleteContent: true,
+      canMoveStage: true, canAssignTasks: true, canApprove: true, canPublish: true,
+      canManageEmployees: true, canViewAllModules: true, canAccessFinance: true,
+      allowedStages: ['idea', 'design', 'edit', 'review', 'approve', 'disseminate', 'archived'],
+      defaultLandingView: 'dashboard',
+    },
+  },
+  creative_lead: {
+    label: 'Creative Lead',
+    permissions: {
+      canCreateContent: true, canEditContent: true, canDeleteContent: true,
+      canMoveStage: true, canAssignTasks: true, canApprove: true, canPublish: false,
+      canManageEmployees: false, canViewAllModules: true, canAccessFinance: false,
+      allowedStages: ['idea', 'design', 'edit', 'review', 'approve'],
+      defaultLandingView: 'pipeline',
+    },
+  },
+  designer: {
+    label: 'Designer',
+    permissions: {
+      canCreateContent: true, canEditContent: true, canDeleteContent: false,
+      canMoveStage: true, canAssignTasks: true, canApprove: false, canPublish: false,
+      canManageEmployees: false, canViewAllModules: false, canAccessFinance: false,
+      allowedStages: ['idea', 'design'],
+      defaultLandingView: 'pipeline',
+    },
+  },
+  editor: {
+    label: 'Video Editor',
+    permissions: {
+      canCreateContent: false, canEditContent: true, canDeleteContent: false,
+      canMoveStage: true, canAssignTasks: true, canApprove: false, canPublish: false,
+      canManageEmployees: false, canViewAllModules: false, canAccessFinance: false,
+      allowedStages: ['edit', 'review'],
+      defaultLandingView: 'pipeline',
+    },
+  },
+  reviewer: {
+    label: 'Reviewer',
+    permissions: {
+      canCreateContent: false, canEditContent: true, canDeleteContent: false,
+      canMoveStage: true, canAssignTasks: true, canApprove: false, canPublish: false,
+      canManageEmployees: false, canViewAllModules: false, canAccessFinance: false,
+      allowedStages: ['review', 'approve'],
+      defaultLandingView: 'approvals',
+    },
+  },
+  approver: {
+    label: 'Approver',
+    permissions: {
+      canCreateContent: false, canEditContent: false, canDeleteContent: false,
+      canMoveStage: true, canAssignTasks: true, canApprove: true, canPublish: false,
+      canManageEmployees: false, canViewAllModules: false, canAccessFinance: false,
+      allowedStages: ['approve'],
+      defaultLandingView: 'approvals',
+    },
+  },
+  disseminator: {
+    label: 'Disseminator',
+    permissions: {
+      canCreateContent: false, canEditContent: true, canDeleteContent: false,
+      canMoveStage: true, canAssignTasks: false, canApprove: false, canPublish: true,
+      canManageEmployees: false, canViewAllModules: false, canAccessFinance: false,
+      allowedStages: ['disseminate'],
+      defaultLandingView: 'dissemination',
+    },
+  },
+  manager: {
+    label: 'Manager',
+    permissions: {
+      canCreateContent: true, canEditContent: true, canDeleteContent: true,
+      canMoveStage: true, canAssignTasks: true, canApprove: true, canPublish: false,
+      canManageEmployees: true, canViewAllModules: true, canAccessFinance: true,
+      allowedStages: ['idea', 'design', 'edit', 'review', 'approve', 'disseminate'],
+      defaultLandingView: 'dashboard',
+    },
+  },
+  employee: {
+    label: 'Employee',
+    permissions: {
+      canCreateContent: false, canEditContent: true, canDeleteContent: false,
+      canMoveStage: false, canAssignTasks: false, canApprove: false, canPublish: false,
+      canManageEmployees: false, canViewAllModules: false, canAccessFinance: false,
+      allowedStages: [],
+      defaultLandingView: 'dashboard',
+    },
+  },
+}
+
+export function getRolePermissions(role: string): RolePermissions {
+  return ROLE_DEFINITIONS[role as UserRole]?.permissions || ROLE_DEFINITIONS.employee.permissions
+}
+
 export interface Team {
   id: string
   name: string

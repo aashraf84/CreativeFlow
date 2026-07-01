@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Users, UserCheck, UserX, Building2, Search, Download, Plus,
   Mail, Phone, MapPin, Calendar, DollarSign, Shield, Heart,
-  Briefcase, Clock, ChevronRight, Pencil, Trash2,
+  Briefcase, Clock, ChevronRight, Pencil, Trash2, ShieldCheck,
 } from "lucide-react"
 
 // ── Animation variants ──────────────────────────────────────────────
@@ -90,15 +90,20 @@ function AddEmployeeDialog({ departments }: { departments: { id: string; name: s
           status: "active",
           employeeId: `EMP-${String(employees.length + 1).padStart(3, "0")}`,
           hireDate: new Date().toISOString(),
+          // ── User account fields ──
+          username: form.get("username"),
+          password: form.get("password"),
+          role: form.get("role"),
         }),
       })
       if (res.ok) {
         const emp = await res.json()
         setEmployees([...employees, emp])
         setOpen(false)
+        toast.success("Employee created with login access!")
       }
     } catch {
-      // handle error silently
+      toast.error("Failed to create employee")
     } finally {
       setLoading(false)
     }
@@ -111,68 +116,116 @@ function AddEmployeeDialog({ departments }: { departments: { id: string; name: s
           <Plus className="h-4 w-4" /> Add Employee
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos-lg rounded-2xl">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] shadow-macos-lg rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Add New Employee</DialogTitle>
+          <p className="text-sm text-muted-foreground">Employee will receive login credentials with role-based access</p>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input id="firstName" name="firstName" required placeholder="John" />
+          {/* ── Personal Info ── */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Personal Information</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input id="firstName" name="firstName" required placeholder="John" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input id="lastName" name="lastName" required placeholder="Doe" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input id="lastName" name="lastName" required placeholder="Doe" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" name="email" type="email" required placeholder="john.doe@company.com" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input id="phone" name="phone" placeholder="+1-555-0000" />
+              </div>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" required placeholder="john.doe@company.com" />
+
+          {/* ── Job Info ── */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Job Details</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="position">Position</Label>
+                <Input id="position" name="position" required placeholder="Software Engineer" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="departmentId">Department</Label>
+                <Select name="departmentId" required>
+                  <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                  <SelectContent>
+                    {departments.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="employmentType">Type</Label>
+                <Select name="employmentType" defaultValue="full-time">
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full-time">Full-time</SelectItem>
+                    <SelectItem value="part-time">Part-time</SelectItem>
+                    <SelectItem value="contract">Contract</SelectItem>
+                    <SelectItem value="internship">Internship</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="salary">Salary (USD)</Label>
+                <Input id="salary" name="salary" type="number" placeholder="80000" />
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
-            <Input id="phone" name="phone" placeholder="+1-555-0000" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="position">Position</Label>
-              <Input id="position" name="position" required placeholder="Software Engineer" />
+
+          {/* ── Login & Access ── */}
+          <div className="space-y-3 p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" /> Login & Access Control
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username <span className="text-red-500">*</span></Label>
+                <Input id="username" name="username" required placeholder="johndoe" className="bg-white dark:bg-[#1c1c1e]" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
+                <Input id="password" name="password" required placeholder="Default@2024" className="bg-white dark:bg-[#1c1c1e]" />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="departmentId">Department</Label>
-              <Select name="departmentId" required>
-                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+              <Label htmlFor="role">Role & Permissions</Label>
+              <Select name="role" defaultValue="employee">
+                <SelectTrigger className="bg-white dark:bg-[#1c1c1e]"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {departments.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                  ))}
+                  <SelectItem value="admin">Administrator (Full Access)</SelectItem>
+                  <SelectItem value="manager">Manager (All modules + Finance)</SelectItem>
+                  <SelectItem value="creative_lead">Creative Lead (Create, Edit, Assign, Approve)</SelectItem>
+                  <SelectItem value="designer">Designer (Create, Edit, Idea→Design)</SelectItem>
+                  <SelectItem value="editor">Video Editor (Edit, Review stages)</SelectItem>
+                  <SelectItem value="reviewer">Reviewer (Review, Approve stages)</SelectItem>
+                  <SelectItem value="approver">Approver (Approve stage only)</SelectItem>
+                  <SelectItem value="disseminator">Disseminator (Publish, Disseminate)</SelectItem>
+                  <SelectItem value="employee">Employee (Basic access)</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground">Role determines which modules, stages, and actions the employee can access</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="employmentType">Type</Label>
-              <Select name="employmentType" defaultValue="full-time">
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full-time">Full-time</SelectItem>
-                  <SelectItem value="part-time">Part-time</SelectItem>
-                  <SelectItem value="contract">Contract</SelectItem>
-                  <SelectItem value="internship">Internship</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="salary">Salary (USD)</Label>
-              <Input id="salary" name="salary" type="number" placeholder="80000" />
-            </div>
-          </div>
+
           <DialogFooter>
             <DialogClose asChild><Button type="button" variant="outline" className="rounded-lg">Cancel</Button></DialogClose>
             <Button type="submit" disabled={loading} className="bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg">
-              {loading ? "Adding..." : "Add Employee"}
+              {loading ? "Creating..." : "Create Employee & Login"}
             </Button>
           </DialogFooter>
         </form>
