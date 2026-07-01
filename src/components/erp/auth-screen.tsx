@@ -111,7 +111,10 @@ export function AuthScreen() {
       const userData = { id: data.user.id, email: data.user.email, name: data.user.name, avatar: data.user.avatar, role: data.user.role, organizationId: data.user.organizationId }
       setCurrentUser(userData)
       setIsViewOnly(false)
+      // Mark device as registered so serial key is not asked again on this device
       localStorage.setItem("erp_session", JSON.stringify({ user: userData, isDemo: false }))
+      localStorage.setItem("erp_device_registered", "true")
+      setDeviceRegistered(true)
       setAuthState("authenticated")
     } catch {
       setError("Server connection failed. Please try again.")
@@ -289,7 +292,7 @@ export function AuthScreen() {
               <motion.div key="serial-key" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} className="space-y-5">
                 <div>
                   <h2 className="text-3xl font-bold tracking-tight mb-1.5">Device Registration</h2>
-                  <p className="text-sm text-white/50">Enter your serial key to register this device</p>
+                  <p className="text-sm text-white/50">Enter your serial key to register this device. <span className="text-emerald-400/70">You won't be asked again on this device.</span></p>
                 </div>
 
                 <div className="space-y-2">
@@ -322,6 +325,15 @@ export function AuthScreen() {
                   Explore Demo (View Only)
                 </Button>
                 <p className="text-xs text-center text-white/30">No registration needed — explore the full ERP with view-only access</p>
+
+                {/* Skip to login for returning users */}
+                <button
+                  type="button"
+                  onClick={() => { localStorage.setItem("erp_device_registered", "true"); setDeviceRegistered(true); setAuthState("login") }}
+                  className="w-full text-center text-xs text-emerald-400/60 hover:text-emerald-400 transition-colors pt-1"
+                >
+                  Already registered? Skip to Sign In →
+                </button>
               </motion.div>
             )}
 

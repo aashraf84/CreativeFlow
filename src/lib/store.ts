@@ -1059,9 +1059,17 @@ export const useERPStore = create<ERPStore>((set) => ({
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('erp_session')
-      localStorage.removeItem('erp_device_registered')
+      // Keep device registered — don't force serial key re-entry on logout
+      const stillRegistered = localStorage.getItem('erp_device_registered') === 'true'
+      set({
+        currentUser: null,
+        authState: stillRegistered ? 'login' : 'serial-key',
+        isViewOnly: false,
+        deviceRegistered: stillRegistered,
+      })
+    } else {
+      set({ currentUser: null, authState: 'serial-key', isViewOnly: false, deviceRegistered: false })
     }
-    set({ currentUser: null, authState: 'serial-key', isViewOnly: false, deviceRegistered: false })
   },
   approvals: [],
   invoices: [],
