@@ -58,6 +58,24 @@ export function AttendanceView() {
   }>>([])
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
 
+  // ── Machine Management state ──
+  const [showMachineManager, setShowMachineManager] = useState(false)
+  const [machines, setMachines] = useState<Array<{
+    id: string
+    name: string
+    model: string
+    serial: string
+    ipAddress: string
+    port: number
+    location: string
+    status: 'online' | 'offline'
+    lastSync: string | null
+  }>>([
+    { id: 'm1', name: 'Main Entrance', model: 'ZKTeco MB460', serial: 'CF-ATT-2024-001', ipAddress: '192.168.1.201', port: 4370, location: 'Main Office - Entrance', status: 'online', lastSync: new Date().toISOString() },
+  ])
+  const [editingMachine, setEditingMachine] = useState<string | null>(null)
+  const [machineForm, setMachineForm] = useState({ name: '', model: 'ZKTeco MB460', serial: '', ipAddress: '', port: '4370', location: '' })
+
   // KPIs for selected date
   const dayRecords = useMemo(() => {
     return attendance.filter(a => {
@@ -258,6 +276,79 @@ export function AttendanceView() {
     setMachineRecords(prev => prev.map(r => ({ ...r, selected: select })))
   }
 
+  // ── Machine CRUD ──
+  const handleAddMachine = () => {
+    setEditingMachine(null)
+    setMachineForm({ name: '', model: 'ZKTeco MB460', serial: '', ipAddress: '', port: '4370', location: '' })
+  }
+
+  const handleEditMachine = (machineId: string) => {
+    const m = machines.find(m => m.id === machineId)
+    if (m) {
+      setEditingMachine(machineId)
+      setMachineForm({ name: m.name, model: m.model, serial: m.serial, ipAddress: m.ipAddress, port: String(m.port), location: m.location })
+    }
+  }
+
+  const handleSaveMachine = () => {
+    if (!machineForm.name.trim() || !machineForm.ipAddress.trim()) {
+      toast.error("Name and IP address are required")
+      return
+    }
+    if (editingMachine) {
+      setMachines(machines.map(m => m.id === editingMachine ? {
+        ...m,
+        name: machineForm.name,
+        model: machineForm.model,
+        serial: machineForm.serial || `CF-ATT-${Date.now()}`,
+        ipAddress: machineForm.ipAddress,
+        port: parseInt(machineForm.port) || 4370,
+        location: machineForm.location,
+      } : m))
+      toast.success("Attendance machine updated")
+    } else {
+      const newMachine = {
+        id: `m${Date.now()}`,
+        name: machineForm.name,
+        model: machineForm.model,
+        serial: machineForm.serial || `CF-ATT-${Date.now()}`,
+        ipAddress: machineForm.ipAddress,
+        port: parseInt(machineForm.port) || 4370,
+        location: machineForm.location || 'Not specified',
+        status: 'offline' as const,
+        lastSync: null,
+      }
+      setMachines([...machines, newMachine])
+      toast.success(`Machine "${machineForm.name}" added — connect to activate`)
+    }
+    setEditingMachine(null)
+    setMachineForm({ name: '', model: 'ZKTeco MB460', serial: '', ipAddress: '', port: '4370', location: '' })
+  }
+
+  const handleDeleteMachine = (machineId: string) => {
+    setMachines(machines.filter(m => m.id !== machineId))
+    toast.success("Attendance machine removed")
+  }
+
+  const handleTestConnection = async (machineId: string) => {
+    const m = machines.find(m => m.id === machineId)
+    if (!m) return
+    toast.info(`Testing connection to ${m.ipAddress}:${m.port}...`)
+    try {
+      const res = await fetch(`/api/attendance-machine/sync?date=${new Date().toISOString().split('T')[0]}`)
+      if (res.ok) {
+        setMachines(machines.map(m => m.id === machineId ? { ...m, status: 'online', lastSync: new Date().toISOString() } : m))
+        toast.success(`${m.name} is online ✓`)
+      } else {
+        setMachines(machines.map(m => m.id === machineId ? { ...m, status: 'offline' } : m))
+        toast.error(`${m.name} is offline`)
+      }
+    } catch {
+      setMachines(machines.map(m => m.id === machineId ? { ...m, status: 'offline' } : m))
+      toast.error(`Cannot reach ${m.name}`)
+    }
+  }
+
   const handleClockIn = async () => {
     if (!formEmployeeId) {
       toast.error("Select an employee first")
@@ -346,6 +437,15 @@ export function AttendanceView() {
           <p className="text-sm text-muted-foreground mt-1">Track employee attendance, clock in/out, and time worked</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowMachineManager(true)}
+            variant="ghost"
+            className="rounded-full text-muted-foreground hover:text-foreground gap-2"
+          >
+            <Cpu className="h-4 w-4" />
+            <span className="hidden sm:inline">Machines</span>
+            <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{machines.length}</Badge>
+          </Button>
           <Button
             onClick={handleMachineSync}
             disabled={machineSyncing}
@@ -678,6 +778,120 @@ export function AttendanceView() {
                 Import {machineRecords.filter(r => r.selected).length} Record(s)
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Machine Manager Dialog ── */}
+      <Dialog open={showMachineManager} onOpenChange={setShowMachineManager}>
+        <DialogContent className="bg-white dark:bg-[#1c1c1e] border border-[#e5e5e7] dark:border-[#38383a] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Cpu className="h-5 w-5 text-emerald-600" />
+              Attendance Machines
+            </DialogTitle>
+            <DialogDescription>
+              Manage biometric attendance devices. Add machines by IP address to sync check-in/out records.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Machine list */}
+          <div className="space-y-3">
+            {machines.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No machines configured. Add one below.</p>
+            )}
+            {machines.map((m) => (
+              <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg border border-black/5 dark:border-white/5">
+                <div className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${m.status === 'online' ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-slate-100 dark:bg-slate-800/60'}`}>
+                  <Fingerprint className={`h-5 w-5 ${m.status === 'online' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">{m.name}</p>
+                    <Badge variant="outline" className={`text-[8px] gap-1 ${m.status === 'online' ? 'text-emerald-600 border-emerald-200 dark:text-emerald-400 dark:border-emerald-800' : 'text-slate-400 border-slate-200 dark:border-slate-700'}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${m.status === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                      {m.status === 'online' ? 'Online' : 'Offline'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {m.model} · {m.ipAddress}:{m.port} · {m.location}
+                  </p>
+                  {m.lastSync && (
+                    <p className="text-[10px] text-muted-foreground/70">
+                      Last sync: {(() => { try { return format(new Date(m.lastSync), "MMM d, HH:mm") } catch { return '—' } })()}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-lg" onClick={() => handleTestConnection(m.id)} title="Test connection">
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-lg" onClick={() => handleEditMachine(m.id)} title="Edit">
+                    <Edit3 className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-lg text-red-500" onClick={() => handleDeleteMachine(m.id)} title="Delete">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add/Edit machine form */}
+          <div className="border-t border-black/5 dark:border-white/5 pt-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+              {editingMachine ? 'Edit Machine' : 'Add New Machine'}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Machine Name *</Label>
+                <Input placeholder="e.g. Back Entrance" value={machineForm.name} onChange={(e) => setMachineForm({ ...machineForm, name: e.target.value })} className="rounded-lg h-9" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">IP Address *</Label>
+                <Input placeholder="192.168.1.201" value={machineForm.ipAddress} onChange={(e) => setMachineForm({ ...machineForm, ipAddress: e.target.value })} className="rounded-lg h-9 font-mono" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Port</Label>
+                <Input placeholder="4370" value={machineForm.port} onChange={(e) => setMachineForm({ ...machineForm, port: e.target.value })} className="rounded-lg h-9 font-mono" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Model</Label>
+                <Select value={machineForm.model} onValueChange={(v) => setMachineForm({ ...machineForm, model: v })}>
+                  <SelectTrigger className="rounded-lg h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ZKTeco MB460">ZKTeco MB460</SelectItem>
+                    <SelectItem value="ZKTeco SpeedFace V5L">ZKTeco SpeedFace V5L</SelectItem>
+                    <SelectItem value="Hikvision DS-K1T804">Hikvision DS-K1T804</SelectItem>
+                    <SelectItem value="Suprema BioStation 3">Suprema BioStation 3</SelectItem>
+                    <SelectItem value="Realtime T60">Realtime T60</SelectItem>
+                    <SelectItem value="Custom">Custom Device</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Serial Number</Label>
+                <Input placeholder="Auto-generated if empty" value={machineForm.serial} onChange={(e) => setMachineForm({ ...machineForm, serial: e.target.value })} className="rounded-lg h-9 font-mono" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Location</Label>
+                <Input placeholder="e.g. Back Office - Exit" value={machineForm.location} onChange={(e) => setMachineForm({ ...machineForm, location: e.target.value })} className="rounded-lg h-9" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-3">
+              {editingMachine && (
+                <Button variant="ghost" size="sm" onClick={() => { setEditingMachine(null); setMachineForm({ name: '', model: 'ZKTeco MB460', serial: '', ipAddress: '', port: '4370', location: '' }) }}>
+                  Cancel Edit
+                </Button>
+              )}
+              <Button onClick={handleSaveMachine} size="sm" className="bg-emerald-600 hover:bg-emerald-700 rounded-full">
+                {editingMachine ? 'Update Machine' : 'Add Machine'}
+              </Button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMachineManager(false)} className="rounded-full">Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
